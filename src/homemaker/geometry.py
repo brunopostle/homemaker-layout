@@ -19,6 +19,17 @@ from .dom import Node
 
 Point = list[float]
 
+# Memoisation of derived coordinates. The pull-based recursion mirrors Urb but,
+# uncached, re-derives ancestor/below corners exponentially with depth. Urb
+# itself caches in the node and clears via Clean_Cache(); we do the same with a
+# module cache keyed by node identity. Callers that mutate divisions (the
+# solver) must call clear_cache(); dom.load() clears it for a fresh tree.
+_cache: dict = {}
+
+
+def clear_cache() -> None:
+    _cache.clear()
+
 
 def _interp(a: Point, b: Point, t: float) -> Point:
     return [a[0] * (1 - t) + b[0] * t, a[1] * (1 - t) + b[1] * t]
@@ -26,30 +37,52 @@ def _interp(a: Point, b: Point, t: float) -> Point:
 
 def coordinate(n: Node, idx: int) -> Point:
     """Corner ``idx`` (0..3) of ``n``; mirrors ``Urb::Quad::Coordinate``."""
+    key = (id(n), idx)
+    hit = _cache.get(key)
+    if hit is not None:
+        return hit
     if n.below is not None:  # upper storey inherits geometry from below
-        return coordinate(n.below, idx)
-    rid = (idx + n.rotation) % 4
-    if n.parent is None:  # level root: stored, rotation-adjusted corner
-        return list(n.node[rid])
-    p = n.parent
-    if n.position == "l":
-        return {0: coordinate(p, 0), 1: coord_a(p), 2: coord_b(p), 3: coordinate(p, 3)}[rid]
-    # position == 'r'
-    return {0: coord_a(p), 1: coordinate(p, 1), 2: coordinate(p, 2), 3: coord_b(p)}[rid]
+        result = coordinate(n.below, idx)
+    else:
+        rid = (idx + n.rotation) % 4
+        if n.parent is None:  # level root: stored, rotation-adjusted corner
+            result = list(n.node[rid])
+        else:
+            p = n.parent
+            if n.position == "l":
+                result = {0: coordinate(p, 0), 1: coord_a(p), 2: coord_b(p), 3: coordinate(p, 3)}[rid]
+            else:  # 'r'
+                result = {0: coord_a(p), 1: coordinate(p, 1), 2: coordinate(p, 2), 3: coord_b(p)}[rid]
+    _cache[key] = result
+    return result
 
 
 def coord_a(n: Node) -> Point:
     """End 'a' of the division line; mirrors ``Urb::Quad::Coordinate_a``."""
+    key = (id(n), "a")
+    hit = _cache.get(key)
+    if hit is not None:
+        return hit
     if n.below is not None and n.below.divided:
-        return coord_a(n.below)
-    return _interp(coordinate(n, 0), coordinate(n, 1), n.division[0])
+        result = coord_a(n.below)
+    else:
+        result = _interp(coordinate(n, 0), coordinate(n, 1), n.division[0])
+    _cache[key] = result
+    return result
 
 
 def coord_b(n: Node) -> Point:
     """End 'b' of the division line; mirrors ``Urb::Quad::Coordinate_b``."""
+    key = (id(n), "b")
+    hit = _cache.get(key)
+    if hit is not None:
+        return hit
     if n.below is not None and n.below.divided:
-        return coord_b(n.below)
-    return _interp(coordinate(n, 3), coordinate(n, 2), n.division[1])
+        result = coord_b(n.below)
+    else:
+        result = _interp(coordinate(n, 3), coordinate(n, 2), n.division[1])
+    _cache[key] = result
+    return result
 
 
 def _dist(a: Point, b: Point) -> float:

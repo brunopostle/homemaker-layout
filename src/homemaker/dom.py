@@ -156,6 +156,7 @@ def load(path: str) -> Node:
     if root.node is not None:
         root.node_file = [list(p) for p in root.node]
         root.node = geometry.offset_quad(root.node, -root.wall_outer)
+    geometry.clear_cache()  # fresh tree: drop any stale coordinates
     return root
 
 
