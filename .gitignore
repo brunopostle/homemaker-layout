@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+# scratch output from the Perl oracle during experiments
+scratch/
+*.dom.score
+*.dom.fails
