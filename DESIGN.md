@@ -1,7 +1,12 @@
 # homemaker — Design & Plan
 
-**Status:** validated direction, pre-implementation.
-**Audience:** a fresh session that will break this into `bd` (beads) tasks. Self-contained — assumes no memory of the originating conversation.
+**Status:** validated direction, pre-implementation. Reviewed against the Urb
+source 2026-06-12; review findings folded in (see §4.5 evidence note, §4.6
+throughput arithmetic, §5 decision 6, §6 port-scope expansion, §7 re-scoped
+phases, §8).
+**Audience:** a fresh session that will break this into `bd` (beads) tasks
+(note: no beads database exists yet — run `bd init` first). Self-contained —
+assumes no memory of the originating conversation.
 
 ---
 
@@ -143,12 +148,17 @@ the proxy solver protects the full-objective optimiser.**
 
 **Implications:**
 - There is large, unclaimed **geometry headroom above every EA design** — even
-  the best. Urb's EA under-optimises geometry (its slide mutations are weak/
-  under-applied).
+  the best. Urb's EA under-optimises geometry: source inspection confirms
+  `slide()` (Mutate.pm:256-269) *re-randomises* the cut position uniformly
+  across the span — Urb has **no fine-tuning geometry operator at all**, which
+  fully explains the headroom.
 - A **full-objective geometry inner loop is genuinely valuable** (the proxy
   solver is not).
 - The EA/search should therefore own **topology**; geometry is delegated to the
   inner loop. This is the memetic architecture (§5).
+- Corroboration for §4.3: Urb's own mutations use equal offsets
+  (`Divide($division, $division)`) — equal-offset cuts match how every corpus
+  design was generated.
 
 ### 4.6 Oracle throughput (measured)
 `urb-fitness.pl` scores **many `.dom` files per invocation**, so the Perl startup
@@ -162,10 +172,20 @@ Consequences:
   **population/parallel-evaluating optimisers** (CMA-ES, differential evolution,
   island EA, pattern search) over inherently sequential ones (Nelder-Mead), both
   inner loop and outer search, so a whole generation scores in one oracle call.
-- The memetic search can be **prototyped on the batched oracle** before any
-  fitness port. A **native Python fitness is strongly desirable** (faster
-  assessment, independence, enables penalty reshaping and large programmes) but
-  is **a later speed/scale optimisation, not a hard gate**.
+- **Do the arithmetic before scoping topology search on the oracle.** §4.5 used
+  ~200 inner evaluations per topology ⇒ ~3 min/topology at 1 s/dom. A run
+  comparable to `urb-evolve` (pop 128 × 768 generations) is *years* of oracle
+  time; even 32 topologies × 100 generations with a trimmed 50-eval inner loop
+  is ~2 days. Therefore:
+  - The oracle supports **Phase 1 fully** and **Phase 2 only as a small-scale
+    proof** (tens of topologies, budgets counted in oracle calls).
+  - A **native Python fitness is effectively a gate for topology search at any
+    real scale** — not merely a later optimisation. (It also brings
+    independence, penalty reshaping, and large programmes.)
+  - **Warm-starting the inner loop from the parent's optimised ratios**
+    (Lamarckian inheritance, §5 decision 6) is the main lever for cutting the
+    per-topology cost — with high-locality moves most cuts survive a mutation,
+    so an order-of-magnitude reduction is plausible. Measure this in Phase 1.
 
 ### 4.7 The `0.5^n` failure penalty is a first-order pathology
 Multiplicative `0.5^n` over failure *count* (a) makes the landscape a cliff (no
@@ -207,14 +227,26 @@ Key decisions, all evidence-backed:
    regulariser, via `Below`-inheritance).
 3. **Prefer population/batch-evaluating optimisers** so the batched oracle is
    efficient (§4.6). A **native Python fitness** (faithful to Urb, validated
-   against the oracle on the 35-file corpus) is a later speed/scale optimisation
-   — desirable, not a gate.
+   against the oracle on the 35-file corpus) **gates topology search at scale**
+   (§4.6 arithmetic); the oracle suffices for the inner loop and a small-scale
+   topology-search proof only.
 4. **Reshape the failure penalty** (§4.7) — additive/soft or multi-objective —
-   so the search has a gradient and isn't dominated by flag-count.
+   so the search has a gradient and isn't dominated by flag-count. **Caution:**
+   the `0.5^n` cliff is what *protects* the inner loop from trading into new
+   failures (§4.5); reshaping must not lose that property. Candidate
+   resolutions: keep the cliff inside the inner loop only, lexicographic
+   ordering (failure count first, score second), or genuine multi-objective
+   Pareto. Decide in Phase 4 with measurements.
 5. **Representation upgrade (later):** canonical slicing encoding (normalized
    Polish expression / skewed slicing tree, Wong–Liu) for redundancy-free,
    high-locality topology moves; bottom-up shape feasibility checks. Defer until
    the inner loop + native fitness are in place.
+6. **Lamarckian geometry inheritance.** A child topology's inner loop
+   warm-starts from the parent's optimised ratios (cuts that survive the
+   topology move keep their values; new cuts get heuristic defaults). This is
+   the main cost lever for the memetic loop (§4.6) and a standard memetic
+   design choice (Lamarckian vs Baldwinian — we write the optimised geometry
+   back into the genome). Validate the warm-vs-cold speedup in Phase 1.
 
 What we are **not** doing: the bottom-up area-proxy solver; independent-offset
 cuts; non-slicing representations (sequence-pair/B*-tree — excluded by §2).
@@ -230,11 +262,11 @@ cuts; non-slicing representations (sequence-pair/B*-tree — excluded by §2).
 | `programme.py` | ✅ done | extend as fitness needs grow |
 | `oracle.py` (Perl bridge) | ✅ done | throwaway; the validation reference |
 | `solver.py` (area proxy) | ⚠️ keep as artifact | falsified; do not build on it |
-| **geometry inner loop** | ❌ to build | full-objective ratio optimiser (DOF = free branches); batch/population so the oracle batches |
+| **geometry inner loop** | ❌ to build | full-objective ratio optimiser (DOF = free branches); batch/population so the oracle batches; warm-start support (§5.6) |
 | **topology genome + operators** | ❌ to build | base tree + per-floor deltas; high-locality moves |
-| **search driver** | ❌ to build | memetic EA / SA over topology |
-| **native fitness** | ❌ later | speed/scale optimisation (not gating); port + validate vs oracle |
-| **penalty reshaping** | ❌ to design | additive/soft or multi-objective |
+| **search driver** | ❌ to build | memetic EA / SA over topology; small-scale on oracle, full-scale needs native fitness |
+| **native fitness** | ❌ to build | **gates topology search at scale** (§4.6); port + validate vs oracle; scope is larger than the term list — see below |
+| **penalty reshaping** | ❌ to design | additive/soft or multi-objective; must preserve inner-loop cliff protection (§5.4) |
 | canonical encoding (Polish expr.) | ❌ later | representation upgrade once core lands |
 
 Urb fitness terms the native port must reproduce (all couple to geometry):
@@ -244,26 +276,66 @@ outside ratios, min internal area.** Source of truth:
 `/home/bruno/src/urb/lib/Urb/Dom/Fitness/ProgrammeDriven.pm` and the `Storey`/
 `Building`/`Leaf`/`Base` submodules.
 
+**Port scope beyond the term list** (found by source review — budget for these):
+
+- **Daylight + occlusion subsystem.** `quality_daylight` (Leaf.pm:281-296)
+  needs the occlusion field and sun-path model (`Urb::Misc::Sun`,
+  `Urb::Field::Occlusion`, CIESky); `quality_uncrinkliness` also takes the
+  occlusion object. This is a whole subsystem, not a term. (Indoor spaces
+  return 1; the cost is for outdoor spaces and crinkliness.)
+- **The cost denominator.** Fitness is value/**cost**: per-leaf area costs,
+  interior/exterior wall edge costs, boundary costs
+  (Leaf.pm:194-251, Storey.pm:122-147). Cost couples to geometry too.
+- **Structural failures** not in the term list: "edge too long" (>8 m, two
+  variants), "unsupported covered outside", "covered outside above ground",
+  "level N not connected".
+- **Missing-space failure stacking** (ProgrammeDriven.pm:192-212): a missing
+  space generates 2 base failures plus one per size/width/proportion/adjacency/
+  level requirement — up to ~7 failures. Penalty reshaping (Phase 4) must
+  preserve this hierarchy or the search will happily drop rooms.
+- **Two-phase graph build**: adjacency/level/vertical checks run on the
+  *unmerged* tree; graphs are rebuilt after `Merge_Divided` for storey
+  processing (ProgrammeDriven.pm:83-103). Easy to get subtly wrong; the
+  35-file validation gate will catch it, but anticipate it.
+- **Known stub to decide on** (fidelity-vs-fix, §8.1):
+  `has_vertical_connection` (ProgrammeDriven.pm:399-423) matches any leaf of
+  the target type anywhere on the level below — no spatial-overlap check. A
+  faithful port reproduces the bug; decide explicitly.
+
 ---
 
 ## 7. Phased roadmap
 
-- **Phase 0 — diagnostics** *(done this session)*: geometry port validated;
-  proxy solver falsified; full-fitness geometry headroom validated; oracle
-  throughput measured (~1 s/dom batched).
+- **Phase 0 — diagnostics** *(done)*: geometry port validated; proxy solver
+  falsified; full-fitness geometry headroom validated; oracle throughput
+  measured (~1 s/dom batched).
 - **Phase 1 — geometry inner loop (on batched oracle)**: full-objective ratio
   optimiser; use a population/batch optimiser so a generation scores in one
   oracle call. Reproduce/exceed the §4.5 gains. Integrate as
-  `optimise(topology) -> (geometry, fitness)`.
-- **Phase 2 — topology search (on batched oracle)**: base-tree + per-floor-delta
-  genome, high-locality operators, memetic driver wrapping the Phase-1 inner
-  loop. Compare against `urb-evolve` from the same seeds/programmes.
-- **Phase 3 — native Python fitness**: port Urb's programme-driven fitness;
-  validate score + failure set against the oracle across the 35-file corpus
-  (float tolerance, identical failure sets). Swap behind the same interface for
-  speed/scale; retire the oracle.
-- **Phase 4 — penalty reshaping**: replace `0.5^n` with additive/soft or
-  multi-objective (easier once fitness is native); measure landscape + search.
+  `optimise(topology, x0=None) -> (geometry, fitness)`. Two cheap experiments
+  belong here: (a) **warm-vs-cold start** — quantify the §5.6 speedup;
+  (b) **optimiser bake-off** — DOF is only ≈ rooms−1, so batched multi-start
+  pattern search may beat CMA-ES on simplicity; measure, don't commit blind.
+  *Gate:* match §4.5 gains at materially lower oracle-call budget.
+- **Phase 2 — topology search, small-scale proof (on batched oracle)**:
+  base-tree + per-floor-delta genome, high-locality operators, memetic driver
+  wrapping the Phase-1 inner loop. **Explicitly small** (§4.6 arithmetic):
+  tens of topologies, budgets counted in **oracle evaluations**, not
+  generations. Compare against `urb-evolve` from the same seeds/programmes *at
+  equal oracle-call budget* (urb-evolve has diversity injection/culling baked
+  in, so generations are not comparable). *Gate:* memetic loop beats
+  equal-budget urb-evolve. Scaling up waits for Phase 3.
+- **Phase 3 — native Python fitness** (**gates scaled topology search**): port
+  Urb's programme-driven fitness — including the §6 "port scope beyond the
+  term list" items (occlusion/daylight subsystem, cost denominator, structural
+  failures, failure stacking, two-phase graph build). Validate score + failure
+  set against the oracle across the 35-file corpus (float tolerance, identical
+  failure sets). Swap behind the same interface; retire the oracle. Then
+  re-run Phase 2 at scale.
+- **Phase 4 — penalty reshaping**: replace `0.5^n` with additive/soft,
+  lexicographic, or multi-objective (easier once fitness is native), while
+  preserving the inner loop's no-new-failures protection (§5.4) and the
+  missing-space hierarchy (§6); measure landscape + search.
 - **Phase 5 — representation upgrade**: canonical slicing encoding
   (Polish expression) + bottom-up shape feasibility; scale to larger programmes.
 
@@ -275,18 +347,30 @@ Each phase has a concrete go/no-go gate; do not advance on faith.
 
 1. **Native-fitness fidelity vs simplification.** Port Urb's fitness exactly
    (maximise comparability) or take the opportunity to clean up known issues
-   (the `0.5^n` cliff, the t3 width-default contradiction below)? Recommend:
-   *port faithfully first*, validate, then reshape in Phase 3.
-2. **Programme contradictions exist.** e.g. t3 (3 m² WC) inherits a 4 m default
-   width — geometrically impossible; the original "passes" only by failing
-   `size` instead. Need a sane width default scaled to area, or per-room widths.
-3. **Inner-loop optimiser choice.** Nelder-Mead worked for diagnostics; for
-   production consider CMA-ES, Powell, or gradient-based once native fitness is
-   differentiable-ish. DOF is small (≈ rooms−1).
+   (the `0.5^n` cliff, the t3 width-default contradiction below, the
+   `has_vertical_connection` no-overlap stub — §6)? Recommend: *port faithfully
+   first* (bugs included), validate, then reshape in Phase 4.
+2. **Programme contradictions exist.** e.g. t3 (3 m² WC) inherits the 4 m
+   `width_inside` default (Fitness/Base.pm:60) — geometrically impossible; the
+   original "passes" only by failing `size` instead. *Confirmed in source.*
+   Need a sane width default scaled to area, or per-room widths.
+3. **Inner-loop optimiser choice.** Nelder-Mead worked for diagnostics; DOF is
+   small (≈ rooms−1, 6–7 on the corpus), so CMA-ES may be overkill — batched
+   multi-start pattern search parallelises across the oracle and is simpler.
+   Resolve via the Phase 1 bake-off, not upfront. Gradient-based becomes an
+   option once native fitness is differentiable-ish.
 4. **Search algorithm for topology.** Memetic GA (keep crossover — now
    meaningful, since a subtree = a contiguous region) vs simulated annealing
    (the floorplanning workhorse with M1/M2/M3 moves on Polish expressions).
-5. **End-state confirmed: 100% Python**; Perl oracle is scaffold only.
+5. **Penalty reshaping vs inner-loop protection.** One fitness shape cannot
+   naively be both soft for the outer search and cliff-protected for the inner
+   loop (§5.4). Resolve in Phase 4: cliff-inside-inner-loop, lexicographic, or
+   Pareto.
+6. **Other continuous DOF are out of scope for Phase 1 — deliberately.**
+   Floor-to-floor height is an Urb mutation (Mutate.pm:279-291, bounded
+   2.7–3.6 m) and feeds cost and stair fit; stair riser/width similar. Cut
+   ratios dominate. Revisit (+1 DOF per storey) if Phase 2 plateaus.
+7. **End-state confirmed: 100% Python**; Perl oracle is scaffold only.
 
 ---
 
