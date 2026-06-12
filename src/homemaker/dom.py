@@ -126,9 +126,9 @@ def _link(root: Node) -> None:
         below_root = lvls[i - 1]
 
         def _set(n: Node, below_root: Node = below_root) -> None:
-            b = below_root.by_id(n.id)
-            if b is not None:
-                n.below = b
+            # always assign: re-linking a structurally mutated tree must CLEAR
+            # below-links whose path no longer exists on the storey below
+            n.below = below_root.by_id(n.id)
             if n.divided:
                 _set(n.left)
                 _set(n.right)

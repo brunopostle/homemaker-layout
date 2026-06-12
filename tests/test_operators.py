@@ -1,0 +1,93 @@
+"""Operator tests (oracle-free): every child is a valid, canonical genome."""
+
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from homemaker import dom, genome, operators
+
+CORPUS = Path("/home/bruno/src/urb/examples/programme-house")
+FILES = ["2f45907abd9accac2a124d311732f749.dom", "candidate-002.dom",
+         "c964435454c459f86c3ed9a5a7621132.dom"]
+TYPES = ["k1", "l1", "b1", "b2", "t1", "c", "o"]
+
+pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Urb corpus not available")
+
+
+def canonical(root: dom.Node) -> None:
+    """Child must encode to a genome that decode/encode holds fixed."""
+    g1 = genome.encode(root)
+    g2 = genome.encode(genome.decode(g1))
+    assert g2 == g1
+
+
+@pytest.mark.parametrize("name", sorted(operators.MUTATIONS))
+def test_mutations_yield_canonical_genomes(name):
+    op = operators.MUTATIONS[name]
+    for f in FILES:
+        root = genome.decode(genome.encode(dom.load(str(CORPUS / f))))
+        for seed in range(5):
+            child, desc = op(root, np.random.default_rng(seed), TYPES)
+            assert desc.startswith(name.split("_")[0]) or "noop" in desc
+            canonical(child)
+            # the parent must never be mutated in place
+            canonical(root)
+
+
+def test_divide_grows_and_undivide_shrinks():
+    root = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[0]))))
+    n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(root))
+    child, _ = operators.mutate_divide(root, np.random.default_rng(0), TYPES)
+    assert sum(len(lvl.leaves()) for lvl in dom.levels(child)) == n_leaves + 1
+    child, desc = operators.mutate_undivide(root, np.random.default_rng(0), TYPES)
+    if "noop" not in desc:
+        assert sum(len(lvl.leaves()) for lvl in dom.levels(child)) < n_leaves
+
+
+def test_level_add_delete():
+    root = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[0]))))
+    n = len(dom.levels(root))
+    up, _ = operators.mutate_level_add(root, np.random.default_rng(0), TYPES)
+    assert len(dom.levels(up)) == n + 1
+    canonical(up)
+    down, _ = operators.mutate_level_delete(root, np.random.default_rng(0), TYPES)
+    assert len(dom.levels(down)) == n - 1
+
+
+def test_relink_clears_stale_below_after_base_undivide():
+    # regression: dom._link must clear below-links whose path vanished, or
+    # geometry on the mutated tree dereferences orphaned nodes
+    from homemaker import geometry
+
+    root = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[0]))))
+    # force an undivide on the BASE storey specifically
+    base = dom.levels(root)[0]
+    cands = [n for li, n in operators._owned_branches(root)
+             if li == 0 and not n.left.divided and not n.right.divided]
+    assert cands, "corpus design has no base leaf-pair branch"
+    import copy as _copy
+
+    child = _copy.deepcopy(root)
+    target = dom.levels(child)[0].by_id(cands[0].id)
+    target.division = None
+    target.left = target.right = None
+    target.type = "l1"
+    dom._link(child)
+    geometry.clear_cache()
+    for lvl in dom.levels(child):
+        for leaf in lvl.leaves():
+            for i in range(4):
+                geometry.coordinate(leaf, i)  # must not raise
+    canonical(child)
+    assert base.by_id(cands[0].id) is not None  # parent untouched
+
+
+def test_crossover_yields_canonical_pair():
+    a = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[0]))))
+    b = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[1]))))
+    for seed in range(5):
+        ca, cb, desc = operators.crossover(a, b, np.random.default_rng(seed))
+        assert desc.startswith("crossover")
+        canonical(ca)
+        canonical(cb)
