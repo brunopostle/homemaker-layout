@@ -101,7 +101,10 @@ def mutate_retype(root: dom.Node, rng: np.random.Generator,
 def mutate_swap(root: dom.Node, rng: np.random.Generator,
                 types: list[str]) -> tuple[dom.Node, str]:
     child = copy.deepcopy(root)
-    li, n = _pick(rng, _owned_branches(child))
+    cands = _owned_branches(child)
+    if not cands:  # undivided topology (e.g. a bare plot seed)
+        return _finalise(child), "swap noop"
+    li, n = _pick(rng, cands)
     n.left, n.right = n.right, n.left
     return _finalise(child), f"swap {li}/{n.id or 'root'}"
 

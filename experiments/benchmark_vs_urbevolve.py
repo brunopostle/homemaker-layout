@@ -50,7 +50,7 @@ def run_homemaker(seed: str, budget: int, cell: Path) -> dict:
     return {"series": series, "best_dom": out, "log_ok": proc.returncode == 0}
 
 
-def run_urbevolve(seed: str, budget: int, pop: int, cell: Path) -> dict:
+def run_urbevolve(seed: str, budget: int, cell: Path, pop: int) -> dict:
     shutil.copy(EX / "patterns.config", cell)
     shutil.copy(EX / seed, cell)
     proc = subprocess.run(

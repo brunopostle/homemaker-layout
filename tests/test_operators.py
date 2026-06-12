@@ -83,6 +83,18 @@ def test_relink_clears_stale_below_after_base_undivide():
     assert base.by_id(cands[0].id) is not None  # parent untouched
 
 
+def test_all_mutations_survive_undivided_tree():
+    # an undivided plot (init.dom-style seed) must never crash an operator
+    bare = dom.Node(type="O", node=[[0, 0], [10, 0], [10, 8], [0, 8]],
+                    height=2.7, wall_outer=0.25, wall_inner=0.08)
+    dom._link(bare)
+    for name, op in operators.MUTATIONS.items():
+        for seed in range(3):
+            child, desc = op(bare, np.random.default_rng(seed), TYPES)
+            assert desc, name
+            canonical(child)
+
+
 def test_crossover_yields_canonical_pair():
     a = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[0]))))
     b = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[1]))))
