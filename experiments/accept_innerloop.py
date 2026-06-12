@@ -22,16 +22,20 @@ from homemaker import dom, innerloop, oracle  # noqa: E402
 URB = Path("/home/bruno/src/urb")
 EX = URB / "examples" / "programme-house"
 
-# name -> the x-gain the §4.5 Nelder-Mead diagnostic achieved (the bar)
+# name -> reference x-gain. Current bars are the occlusion-disabled re-baseline
+# (homemaker-py-gp2): the deterministic-seed CMA run at budget 400 under
+# URB_NO_OCCLUSION=1 — set that env var to reproduce. (The original §4.5
+# Nelder-Mead bars, flag-off, were 1.24 / 1.67 / 1.59; the inner loop met them
+# within noise, homemaker-py-1p0.)
 GATE = {
-    "2f45907abd9accac2a124d311732f749.dom": 1.24,
-    "candidate-002.dom": 1.67,
-    "c964435454c459f86c3ed9a5a7621132.dom": 1.59,
+    "2f45907abd9accac2a124d311732f749.dom": 1.63,
+    "candidate-002.dom": 1.70,
+    "c964435454c459f86c3ed9a5a7621132.dom": 1.68,
 }
 
-# The §4.5 bars are single Nelder-Mead draws and the inner loop's per-run
-# variance brackets them (candidate-002 drew 0.0117-0.0160 against a 0.0123
-# bar). Reproduction within 1% counts as met — decision approved 2026-06-12
+# Bars are single optimiser draws and per-run variance brackets them
+# (candidate-002 drew 0.0117-0.0160 against a 0.0123 flag-off bar).
+# Reproduction within 1% counts as met — decision approved 2026-06-12
 # (homemaker-py-1p0); chasing the last fraction with seed rolls would be
 # cherry-picking.
 NOISE_TOL = 0.99

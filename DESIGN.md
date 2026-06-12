@@ -187,7 +187,20 @@ Consequences:
     per-topology cost — with high-locality moves most cuts survive a mutation,
     so an order-of-magnitude reduction is plausible. Measure this in Phase 1.
 
-### 4.7 The `0.5^n` failure penalty is a first-order pathology
+### 4.7 Occlusion-disabled re-baseline (measured 2026-06-12)
+
+With the §6 descope in place (`URB_NO_OCCLUSION=1` patch in Urb), the corpus
+re-baseline (`experiments/rebaseline_no_occlusion.py`): all 35 scores change
+(mostly up, ×1.0–×1.24 — daylight terms pin to 1), exactly one failure-set
+change (458aa8b8 gains two `crinkliness` fails — expected mechanism: no
+shading discount on external wall area), batched oracle ~8% faster
+(0.92 s/dom). New inner-loop reference gains (deterministic seed, budget 400,
+`accept_innerloop.py` bars): 2f45907 0.01304→0.02128 (×1.63), candidate-002
+0.00808→0.01373 (×1.70), c964435 0.00400→0.00674 (×1.68, fails 3→2); ~35
+oracle calls per topology. All Phase-2+ work uses the flag; flag-off numbers
+above are historical.
+
+### 4.8 The `0.5^n` failure penalty is a first-order pathology
 Multiplicative `0.5^n` over failure *count* (a) makes the landscape a cliff (no
 gradient across the huge zero-feasibility region), (b) rewards fewer *flags* over
 better *geometry* (the original outscored better-sized solved designs purely on
@@ -230,7 +243,7 @@ Key decisions, all evidence-backed:
    against the oracle on the 35-file corpus) **gates topology search at scale**
    (§4.6 arithmetic); the oracle suffices for the inner loop and a small-scale
    topology-search proof only.
-4. **Reshape the failure penalty** (§4.7) — additive/soft or multi-objective —
+4. **Reshape the failure penalty** (§4.8) — additive/soft or multi-objective —
    so the search has a gradient and isn't dominated by flag-count. **Caution:**
    the `0.5^n` cliff is what *protects* the inner loop from trading into new
    failures (§4.5); reshaping must not lose that property. Candidate
