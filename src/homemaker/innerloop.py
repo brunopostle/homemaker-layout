@@ -287,6 +287,11 @@ def optimise(
     with OracleEvaluator(root, programme_dir, urb_root) as ev:
         if x0 is None:
             x0 = ev.x_current
+        if len(x0) == 0:  # undivided topology (e.g. a bare plot): nothing to optimise
+            s = ev.evaluate([np.empty(0)])[0]
+            return Result(x=np.empty(0), fitness=s.fitness, n_fails=s.n_fails,
+                          fail_lines=s.fail_lines, x0_fitness=s.fitness,
+                          x0_n_fails=s.n_fails, n_evals=1, n_oracle_calls=1)
         result = _METHODS[method](ev, x0, budget=budget, **search_kw)
         ev.apply(result.x)  # leave the tree at the optimum (Lamarckian write-back)
     return result

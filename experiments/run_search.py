@@ -11,7 +11,7 @@ DESIGN §4.7 reference: c964435 -> 0.00674). Anything above that is value
 added by *topology* search.
 
 Run under the go-forward fitness:
-  URB_NO_OCCLUSION=1 python3 experiments/run_search.py [budget] [rng-seed]
+  URB_NO_OCCLUSION=1 python3 experiments/run_search.py [budget] [rng-seed] [seed.dom] [out.dom]
 """
 
 from __future__ import annotations
@@ -32,21 +32,23 @@ OUT = Path(__file__).resolve().parents[1] / "scratch" / "search_best.dom"
 def main() -> int:
     budget = int(sys.argv[1]) if len(sys.argv) > 1 else 2000
     rng_seed = int(sys.argv[2]) if len(sys.argv) > 2 else 0
-    print(f"seed={SEED_FILE.name} budget={budget} oracle evals, rng seed {rng_seed}",
+    seed_file = Path(sys.argv[3]) if len(sys.argv) > 3 else SEED_FILE
+    out = Path(sys.argv[4]) if len(sys.argv) > 4 else OUT
+    print(f"seed={seed_file.name} budget={budget} oracle evals, rng seed {rng_seed}",
           flush=True)
 
-    r = driver.search(dom.load(str(SEED_FILE)), EX, budget=budget,
+    r = driver.search(dom.load(str(seed_file)), EX, budget=budget,
                       urb_root=URB, seed=rng_seed, log=lambda m: print(m, flush=True))
 
     print(f"\ndone: {r.n_evals} oracle evals across {r.n_topologies} topologies")
     print(f"best: {r.best.fitness:.6g} (fails {r.best.n_fails}) via {r.best.lineage}")
     print("population: " + ", ".join(f"{p.fitness:.4g}/{p.n_fails}f" for p in r.population))
 
-    OUT.parent.mkdir(exist_ok=True)
-    dom.dump(r.best.root, str(OUT))
-    s = oracle.score(OUT, URB)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    dom.dump(r.best.root, str(out))
+    s = oracle.score(out, URB)
     ok = math.isclose(s.fitness, r.best.fitness, rel_tol=1e-9)
-    print(f"\n{OUT} re-scored standalone: {s.fitness:.6g} ({s.n_fails} fails) "
+    print(f"\n{out} re-scored standalone: {s.fitness:.6g} ({s.n_fails} fails) "
           f"-> {'MATCHES search record' if ok else 'MISMATCH'}")
     return 0 if ok else 1
 
