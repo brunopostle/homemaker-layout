@@ -81,7 +81,9 @@ def mutate_undivide(root: dom.Node, rng: np.random.Generator,
     if not cands:
         return _finalise(child), "undivide noop"
     li, n = _pick(rng, cands)
-    keep = [t for t in (n.left.type, n.right.type) if t and not t.startswith(("c", "o", "s"))]
+    # generic classes (circulation/outside/sahn) match case-insensitively,
+    # cf. Urb Is_Circulation/Is_Outside
+    keep = [t for t in (n.left.type, n.right.type) if t and t[0].lower() not in "cos"]
     n.type = keep[0] if keep else (n.left.type or str(_pick(rng, types)))
     n.division = None
     n.left = n.right = None

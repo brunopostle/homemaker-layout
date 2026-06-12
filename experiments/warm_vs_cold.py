@@ -45,14 +45,14 @@ free_with_keys = innerloop.free_with_keys  # promoted into the library
 def divide_leaf(leaf: dom.Node) -> None:
     leaf.division = [0.5, 0.5]
     leaf.left = dom.Node(type=leaf.type)
-    leaf.right = dom.Node(type="c")  # circulation absorbs the residual
+    leaf.right = dom.Node(type="C")  # circulation absorbs the residual
     leaf.type = None
 
 
 def undivide_branch(branch: dom.Node) -> None:
     # keep the more programme-specific child type (generic = circulation/outside)
     types = [branch.left.type, branch.right.type]
-    specific = [t for t in types if t and not t.startswith(("c", "o", "s"))]
+    specific = [t for t in types if t and t[0].lower() not in "cos"]
     branch.type = specific[0] if specific else types[0]
     branch.division = None
     branch.left = branch.right = None

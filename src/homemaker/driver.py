@@ -89,7 +89,11 @@ def search(
     inner_kw = dict(_CHILD_INNER_KW, **(inner_kw or {}))
     if types is None:
         reqs = programme.load_programme(str(Path(programme_dir) / "patterns.config"))
-        types = sorted(reqs) + ["c", "o"]
+        # Urb's generic types are canonically UPPERCASE (get_space_types:
+        # qw/C O S/; the corpus is 100% uppercase). Predicates match
+        # case-insensitively but Dom->Ratios keys raw strings — mixing cases
+        # fragments the class buckets, so never emit lowercase generics.
+        types = sorted(reqs) + ["C", "O"]
 
     def _log(msg: str) -> None:
         if log:

@@ -49,7 +49,7 @@ def geometry_perturbation(parent_sig: Counter, child: dom.Node) -> float:
 
 
 def main() -> int:
-    types = sorted(programme.load_programme(str(CORPUS / "patterns.config"))) + ["c", "o"]
+    types = sorted(programme.load_programme(str(CORPUS / "patterns.config"))) + ["C", "O"]
     roots = {f: genome.decode(genome.encode(dom.load(str(CORPUS / f)))) for f in FILES}
 
     with tempfile.TemporaryDirectory(prefix="op_locality_") as tmp:
