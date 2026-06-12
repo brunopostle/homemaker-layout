@@ -90,7 +90,6 @@ def solve_ratios(
         for b in free:
             b.division = [0.5, 0.5]
 
-    per = 1 if perpendicular else 2
     x0 = np.array(
         [b.division[0] for b in free] if perpendicular
         else [v for b in free for v in b.division],
