@@ -278,11 +278,17 @@ outside ratios, min internal area.** Source of truth:
 
 **Port scope beyond the term list** (found by source review — budget for these):
 
-- **Daylight + occlusion subsystem.** `quality_daylight` (Leaf.pm:281-296)
-  needs the occlusion field and sun-path model (`Urb::Misc::Sun`,
-  `Urb::Field::Occlusion`, CIESky); `quality_uncrinkliness` also takes the
-  occlusion object. This is a whole subsystem, not a term. (Indoor spaces
-  return 1; the cost is for outdoor spaces and crinkliness.)
+- **Daylight + occlusion subsystem — DESCOPED (decision 2026-06-12).**
+  Occlusion is orthogonal to building a scalable optimiser. Instead of porting
+  `Urb::Misc::Sun`/`Urb::Field::Occlusion`/CIESky, disable it in Urb behind an
+  env flag (`quality_daylight` → 1 everywhere; `Crinkliness`/`Area_Outside`
+  pins the `CIEsky_vertical` illumination factor to 1 — *simple crinkliness* =
+  unweighted external wall area / floor area). The boundary-overlap geometry
+  (`Dom->Walls`) stays in scope; the sky model does not. The native fitness
+  ports simple crinkliness only; a Python occlusion subsystem is rebuilt
+  post-Phase-5 once optimisation is fully native. **Flipping the flag changes
+  every score** — re-baseline the corpus, the §4.5 table, and gate bars at one
+  clean boundary, and run the Phase-2 urb-evolve benchmark under the same flag.
 - **The cost denominator.** Fitness is value/**cost**: per-leaf area costs,
   interior/exterior wall edge costs, boundary costs
   (Leaf.pm:194-251, Storey.pm:122-147). Cost couples to geometry too.
@@ -325,13 +331,14 @@ outside ratios, min internal area.** Source of truth:
   equal oracle-call budget* (urb-evolve has diversity injection/culling baked
   in, so generations are not comparable). *Gate:* memetic loop beats
   equal-budget urb-evolve. Scaling up waits for Phase 3.
-- **Phase 3 — native Python fitness** (**gates scaled topology search**): port
-  Urb's programme-driven fitness — including the §6 "port scope beyond the
-  term list" items (occlusion/daylight subsystem, cost denominator, structural
+- **Phase 3 — native Python fitness** (**gates scaled topology search**): first
+  disable occlusion/daylight in Urb behind an env flag and re-baseline (§6
+  descope note); then port Urb's programme-driven fitness — the §6 "port scope
+  beyond the term list" items (simple crinkliness, cost denominator, structural
   failures, failure stacking, two-phase graph build). Validate score + failure
-  set against the oracle across the 35-file corpus (float tolerance, identical
-  failure sets). Swap behind the same interface; retire the oracle. Then
-  re-run Phase 2 at scale.
+  set against the *flagged* oracle across the 35-file corpus (float tolerance,
+  identical failure sets). Swap behind the same interface; retire the oracle.
+  Then re-run Phase 2 at scale.
 - **Phase 4 — penalty reshaping**: replace `0.5^n` with additive/soft,
   lexicographic, or multi-objective (easier once fitness is native), while
   preserving the inner loop's no-new-failures protection (§5.4) and the
