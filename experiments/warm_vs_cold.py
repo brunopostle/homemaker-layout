@@ -39,15 +39,7 @@ N_UNDIVIDE = 2
 TARGET_FRACTION = 0.95
 
 
-def free_with_keys(root: dom.Node) -> list[tuple[tuple[int, str], dom.Node]]:
-    """solver.free_branches order, with (level_index, id-path) keys that
-    survive deepcopy and structural mutation."""
-    out = []
-    for li, lvl in enumerate(dom.levels(root)):
-        for b in solver._branches(lvl):
-            if b.below is None or not b.below.divided:
-                out.append(((li, b.id), b))
-    return out
+free_with_keys = innerloop.free_with_keys  # promoted into the library
 
 
 def divide_leaf(leaf: dom.Node) -> None:

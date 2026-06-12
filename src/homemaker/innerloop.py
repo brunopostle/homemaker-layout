@@ -31,6 +31,27 @@ from . import dom, oracle, solver
 _EPS = 0.02  # keep cuts off the edges; matches solver/_experiments convention
 
 
+def free_with_keys(root: dom.Node) -> list[tuple[tuple[int, str], dom.Node]]:
+    """``solver.free_branches`` order, with (level_index, id-path) keys that
+    survive deepcopy and structural mutation — the currency of Lamarckian
+    ratio inheritance (cuts that survive a topology move keep their values)."""
+    out = []
+    for li, lvl in enumerate(dom.levels(root)):
+        for b in solver._branches(lvl):
+            if b.below is None or not b.below.divided:
+                out.append(((li, b.id), b))
+    return out
+
+
+def ratio_map(root: dom.Node) -> dict[tuple[int, str], float]:
+    return {k: b.division[0] for k, b in free_with_keys(root)}
+
+
+def warm_x0(root: dom.Node, ratios: dict[tuple[int, str], float]) -> np.ndarray:
+    """Warm-start vector for ``root``: surviving cuts inherit, new cuts 0.5."""
+    return np.array([ratios.get(k, 0.5) for k, _ in free_with_keys(root)])
+
+
 @dataclass
 class Result:
     x: np.ndarray  # best equal-offset ratios, aligned with solver.free_branches(root)
