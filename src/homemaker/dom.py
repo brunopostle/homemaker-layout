@@ -22,7 +22,7 @@ import yaml
 _ROOT_FLOATS = ("height", "elevation", "wall_inner", "wall_outer")
 
 
-@dataclass
+@dataclass(eq=False)
 class Node:
     rotation: int = 0
     division: list[float] | None = None
@@ -200,3 +200,95 @@ def dump(root: Node, path: str) -> None:
         yaml.safe_dump(
             _emit(root, True), fh, default_flow_style=False, sort_keys=False, allow_unicode=True
         )
+
+
+# --------------------------------------------------------------------------- #
+# Structural predicates (mirrors Urb::Dom::Is_Outside etc.)
+# --------------------------------------------------------------------------- #
+
+def is_outside(n: Node) -> bool:
+    """True if n's type starts with 'o' or 's' (case-insensitive)."""
+    return n.type is not None and n.type[0].lower() in ("o", "s")
+
+
+def _level_root(n: Node) -> Node:
+    while n.parent is not None:
+        n = n.parent
+    return n
+
+
+def _below_more(n: Node) -> "Node | None":
+    """Matching node on level below, walking up to parent if path absent;
+    mirrors ``Urb::Quad::Below_More``."""
+    lr = _level_root(n)
+    if lr.below is None:
+        return None
+    if n.below is not None:
+        return n.below
+    if n.parent is None:
+        return None
+    return _below_more(n.parent)
+
+
+def _below_leaves(n: Node) -> "list[Node]":
+    bm = _below_more(n)
+    return bm.leaves() if bm is not None else []
+
+
+def is_supported(n: Node) -> bool:
+    """All leaves below n are indoor; mirrors ``Urb::Dom::Is_Supported``."""
+    bl = _below_leaves(n)
+    return bool(bl) and all(not is_outside(lf) for lf in bl)
+
+
+def is_unsupported(n: Node) -> bool:
+    """All leaves below n are outdoor; mirrors ``Urb::Dom::Is_Unsupported``."""
+    bl = _below_leaves(n)
+    return bool(bl) and all(is_outside(lf) for lf in bl)
+
+
+# --------------------------------------------------------------------------- #
+# Merge_Divided (Urb::Dom::Merge_Divided)
+# --------------------------------------------------------------------------- #
+
+def _undivide(n: Node, new_type: str) -> None:
+    n.division = None
+    n.left = None
+    n.right = None
+    n.type = new_type
+
+
+def _merge_node(n: Node) -> None:
+    """Post-order recursive merge; mirrors ``Urb::Dom::Merge_Divided``."""
+    if n.divided:
+        _merge_node(n.left)
+        _merge_node(n.right)
+    if n.above is not None and n.parent is None:
+        _merge_node(n.above)
+    if not n.divided:
+        return
+    lt = n.left.type or ""
+    rt = n.right.type or ""
+    l_os = bool(lt) and lt[0].lower() in ("o", "s")
+    r_os = bool(rt) and rt[0].lower() in ("o", "s")
+    if not (l_os and r_os):
+        return
+    l_o = bool(lt) and lt[0].lower() == "o"
+    r_o = bool(rt) and rt[0].lower() == "o"
+    if is_supported(n) and l_o and r_o:
+        _undivide(n, "O")
+    elif is_supported(n):
+        _undivide(n, "S")
+    elif is_unsupported(n):
+        _undivide(n, "O")
+    elif _level_root(n).below is None:   # ground floor: !$self->Level in Perl
+        _undivide(n, "S")
+
+
+def merge_divided(root: Node) -> None:
+    """Merge adjacent outdoor siblings into a single node in-place;
+    mirrors ``Urb::Dom::Merge_Divided``.  Re-links the tree afterward so
+    ``below`` / ``parent`` / ``position`` fields stay consistent.
+    """
+    _merge_node(root)
+    _link(root)

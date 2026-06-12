@@ -129,3 +129,126 @@ def offset_quad(corners: list[Point], offset: float) -> list[Point]:
     n = len(corners)
     return [_corner_offset(corners[(k - 1) % n], corners[k], corners[(k + 1) % n], offset)
             for k in range(n)]
+
+
+# --------------------------------------------------------------------------- #
+# Leaf-adjacency graph (Urb::Quad::Graph + Urb::Boundary)
+# --------------------------------------------------------------------------- #
+
+def boundary_id(n: Node, edge: int) -> str:
+    """Boundary id of ``edge`` (0..3) of ``n``; mirrors ``Urb::Quad::Boundary_Id``.
+
+    External plot-perimeter boundaries return one of 'a','b','c','d'.
+    Internal division boundaries return the id-path of the ancestor whose
+    division created that boundary line.  The left child's rid==1 and the right
+    child's rid==3 both map to ``parent.id``.
+
+    Rotation is delegated to the lowest below-link (Urb::Quad::Rotation does the
+    same: ``return $self->Below->Rotation if defined $self->Below``). Upper-storey
+    nodes store their own rotation in the YAML but Urb ignores it and uses the
+    ground-floor counterpart's rotation instead.
+    """
+    nb = n
+    while nb.below is not None:
+        nb = nb.below
+    rid = (edge + nb.rotation) % 4
+    if n.parent is None:
+        return "abcd"[rid]
+    if n.position == "l":
+        if rid == 0:
+            return boundary_id(n.parent, 0)
+        elif rid == 1:
+            return n.parent.id          # division line shared with the r sibling
+        elif rid == 2:
+            return boundary_id(n.parent, 2)
+        else:
+            return boundary_id(n.parent, 3)
+    else:  # position == 'r'
+        if rid == 0:
+            return boundary_id(n.parent, 0)
+        elif rid == 1:
+            return boundary_id(n.parent, 1)
+        elif rid == 2:
+            return boundary_id(n.parent, 2)
+        else:
+            return n.parent.id          # division line shared with the l sibling
+
+
+def centroid(n: Node) -> Point:
+    """Average of the four corners; mirrors ``Urb::Quad::Centroid``."""
+    c = [coordinate(n, i) for i in range(4)]
+    return [(c[0][0] + c[1][0] + c[2][0] + c[3][0]) / 4,
+            (c[0][1] + c[1][1] + c[2][1] + c[3][1]) / 4]
+
+
+def _edge_overlap(a: Node, edge_a: int, b: Node, edge_b: int) -> float:
+    """Shared boundary width between two leaves; faithful port of
+    ``Urb::Boundary::Overlap``.
+
+    The formula is a 1-D overlap estimator: given the four pairwise distances
+    between the two edge endpoints, ``len_a + len_b - max_dist`` (with clamped
+    special cases).  This mirrors the Perl exactly, including the behaviour for
+    below-inherited nodes where the two edges are not physically collinear but
+    share the same tree-structure boundary — the formula still returns a
+    positive overlap that NetworkX uses to add an adjacency edge.
+
+    Do NOT replace with Shapely's ``intersection().length``: that returns 0 for
+    non-collinear segments and would miss valid tree-level adjacencies in
+    multi-storey buildings where below-inheritance shifts physical coordinates.
+    """
+    p_a0 = coordinate(a, edge_a)
+    p_a1 = coordinate(a, (edge_a + 1) % 4)
+    p_b0 = coordinate(b, edge_b)
+    p_b1 = coordinate(b, (edge_b + 1) % 4)
+    len_a = _dist(p_a0, p_a1)
+    len_b = _dist(p_b0, p_b1)
+    max_dist = max(_dist(p_a0, p_b0), _dist(p_a0, p_b1), _dist(p_a1, p_b0), _dist(p_a1, p_b1))
+    if max_dist <= len_b:
+        return len_a
+    if max_dist <= len_a:
+        return len_b
+    return max(0.0, len_a + len_b - max_dist)
+
+
+def leaf_graph(level_root: Node, door_width: float = 1.2):  # -> nx.Graph
+    """Leaf-adjacency graph for one storey; mirrors ``Urb::Quad::Graph``.
+
+    Returns a ``networkx.Graph`` whose nodes are leaf ``Node`` objects and whose
+    edges carry ``width`` (shared boundary metres) and ``weight`` (centroid
+    distance metres).  Edges with width < ``door_width`` (Urb default 1.2 m)
+    are excluded.  External plot-perimeter boundaries ('a','b','c','d') are
+    never edges.  A single-leaf storey gets one isolated vertex.
+    """
+    import networkx as nx
+    from collections import defaultdict
+
+    _external = frozenset("abcd")  # single-char external boundary ids
+    leaves = level_root.leaves()
+    # Group (leaf, edge) pairs by shared boundary id.
+    # Use frozenset membership, NOT 'bid not in "abcd"' — the latter is a
+    # substring check and silently drops the root-division boundary ('').
+    groups: dict[str, list[tuple[Node, int]]] = defaultdict(list)
+    for leaf in leaves:
+        for edge in range(4):
+            bid = boundary_id(leaf, edge)
+            if bid not in _external:
+                groups[bid].append((leaf, edge))
+
+    G: nx.Graph = nx.Graph()
+    for leaf in leaves:
+        G.add_node(leaf)
+
+    for contributors in groups.values():
+        for i in range(len(contributors)):
+            for j in range(i + 1, len(contributors)):
+                a, edge_a = contributors[i]
+                b, edge_b = contributors[j]
+                if a is b:
+                    continue
+                width = _edge_overlap(a, edge_a, b, edge_b)
+                if width >= door_width:
+                    if not G.has_edge(a, b) or G[a][b]["width"] < width:
+                        dist = _dist(centroid(a), centroid(b))
+                        G.add_edge(a, b, weight=dist, width=width)
+
+    return G
