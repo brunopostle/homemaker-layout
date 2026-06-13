@@ -692,6 +692,13 @@ class Fitness:
             for nb in G.neighbors(other):
                 if nb.type and nb.type[0].lower() == "o" and self._public_access(nb, root) is not None:
                     return None
+        # If the stair itself has via-outdoor access (Entrances priority 3.5), Perl's
+        # Entrances maps it to a leaf id, not a boundary id.  Boundary_Id(edge) eq
+        # leaf_id never matches → no entrance corners added.  Return None here so
+        # Python matches that behaviour.
+        for nb in G.neighbors(stair_leaf):
+            if nb.type and nb.type[0].lower() == "o" and self._public_access(nb, root) is not None:
+                return None
         return stair_bid
 
     def _public_access_outside(self, leaf: Node, G: nx.Graph, root: Node) -> bool:
@@ -937,8 +944,15 @@ class Fitness:
 
         Returns ``value / cost`` (the final score as in Urb).
         """
+        score, _ = self._evaluate_full(root)
+        return score
+
+    def score_with_fails(self, root: Node) -> tuple[float, tuple[str, ...]]:
+        """Same as ``evaluate`` but also returns the sorted failure strings."""
+        return self._evaluate_full(root)
+
+    def _evaluate_full(self, root: Node) -> tuple[float, tuple[str, ...]]:
         from . import graph as graph_mod
-        from .programme import load_programme
 
         geometry.clear_cache()
 
@@ -999,12 +1013,10 @@ class Fitness:
         value *= building_factor
 
         # 0.5^n failure penalty (programme-driven mode, not 0.1^n)
-        n_fails = len(failures)
-        value *= 0.5 ** n_fails
+        value *= 0.5 ** len(failures)
 
-        if cost == 0.0:
-            return 0.0
-        return value / cost
+        score = value / cost if cost != 0.0 else 0.0
+        return score, tuple(sorted(failures))
 
     @property
     def _programme(self) -> dict | None:

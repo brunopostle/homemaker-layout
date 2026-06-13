@@ -7,14 +7,10 @@ ownership) against the FULL fitness. Never a proxy objective — §4.2 falsified
 that; the full objective's ``0.5^n`` failure cliff is what protects the inner
 loop from trading into new failures (§4.5).
 
-Fitness comes from the Perl oracle for now. The optimiser is a batched compass
-(pattern) search: each iteration proposes ``2 × DOF`` candidate points and
-scores them in ONE ``oracle.score_batch`` call, so the Perl startup amortises
-across the population (§4.6). Warm-starting from a parent's optimised ratios is
-just ``x0=`` (§5 decision 6, Lamarckian inheritance).
-
-Budgets are counted in oracle evaluations (scored ``.dom`` files), the only
-currency that matters while the oracle is the bottleneck.
+Fitness defaults to the native Python evaluator (Phase 3). The Perl oracle
+(``OracleEvaluator``) is kept for validation but is no longer used in search.
+Warm-starting from a parent's optimised ratios is ``x0=`` (§5 decision 6,
+Lamarckian inheritance).
 """
 
 from __future__ import annotations
@@ -269,12 +265,80 @@ def cma_search(
 _METHODS = {"cma": cma_search, "compass": compass_search}
 
 
+from dataclasses import dataclass as _dc
+
+
+@_dc
+class _NativeScore:
+    """oracle.Score-compatible result from native fitness."""
+
+    fitness: float
+    fail_lines: tuple
+
+    @property
+    def n_fails(self) -> int:
+        return len(self.fail_lines)
+
+
+class NativeEvaluator:
+    """Scores ratio vectors for a frozen topology via the native Python fitness.
+
+    Drop-in replacement for ``OracleEvaluator``; no temp directory, no Perl
+    startup overhead.  Each ``evaluate`` call runs ``Fitness.score_with_fails``
+    serially over the batch (all in-process, no parallelism needed at this
+    scale).
+    """
+
+    def __init__(self, root: dom.Node, programme_dir: str | Path):
+        from . import fitness as fit_mod
+
+        self.root = root
+        self.free = solver.free_branches(root)
+        conf, cost = fit_mod.load_config(programme_dir)
+        self._fit = fit_mod.Fitness(conf, cost)
+        self.n_evals = 0
+        self.n_oracle_calls = 0  # kept for interface parity with OracleEvaluator
+
+    def __enter__(self) -> "NativeEvaluator":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass
+
+    @property
+    def x_current(self) -> np.ndarray:
+        return np.array(
+            [(b.division[0] + b.division[1]) / 2 for b in self.free], dtype=float
+        )
+
+    def apply(self, x: np.ndarray) -> None:
+        xc = np.clip(x, _EPS, 1 - _EPS)
+        for j, b in enumerate(self.free):
+            b.division = [float(xc[j]), float(xc[j])]
+
+    def evaluate(self, xs: list[np.ndarray]) -> "list[_NativeScore]":
+        """Score a batch of ratio vectors; returns objects with .fitness /
+        .n_fails / .fail_lines matching the oracle.Score interface."""
+        import copy
+
+        results = []
+        for x in xs:
+            self.apply(x)
+            root_copy = copy.deepcopy(self.root)
+            score, fails = self._fit.score_with_fails(root_copy)
+            results.append(_NativeScore(fitness=score, fail_lines=fails))
+        self.n_evals += len(xs)
+        self.n_oracle_calls += 1
+        return results
+
+
 def optimise(
     root: dom.Node,
     programme_dir: str | Path,
     x0: np.ndarray | None = None,
     budget: int = 200,
     method: str = "cma",
+    use_native: bool = True,
     urb_root: str | Path = oracle.DEFAULT_URB_ROOT,
     **search_kw,
 ) -> Result:
@@ -283,8 +347,13 @@ def optimise(
     ``x0=None`` starts from the topology's current ratios (cold start); pass a
     parent's optimised ratios for a Lamarckian warm start. On return ``root``
     carries the best ratios found.
+
+    ``use_native=True`` (default) uses the native Python fitness; set False to
+    fall back to the Perl oracle (kept for validation only).
     """
-    with OracleEvaluator(root, programme_dir, urb_root) as ev:
+    ev_cls = NativeEvaluator if use_native else OracleEvaluator
+    ev_args = (root, programme_dir) if use_native else (root, programme_dir, urb_root)
+    with ev_cls(*ev_args) as ev:
         if x0 is None:
             x0 = ev.x_current
         if len(x0) == 0:  # undivided topology (e.g. a bare plot): nothing to optimise
