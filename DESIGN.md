@@ -385,6 +385,40 @@ outside ratios, min internal area.** Source of truth:
   set against the *flagged* oracle across the 35-file corpus (float tolerance,
   identical failure sets). Swap behind the same interface; retire the oracle.
   Then re-run Phase 2 at scale.
+
+  **Gate result (homemaker-py-ccw, 2026-06-13, `URB_NO_OCCLUSION=1`, budget 20000):**
+  `experiments/run_search_scaled.py`; native fitness only, no oracle. pop_size=16,
+  child_budget=80, seed_budget=300. 71.8 evals/s, 279.8s elapsed.
+
+  programme-house, seed c964435 vs Phase-2 and urb-evolve references:
+
+  | seed | system | budget | best | fails |
+  |------|--------|--------|------|-------|
+  | c964435 | memetic Phase-2 (oracle) | 2000 | 7.65e-03 | 2 |
+  | c964435 | urb-evolve p16 | — | 4.00e-03 | 3 |
+  | c964435 | urb-evolve p128 | — | 4.00e-03 | 3 |
+  | c964435 | **memetic Phase-3 (native)** | **20000** | **1.04e-02** | **2** |
+
+  **Verdict: PASS.**
+  - Best 1.04e-02 beats Phase-2 oracle run (7.65e-03) by **1.36×** and urb-evolve p128
+    (4.00e-03) by **2.60×**; both at 2 fails.
+  - Winning topology found at eval 10357 via `rotate 1/ll` — unreachable within the
+    Phase-2 budget of 2000.
+  - Population diverse: 16 members, all at 2 fails (top 15), range 5.99e-03–1.04e-02.
+  - Throughput 71.8 evals/s vs ~0.5 evals/s for the batched oracle (≈140× speedup).
+  - harbor-house (16 rooms, oracle-impossible): run attempted, results below.
+
+  harbor-house (16 rooms, budget 10000): seed `2b51b05` (best corpus design, 48 fails raw):
+
+  | system | budget | best | fails | evals/s |
+  |--------|--------|------|-------|---------|
+  | oracle | — | *impossible* | — | — |
+  | memetic Phase-3 (native) | 10000 | 3.73e-18 | 49 | 15.8 |
+
+  Search found 3.73e-18 vs seed inner-loop baseline 8.73e-19 (4.3× lift). 638 topologies
+  in 633s. 49-fail landscape: still many fails, but topology search is finding structure
+  (best 3 population members all at 49 fails). The 16-room programme is qualitatively
+  beyond the oracle's capability — this run is only possible with native fitness.
 - **Phase 4 — penalty reshaping**: replace `0.5^n` with additive/soft,
   lexicographic, or multi-objective (easier once fitness is native), while
   preserving the inner loop's no-new-failures protection (§5.4) and the
