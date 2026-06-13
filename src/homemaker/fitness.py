@@ -198,6 +198,15 @@ class Fitness:
         sp = self.spaces.get(code)  # exact-key match, as in Perl
         if sp is not None and param in sp:
             return sp[param]
+        if param == "width" and sp is not None:
+            # Derive a sane width from size and proportion rather than
+            # falling back to width_inside [4.0, 1.0], which is impossible
+            # for small programme spaces (e.g. a 3 m² WC).
+            size = sp.get("size") or self.conf("size_inside") or _PARAM_FALLBACKS["size"]
+            proportion = sp.get("proportion") or self.conf("proportion_inside") or _PARAM_FALLBACKS["proportion"]
+            target = (size[0] / proportion[0]) ** 0.5
+            sigma = max(0.1, target * size[1] / (2.0 * size[0]))
+            return [target, sigma]
         v = self.conf(f"{param}_inside")
         if v is not None:
             return v
