@@ -275,14 +275,67 @@ def boundary_pair_overlap(contributors: list[tuple[Node, int]], a: Node, b: Node
     return _edge_overlap(a, edge_a, b, edge_b)
 
 
+def is_between_2d(point: Point | None, pa: Point, pb: Point) -> bool:
+    """True if point lies on segment [pa, pb]; mirrors ``Urb::Math::is_between_2d``.
+
+    Returns False if point is None (matches Perl undef-in-array behaviour where
+    ``distance_2d(undef, ...)`` returns 0, so the check only passes when the
+    segment length itself is < 0.000001).
+    """
+    if point is None:
+        la = 0.0
+        lb = 0.0
+    else:
+        la = _dist(pa, point)
+        lb = _dist(pb, point)
+    length = _dist(pa, pb)
+    return abs(length - la - lb) < 0.000001
+
+
+def _edge_overlap_coords(
+    a: Node, edge_a: int, b: Node, edge_b: int
+) -> list[Point] | None:
+    """Endpoints of the shared wall segment; ``[[x0,y0],[x1,y1]]`` or None.
+
+    Projects b's edge onto a's edge direction to find the overlap interval and
+    converts back to 2D.  Used to populate ``coordinates`` in ``leaf_graph``
+    for stair-corner detection (``Corners_In_Use``).
+    """
+    p_a0 = coordinate(a, edge_a)
+    p_a1 = coordinate(a, (edge_a + 1) % 4)
+    p_b0 = coordinate(b, edge_b)
+    p_b1 = coordinate(b, (edge_b + 1) % 4)
+    dx = p_a1[0] - p_a0[0]
+    dy = p_a1[1] - p_a0[1]
+    len_sq = dx * dx + dy * dy
+    if len_sq < 1e-12:
+        return None
+    inv = 1.0 / math.sqrt(len_sq)
+    ux, uy = dx * inv, dy * inv
+    len_a = math.sqrt(len_sq)
+    t_b0 = (p_b0[0] - p_a0[0]) * ux + (p_b0[1] - p_a0[1]) * uy
+    t_b1 = (p_b1[0] - p_a0[0]) * ux + (p_b1[1] - p_a0[1]) * uy
+    if t_b0 > t_b1:
+        t_b0, t_b1 = t_b1, t_b0
+    t_start = max(0.0, t_b0)
+    t_end = min(len_a, t_b1)
+    if t_start >= t_end - 1e-9:
+        return None
+    return [
+        [p_a0[0] + t_start * ux, p_a0[1] + t_start * uy],
+        [p_a0[0] + t_end * ux, p_a0[1] + t_end * uy],
+    ]
+
+
 def leaf_graph(level_root: Node, door_width: float = 1.2):  # -> nx.Graph
     """Leaf-adjacency graph for one storey; mirrors ``Urb::Quad::Graph``.
 
     Returns a ``networkx.Graph`` whose nodes are leaf ``Node`` objects and whose
-    edges carry ``width`` (shared boundary metres) and ``weight`` (centroid
-    distance metres).  Edges with width < ``door_width`` (Urb default 1.2 m)
-    are excluded.  External plot-perimeter boundaries ('a','b','c','d') are
-    never edges.  A single-leaf storey gets one isolated vertex.
+    edges carry ``width`` (shared boundary metres), ``weight`` (centroid
+    distance metres), and ``coordinates`` ([[x0,y0],[x1,y1]] wall endpoints or
+    None).  Edges with width < ``door_width`` (Urb default 1.2 m) are excluded.
+    External plot-perimeter boundaries ('a','b','c','d') are never edges.  A
+    single-leaf storey gets one isolated vertex.
     """
     import networkx as nx
 
@@ -304,6 +357,7 @@ def leaf_graph(level_root: Node, door_width: float = 1.2):  # -> nx.Graph
                 if width >= door_width:
                     if not G.has_edge(a, b) or G[a][b]["width"] < width:
                         dist = _dist(centroid(a), centroid(b))
-                        G.add_edge(a, b, weight=dist, width=width)
+                        coords = _edge_overlap_coords(a, edge_a, b, edge_b)
+                        G.add_edge(a, b, weight=dist, width=width, coordinates=coords)
 
     return G

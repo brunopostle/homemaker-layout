@@ -66,4 +66,13 @@ _Add a brief overview of your project architecture_
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+### Oracle (urb-fitness.pl)
+
+`urb-fitness.pl` is in PATH. To score a `.dom` file you **must `cd` to the directory containing the `.dom` file first** — the script resolves `patterns.config`, `costs.config`, and writes `.score`/`.fails` relative to `cwd`:
+
+```bash
+cd /home/bruno/src/urb/examples/programme-house
+urb-fitness.pl cf0b8a77e8b2325f92a7e7d150184a55.dom
+```
+
+The score is written to `<file>.dom.score` and failures to `<file>.dom.fails`; the numeric score is also printed to stderr.

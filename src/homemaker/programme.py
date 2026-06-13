@@ -29,6 +29,10 @@ class SpaceReq:
     level: int | None = None
     requires_below: str | None = None
     count: int = 1
+    # Whether each quality param was explicitly in the config (not a default)
+    has_size: bool = False
+    has_width: bool = False
+    has_proportion: bool = False
 
 
 def _pair(d: dict, key: str, default: tuple[float, float]) -> tuple[float, float]:
@@ -60,5 +64,8 @@ def load_programme(path: str) -> dict[str, SpaceReq]:
             level=c.get("level"),
             requires_below=c.get("requires_below"),
             count=int(c.get("count") or 1),
+            has_size="size" in c,
+            has_width="width" in c,
+            has_proportion="proportion" in c,
         )
     return out

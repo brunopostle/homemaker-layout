@@ -12,6 +12,12 @@ FIDELITY DECISION — ``has_vertical_connection`` (DESIGN.md §8.1):
   counts as "connected", regardless of spatial overlap.  This is a known
   simplification in the Perl; it is preserved here for oracle parity.
   Reshape in Phase 4 if needed.
+
+PERL CLONE QUIRK — ``has_circulation`` (Base.pm:228-241):
+  Perl's ``Graph::clone()`` only copies vertices that are part of at least one
+  edge.  Isolated vertices (single-leaf levels or unconnected nodes) are lost.
+  An empty graph returns ``is_connected = False``.  ``has_circulation`` replicates
+  this by removing isolated vertices before the usability/edge-type filtering.
 """
 
 from __future__ import annotations
@@ -35,10 +41,342 @@ def build_graphs(root: Node, door_width: float = DOOR_WIDTH) -> list[nx.Graph]:
 
     This is called twice in the two-phase pattern: once before
     ``dom.merge_divided`` for adjacency/level/vertical checks, and once after
-    for storey processing.  ``Has_Circulation`` filtering (which produces the
-    "inaccessible usable space" failure) is implemented in homemaker-py-hgg.
+    for storey processing.
     """
     return [geometry.leaf_graph(lvl, door_width) for lvl in levels(root)]
+
+
+def build_graphs_with_circ(
+    root: Node,
+    door_width: float,
+    fail,
+) -> tuple[list[nx.Graph], list[nx.Graph]]:
+    """Build ``(graph_base, graph_circ)`` pairs; mirrors ``setup_storey_graphs``
+    in ``Base.pm:217-241``.
+
+    ``graph_base[i]`` is the unfiltered adjacency graph for level i.
+    ``graph_circ[i]`` is a copy filtered by ``has_circulation``; emits
+    "N inaccessible usable space" via ``fail`` if a level is disconnected after
+    filtering.
+
+    Perl clone quirk: ``has_circulation`` removes isolated vertices first, so a
+    level with no adjacency edges always fires the "inaccessible" failure.
+    """
+    lvls = levels(root)
+    graph_base: list[nx.Graph] = []
+    graph_circ: list[nx.Graph] = []
+    for i, lvl in enumerate(lvls):
+        g = geometry.leaf_graph(lvl, door_width)
+        graph_base.append(g)
+        gc = g.copy()
+        if not has_circulation(gc):
+            fail(f"{i} inaccessible usable space")
+        graph_circ.append(gc)
+    return graph_base, graph_circ
+
+
+# --------------------------------------------------------------------------- #
+# Has_Circulation (Base.pm:487-594)
+# --------------------------------------------------------------------------- #
+
+def _avg_path_len_from(G: nx.Graph, node: Node) -> float:
+    """Average weighted shortest-path length from node to all reachable other nodes.
+
+    Mirrors Perl's ``$graph->average_path_length($node, undef)`` which uses
+    Dijkstra with edge weights (centroid-to-centroid distances, stored as 'weight').
+    """
+    try:
+        lengths = dict(nx.single_source_dijkstra_path_length(G, node, weight="weight"))
+        vals = [v for v in lengths.values() if v > 0]
+        return sum(vals) / len(vals) if vals else 0.0
+    except Exception:
+        return 0.0
+
+
+def has_circulation(G: nx.Graph) -> bool:
+    """Port of ``Urb::Dom::Has_Circulation`` (modifies G in place).
+
+    Replicates the Perl clone quirk: isolated vertices (degree 0) are removed
+    first since Perl's ``Graph::clone`` only copies vertices in edges.  After
+    that, removes non-usable nodes, trims bedroom/toilet cross-connections, then
+    trims excess circulation and outdoor connections using centrality ordering.
+    Returns True iff the remaining graph is connected.
+    """
+    # Perl clone loses isolated vertices → remove them first
+    isolated = [v for v in list(G.nodes()) if G.degree(v) == 0]
+    G.remove_nodes_from(isolated)
+
+    # Remove non-usable nodes (outside above outside etc.)
+    non_usable = [v for v in list(G.nodes()) if not dom.is_usable(v)]
+    G.remove_nodes_from(non_usable)
+
+    # Remove b → [lkbt] edges  (bedrooms only connect to circulation/outside)
+    for v in list(G.nodes()):
+        if not (v.type and v.type[0].lower() == "b"):
+            continue
+        to_remove = [
+            nb for nb in list(G.neighbors(v))
+            if nb.type and nb.type[0].lower() in ("l", "k", "b", "t")
+        ]
+        G.remove_edges_from((v, nb) for nb in to_remove)
+
+    # Remove t → [olkt] edges  (toilets only connect to bedrooms/circulation)
+    for v in list(G.nodes()):
+        if not (v.type and v.type[0].lower() == "t"):
+            continue
+        to_remove = [
+            nb for nb in list(G.neighbors(v))
+            if nb.type and nb.type[0].lower() in ("o", "l", "k", "t")
+        ]
+        G.remove_edges_from((v, nb) for nb in to_remove)
+
+    # btlk nodes: keep only one circulation neighbour
+    for v in list(G.nodes()):
+        if not (v.type and v.type[0].lower() in ("b", "t", "l", "k")):
+            continue
+        circ_nbs = [nb for nb in list(G.neighbors(v)) if dom.is_circulation(nb)]
+        if len(circ_nbs) <= 1:
+            continue
+        circ_nbs.sort(key=lambda nb: _avg_path_len_from(G, nb))
+        # b/t: keep least popular (last), remove most popular (first)
+        # l/k: keep most popular (first), remove least popular (last)
+        t0 = v.type[0].lower()
+        while len(circ_nbs) > 1:
+            if t0 in ("b", "t"):
+                G.remove_edge(v, circ_nbs.pop(0))
+            else:
+                G.remove_edge(v, circ_nbs.pop())
+
+    # Clone the current state and run Connected_Outside to get outdoor components
+    outside_graph = G.copy()
+    _connected_outside_inplace(outside_graph)
+    outside_components = list(nx.connected_components(outside_graph)) if len(outside_graph.nodes()) > 0 else []
+
+    # blkc nodes: keep only one outdoor neighbour per outdoor component
+    for v in list(G.nodes()):
+        if not (v.type and v.type[0].lower() in ("b", "l", "k", "c")):
+            continue
+        out_nbs = [
+            nb for nb in list(G.neighbors(v))
+            if dom.is_outside(nb) and dom.is_usable(nb)
+        ]
+        if len(out_nbs) <= 1:
+            continue
+        out_nbs.sort(key=lambda nb: _avg_path_len_from(G, nb))
+
+        for component in outside_components:
+            component_nbs = [nb for nb in out_nbs if nb in component]
+            if len(component_nbs) <= 1:
+                continue
+            t0 = v.type[0].lower()
+            while len(component_nbs) > 1:
+                if t0 == "b":
+                    nb = component_nbs.pop(0)
+                else:
+                    nb = component_nbs.pop()
+                if G.has_edge(v, nb):
+                    G.remove_edge(v, nb)
+
+    if len(G.nodes()) == 0:
+        return False
+    return nx.is_connected(G)
+
+
+def _connected_outside_inplace(G: nx.Graph) -> None:
+    """Remove all non-outside/non-usable vertices; mirrors ``Connected_Outside``."""
+    to_remove = [v for v in list(G.nodes()) if not (dom.is_outside(v) and dom.is_usable(v))]
+    G.remove_nodes_from(to_remove)
+
+
+def connected_circulation(G: nx.Graph) -> bool:
+    """True iff circulation nodes are non-empty and connected; mirrors
+    ``Urb::Dom::Connected_Circulation`` (Storey.pm:106).
+
+    Removes all non-circulation vertices from G in place before checking.
+    Perl's ``Graph::is_connected`` returns False for an empty graph — replicated
+    here so "level N not connected" fires when there are no circulation nodes.
+    """
+    to_remove = [v for v in list(G.nodes()) if not dom.is_circulation(v)]
+    G.remove_nodes_from(to_remove)
+    if len(G.nodes()) == 0:
+        return False  # Perl Graph::is_connected returns false for empty graph
+    return nx.is_connected(G)
+
+
+# --------------------------------------------------------------------------- #
+# Stair-corner detection (Quad.pm:1490-1544, Dom.pm:648-668)
+# --------------------------------------------------------------------------- #
+
+def _corners_of(leaf: Node) -> list[list[float] | None]:
+    """4 corner coordinates of leaf (index 0-3), with None at index 4 to
+    replicate Perl's undef-array-element behaviour in ``Corners_In_Use``."""
+    return [geometry.coordinate(leaf, i) for i in range(4)] + [None]
+
+
+def corners_in_use(
+    leaf: Node, G: nx.Graph, neighbors: list[Node]
+) -> list[int]:
+    """Return the minimum set of consecutive corner indices needed to contain
+    all shared walls; mirrors ``Urb::Quad::Corners_In_Use`` (Quad.pm:1490).
+
+    Returns raw consecutive indices — may include values > 3 (e.g. [3,4] or
+    [3,4,5]); the caller (``stack_corners_in_use``) normalises with % 4 after
+    rotation remapping.
+
+    Perl's ``corners[4]`` is undef.  ``is_between_2d(point, undef, undef)``
+    always returns True in Perl (distance_2d(undef,x)=0 so abs(0-0-0)<1e-6).
+    This means the triple check at idx=3 always succeeds in Perl, so [3,4,5]
+    is always returned when no shorter span works — equivalent to [0,1,3] after
+    rotation-normalisation.  ``_ib`` replicates that: both-None → True,
+    one-None → False.
+    """
+    walls: list[list] = []
+    for nb in neighbors:
+        if G.has_edge(leaf, nb):
+            coords = G[leaf][nb].get("coordinates")
+            if coords is not None:
+                walls.append(coords)
+
+    corners = _corners_of(leaf)  # len==5, corners[4]=None
+
+    ib = geometry.is_between_2d  # (point, pa, pb) — handles point=None
+
+    def _ib(point, pa, pb):
+        if pa is None and pb is None:
+            return True  # Perl: is_between_2d(point,undef,undef) always True
+        if pa is None or pb is None:
+            return False
+        return ib(point, pa, pb)
+
+    # Try single corner
+    for idx in range(4):
+        c = corners[idx]
+        if all(ib(c, w[0], w[1]) for w in walls):
+            return [idx]
+
+    # Try pair (idx, idx+1); corners[4]=None → _ib returns False
+    for idx in range(4):
+        c0, c1 = corners[idx], corners[idx + 1]
+        ok = True
+        for w in walls:
+            if ib(c0, w[0], w[1]):
+                continue
+            if ib(c1, w[0], w[1]):
+                continue
+            if _ib(w[0], c0, c1):
+                continue
+            if _ib(w[1], c0, c1):
+                continue
+            ok = False
+            break
+        if ok:
+            return [idx, idx + 1]  # raw; may be [3,4]
+
+    # Try triple (idx, idx+1, idx+2); corners[4] and corners[5]=None → _ib False
+    for idx in range(4):
+        c0 = corners[idx]
+        c1 = corners[idx + 1]
+        c2 = corners[idx + 2] if idx + 2 < len(corners) else None
+        ok = True
+        for w in walls:
+            if ib(c0, w[0], w[1]):
+                continue
+            if ib(c1, w[0], w[1]):
+                continue
+            if ib(c2, w[0], w[1]):
+                continue
+            if _ib(w[0], c0, c1):
+                continue
+            if _ib(w[1], c0, c1):
+                continue
+            if _ib(w[0], c1, c2):
+                continue
+            if _ib(w[1], c1, c2):
+                continue
+            ok = False
+            break
+        if ok:
+            return [idx, idx + 1, idx + 2]  # raw; may be [3,4,5]
+
+    return [0, 1, 2, 3]
+
+
+def _stack_levels_above(leaf: Node) -> list[Node]:
+    """Same-path nodes on all levels above leaf; mirrors ``Levels_Above`` on a leaf."""
+    result: list[Node] = []
+    n = leaf
+    while True:
+        above = dom._above_node(n)
+        if above is None:
+            break
+        result.append(above)
+        n = above
+    return result
+
+
+def _ground_rotation(node: Node) -> int:
+    """Rotation of the lowest below node; mirrors Perl's ``Rotation()`` method.
+
+    Perl's ``Rotation`` returns ``$self->Below->Rotation`` when Below is
+    defined, so upper-storey nodes always report the ground-floor rotation.
+    Using the raw ``node.rotation`` (stored per-level) would give wrong
+    rotation corrections in ``stack_corners_in_use``.
+    """
+    while node.below is not None:
+        node = node.below
+    return node.rotation
+
+
+def stack_corners_in_use(
+    leaf: Node,
+    graph_circ_list: list[nx.Graph],
+    all_levels: list[Node],
+) -> list[int]:
+    """Minimum set of corners in use for the vertical stair stack; mirrors
+    ``Urb::Dom::Stack_Corners_In_Use``.
+
+    Returns [] if the stack does not span all levels above leaf, or if any
+    level's node is not circulation type.
+    """
+    if not (leaf.type and leaf.type[0].lower() == "c"):
+        return []
+
+    stack = [leaf] + _stack_levels_above(leaf)
+
+    # The stack must span ALL levels (leaf's level + all above)
+    li = _level_index(leaf, all_levels)
+    levels_above_count = len(all_levels) - li - 1
+    if len(stack) <= levels_above_count:
+        return []
+
+    # All stack nodes must be circulation
+    if not all(n.type and n.type[0].lower() == "c" for n in stack):
+        return []
+
+    leaf_rot = _ground_rotation(leaf)
+    all_corners: set[int] = set()
+    for level_offset, node in enumerate(stack):
+        level_idx = li + level_offset
+        if level_idx >= len(graph_circ_list):
+            break
+        G = graph_circ_list[level_idx]
+        nbs = list(G.neighbors(node)) if G.has_node(node) else []
+        in_use = corners_in_use(node, G, nbs)
+        # Map to ground-floor rotation frame using ground rotation (Perl
+        # Rotation() follows Below chain, so upper nodes use ground rotation)
+        node_rot = _ground_rotation(node)
+        for c in in_use:
+            all_corners.add((c - node_rot + leaf_rot) % 4)
+
+    return sorted(all_corners)
+
+
+def _level_index(n: Node, lvls: list[Node]) -> int:
+    """Index of n's storey in ``lvls`` (0 = ground floor)."""
+    lr = n
+    while lr.parent is not None:
+        lr = lr.parent
+    return lvls.index(lr)
 
 
 # --------------------------------------------------------------------------- #
@@ -85,43 +423,62 @@ def has_vertical_connection(leaf: Node, target_code: str, lvls: list[Node]) -> b
     return any(bl.type and bl.type.lower().startswith(tc) for bl in below_root.leaves())
 
 
-def _level_index(n: Node, lvls: list[Node]) -> int:
-    """Index of n's storey in ``lvls`` (0 = ground floor)."""
-    lr = n
-    while lr.parent is not None:
-        lr = lr.parent
-    return lvls.index(lr)
-
-
 # --------------------------------------------------------------------------- #
-# Space-count detection (missing space list only; stacking is in homemaker-py-hgg)
+# Space-count detection + failure stacking (ProgrammeDriven.pm:154-215)
 # --------------------------------------------------------------------------- #
 
-def find_missing_spaces(root: Node, targets: dict[str, SpaceReq]) -> list[str]:
-    """Return ids of missing required spaces; mirrors the count-detection
-    part of ``check_space_counts`` in ``ProgrammeDriven.pm:156-215``.
+def check_space_counts(
+    root: Node,
+    targets: dict[str, SpaceReq],
+) -> tuple[list[str], list[str]]:
+    """Check design has exactly the required spaces; mirrors
+    ``check_space_counts`` in ``ProgrammeDriven.pm:156-215``.
 
-    Only returns the missing-code list used by other checks to suppress false
-    adjacency/level/vertical failures.  The 2-base + per-quality failure
-    stacking (up to ~7 failures per missing space) is implemented in
-    homemaker-py-hgg.
+    Returns ``(failures, missing_ids)`` where:
+    - ``failures`` is the stacked failure list (2 base + per-quality per missing
+      space, up to ~7 per missing space; also "too many" for excess spaces).
+    - ``missing_ids`` is the list of virtual space ids used to suppress false
+      adjacency/level/vertical failures for absent spaces.
     """
-    count: dict[str, int] = {}
+    # Count spaces by type (case-sensitive, as in Perl exact-match for unique)
+    count: dict[str, list[str]] = {}
     for lvl in levels(root):
         for leaf in lvl.leaves():
             if leaf.type:
-                key = leaf.type.lower()
-                count[key] = count.get(key, 0) + 1
+                count.setdefault(leaf.type, []).append(leaf.id)
 
+    failures: list[str] = []
     missing: list[str] = []
+
     for code, req in targets.items():
         if code[0].lower() in ("c", "o", "s"):
             continue
-        actual = count.get(code.lower(), 0)
-        if actual < req.count:
-            for i in range(req.count - actual):
-                missing.append(code if req.count == 1 else f"{code}#{i + 1}")
-    return missing
+
+        actual = len(count.get(code, []))
+        expected = req.count
+
+        if actual < expected:
+            n_missing = expected - actual
+            for i in range(1, n_missing + 1):
+                mid = code if expected == 1 else f"{code}#{i}"
+                # 2 base failures
+                failures.append(f"missing required space: {mid}")
+                failures.append(f"missing required space: {mid} (critical)")
+                missing.append(mid)
+                # Per-quality failures (1 each for explicitly configured params)
+                if req.has_size:
+                    failures.append(f"missing {mid}: would need size check")
+                if req.has_width:
+                    failures.append(f"missing {mid}: would need width check")
+                if req.has_proportion:
+                    failures.append(f"missing {mid}: would need proportion check")
+
+        elif actual > expected:
+            failures.append(
+                f"too many spaces: {code} (found {actual}, expected {expected})"
+            )
+
+    return failures, missing
 
 
 # --------------------------------------------------------------------------- #
