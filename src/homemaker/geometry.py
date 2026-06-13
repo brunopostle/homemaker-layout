@@ -86,7 +86,11 @@ def coord_b(n: Node) -> Point:
 
 
 def _dist(a: Point, b: Point) -> float:
-    return math.hypot(a[0] - b[0], a[1] - b[1])
+    # NOT math.hypot: Urb::Math::distance_2d is sqrt(dx**2 + dy**2) and the
+    # two differ in the last ULP. Boundary overlap tests feed the difference
+    # of near-equal lengths into a > 0 predicate (Urb::Boundary::Overlap), so
+    # a 1-ULP deviation flips adjacency decisions on exactly-touching quads.
+    return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
 
 def _triangle_area(a: Point, b: Point, c: Point) -> float:
@@ -105,6 +109,29 @@ def area(n: Node) -> float:
 def edge_length(n: Node, idx: int) -> float:
     """Length of edge from corner ``idx`` to ``idx+1`` (``Urb::Quad::Length``)."""
     return _dist(coordinate(n, idx), coordinate(n, (idx + 1) % 4))
+
+
+def angle(n: Node, idx: int) -> float:
+    """Interior angle at corner ``idx`` in radians (``Urb::Quad::Angle``,
+    cosine rule). Clamped acos argument — Perl leaves it unclamped but only a
+    degenerate quad would push it out of [-1, 1]."""
+    a = edge_length(n, idx)
+    b = edge_length(n, (idx + 3) % 4)
+    c = _dist(coordinate(n, (idx + 1) % 4), coordinate(n, (idx + 3) % 4))
+    return math.acos(max(-1.0, min(1.0, (a * a + b * b - c * c) / (2 * a * b))))
+
+
+def aspect(n: Node) -> float:
+    """Plan aspect ratio, always >= 1 (``Urb::Quad::Aspect``)."""
+    asp = (edge_length(n, 0) + edge_length(n, 2)) / (edge_length(n, 1) + edge_length(n, 3))
+    if 0 < asp < 1:
+        asp = 1 / asp
+    return asp
+
+
+def length_narrowest(n: Node) -> float:
+    """Shortest of the four edge lengths (``Urb::Quad::Length_Narrowest``)."""
+    return min(edge_length(n, i) for i in range(4))
 
 
 # --------------------------------------------------------------------------- #
@@ -210,6 +237,44 @@ def _edge_overlap(a: Node, edge_a: int, b: Node, edge_b: int) -> float:
     return max(0.0, len_a + len_b - max_dist)
 
 
+_EXTERNAL = frozenset("abcd")  # single-char external boundary ids
+
+
+def boundary_groups(level_root: Node) -> dict[str, list[tuple[Node, int]]]:
+    """Group (leaf, edge) pairs by shared internal boundary id; the data half
+    of ``Urb::Quad::Calc_Boundaries`` (external 'a'-'d' boundaries excluded —
+    Urb's ``Boundary::Overlap`` returns 0 for them anyway).
+
+    Membership test uses the frozenset, NOT ``bid not in "abcd"`` — the latter
+    is a substring check and silently drops the root-division boundary ('').
+    """
+    from collections import defaultdict
+
+    groups: dict[str, list[tuple[Node, int]]] = defaultdict(list)
+    for leaf in level_root.leaves():
+        for edge in range(4):
+            bid = boundary_id(leaf, edge)
+            if bid not in _EXTERNAL:
+                groups[bid].append((leaf, edge))
+    return groups
+
+
+def boundary_pair_overlap(contributors: list[tuple[Node, int]], a: Node, b: Node) -> float:
+    """Overlap of quads ``a`` and ``b`` on one boundary's contributor list;
+    mirrors ``Urb::Boundary::Overlap`` (last matching edge wins, as in the
+    Perl loop). Returns 0.0 if either quad has no edge on this boundary.
+    """
+    edge_a = edge_b = None
+    for leaf, edge in contributors:
+        if leaf is a:
+            edge_a = edge
+        if leaf is b:
+            edge_b = edge
+    if edge_a is None or edge_b is None:
+        return 0.0
+    return _edge_overlap(a, edge_a, b, edge_b)
+
+
 def leaf_graph(level_root: Node, door_width: float = 1.2):  # -> nx.Graph
     """Leaf-adjacency graph for one storey; mirrors ``Urb::Quad::Graph``.
 
@@ -220,19 +285,9 @@ def leaf_graph(level_root: Node, door_width: float = 1.2):  # -> nx.Graph
     never edges.  A single-leaf storey gets one isolated vertex.
     """
     import networkx as nx
-    from collections import defaultdict
 
-    _external = frozenset("abcd")  # single-char external boundary ids
     leaves = level_root.leaves()
-    # Group (leaf, edge) pairs by shared boundary id.
-    # Use frozenset membership, NOT 'bid not in "abcd"' — the latter is a
-    # substring check and silently drops the root-division boundary ('').
-    groups: dict[str, list[tuple[Node, int]]] = defaultdict(list)
-    for leaf in leaves:
-        for edge in range(4):
-            bid = boundary_id(leaf, edge)
-            if bid not in _external:
-                groups[bid].append((leaf, edge))
+    groups = boundary_groups(level_root)
 
     G: nx.Graph = nx.Graph()
     for leaf in leaves:

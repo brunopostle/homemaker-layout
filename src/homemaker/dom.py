@@ -235,6 +235,48 @@ def _below_leaves(n: Node) -> "list[Node]":
     return bm.leaves() if bm is not None else []
 
 
+def _above_node(n: Node) -> "Node | None":
+    """Matching node on the level above; mirrors ``Urb::Quad::Above``."""
+    lr = _level_root(n)
+    if lr.above is None:
+        return None
+    return lr.above.by_id(n.id)
+
+
+def _above_more(n: Node) -> "Node | None":
+    """Matching node on level above, walking up to parent if path absent;
+    mirrors ``Urb::Quad::Above_More``."""
+    if _level_root(n).above is None:
+        return None
+    a = _above_node(n)
+    if a is not None:
+        return a
+    if n.parent is None:
+        return None
+    return _above_more(n.parent)
+
+
+def _above_leaves(n: Node) -> "list[Node]":
+    am = _above_more(n)
+    return am.leaves() if am is not None else []
+
+
+def level_of(n: Node) -> int:
+    """Storey index of n (0 = ground); mirrors ``Urb::Quad::Level``
+    (= number of levels below n's level root)."""
+    lr = _level_root(n)
+    i = 0
+    while lr.below is not None:
+        lr = lr.below
+        i += 1
+    return i
+
+
+def is_covered(n: Node) -> bool:
+    """Any leaf above n is indoor; mirrors ``Urb::Dom::Is_Covered``."""
+    return any(not is_outside(lf) for lf in _above_leaves(n))
+
+
 def is_supported(n: Node) -> bool:
     """All leaves below n are indoor; mirrors ``Urb::Dom::Is_Supported``."""
     bl = _below_leaves(n)
@@ -245,6 +287,23 @@ def is_unsupported(n: Node) -> bool:
     """All leaves below n are outdoor; mirrors ``Urb::Dom::Is_Unsupported``."""
     bl = _below_leaves(n)
     return bool(bl) and all(is_outside(lf) for lf in bl)
+
+
+def is_usable(n: Node) -> bool:
+    """Indoors, or on the ground floor, or supported by building below;
+    mirrors ``Urb::Dom::Is_Usable``."""
+    if not is_outside(n):
+        return True
+    if level_of(n) == 0:
+        return True
+    return is_supported(n)
+
+
+def is_circulation(n: Node) -> bool:
+    """Usable and type 'c'/'s'; mirrors ``Urb::Dom::Is_Circulation``."""
+    if not is_usable(n):
+        return False
+    return n.type is not None and n.type[0].lower() in ("c", "s")
 
 
 # --------------------------------------------------------------------------- #
