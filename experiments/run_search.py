@@ -17,6 +17,7 @@ Run under the go-forward fitness:
 from __future__ import annotations
 
 import math
+import shutil
 import sys
 from pathlib import Path
 
@@ -45,6 +46,9 @@ def main() -> int:
     print("population: " + ", ".join(f"{p.fitness:.4g}/{p.n_fails}f" for p in r.population))
 
     out.parent.mkdir(parents=True, exist_ok=True)
+    config_src = EX / "patterns.config"
+    if config_src.exists() and not (out.parent / "patterns.config").exists():
+        shutil.copy(config_src, out.parent)
     dom.dump(r.best.root, str(out))
     s = oracle.score(out, URB)
     ok = math.isclose(s.fitness, r.best.fitness, rel_tol=1e-9)

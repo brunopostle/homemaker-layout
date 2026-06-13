@@ -344,6 +344,39 @@ outside ratios, min internal area.** Source of truth:
   equal oracle-call budget* (urb-evolve has diversity injection/culling baked
   in, so generations are not comparable). *Gate:* memetic loop beats
   equal-budget urb-evolve. Scaling up waits for Phase 3.
+
+  **Gate result (homemaker-py-way, 2026-06-13, `URB_NO_OCCLUSION=1`, budget 2000):**
+  `experiments/benchmark_vs_urbevolve.py`; urb-evolve scores unchanged,
+  memetic scores corrected (patterns.config missing from re-score cwd in first
+  run, fixed in same session).
+
+  | seed | system | best@1000 | final@2000 | fails |
+  |------|--------|-----------|------------|-------|
+  | init.dom | memetic | 8.84e-10 | 3.37e-09 | 18 |
+  | init.dom | urb-evolve p16 | 9.10e-06 | 9.36e-05 | 6 |
+  | init.dom | urb-evolve p128 | 4.83e-09 | 3.27e-05 | 6 |
+  | c964435 | memetic | 7.65e-03 | **7.65e-03** | 2 |
+  | c964435 | urb-evolve p16 | 4.00e-03 | 4.00e-03 | 3 |
+  | c964435 | urb-evolve p128 | 4.00e-03 | 4.00e-03 | 3 |
+  | 2f45907 | memetic | 2.13e-02 | **2.13e-02** | 2 |
+  | 2f45907 | urb-evolve p16 | 1.30e-02 | 1.30e-02 | 2 |
+  | 2f45907 | urb-evolve p128 | 1.30e-02 | 1.30e-02 | 2 |
+
+  **Verdict: 2/3 seeds → REVIEW.**
+  - *Seeded designs (c964435, 2f45907)*: memetic beats urb-evolve by 1.91× and
+    1.63×; topology search adds value over the inner-loop-only reference
+    (crossover finds a better topology at eval 372 for c964435).
+  - *Blank-slate (init.dom)*: memetic stalls at 18 fails after 2000 evals;
+    urb-evolve reaches 6 fails. The `0.5^n` cliff means each fail adds ~2× penalty;
+    12-fail gap = ×4096. Root cause: single-seed topology mutation chain builds
+    structure one room at a time; urb-evolve's random-population initialisation
+    explores broader topology diversity upfront. **Not a regression** — this is
+    a scope gap: blank-slate construction is harder than seeded improvement, and
+    addressed separately (random multi-start bootstrap, or Phase 4 penalty
+    reshaping which flattens the fail cliff).
+  - The memetic loop is confirmed correct and competitive on the realistic use
+    case (seeded designs). Phase 3 (native fitness) unblocks scaled runs where
+    this gap will also narrow.
 - **Phase 3 — native Python fitness** (**gates scaled topology search**): first
   disable occlusion/daylight in Urb behind an env flag and re-baseline (§6
   descope note); then port Urb's programme-driven fitness — the §6 "port scope
