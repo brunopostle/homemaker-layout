@@ -374,11 +374,27 @@ Each phase has a concrete go/no-go gate; do not advance on faith.
    `width_inside` default (Fitness/Base.pm:60) — geometrically impossible; the
    original "passes" only by failing `size` instead. *Confirmed in source.*
    Need a sane width default scaled to area, or per-room widths.
-3. **Inner-loop optimiser choice.** Nelder-Mead worked for diagnostics; DOF is
-   small (≈ rooms−1, 6–7 on the corpus), so CMA-ES may be overkill — batched
-   multi-start pattern search parallelises across the oracle and is simpler.
-   Resolve via the Phase 1 bake-off, not upfront. Gradient-based becomes an
-   option once native fitness is differentiable-ish.
+3. **Inner-loop optimiser choice — RESOLVED (homemaker-py-d0s, 2026-06-13).**
+   Bake-off over 3 files × 4 methods × 3 seeds at budget 200
+   (`experiments/bakeoff_innerloop.py`), cold-start, `URB_NO_OCCLUSION=1`:
+
+   | method      | x@40 | x@80 | x@200 | s/eval | oracle calls | fails+ |
+   |-------------|------|------|-------|--------|--------------|--------|
+   | Nelder-Mead | 1.45 | 1.50 |  1.56 |   2.05 |          200 |      0 |
+   | CMA-ES      | 1.09 | 1.32 |  1.41 |   1.69 |           18 |      0 |
+   | compass     | 0.71 | 0.92 |  1.48 |   1.69 |           12 |      3 |
+   | compass-ms  | 0.71 | 0.92 |  0.92 |   1.44 |           13 |      4 |
+
+   **Decision: keep CMA-ES (already the default) for the Perl oracle era.**
+   Nelder-Mead wins quality per eval (+x0.15 at @200) but is inherently
+   sequential — 200 Perl invocations vs 18 for CMA (§4.6 batching matters).
+   Compass stalls on narrow-valley landscapes (2f45907: x0.62 vs x1.30) and
+   introduces fail regressions 3/9 runs. Multi-start compass wastes budget
+   on phase splits.
+
+   **Phase 3+ note:** once native fitness replaces the oracle, oracle-call count
+   disappears. Revisit Nelder-Mead then — its quality advantage is real.
+   Gradient-based (autograd through native fitness) is also an option.
 4. **Search algorithm for topology.** Memetic GA (keep crossover — now
    meaningful, since a subtree = a contiguous region) vs simulated annealing
    (the floorplanning workhorse with M1/M2/M3 moves on Polish expressions).
