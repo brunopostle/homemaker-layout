@@ -12,9 +12,9 @@ import pytest
 
 from homemaker import dom, solver
 
-CORPUS = Path("/home/bruno/src/urb/examples/programme-house")
+CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 
-pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Urb corpus not available")
+pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Corpus not available")
 
 
 def test_roundtrip_idempotent_and_area_preserving(tmp_path):

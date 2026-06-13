@@ -15,9 +15,9 @@ from homemaker import dom, geometry
 from homemaker.dom import merge_divided, levels
 from homemaker.graph import build_graphs
 
-CORPUS = Path("/home/bruno/src/urb/examples/programme-house")
+CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 
-pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Urb corpus not available")
+pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Corpus not available")
 
 # ---------------------------------------------------------------------------
 # Perl-oracle edge counts per file (generated from Urb::Quad::Graph, door=1.2)

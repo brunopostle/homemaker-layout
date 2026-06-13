@@ -7,11 +7,11 @@ import pytest
 
 from homemaker import dom, driver, innerloop, solver
 
-CORPUS = Path("/home/bruno/src/urb/examples/programme-house")
+CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 SEED_FILE = CORPUS / "c964435454c459f86c3ed9a5a7621132.dom"
 INIT_FILE = CORPUS / "init.dom"
 
-pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Urb corpus not available")
+pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Corpus not available")
 
 
 def test_free_with_keys_aligns_with_free_branches():

@@ -7,12 +7,12 @@ import pytest
 
 from homemaker import dom, genome, operators
 
-CORPUS = Path("/home/bruno/src/urb/examples/programme-house")
+CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 FILES = ["2f45907abd9accac2a124d311732f749.dom", "candidate-002.dom",
          "c964435454c459f86c3ed9a5a7621132.dom"]
 TYPES = ["k1", "l1", "b1", "b2", "t1", "C", "O"]
 
-pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Urb corpus not available")
+pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Corpus not available")
 
 
 def canonical(root: dom.Node) -> None:

@@ -6,9 +6,9 @@ import pytest
 
 from homemaker import dom, genome, solver
 
-CORPUS = Path("/home/bruno/src/urb/examples/programme-house")
+CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 
-pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Urb corpus not available")
+pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Corpus not available")
 
 
 def corpus():
