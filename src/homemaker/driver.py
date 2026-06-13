@@ -10,6 +10,13 @@ Budgets are stated and accounted in **oracle evaluations** (scored .dom
 files), never generations (§4.6 arithmetic). This driver is deliberately
 small-scale for the Phase-2 proof on the batched Perl oracle; scaling up
 waits for the native fitness (Phase 3).
+
+Cold-start bootstrap (homemaker-py-0px): when the seed is an undivided bare
+plot, the search auto-generates a diverse initial population by randomly
+applying divide mutations until each topology has approximately the programme
+room count, then evaluates all pop_size individuals before the memetic loop
+begins.  This crosses the zero-feasibility region that single-seed chaining
+cannot escape.
 """
 
 from __future__ import annotations
@@ -51,6 +58,20 @@ class SearchResult:
     # (oracle evals consumed, new best fitness, lineage) per improvement
 
 
+def random_topology(seed_root: dom.Node, n_leaves: int,
+                    rng: np.random.Generator, types: list[str]) -> dom.Node:
+    """Grow a random topology from ``seed_root`` by repeated divide mutations.
+
+    Applies ``mutate_divide`` until the total leaf count across all storeys
+    reaches ``n_leaves``.  The result is a deep copy; ``seed_root`` is
+    unchanged.
+    """
+    root = copy.deepcopy(seed_root)
+    while sum(len(lvl.leaves()) for lvl in dom.levels(root)) < n_leaves:
+        root, _ = operators.mutate_divide(root, rng, types)
+    return root
+
+
 def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
               lineage: str) -> tuple[Individual, int]:
     r = innerloop.optimise(root, programme_dir, x0=x0, budget=budget,
@@ -72,6 +93,8 @@ def search(
     pop_size: int = 8,
     child_budget: int = 80,
     seed_budget: int = 200,
+    bootstrap: bool | None = None,
+    bootstrap_n_leaves: int | None = None,
     p_crossover: float = 0.2,
     seed: int = 0,
     types: list[str] | None = None,
@@ -81,19 +104,29 @@ def search(
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
-    carries the optimised geometry and dumps to a valid ``.dom``."""
+    carries the optimised geometry and dumps to a valid ``.dom``.
+
+    ``bootstrap=None`` (default) auto-detects: if ``seed_root`` is an
+    undivided bare plot, generates a diverse initial population of ``pop_size``
+    random topologies (each with approximately ``bootstrap_n_leaves`` leaves)
+    before the memetic loop starts.  Pass ``bootstrap=False`` to force the
+    legacy single-seed path (appropriate for warm starts from existing designs).
+    """
     from .oracle import DEFAULT_URB_ROOT
 
     urb_root = urb_root or DEFAULT_URB_ROOT
     rng = np.random.default_rng(seed)
     inner_kw = dict(_CHILD_INNER_KW, **(inner_kw or {}))
+    # Always load reqs so bootstrap_n_leaves can be auto-derived from programme.
+    reqs = programme.load_programme(str(Path(programme_dir) / "patterns.config"))
     if types is None:
-        reqs = programme.load_programme(str(Path(programme_dir) / "patterns.config"))
         # Urb's generic types are canonically UPPERCASE (get_space_types:
         # qw/C O S/; the corpus is 100% uppercase). Predicates match
         # case-insensitively but Dom->Ratios keys raw strings — mixing cases
         # fragments the class buckets, so never emit lowercase generics.
         types = sorted(reqs) + ["C", "O"]
+
+    do_bootstrap = (not seed_root.divided) if bootstrap is None else bootstrap
 
     def _log(msg: str) -> None:
         if log:
@@ -124,11 +157,26 @@ def search(
             pop[worst] = ind
 
     pop: list[Individual] = []
-    seed_ind, used = _evaluate(copy.deepcopy(seed_root), programme_dir, urb_root,
-                               x0=None, budget=seed_budget,
-                               inner_kw={}, lineage="seed")
-    n_evals += used
-    admit(seed_ind, pop)
+    if do_bootstrap:
+        # Bootstrap: diverse initial population from random topologies.
+        # Each individual is a cold start, so use the exploratory sigma
+        # schedule (inner_kw={} → cma_search defaults: sigmas=(0.05, 0.15)).
+        # Leaf count varied ±1 around the target to increase structural diversity.
+        n_target = bootstrap_n_leaves or max(len(reqs), 3)
+        for i in range(pop_size):
+            n = int(rng.integers(max(1, n_target - 1), n_target + 2))
+            topo = random_topology(seed_root, n, rng, types)
+            ind, used = _evaluate(topo, programme_dir, urb_root,
+                                  x0=None, budget=child_budget,
+                                  inner_kw={}, lineage=f"bootstrap/{i}")
+            n_evals += used
+            admit(ind, pop)
+    else:
+        seed_ind, used = _evaluate(copy.deepcopy(seed_root), programme_dir, urb_root,
+                                   x0=None, budget=seed_budget,
+                                   inner_kw={}, lineage="seed")
+        n_evals += used
+        admit(seed_ind, pop)
 
     while n_evals < budget:
         if len(pop) >= 2 and rng.random() < p_crossover:

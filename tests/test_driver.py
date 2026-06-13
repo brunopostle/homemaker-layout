@@ -9,6 +9,7 @@ from homemaker import dom, driver, innerloop, solver
 
 CORPUS = Path("/home/bruno/src/urb/examples/programme-house")
 SEED_FILE = CORPUS / "c964435454c459f86c3ed9a5a7621132.dom"
+INIT_FILE = CORPUS / "init.dom"
 
 pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Urb corpus not available")
 
@@ -87,3 +88,61 @@ def test_best_root_dumps_valid_dom(fake_inner, tmp_path):
     reloaded = dom.load(str(out))
     assert sum(len(lvl.leaves()) for lvl in dom.levels(reloaded)) == \
            sum(len(lvl.leaves()) for lvl in dom.levels(r.best.root))
+
+
+def test_bootstrap_cold_start(fake_inner):
+    """Bootstrap auto-triggers from a bare undivided plot and fills the
+    population with pop_size diverse random topologies before the main loop."""
+    init_root = dom.load(str(INIT_FILE))
+    assert not init_root.divided, "init.dom should be an undivided bare plot"
+
+    pop_size = 4
+    child_budget = 60
+    budget = 500
+    r = driver.search(init_root, CORPUS, budget=budget, pop_size=pop_size,
+                      child_budget=child_budget, seed_budget=100, seed=7)
+
+    # All evaluations use child_budget (no seed_budget call)
+    assert r.n_evals % child_budget == 0
+    assert r.n_evals >= budget
+    assert r.n_evals - budget < child_budget
+    # Every topology (bootstrap + main loop) is counted
+    assert r.n_topologies == r.n_evals // child_budget
+    # Population is full
+    assert len(r.population) == pop_size
+    # Bootstrap individuals all had x0=None (cold starts)
+    assert all(c["x0"] is None for c in fake_inner[:pop_size])
+    # Bootstrap uses exploratory sigma schedule (inner_kw={}, no sigmas override)
+    assert all("sigmas" not in c["kw"] for c in fake_inner[:pop_size])
+    # Main loop children are warm-started
+    main_calls = fake_inner[pop_size:]
+    assert main_calls  # at least one main-loop child
+    assert all(c["x0"] is not None for c in main_calls)
+
+
+def test_bootstrap_disabled_for_divided_seed(fake_inner):
+    """A divided seed (warm start) auto-selects the legacy single-seed path."""
+    seed_root = dom.load(str(SEED_FILE))
+    assert seed_root.divided
+
+    r = driver.search(seed_root, CORPUS, budget=500, pop_size=4,
+                      child_budget=60, seed_budget=100, seed=0)
+
+    # First call is the seed evaluated at seed_budget
+    assert fake_inner[0]["budget"] == 100
+    assert fake_inner[0]["x0"] is None
+    # Remaining are warm-started children at child_budget
+    assert all(c["budget"] == 60 for c in fake_inner[1:])
+
+
+def test_random_topology_leaf_count():
+    """random_topology produces a topology with at least n_leaves leaves."""
+    import numpy as np
+    init_root = dom.load(str(INIT_FILE))
+    rng = np.random.default_rng(0)
+    types = ["b1", "b2", "l1", "t1", "t2", "t3", "C", "O"]
+    for n in (3, 5, 7, 10):
+        topo = driver.random_topology(init_root, n, rng, types)
+        n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(topo))
+        assert n_leaves >= n
+        assert n_leaves <= n + 1  # mutate_divide adds exactly one leaf per call
