@@ -130,6 +130,14 @@ def mutate_level_add(root: dom.Node, rng: np.random.Generator,
     top = dom.levels(child)[-1]
     dup = _g._copy_storey(top)
     dup.height = top.height
+    # Retype all named-room leaves to generic C/O so the new storey carries no
+    # duplicated programme rooms.  The outer search retypes them incrementally.
+    generic = [t for t in types if t.upper() in ("C", "O")]
+    if not generic:
+        generic = ["C"]
+    for leaf in dup.leaves():
+        if leaf.type not in ("C", "O", None):
+            leaf.type = str(rng.choice(generic))
     top.above = dup
     return _finalise(child), f"level_add ({len(dom.levels(child))} storeys)"
 
