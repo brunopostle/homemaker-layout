@@ -122,6 +122,140 @@ def mutate_rotate(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"rotate {li}/{n.id or 'root'}"
 
 
+def mutate_level_fix(root: dom.Node, rng: np.random.Generator,
+                     types: list[str], reqs=None) -> tuple[dom.Node, str]:
+    """Atomically move a level-constrained room to its required floor.
+
+    Finds a room type with a ``level: N`` constraint that currently sits on the
+    wrong storey.  Retypes the LARGEST leaf on the required floor to that room,
+    and retypes the vacated wrong-floor leaf to a generic (C or O).  Does not
+    undivide anything, so the size may still be suboptimal — the inner NM loop
+    fixes geometry, and subsequent core_divide / retype mutations fill in any
+    displaced rooms.
+
+    Requires ``reqs`` (dict[str, SpaceReq] from programme.load_programme_dir).
+    """
+    if not reqs:
+        return _finalise(copy.deepcopy(root)), "level_fix noop"
+
+    from . import geometry as _geo
+
+    level_types = {code: req.level for code, req in reqs.items()
+                   if getattr(req, "level", None) is not None}
+    if not level_types:
+        return _finalise(copy.deepcopy(root)), "level_fix noop"
+
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+
+    violations = [
+        (li, lf, code, req_level)
+        for code, req_level in level_types.items()
+        for li, lvl in enumerate(lvls)
+        for lf in lvl.leaves()
+        if lf.type == code and li != req_level
+    ]
+    if not violations:
+        return _finalise(child), "level_fix noop"
+
+    li_wrong, wrong_leaf, code, req_level = _pick(rng, violations)
+    if req_level >= len(lvls):
+        return _finalise(child), "level_fix noop"
+
+    correct_leaves = lvls[req_level].leaves()
+    if not correct_leaves:
+        return _finalise(child), "level_fix noop"
+
+    # Pick the largest leaf on the correct floor as the best landing spot
+    target = max(correct_leaves, key=lambda lf: _geo.area(lf))
+    target.type = code
+
+    generics = [t for t in types if t.upper() in ("C", "O")]
+    wrong_leaf.type = str(rng.choice(generics)) if generics else "C"
+
+    return _finalise(child), (
+        f"level_fix {code}: lvl{li_wrong}/{wrong_leaf.id or 'root'}"
+        f" → lvl{req_level}/{target.id or 'root'}"
+    )
+
+
+def mutate_core_divide(root: dom.Node, rng: np.random.Generator,
+                       types: list[str]) -> tuple[dom.Node, str]:
+    """Divide a circulation leaf at the same path across ALL storeys at once.
+
+    Staircase cores (C leaves at the same path on 2+ consecutive floors) are
+    disrupted if a single-storey divide changes the C path on only one floor.
+    This operator applies the same rotation and division to every floor that
+    has a C leaf at the chosen path, maintaining staircase consistency as an
+    atomic invariant rather than a multi-step recovery task.
+    """
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+
+    # Collect paths that are C leaves on 2+ floors
+    c_paths: dict[str, list[int]] = {}
+    for li, lvl in enumerate(lvls):
+        for lf in lvl.leaves():
+            if lf.type and lf.type.upper() == "C":
+                c_paths.setdefault(lf.id, []).append(li)
+    core_paths = [(path, lis) for path, lis in c_paths.items() if len(lis) >= 2]
+    if not core_paths:
+        return _finalise(child), "core_divide noop"
+
+    path, level_indices = _pick(rng, core_paths)
+    rotation = int(rng.integers(4))
+    division = [0.5, 0.5]
+
+    for li in level_indices:
+        node = lvls[li].by_id(path)
+        if node is None or node.divided:
+            continue
+        node.division = list(division)
+        node.rotation = rotation
+        node.left = dom.Node(type="C")
+        node.right = dom.Node(type=str(_pick(rng, types)))
+        node.type = None
+
+    return _finalise(child), f"core_divide {path} ({len(level_indices)} floors)"
+
+
+def mutate_core_undivide(root: dom.Node, rng: np.random.Generator,
+                         types: list[str]) -> tuple[dom.Node, str]:
+    """Reverse of core_divide: merge a C sub-core back into a single C leaf on all floors.
+
+    Picks a C leaf (e.g. 'rll') whose parent is also a C leaf on 2+ floors,
+    then undivides the parent on every floor simultaneously, restoring the
+    larger staircase footprint without a temporary path-mismatch fail.
+    """
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+
+    # Find divided nodes whose left child is C (candidate for core_undivide):
+    # the parent path must have C.left on 2+ floors.
+    parent_paths: dict[str, list[int]] = {}
+    for li, lvl in enumerate(lvls):
+        for n in [n for li2, n in _owned_branches(child) if li2 == li]:
+            if (n.left.type and n.left.type.upper() == "C"
+                    and not n.left.divided and not n.right.divided):
+                parent_paths.setdefault(n.id or "", []).append(li)
+    core_parents = [(p, lis) for p, lis in parent_paths.items() if len(lis) >= 2]
+    if not core_parents:
+        return _finalise(child), "core_undivide noop"
+
+    path, level_indices = _pick(rng, core_parents)
+    for li in level_indices:
+        node = lvls[li].by_id(path)
+        if node is None or not node.divided:
+            continue
+        keep = [t for t in (node.left.type, node.right.type)
+                if t and t[0].lower() not in "cos"]
+        node.type = keep[0] if keep else (node.left.type or str(_pick(rng, types)))
+        node.division = None
+        node.left = node.right = None
+
+    return _finalise(child), f"core_undivide {path} ({len(level_indices)} floors)"
+
+
 def mutate_level_retype(root: dom.Node, rng: np.random.Generator,
                         types: list[str]) -> tuple[dom.Node, str]:
     """Swap the types of two leaves on different storeys.
@@ -180,6 +314,9 @@ MUTATIONS = {
     "retype": mutate_retype,
     "swap": mutate_swap,
     "rotate": mutate_rotate,
+    "core_divide": mutate_core_divide,
+    "core_undivide": mutate_core_undivide,
+    "level_fix": mutate_level_fix,
     "level_retype": mutate_level_retype,
     "level_add": mutate_level_add,
     "level_delete": mutate_level_delete,
@@ -187,11 +324,19 @@ MUTATIONS = {
 
 
 def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
-           weights: dict[str, float] | None = None) -> tuple[dom.Node, str]:
+           weights: dict[str, float] | None = None,
+           reqs=None) -> tuple[dom.Node, str]:
     """Apply one random mutation drawn from MUTATIONS."""
     names = sorted(MUTATIONS)
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
-    name = rng.choice(names, p=p / p.sum())
+    # level_fix needs programme reqs; disable it silently when not available
+    if reqs is None:
+        p[names.index("level_fix")] = 0.0
+    if p.sum() == 0:
+        p[:] = 1.0
+    name = str(rng.choice(names, p=p / p.sum()))
+    if name == "level_fix":
+        return mutate_level_fix(root, rng, types, reqs=reqs)
     return MUTATIONS[name](root, rng, types)
 
 

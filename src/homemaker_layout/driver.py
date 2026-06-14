@@ -249,7 +249,8 @@ def search(
                 else:
                     parent = _tournament(pop, rng, _key)
                     child_root, desc = operators.mutate(parent.root, rng, types,
-                                                        weights=_MUTATION_WEIGHTS)
+                                                        weights=_MUTATION_WEIGHTS,
+                                                        reqs=reqs)
                     ratios = parent.ratios
                 x0 = innerloop.warm_x0(child_root, ratios)
                 tasks.append((child_root, x0, child_budget, inner_kw, desc))
