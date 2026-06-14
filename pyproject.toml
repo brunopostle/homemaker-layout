@@ -12,6 +12,9 @@ dependencies = [
     "cma>=3.0",
 ]
 
+[project.scripts]
+homemaker-evolve = "homemaker.evolve:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.5"]
 

@@ -195,11 +195,15 @@ def _emit(n: Node, is_level_root: bool) -> dict:
     return d
 
 
+def dumps(root: Node) -> str:
+    return yaml.safe_dump(
+        _emit(root, True), default_flow_style=False, sort_keys=False, allow_unicode=True
+    )
+
+
 def dump(root: Node, path: str) -> None:
     with open(path, "w") as fh:
-        yaml.safe_dump(
-            _emit(root, True), fh, default_flow_style=False, sort_keys=False, allow_unicode=True
-        )
+        fh.write(dumps(root))
 
 
 # --------------------------------------------------------------------------- #

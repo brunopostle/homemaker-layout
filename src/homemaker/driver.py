@@ -73,6 +73,7 @@ class SearchResult:
     n_topologies: int
     history: list[tuple[int, float, str]] = field(default_factory=list)
     # (oracle evals consumed, new best fitness, lineage) per improvement
+    interrupted: bool = False
 
 
 def random_topology(seed_root: dom.Node, n_leaves: int,
@@ -211,6 +212,7 @@ def search(
                 n_evals += used
                 admit(ind, pop)
 
+    interrupted = False
     try:
         if do_bootstrap:
             # Bootstrap: diverse initial population from random topologies.
@@ -253,6 +255,9 @@ def search(
                 x0 = innerloop.warm_x0(child_root, ratios)
                 tasks.append((child_root, x0, child_budget, inner_kw, desc))
             _run_batch(tasks)
+    except KeyboardInterrupt:
+        interrupted = True
+        _log(f"[{n_evals:6d} evals] interrupted — returning best-so-far")
     finally:
         if _pool is not None:
             _pool.shutdown(wait=True)
@@ -260,4 +265,5 @@ def search(
     result.population = sorted(pop, key=lambda i: -i.fitness)
     result.n_evals = n_evals
     result.n_topologies = n_topologies
+    result.interrupted = interrupted
     return result
