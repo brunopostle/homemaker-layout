@@ -2,7 +2,7 @@
 
 import pytest
 
-from homemaker import oracle
+from homemaker_layout import oracle
 
 
 def test_fail_lines_sorted_and_filtered():

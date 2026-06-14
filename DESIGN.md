@@ -12,7 +12,7 @@ assumes no memory of the originating conversation.
 
 ## 1. Purpose
 
-`homemaker-py` is a clean-room Python successor to the Perl **Urb** project
+`homemaker-layout` is a clean-room Python successor to the Perl **Urb** project
 (`/home/bruno/src/urb`). Urb models a building as a binary **slicing tree** and
 evolves layouts with mutation + crossover, scored against Christopher
 Alexander–style pattern fitness. Two long-standing problems motivate the
@@ -54,7 +54,7 @@ slicing class.
 
 ## 3. What we built this session (all committed)
 
-Package `src/homemaker/`:
+Package `src/homemaker_layout/`:
 
 - **`dom.py`** — `.dom` YAML ⇄ `Node` tree. Linkage (`parent`/`below`/`position`),
   `wall_outer` inset on load with raw-corner stash for byte-perfect round-trip,
@@ -480,7 +480,7 @@ Each phase has a concrete go/no-go gate; do not advance on faith.
 ## 9. How to reproduce (for the next session)
 
 ```bash
-cd /home/bruno/src/homemaker-py
+cd /home/bruno/src/homemaker-layout
 # deps: pyyaml numpy scipy (shapely networkx for later phases)
 
 # geometry port vs Urb (must be identical):

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from homemaker import dom, solver
+from homemaker_layout import dom, solver
 
 CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 
@@ -22,7 +22,7 @@ def test_roundtrip_idempotent_and_area_preserving(tmp_path):
     # real invariants are that a dumped file reloads to the same dump (stable
     # fixed point) and that per-leaf geometry survives the trip (§4.1 is the
     # area validation against Urb itself).
-    from homemaker import geometry
+    from homemaker_layout import geometry
 
     for src in sorted(CORPUS.glob("*.dom")):
         root = dom.load(str(src))
@@ -67,7 +67,7 @@ def test_free_branches_are_lowest_storey_owners():
 
 def _native_evaluate(src: Path):
     """Run native Fitness.evaluate and return (score, frozenset[fail_lines])."""
-    from homemaker import fitness as fit_mod, graph as graph_mod, geometry
+    from homemaker_layout import fitness as fit_mod, graph as graph_mod, geometry
 
     root = dom.load(str(src))
     conf, cost = fit_mod.load_config(CORPUS)
@@ -123,7 +123,7 @@ def _native_evaluate(src: Path):
 
 def _oracle_result(src: Path):
     """Read cached oracle score and failure set (URB_NO_OCCLUSION=1)."""
-    from homemaker.oracle import Score
+    from homemaker_layout.oracle import Score
 
     score_file = Path(str(src) + ".score")
     fails_file = Path(str(src) + ".fails")

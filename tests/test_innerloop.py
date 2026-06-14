@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from homemaker import innerloop
-from homemaker.oracle import Score
+from homemaker_layout import innerloop
+from homemaker_layout.oracle import Score
 
 
 class FakeEvaluator:

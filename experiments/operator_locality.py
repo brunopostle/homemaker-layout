@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from homemaker import dom, genome, geometry, operators, oracle, programme  # noqa: E402
+from homemaker_layout import dom, genome, geometry, operators, oracle, programme  # noqa: E402
 
 URB = Path("/home/bruno/src/urb")
 CORPUS = URB / "examples" / "programme-house"

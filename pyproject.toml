@@ -1,5 +1,5 @@
 [project]
-name = "homemaker"
+name = "homemaker-layout"
 version = "0.0.1"
 description = "Programme-driven building layout search over slicing trees (Python successor to Urb)"
 requires-python = ">=3.11"
@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-homemaker-evolve = "homemaker.evolve:main"
+homemaker-evolve = "homemaker_layout.evolve:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.5"]

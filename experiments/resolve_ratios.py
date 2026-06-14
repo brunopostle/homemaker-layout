@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from homemaker import dom, oracle, programme, solver  # noqa: E402
+from homemaker_layout import dom, oracle, programme, solver  # noqa: E402
 
 DEFAULT_URB = Path("/home/bruno/src/urb")
 DEFAULT_SRC = DEFAULT_URB / "examples/programme-house/candidate-002.dom"

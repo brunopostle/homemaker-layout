@@ -1,4 +1,4 @@
-# homemaker-py
+# homemaker-layout
 
 Programme-driven building-layout search over slicing trees. A clean-room Python
 successor to the Perl [Urb](../urb) project, intended to eventually be 100% Python.
@@ -27,10 +27,10 @@ search then only explores topology + types + adjacency.
 
 ## Layout
 
-- `src/homemaker/dom.py` — read/write Urb `.dom` YAML into a `Node` tree.
-- `src/homemaker/geometry.py` — faithful port of Urb's top-down geometry.
-- `src/homemaker/programme.py` — parse `patterns.config` space requirements.
-- `src/homemaker/solver.py` — bottom-up ratio solve (scipy).
-- `src/homemaker/oracle.py` — Phase-1 scaffold: score a `.dom` via Urb's `urb-fitness.pl`.
+- `src/homemaker_layout/dom.py` — read/write Urb `.dom` YAML into a `Node` tree.
+- `src/homemaker_layout/geometry.py` — faithful port of Urb's top-down geometry.
+- `src/homemaker_layout/programme.py` — parse `patterns.config` space requirements.
+- `src/homemaker_layout/solver.py` — bottom-up ratio solve (scipy).
+- `src/homemaker_layout/oracle.py` — Phase-1 scaffold: score a `.dom` via Urb's `urb-fitness.pl`.
 
 The Perl oracle is the only throwaway component; everything else is permanent.

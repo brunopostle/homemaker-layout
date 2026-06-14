@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from homemaker import dom, genome, operators
+from homemaker_layout import dom, genome, operators
 
 CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 FILES = ["2f45907abd9accac2a124d311732f749.dom", "candidate-002.dom",
@@ -58,7 +58,7 @@ def test_level_add_delete():
 def test_relink_clears_stale_below_after_base_undivide():
     # regression: dom._link must clear below-links whose path vanished, or
     # geometry on the mutated tree dereferences orphaned nodes
-    from homemaker import geometry
+    from homemaker_layout import geometry
 
     root = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[0]))))
     # force an undivide on the BASE storey specifically

@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from homemaker import dom, geometry
-from homemaker.dom import merge_divided, levels
-from homemaker.graph import build_graphs
+from homemaker_layout import dom, geometry
+from homemaker_layout.dom import merge_divided, levels
+from homemaker_layout.graph import build_graphs
 
 CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 

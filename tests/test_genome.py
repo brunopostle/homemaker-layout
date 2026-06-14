@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from homemaker import dom, genome, solver
+from homemaker_layout import dom, genome, solver
 
 CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 

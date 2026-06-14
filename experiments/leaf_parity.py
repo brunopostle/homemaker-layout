@@ -20,7 +20,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from homemaker import dom, fitness, graph  # noqa: E402
+from homemaker_layout import dom, fitness, graph  # noqa: E402
 
 URB = Path("/home/bruno/src/urb")
 CORPUS = Path(sys.argv[1]) if len(sys.argv) > 1 else URB / "examples" / "programme-house"

@@ -2,9 +2,9 @@
 
 import pytest
 
-from homemaker import dom, geometry
-from homemaker.dom import Node
-from homemaker.fitness import CONF_DEFAULTS, COST_DEFAULTS, Fitness, gaussian
+from homemaker_layout import dom, geometry
+from homemaker_layout.dom import Node
+from homemaker_layout.fitness import CONF_DEFAULTS, COST_DEFAULTS, Fitness, gaussian
 
 
 def _leaf(type_: str, size: float = 4.0) -> Node:

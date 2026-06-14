@@ -4,8 +4,8 @@ import math
 
 import pytest
 
-from homemaker import geometry
-from homemaker.dom import Node
+from homemaker_layout import geometry
+from homemaker_layout.dom import Node
 
 
 def _square(size: float = 10.0) -> Node:

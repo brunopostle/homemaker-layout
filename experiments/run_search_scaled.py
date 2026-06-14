@@ -26,7 +26,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from homemaker import dom, driver, fitness, innerloop  # noqa: E402
+from homemaker_layout import dom, driver, fitness, innerloop  # noqa: E402
 
 URB_EX = Path("/home/bruno/src/urb/examples")
 PH_DIR = URB_EX / "programme-house"

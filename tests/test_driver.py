@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from homemaker import dom, driver, innerloop, solver
+from homemaker_layout import dom, driver, innerloop, solver
 
 CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 SEED_FILE = CORPUS / "c964435454c459f86c3ed9a5a7621132.dom"
