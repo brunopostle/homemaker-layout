@@ -146,3 +146,15 @@ def test_random_topology_leaf_count():
         n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(topo))
         assert n_leaves >= n
         assert n_leaves <= n + 1  # mutate_divide adds exactly one leaf per call
+
+
+def test_search_parallel_smoke():
+    """n_workers>1 runs without error and produces valid results."""
+    init_root = dom.load(str(INIT_FILE))
+    r = driver.search(init_root, CORPUS, budget=160, pop_size=2,
+                      child_budget=80, seed=0, n_workers=2)
+    assert r.best is not None
+    assert r.best.fitness > 0
+    assert r.n_evals >= 160
+    assert 1 <= len(r.population) <= 2
+    assert r.n_topologies >= 2  # at least the bootstrap individuals

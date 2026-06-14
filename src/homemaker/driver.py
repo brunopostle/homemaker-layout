@@ -17,6 +17,12 @@ applying divide mutations until each topology has approximately the programme
 room count, then evaluates all pop_size individuals before the memetic loop
 begins.  This crosses the zero-feasibility region that single-seed chaining
 cannot escape.
+
+Parallelism (homemaker-py-5l6): ``n_workers > 1`` evaluates a batch of
+children per iteration using ``concurrent.futures.ProcessPoolExecutor``.
+Each worker is independent (NativeEvaluator has no shared mutable state).
+The geometry module-level cache is cleared in each worker after fork to
+prevent stale id-keyed entries inherited from the parent process.
 """
 
 from __future__ import annotations
@@ -37,6 +43,17 @@ _CHILD_INNER_KW = {"sigmas": (0.05,)}
 # storey add/delete are drastic (geometry perturbation 0.25-0.33 and a
 # deleted storey stacks missing-space failures) — sample them rarely
 _MUTATION_WEIGHTS = {"level_add": 0.2, "level_delete": 0.2}
+
+
+def _worker_init() -> None:
+    """Clear the geometry cache in each forked worker process.
+
+    geometry._cache is keyed by id(node) (Python memory address). After
+    fork the inherited cache holds parent-process ids that could collide
+    with freshly allocated nodes in the worker, producing wrong hits.
+    """
+    from . import geometry
+    geometry.clear_cache()
 
 
 @dataclass
@@ -101,6 +118,7 @@ def search(
     inner_kw: dict | None = None,
     urb_root=None,
     log=None,
+    n_workers: int = 1,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -111,6 +129,13 @@ def search(
     random topologies (each with approximately ``bootstrap_n_leaves`` leaves)
     before the memetic loop starts.  Pass ``bootstrap=False`` to force the
     legacy single-seed path (appropriate for warm starts from existing designs).
+
+    ``n_workers=1`` (default) runs serially; ``n_workers > 1`` evaluates
+    children in parallel using ``ProcessPoolExecutor``.  The bootstrap batch
+    is fully parallel; the main loop generates ``n_workers`` children per
+    iteration from the current population snapshot and evaluates them in
+    parallel.  Results are admitted in completion order (fastest first), so
+    later children in each batch see an already-updated population.
     """
     from .oracle import DEFAULT_URB_ROOT
 
@@ -157,43 +182,80 @@ def search(
             pop[worst] = ind
 
     pop: list[Individual] = []
-    if do_bootstrap:
-        # Bootstrap: diverse initial population from random topologies.
-        # Each individual is a cold start, so use the exploratory sigma
-        # schedule (inner_kw={} → cma_search defaults: sigmas=(0.05, 0.15)).
-        # Leaf count varied ±1 around the target to increase structural diversity.
-        n_target = bootstrap_n_leaves or max(len(reqs), 3)
-        for i in range(pop_size):
-            n = int(rng.integers(max(1, n_target - 1), n_target + 2))
-            topo = random_topology(seed_root, n, rng, types)
-            ind, used = _evaluate(topo, programme_dir, urb_root,
-                                  x0=None, budget=child_budget,
-                                  inner_kw={}, lineage=f"bootstrap/{i}")
-            n_evals += used
-            admit(ind, pop)
-    else:
-        seed_ind, used = _evaluate(copy.deepcopy(seed_root), programme_dir, urb_root,
-                                   x0=None, budget=seed_budget,
-                                   inner_kw={}, lineage="seed")
-        n_evals += used
-        admit(seed_ind, pop)
 
-    while n_evals < budget:
-        if len(pop) >= 2 and rng.random() < p_crossover:
-            a, b = _tournament(pop, rng), _tournament(pop, rng)
-            child_root, _, desc = operators.crossover(a.root, b.root, rng)
-            ratios = {**b.ratios, **a.ratios}  # primary parent wins
+    # Set up optional process pool for parallel child evaluation.
+    _pool = None
+    if n_workers > 1:
+        from concurrent.futures import ProcessPoolExecutor
+        _pool = ProcessPoolExecutor(max_workers=n_workers, initializer=_worker_init)
+
+    def _run_batch(
+        tasks: list[tuple],  # (root, x0, budget_, inner_kw_, lineage)
+    ) -> None:
+        """Evaluate a batch of tasks and admit results; parallel when _pool set."""
+        nonlocal n_evals
+        full = [
+            (root, programme_dir, urb_root, x0, budget_, kw_, lin)
+            for root, x0, budget_, kw_, lin in tasks
+        ]
+        if _pool is not None:
+            from concurrent.futures import as_completed
+            futs = [_pool.submit(_evaluate, *t) for t in full]
+            for f in as_completed(futs):
+                ind, used = f.result()
+                n_evals += used
+                admit(ind, pop)
         else:
-            parent = _tournament(pop, rng)
-            child_root, desc = operators.mutate(parent.root, rng, types,
-                                                weights=_MUTATION_WEIGHTS)
-            ratios = parent.ratios
-        x0 = innerloop.warm_x0(child_root, ratios)
-        child, used = _evaluate(child_root, programme_dir, urb_root,
-                                x0=x0, budget=child_budget,
-                                inner_kw=inner_kw, lineage=desc)
-        n_evals += used
-        admit(child, pop)
+            for t in full:
+                ind, used = _evaluate(*t)
+                n_evals += used
+                admit(ind, pop)
+
+    try:
+        if do_bootstrap:
+            # Bootstrap: diverse initial population from random topologies.
+            # Each individual is a cold start, so use the exploratory sigma
+            # schedule (inner_kw={} → cma_search defaults: sigmas=(0.05, 0.15)).
+            # Leaf count varied ±1 around the target to increase structural diversity.
+            n_target = bootstrap_n_leaves or max(len(reqs), 3)
+            tasks = []
+            for i in range(pop_size):
+                n = int(rng.integers(max(1, n_target - 1), n_target + 2))
+                topo = random_topology(seed_root, n, rng, types)
+                tasks.append((topo, None, child_budget, {}, f"bootstrap/{i}"))
+            _run_batch(tasks)
+        else:
+            seed_ind, used = _evaluate(copy.deepcopy(seed_root), programme_dir, urb_root,
+                                       x0=None, budget=seed_budget,
+                                       inner_kw={}, lineage="seed")
+            n_evals += used
+            admit(seed_ind, pop)
+
+        while n_evals < budget:
+            # How many children to generate this iteration: n_workers in parallel,
+            # but cap at what the remaining budget can afford (ceiling division).
+            batch_n = (
+                min(n_workers,
+                    max(1, (budget - n_evals + child_budget - 1) // child_budget))
+                if _pool is not None else 1
+            )
+            tasks = []
+            for _ in range(batch_n):
+                if len(pop) >= 2 and rng.random() < p_crossover:
+                    a, b = _tournament(pop, rng), _tournament(pop, rng)
+                    child_root, _, desc = operators.crossover(a.root, b.root, rng)
+                    ratios = {**b.ratios, **a.ratios}  # primary parent wins
+                else:
+                    parent = _tournament(pop, rng)
+                    child_root, desc = operators.mutate(parent.root, rng, types,
+                                                        weights=_MUTATION_WEIGHTS)
+                    ratios = parent.ratios
+                x0 = innerloop.warm_x0(child_root, ratios)
+                tasks.append((child_root, x0, child_budget, inner_kw, desc))
+            _run_batch(tasks)
+    finally:
+        if _pool is not None:
+            _pool.shutdown(wait=True)
 
     result.population = sorted(pop, key=lambda i: -i.fitness)
     result.n_evals = n_evals
