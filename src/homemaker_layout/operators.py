@@ -122,6 +122,28 @@ def mutate_rotate(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"rotate {li}/{n.id or 'root'}"
 
 
+def mutate_level_retype(root: dom.Node, rng: np.random.Generator,
+                        types: list[str]) -> tuple[dom.Node, str]:
+    """Swap the types of two leaves on different storeys.
+
+    The cross-storey equivalent of mutate_retype; directly addresses
+    level-constraint failures (e.g. "l1 on wrong level") by moving a room
+    type from one floor to another without changing topology or geometry.
+    """
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+    if len(lvls) < 2:
+        return _finalise(child), "level_retype noop"
+    all_lv = _leaves(child)
+    li_a, a = _pick(rng, all_lv)
+    other = [(li, lf) for li, lf in all_lv if li != li_a]
+    if not other:
+        return _finalise(child), "level_retype noop"
+    li_b, b = _pick(rng, other)
+    a.type, b.type = b.type, a.type
+    return _finalise(child), f"level_retype {li_a}/{a.id or 'root'}<->{li_b}/{b.id or 'root'}"
+
+
 def mutate_level_add(root: dom.Node, rng: np.random.Generator,
                      types: list[str]) -> tuple[dom.Node, str]:
     from . import genome as _g
@@ -158,6 +180,7 @@ MUTATIONS = {
     "retype": mutate_retype,
     "swap": mutate_swap,
     "rotate": mutate_rotate,
+    "level_retype": mutate_level_retype,
     "level_add": mutate_level_add,
     "level_delete": mutate_level_delete,
 }
