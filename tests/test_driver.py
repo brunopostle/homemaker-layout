@@ -76,7 +76,7 @@ def test_search_children_warm_start_and_local_sigma(fake_inner):
         assert c["x0"] is not None  # warm-started
         # inherited cuts carry the parent's written-back ratios
         assert np.isin(c["x0"], [0.25, 0.5]).all()
-        assert c["kw"].get("sigmas") == (0.05,)
+        assert "sigmas" not in c["kw"]  # NM inner loop takes no sigmas
 
 
 def test_best_root_dumps_valid_dom(fake_inner, tmp_path):

@@ -208,6 +208,38 @@ flag count), and (c) is representation-independent. Reshaping it
 (additive / soft / multi-objective Pareto) is a high-leverage change that helps
 Urb today and homemaker tomorrow.
 
+### 4.9 Penalty reshaping decision: lexicographic outer search (measured 2026-06-14)
+
+`experiments/penalty_reshape.py`, `URB_NO_OCCLUSION=1`, programme-house.
+
+**Inner-loop protection** (nm_search, budget 80, 3 files × 3 seeds = 9 runs):
+All runs show `n_fails ≤ x0_n_fails`. **0/9 regressions.** The `0.5^n` cliff
+in the native fitness scalar is unchanged and continues to protect the inner
+loop.
+
+**Outer-search comparison** (budget 3000, 3 seeds, seed = 2f45907):
+
+| scheme | seed | best | fails | note |
+|--------|------|------|-------|------|
+| lex    |  0   | 0.01781 | 2 | |
+| lex    |  1   | 0.01793 | 2 | |
+| lex    |  2   | 0.01785 | 2 | |
+| scalar |  0   | 0.01781 | 2 | (same outcome) |
+| scalar |  1   | **0.01890** | **3** | trapped by high-score 3-fail design |
+| scalar |  2   | 0.02632 | 2 | (different topology path) |
+
+`lex` mean: 0.01786 / 2.00 fails. `scalar` mean: 0.02101 / 2.33 fails.
+
+Key result (seed 1): scalar promoted a 3-fail design whose raw score (×0.125
+penalty) beat the pool's 2-fail candidates — exactly the §4.8 pathology.
+Lexicographic comparison (`-n_fails` first, then `fitness`) is immune: any
+2-fail design beats any 3-fail design regardless of raw score. Within a
+homogeneous fail tier both schemes are identical (seeds 0 and 2 agree in
+serendipitous runs where scalar also stays in the 2-fail tier).
+
+**Decision: lexicographic. `0.5^n` stays in the fitness scalar (inner loop
+unchanged). Outer search uses `(-n_fails, fitness)` as comparison key.**
+
 ---
 
 ## 5. Validated architecture
@@ -419,10 +451,13 @@ outside ratios, min internal area.** Source of truth:
   in 633s. 49-fail landscape: still many fails, but topology search is finding structure
   (best 3 population members all at 49 fails). The 16-room programme is qualitatively
   beyond the oracle's capability — this run is only possible with native fitness.
-- **Phase 4 — penalty reshaping**: replace `0.5^n` with additive/soft,
-  lexicographic, or multi-objective (easier once fitness is native), while
-  preserving the inner loop's no-new-failures protection (§5.4) and the
-  missing-space hierarchy (§6); measure landscape + search.
+- **Phase 4 — penalty reshaping** *(done, homemaker-py-yg5, 2026-06-14)*:
+  **Decision: lexicographic outer-search comparison** (see §4.9).
+  Inner loop unchanged — still uses raw `0.5^n` fitness scalar (cliff protection
+  preserved, §5.4). Outer search compares individuals by `(-n_fails, fitness)`:
+  fewer fails always beats more fails; within a tier, compare by score.
+  Implemented in `driver.search(use_lex=True)`. `_CHILD_INNER_KW` stale
+  `sigmas` entry also removed (NM default has no `sigmas` parameter).
 - **Phase 5 — representation upgrade**: canonical slicing encoding
   (Polish expression) + bottom-up shape feasibility; scale to larger programmes.
 
@@ -465,10 +500,9 @@ Each phase has a concrete go/no-go gate; do not advance on faith.
 4. **Search algorithm for topology.** Memetic GA (keep crossover — now
    meaningful, since a subtree = a contiguous region) vs simulated annealing
    (the floorplanning workhorse with M1/M2/M3 moves on Polish expressions).
-5. **Penalty reshaping vs inner-loop protection.** One fitness shape cannot
-   naively be both soft for the outer search and cliff-protected for the inner
-   loop (§5.4). Resolve in Phase 4: cliff-inside-inner-loop, lexicographic, or
-   Pareto.
+5. **Penalty reshaping vs inner-loop protection — RESOLVED (homemaker-py-yg5,
+   2026-06-14).** Lexicographic outer-search comparison (§4.9). Inner loop
+   unchanged.
 6. **Other continuous DOF are out of scope for Phase 1 — deliberately.**
    Floor-to-floor height is an Urb mutation (Mutate.pm:279-291, bounded
    2.7–3.6 m) and feeds cost and stair fit; stair riser/width similar. Cut

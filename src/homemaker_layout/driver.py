@@ -35,10 +35,7 @@ import numpy as np
 
 from . import dom, innerloop, operators, programme
 
-# children refine a near-optimal inherited geometry: one local CMA phase
-# (the exploratory ladder phase exists for brutal cold projections, which
-# warm-started children never face)
-_CHILD_INNER_KW = {"sigmas": (0.05,)}
+_CHILD_INNER_KW: dict = {}
 
 # storey add/delete are drastic (geometry perturbation 0.25-0.33 and a
 # deleted storey stacks missing-space failures) — sample them rarely
@@ -99,9 +96,9 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     return ind, r.n_evals
 
 
-def _tournament(pop: list[Individual], rng: np.random.Generator, k: int = 2) -> Individual:
+def _tournament(pop: list[Individual], rng: np.random.Generator, key_fn, k: int = 2) -> Individual:
     picks = rng.integers(len(pop), size=k)
-    return max((pop[int(i)] for i in picks), key=lambda ind: ind.fitness)
+    return max((pop[int(i)] for i in picks), key=key_fn)
 
 
 def search(
@@ -120,6 +117,7 @@ def search(
     urb_root=None,
     log=None,
     n_workers: int = 1,
+    use_lex: bool = True,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -143,6 +141,7 @@ def search(
     urb_root = urb_root or DEFAULT_URB_ROOT
     rng = np.random.default_rng(seed)
     inner_kw = dict(_CHILD_INNER_KW, **(inner_kw or {}))
+    _key = (lambda ind: (-ind.n_fails, ind.fitness)) if use_lex else (lambda ind: ind.fitness)
     # Always load reqs so bootstrap_n_leaves can be auto-derived from programme.
     reqs = programme.load_programme_dir(programme_dir)
     if types is None:
@@ -165,7 +164,7 @@ def search(
     def admit(ind: Individual, pop: list[Individual]) -> None:
         nonlocal n_topologies
         n_topologies += 1
-        if result.best is None or ind.fitness > result.best.fitness:
+        if result.best is None or _key(ind) > _key(result.best):
             result.best = ind
             result.history.append((n_evals, ind.fitness, ind.lineage))
             _log(f"[{n_evals:6d} evals] best {ind.fitness:.6g} "
@@ -178,8 +177,8 @@ def search(
         if len(pop) < pop_size:
             pop.append(ind)
             return
-        worst = min(range(len(pop)), key=lambda i: pop[i].fitness)
-        if ind.fitness > pop[worst].fitness:
+        worst = min(range(len(pop)), key=lambda i: _key(pop[i]))
+        if _key(ind) > _key(pop[worst]):
             pop[worst] = ind
 
     pop: list[Individual] = []
@@ -244,11 +243,11 @@ def search(
             tasks = []
             for _ in range(batch_n):
                 if len(pop) >= 2 and rng.random() < p_crossover:
-                    a, b = _tournament(pop, rng), _tournament(pop, rng)
+                    a, b = _tournament(pop, rng, _key), _tournament(pop, rng, _key)
                     child_root, _, desc = operators.crossover(a.root, b.root, rng)
                     ratios = {**b.ratios, **a.ratios}  # primary parent wins
                 else:
-                    parent = _tournament(pop, rng)
+                    parent = _tournament(pop, rng, _key)
                     child_root, desc = operators.mutate(parent.root, rng, types,
                                                         weights=_MUTATION_WEIGHTS)
                     ratios = parent.ratios
@@ -262,7 +261,7 @@ def search(
         if _pool is not None:
             _pool.shutdown(wait=True)
 
-    result.population = sorted(pop, key=lambda i: -i.fitness)
+    result.population = sorted(pop, key=_key, reverse=True)
     result.n_evals = n_evals
     result.n_topologies = n_topologies
     result.interrupted = interrupted
