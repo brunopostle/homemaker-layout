@@ -179,6 +179,104 @@ def mutate_level_fix(root: dom.Node, rng: np.random.Generator,
     )
 
 
+def mutate_level_compound_fix(root: dom.Node, rng: np.random.Generator,
+                              types: list[str], reqs=None) -> tuple[dom.Node, str]:
+    """Compound level fix: move level-constrained room + re-insert displaced room.
+
+    Extends level_fix: after landing the constrained room (e.g. l1) on its
+    required floor, the displaced room (e.g. t3) is re-inserted by splitting
+    the SIBLING of the largest C leaf on that floor.  The C sibling is always
+    geometrically adjacent to C (they share the same parent split), so the
+    displaced room inherits that adjacency.  Division is applied to the target
+    floor only (not core-divide style), since the displaced room only needs to
+    appear on its required floor.
+
+    This avoids the 5-fail "missing t3" penalty that level_fix alone causes
+    when the landing spot displaces a required room.
+    """
+    if not reqs:
+        return _finalise(copy.deepcopy(root)), "level_compound_fix noop"
+
+    from . import geometry as _geo
+
+    level_types = {code: req.level for code, req in reqs.items()
+                   if getattr(req, "level", None) is not None}
+    if not level_types:
+        return _finalise(copy.deepcopy(root)), "level_compound_fix noop"
+
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+
+    violations = [
+        (li, lf, code, req_level)
+        for code, req_level in level_types.items()
+        for li, lvl in enumerate(lvls)
+        for lf in lvl.leaves()
+        if lf.type == code and li != req_level
+    ]
+    if not violations:
+        return _finalise(child), "level_compound_fix noop"
+
+    li_wrong, wrong_leaf, code, req_level = _pick(rng, violations)
+    if req_level >= len(lvls):
+        return _finalise(child), "level_compound_fix noop"
+
+    correct_leaves = lvls[req_level].leaves()
+    if not correct_leaves:
+        return _finalise(child), "level_compound_fix noop"
+
+    target = max(correct_leaves, key=lambda lf: _geo.area(lf))
+    displaced_type = target.type
+
+    # Apply level_fix part
+    target.type = code
+    generics = [t for t in types if t.upper() in ("C", "O")]
+    wrong_leaf.type = str(rng.choice(generics)) if generics else "C"
+
+    desc = (f"level_compound_fix {code}: lvl{li_wrong} → lvl{req_level}/{target.id or 'root'}")
+
+    # Re-insert displaced room if it was a named room
+    if displaced_type and displaced_type.upper() not in ("C", "O", "S"):
+        displaced_req = reqs.get(displaced_type)
+        displaced_level = getattr(displaced_req, "level", None) if displaced_req else None
+        insert_level = displaced_level if displaced_level is not None else req_level
+
+        lvls = dom.levels(child)
+        # Find C-sibling pairs: (parent, sibling_of_C) on insert_level.
+        # The sibling of a C leaf shares a parent split → guaranteed adjacent to C.
+        # Pick the largest such sibling as the host for the displaced room.
+        sibling_cands: list[dom.Node] = []
+        for li2, n in _owned_branches(child):
+            if li2 != insert_level:
+                continue
+            l_is_c = n.left.type and n.left.type.upper() == "C" and not n.left.divided
+            r_is_c = n.right.type and n.right.type.upper() == "C" and not n.right.divided
+            if l_is_c and not n.right.divided and n.right.id:
+                sibling_cands.append(n.right)
+            if r_is_c and not n.left.divided and n.left.id:
+                sibling_cands.append(n.left)
+
+        if sibling_cands:
+            host = max(sibling_cands, key=lambda lf: _geo.area(lf))
+            host_path = host.id
+
+            node = lvls[insert_level].by_id(host_path)
+            if node is not None and not node.divided:
+                host_orig_type = node.type
+                # rotation=0 (vertical left-right split): left child neighbours C;
+                # displaced room goes left (small), host type preserved right (large).
+                # Inner NM tunes the exact split ratio.
+                node.division = [0.25, 0.25]
+                node.rotation = 0
+                node.left = dom.Node(type=displaced_type)  # small, adjacent to C
+                node.right = dom.Node(type=host_orig_type)  # large, preserves host
+                node.type = None
+
+            desc += f" + insert {displaced_type} into {host_path}/lvl{insert_level}"
+
+    return _finalise(child), desc
+
+
 def mutate_core_divide(root: dom.Node, rng: np.random.Generator,
                        types: list[str]) -> tuple[dom.Node, str]:
     """Divide a circulation leaf at the same path across ALL storeys at once.
@@ -317,6 +415,7 @@ MUTATIONS = {
     "core_divide": mutate_core_divide,
     "core_undivide": mutate_core_undivide,
     "level_fix": mutate_level_fix,
+    "level_compound_fix": mutate_level_compound_fix,
     "level_retype": mutate_level_retype,
     "level_add": mutate_level_add,
     "level_delete": mutate_level_delete,
@@ -335,8 +434,8 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     if p.sum() == 0:
         p[:] = 1.0
     name = str(rng.choice(names, p=p / p.sum()))
-    if name == "level_fix":
-        return mutate_level_fix(root, rng, types, reqs=reqs)
+    if name in ("level_fix", "level_compound_fix"):
+        return MUTATIONS[name](root, rng, types, reqs=reqs)
     return MUTATIONS[name](root, rng, types)
 
 
