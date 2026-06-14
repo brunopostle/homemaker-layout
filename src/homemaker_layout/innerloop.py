@@ -262,7 +262,64 @@ def cma_search(
     return best
 
 
-_METHODS = {"cma": cma_search, "compass": compass_search}
+class _BudgetExhausted(Exception):
+    pass
+
+
+def nm_search(
+    ev: "OracleEvaluator | NativeEvaluator",
+    x0: np.ndarray,
+    budget: int = 200,
+    seed: int = 0,
+) -> Result:
+    """Multi-start Nelder-Mead: x0 first, random restarts until budget spent.
+
+    Sequential — one evaluation per oracle call.  Outperforms CMA-ES across
+    all DOF sizes at native-fitness speed (bakeoff homemaker-py-d6d): wins
+    early (budget 80) for programme-house (6-7 DOF) and decisively for
+    harbor-house scale (35-40 DOF) where CMA exhausts its convergence
+    detector in ~3 generations and stops.
+    """
+    from scipy.optimize import minimize
+
+    rng = np.random.default_rng(seed)
+    n = len(x0)
+    x = np.clip(np.asarray(x0, dtype=float), _EPS, 1 - _EPS)
+    s = ev.evaluate([x])[0]
+    best = Result(
+        x=x.copy(), fitness=s.fitness, n_fails=s.n_fails, fail_lines=s.fail_lines,
+        x0_fitness=s.fitness, x0_n_fails=s.n_fails, n_evals=0, n_oracle_calls=0,
+    )
+
+    def _f(xi):
+        if ev.n_evals >= budget:
+            raise _BudgetExhausted
+        sc = ev.evaluate([np.asarray(xi, dtype=float)])[0]
+        if sc.fitness > best.fitness:
+            best.x = np.asarray(xi, dtype=float).copy()
+            best.fitness = sc.fitness
+            best.n_fails = sc.n_fails
+            best.fail_lines = sc.fail_lines
+        return -sc.fitness
+
+    start = x.copy()
+    while ev.n_evals < budget:
+        try:
+            minimize(
+                _f, start, method="Nelder-Mead",
+                bounds=[(_EPS, 1 - _EPS)] * n,
+                options={"maxfev": budget - ev.n_evals, "xatol": 1e-3, "fatol": 1e-10},
+            )
+        except _BudgetExhausted:
+            break
+        start = rng.uniform(0.1, 0.9, n)
+
+    best.n_evals = ev.n_evals
+    best.n_oracle_calls = ev.n_oracle_calls
+    return best
+
+
+_METHODS = {"nm": nm_search, "cma": cma_search, "compass": compass_search}
 
 
 from dataclasses import dataclass as _dc
@@ -337,7 +394,7 @@ def optimise(
     programme_dir: str | Path,
     x0: np.ndarray | None = None,
     budget: int = 200,
-    method: str = "cma",
+    method: str = "nm",
     use_native: bool = True,
     urb_root: str | Path = oracle.DEFAULT_URB_ROOT,
     **search_kw,

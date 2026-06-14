@@ -26,7 +26,7 @@ def concave(x):
     return float(1.0 - np.sum((x - 0.3) ** 2))
 
 
-@pytest.mark.parametrize("search", [innerloop.compass_search, innerloop.cma_search])
+@pytest.mark.parametrize("search", [innerloop.nm_search, innerloop.compass_search, innerloop.cma_search])
 def test_search_converges_on_concave(search):
     # the production configs trade final-digit polish for basin coverage
     # (multi-start sigma ladder), so assert basin convergence, not precision
@@ -37,7 +37,7 @@ def test_search_converges_on_concave(search):
     assert r.x0_fitness == pytest.approx(concave(np.full(4, 0.7)))
 
 
-@pytest.mark.parametrize("search", [innerloop.compass_search, innerloop.cma_search])
+@pytest.mark.parametrize("search", [innerloop.nm_search, innerloop.compass_search, innerloop.cma_search])
 def test_search_respects_budget_and_bounds(search):
     seen = []
 
@@ -47,7 +47,7 @@ def test_search_respects_budget_and_bounds(search):
 
     ev = FakeEvaluator(spy)
     r = search(ev, np.full(3, 0.5), budget=60)
-    # one batch may run slightly over, but never a whole extra cycle
+    # NM may slightly overshoot on the final call; others batch so allow one extra cycle
     assert r.n_evals == ev.n_evals <= 60 + 3 * 10
     assert all((x >= innerloop._EPS - 1e-12).all() and (x <= 1 - innerloop._EPS + 1e-12).all()
                for x in seen)
