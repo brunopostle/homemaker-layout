@@ -42,9 +42,7 @@ def _pair(d: dict, key: str, default: tuple[float, float]) -> tuple[float, float
     return float(v[0]), float(v[1])
 
 
-def load_programme(path: str) -> dict[str, SpaceReq]:
-    with open(path) as fh:
-        conf = yaml.safe_load(fh)
+def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
     spaces = conf.get("spaces") or {}
     out: dict[str, SpaceReq] = {}
     for code, c in spaces.items():
@@ -69,3 +67,25 @@ def load_programme(path: str) -> dict[str, SpaceReq]:
             has_proportion="proportion" in c,
         )
     return out
+
+
+def load_programme(path: str) -> dict[str, SpaceReq]:
+    with open(path) as fh:
+        conf = yaml.safe_load(fh)
+    return _parse_spaces(conf)
+
+
+def load_programme_dir(directory: str | Path) -> dict[str, SpaceReq]:
+    """Load programme from a directory, merging parent patterns.config as base.
+
+    Mirrors urb-evolve.pl: ../patterns.config loaded first, then the local
+    file's top-level keys override it (same shallow-merge as fitness.load_config).
+    """
+    from pathlib import Path as _Path
+    directory = _Path(directory)
+    conf: dict = {}
+    for p in (directory.parent / "patterns.config", directory / "patterns.config"):
+        if p.is_file():
+            with open(p) as fh:
+                conf.update(yaml.safe_load(fh) or {})
+    return _parse_spaces(conf)

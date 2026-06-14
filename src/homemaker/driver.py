@@ -144,7 +144,7 @@ def search(
     rng = np.random.default_rng(seed)
     inner_kw = dict(_CHILD_INNER_KW, **(inner_kw or {}))
     # Always load reqs so bootstrap_n_leaves can be auto-derived from programme.
-    reqs = programme.load_programme(str(Path(programme_dir) / "patterns.config"))
+    reqs = programme.load_programme_dir(programme_dir)
     if types is None:
         # Urb's generic types are canonically UPPERCASE (get_space_types:
         # qw/C O S/; the corpus is 100% uppercase). Predicates match
