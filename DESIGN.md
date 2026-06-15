@@ -210,6 +210,8 @@ Urb today and homemaker tomorrow.
 
 ### 4.9 Penalty reshaping decision: lexicographic outer search (measured 2026-06-14)
 
+
+
 `experiments/penalty_reshape.py`, `URB_NO_OCCLUSION=1`, programme-house.
 
 **Inner-loop protection** (nm_search, budget 80, 3 files × 3 seeds = 9 runs):
@@ -239,6 +241,91 @@ serendipitous runs where scalar also stays in the 2-fail tier).
 
 **Decision: lexicographic. `0.5^n` stays in the fitness scalar (inner loop
 unchanged). Outer search uses `(-n_fails, fitness)` as comparison key.**
+
+### 4.10 Deceptive level-fix valley and compound operators (measured 2026-06-14/15)
+
+**Context:** programme-house, Phase 3 native fitness + Phase 4 lex search, seed
+`warmstart-2f4.dom` (best Phase-3 result, 2 fails at score 0.032). Goal: reach
+≤ 1 fail, beating the Perl optimiser (2–3 fails).
+
+**The deceptive valley.** The 2-fail state has l1 (living room, min 27 m²,
+required level 0) on level 1. The obvious repair is `level_fix`: swap l1 with a
+leaf on level 0. But every single-step `level_fix` move creates 5+ new fails
+because the displaced room (t3, the WC) is dropped into an arbitrary slot that
+violates adjacency, size, and access constraints simultaneously. The lex
+comparator (`-n_fails, fitness`) correctly rejects these — but the result is that
+the 2-fail state appears completely surrounded by ≥ 5-fail states, and the search
+stalls. This is a textbook deceptive valley: the fitness gradient points away from
+the global optimum.
+
+**Compound operator.** `mutate_level_compound_fix` (added `operators.py`) escapes
+the valley by doing two things atomically:
+
+1. Move l1 to level 0 by swapping it with the *largest* leaf there (the
+   circulation C node, because C is generic and can absorb the swap without
+   producing a new structural failure).
+2. Re-insert the displaced t3 by dividing the sibling of that C node (so t3
+   lands adjacent to C, satisfying the adjacency requirement).
+
+The new split gets `division=[0.25,0.25]` (giving t3 ≈ 3.4 m², barely in range)
+and `rotation=0` (t3 on the left, adjacent to the C sibling).
+
+**The `warm_x0` initialization bug.** The compound operator sets specific ratios
+on a newly-created split node. But `driver.py` was initialising the NM inner loop
+from `parent.ratios`, which has no entry for the new node (it was a leaf).
+`warm_x0` defaulted the new node to 0.5, giving t3 ≈ 6.8 m² — a size fail —
+so NM started at 3 fails instead of 1. Lex then always rejected the compound
+child; `level_compound_fix` was completely invisible to the outer search for
+~12 000 evals (until `warm_x0` was fixed).
+
+The correct fix distinguishes genuinely-new split nodes from stale hidden nodes
+that become visible after structural mutations (e.g. `swap` can flip a `b.below`
+pointer, revealing pre-writeback division values from a different topology). Only
+use the child's explicit ratio for node `(li, path)` if the matching node in the
+parent was *not already divided*; everything else falls through to `parent.ratios`
+or defaults to 0.5. Fix in `driver.py` lines 259–267.
+
+**Results (50 000 evals each, pop 8, child_budget 80, 4 workers):**
+
+| seed | event | eval | fails | score |
+|------|-------|------|-------|-------|
+| warmstart-2f4 | seed | 200 | 2 | 0.032 |
+| warmstart-2f4 | `level_compound_fix` fires | 12 280 | 1 | 0.000122 |
+| warmstart-2f4 | `level_retype 0/ll<->1/l` | 17 880 | 1 | 0.00497 |
+| warmstart-2f4 | final | 50 040 | **1** | **0.00518** |
+| compound3-raw | seed (1-fail hand-built) | 200 | 1 | 0.000118 |
+| compound3-raw | `level_retype 0/ll<->1/l` | 18 360 | 1 | 0.00383 |
+| compound3-raw | final | 50 040 | **1** | **0.00523** |
+
+Perl optimiser reference: **2–3 fails**.
+
+**The two-C topology breakthrough.** After `level_compound_fix` fires, the
+topology is: level 0 = `ll(l1), lr(t2), rl(C), rrl(t3), rrr(O)` — but now l1
+is at level 0 (correct) and t3 is adjacent to rl(C) (staircase). However l1
+is occupying ll, and rl(C) is the staircase core — so t3-adj-C is satisfied
+via rl, but there is no second C to satisfy staircase independently. Score
+≈ 0.000157 (1 fail).
+
+At eval ≈ 18 000, `level_retype 0/ll<->1/l` (swap the type of ll on level 0
+with l on level 1) creates a TWO-C configuration at level 0:
+`ll(C), lr(t2), rl(C), rrl(t3), rrr(O)`, with l1 moving to level 1. The score
+jumps 25× to ≈ 0.005. Why two C nodes work:
+
+- `ll(C)` (bottom-left, 23 m²) satisfies t3-adj-C via geometric contact at the
+  l/r zone boundary with `rrl(t3)`.
+- `rl(C)` (top-right, 8.5 m²) satisfies staircase adjacency via tree adjacency
+  to `rrr(O)` (its right sibling when `r.rotation=3`).
+
+Both constraints are simultaneously met because binary-tree sibling adjacency and
+cross-zone geometric adjacency provide *independent* paths.
+
+**Why 0 fails is geometrically impossible on this programme + plot.** l1 needs
+min 27 m² at level 0. The only space large enough is `ll` (≈ 23 m², the entire
+left half of level 0). Putting l1 at `ll` removes the t3-adj-C provider.
+The alternative — dividing `ll` into `lll(l1)+llr(C)` — gives `llr` a proportion
+of ≈ 6:1 (width ≈ 0.73 m), failing both the proportion and width constraints.
+0 fails is not achievable on this programme+plot with a binary slicing tree
+representation; 1 fail is the geometric optimum.
 
 ---
 
