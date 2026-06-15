@@ -251,7 +251,20 @@ def search(
                     child_root, desc = operators.mutate(parent.root, rng, types,
                                                         weights=_MUTATION_WEIGHTS,
                                                         reqs=reqs)
-                    ratios = parent.ratios
+                    # Carry operator-specified ratios for nodes that are genuinely
+                    # newly divided (existed as leaves in the parent, are now
+                    # divided in the child).  Structural mutations (e.g. swap) can
+                    # reveal previously-hidden nodes whose stale pre-writeback
+                    # ratios must NOT be propagated — those default to 0.5.
+                    parent_lvls = dom.levels(parent.root)
+                    new_splits = {
+                        (li, path): val
+                        for (li, path), val in innerloop.ratio_map(child_root).items()
+                        if li >= len(parent_lvls)
+                        or not (pn := parent_lvls[li].by_id(path))
+                        or not pn.divided
+                    }
+                    ratios = {**new_splits, **parent.ratios}
                 x0 = innerloop.warm_x0(child_root, ratios)
                 tasks.append((child_root, x0, child_budget, inner_kw, desc))
             _run_batch(tasks)
