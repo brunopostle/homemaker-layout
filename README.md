@@ -20,10 +20,11 @@ search then only explores topology + types + adjacency.
 
 ## Phase plan
 
-1. **Solver experiment** (current): port Urb's geometry, re-solve ratios from
-   programme targets, score the result against the original via the Perl oracle.
-2. Native Python fitness (retire the Perl oracle).
-3. Canonical slicing encoding (normalized Polish expression) + memetic search.
+1. ~~Solver experiment: port Urb's geometry, re-solve ratios from programme
+   targets, score the result against the original via the Perl oracle.~~ ✓
+2. ~~Native Python fitness (retire the Perl oracle).~~ ✓
+3. **Memetic search** (current): canonical slicing genome + high-locality
+   operators + Nelder-Mead inner loop.
 
 ## Layout
 
@@ -31,6 +32,12 @@ search then only explores topology + types + adjacency.
 - `src/homemaker_layout/geometry.py` — faithful port of Urb's top-down geometry.
 - `src/homemaker_layout/programme.py` — parse `patterns.config` space requirements.
 - `src/homemaker_layout/solver.py` — bottom-up ratio solve (scipy).
-- `src/homemaker_layout/oracle.py` — Phase-1 scaffold: score a `.dom` via Urb's `urb-fitness.pl`.
-
-The Perl oracle is the only throwaway component; everything else is permanent.
+- `src/homemaker_layout/fitness.py` — native Python fitness evaluator.
+- `src/homemaker_layout/fitness_cmd.py` — `homemaker-fitness` CLI (drop-in for `urb-fitness.pl`).
+- `src/homemaker_layout/graph.py` — leaf-adjacency graph for programme-driven checks.
+- `src/homemaker_layout/genome.py` — topology genome: base-floor tree + per-storey deltas.
+- `src/homemaker_layout/operators.py` — high-locality mutation and subtree crossover.
+- `src/homemaker_layout/innerloop.py` — ratio optimisation inner loop (Nelder-Mead / CMA-ES).
+- `src/homemaker_layout/driver.py` — memetic search outer loop.
+- `src/homemaker_layout/evolve.py` — `homemaker-evolve` CLI entry point.
+- `src/homemaker_layout/oracle.py` — legacy Perl shim, kept for cross-validation only.

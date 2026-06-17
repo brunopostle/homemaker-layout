@@ -52,27 +52,49 @@ bd close <id>         # Complete work
 
 ## Build & Test
 
-_Add your build and test commands here_
-
 ```bash
-# Example:
-# npm install
-# npm test
+pip install -e .
+pytest
 ```
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+homemaker-layout is a Python successor to the Perl [Urb](../urb) project. It
+represents a building as a binary slicing tree where leaves carry **target
+dimensions** from the programme and division ratios are **solved bottom-up**
+(inverting Urb's top-down approach). The evolutionary search explores topology,
+types, and adjacency only.
+
+Key modules:
+- `dom.py` — read/write Urb `.dom` YAML into a `Node` tree
+- `geometry.py` — faithful port of Urb's top-down geometry
+- `programme.py` — parse `patterns.config` space requirements
+- `solver.py` — bottom-up ratio solve (scipy)
+- `fitness.py` — native Python fitness evaluator (replaces Perl oracle)
+- `fitness_cmd.py` — `homemaker-fitness` CLI entry point
+- `graph.py` — leaf-adjacency graph for programme-driven fitness checks
+- `genome.py` — topology genome: base-floor tree + per-storey deltas
+- `operators.py` — high-locality mutation and subtree crossover
+- `innerloop.py` — ratio optimisation inner loop (Nelder-Mead / CMA-ES)
+- `driver.py` — memetic search outer loop
+- `evolve.py` — `homemaker-evolve` CLI entry point
+- `oracle.py` — legacy Perl shim, kept for validation only; do not use in new code
 
 ## Conventions & Patterns
 
-### Oracle (urb-fitness.pl)
+### Scoring .dom files
 
-`urb-fitness.pl` is in PATH. To score a `.dom` file you **must `cd` to the directory containing the `.dom` file first** — the script resolves `patterns.config`, `costs.config`, and writes `.score`/`.fails` relative to `cwd`:
+Use the native `homemaker-fitness` command. Like the old `urb-fitness.pl`, you
+**must `cd` to the directory containing the `.dom` file first** — the tool
+resolves `patterns.config`, `costs.config`, and writes `.score`/`.fails`
+relative to `cwd`:
 
 ```bash
-cd /home/bruno/src/urb/examples/programme-house
-urb-fitness.pl cf0b8a77e8b2325f92a7e7d150184a55.dom
+cd /home/bruno/src/homemaker-layout/examples/programme-house
+homemaker-fitness cf0b8a77e8b2325f92a7e7d150184a55.dom
 ```
 
 The score is written to `<file>.dom.score` and failures to `<file>.dom.fails`; the numeric score is also printed to stderr.
+
+Do **not** use `urb-fitness.pl` directly — `oracle.py` and the Perl tool are
+kept only for cross-validation.

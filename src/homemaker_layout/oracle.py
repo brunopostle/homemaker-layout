@@ -27,7 +27,99 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
+import yaml
+
 DEFAULT_URB_ROOT = Path("/home/bruno/src/urb")
+
+
+def _structured_fail_to_str(f: dict) -> str:
+    """Convert a structured failure dict (llm-agent-mcp branch format) to the
+    plain-text string that master urb/ProgrammeDriven.pm would have emitted."""
+    t = f.get("type", "")
+    if t == "level":
+        return f"{f['space']} on wrong level (level {f['actual']}, expected {f['required']})"
+    if t == "missing":
+        code = f["code"]
+        c = f.get("constraint")
+        if c == "size":
+            return f"missing {code}: would need size check"
+        if c == "width":
+            return f"missing {code}: would need width check"
+        if c == "proportion":
+            return f"missing {code}: would need proportion check"
+        if c == "adjacency":
+            return f"missing {code}: would need adjacency to {f.get('target', '')}"
+        if c == "level":
+            return f"missing {code}: would need to be on level {f['required']}"
+        if c == "vertical":
+            return f"missing {code}: would need connection to {f.get('target', '')} below"
+        if f.get("critical"):
+            return f"missing required space: {code} (critical)"
+        return f"missing required space: {code}"
+    if t == "count":
+        return f"too many spaces: {f['code']} (found {f['actual']}, expected {f['expected']})"
+    if t == "adjacency":
+        return f"{f['node']} ({f['space']}) not adjacent to {f['target']}"
+    if t == "vertical":
+        return f"{f['space']} not connected to {f['target']} below"
+    if t == "staircase":
+        issue = f.get("issue", "")
+        if issue == "volume":
+            return "staircase volume"
+        if issue == "count":
+            actual = f.get("actual", 0)
+            if "min" in f:
+                return f"too few stairs ({actual}, min {f['min']})"
+            if "max" in f:
+                return f"too many stairs ({actual}, max {f['max']})"
+    if t == "storey":
+        if f.get("issue") == "limit":
+            return "storey limit"
+        if f.get("issue") == "minimum":
+            return "storey minimum"
+    if t == "access" and f.get("issue") == "no_outside_public_access":
+        return "no outside public access"
+    return str(f)
+
+
+def _parse_fails(text: str) -> list[str]:
+    """Parse a .fails file that may contain a YAML block followed by plain-text
+    lines (urb branch format) or only plain-text lines (master format)."""
+    text = text.strip()
+    if not text:
+        return []
+    if not text.startswith("---"):
+        return [line.strip() for line in text.splitlines() if line.strip()]
+
+    # Split YAML block from trailing plain-text lines: YAML list items start
+    # with "- " or are indented; once we hit a non-indented, non-dash line
+    # that isn't blank or the "---" marker, the YAML part has ended.
+    yaml_lines: list[str] = []
+    plain_lines: list[str] = []
+    in_yaml = True
+    for line in text.splitlines():
+        if in_yaml:
+            stripped = line.strip()
+            if not stripped or stripped == "---" or stripped.startswith("-") or line[:1] == " ":
+                yaml_lines.append(line)
+            else:
+                in_yaml = False
+                plain_lines.append(stripped)
+        else:
+            if line.strip():
+                plain_lines.append(line.strip())
+
+    result: list[str] = []
+    try:
+        doc = yaml.safe_load("\n".join(yaml_lines))
+        if isinstance(doc, list):
+            for item in doc:
+                if isinstance(item, dict):
+                    result.append(_structured_fail_to_str(item))
+    except yaml.YAMLError:
+        pass
+    result.extend(plain_lines)
+    return result
 
 
 @dataclass
@@ -40,9 +132,7 @@ class Score:
         """Failure messages as a sorted tuple — Perl's per-process hash-order
         randomisation shuffles the raw ``.fails`` line order between runs, so
         comparisons must be order-insensitive."""
-        return tuple(
-            sorted(line.strip() for line in self.fails.splitlines() if line.strip() and line.strip() != "---")
-        )
+        return tuple(sorted(_parse_fails(self.fails)))
 
     @property
     def n_fails(self) -> int:
@@ -68,7 +158,7 @@ def score_batch(
         Path(f"{p}.fails").unlink(missing_ok=True)
 
     urb_root = Path(urb_root).resolve()
-    env = {**os.environ, "DEBUG": "1"}
+    env = {**os.environ, "DEBUG": "1", "URB_NO_OCCLUSION": "1"}
     proc = subprocess.run(
         ["perl", f"-I{urb_root}/lib", str(urb_root / "bin" / "urb-fitness.pl")]
         + [p.name for p in paths],
