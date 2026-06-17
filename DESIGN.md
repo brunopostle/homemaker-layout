@@ -688,16 +688,51 @@ that recreates the §4.2 partial-objective trap at the topology level (a base
 optimised purely as a ground floor can be a bad *substrate* — the vertical core
 must stay aligned and load-bearing walls must stack).
 
-### 11.1 Premise experiment: single-storey harbor (`homemaker-py-c4c.1`)
+### 11.1 Premise experiment: single-storey harbor (`homemaker-py-c4c.1`) — DONE
 
-*Stub.* Strip harbor to its 10 level-0 rooms as a single-storey programme; run
-the current search from a bare plot (and from a bootstrap population). Records
-the construction-vs-coupling verdict that gates the staging work (§11.3).
+Built `examples/harbor-house-l0/` from harbor by retaining only the 10 space
+codes explicitly marked `level: 0` (cr1, ef1, da1, k1, ws1, m×3, la1, st1, me1,
+of×2 → 13 room instances), pruning adjacencies to the retained codes, and
+setting single-storey constraints (`storey_minimum: 1`, `storey_limit: 1`). The
+straddling anonymous spaces `n`/`t` (no explicit level key) were dropped so the
+set is an unambiguous single floor. Seeded from the bare plot (`init.dom`).
 
 - *Expectation / decision rule:* near-zero fails ⇒ bottleneck is multi-storey
   *coupling* (staging is the lever); still stalls (esp. `missing`) ⇒ per-floor
   *construction* itself is the bottleneck (§11.2 required first).
-- *Result:* TODO — command, best fails/score, fail histogram, verdict.
+- *Command (reproduce):*
+  ```bash
+  URB_NO_OCCLUSION=1 python3 experiments/run_search_scaled.py \
+    examples/harbor-house-l0 20000 0 \
+    examples/harbor-house-l0/init.dom examples/harbor-house-l0/generated.dom
+  ```
+- *Result:* 20000 native evals across 250 topologies (234 s, 85 evals/s).
+  Best **33 fails**, fitness 2.25e-12 — deep in the 0.5ⁿ high-fail penalty
+  regime, with the whole 16-member population stuck at 33–35 fails. The smaller
+  budget-300 smoke run sat at 40 fails; full budget only crept 40 → 33. **Not
+  near zero.** Fail histogram of the best `generated.dom`:
+
+  | count | category |
+  |------:|----------|
+  | 13 | **missing** (all 3 `m` meeting rooms never constructed: required/critical + per-instance size/width/adjacency sub-checks) |
+  | 6 | adjacency (ws1→c, k1→da1, da1→c, da1→k1, me1→c, la1→c) |
+  | 4 | access |
+  | 4 | size |
+  | 2 | edge too long |
+  | 2 | crinkliness |
+  | 1 | proportion |
+  | 1 | too few stairs — single-storey artifact (`staircase_min` floored to 1 by the fitness `or 1` default; constant across runs) |
+  | **33** | total |
+
+- *Verdict: per-floor CONSTRUCTION is the bottleneck, not multi-storey coupling.*
+  Even on a single floor with only 13 rooms and zero delta/core-alignment
+  complexity, the search cannot assemble the required room set: the dominant
+  category (13/33 = 39 %) is `missing` — the counted anonymous space `m×3` is
+  entirely absent — and the remaining fails are downstream adjacency/access/size
+  consequences of a room set the mutation operators never managed to construct.
+  This matches the §11.0 prediction's "still stalls (esp. `missing`)" branch:
+  **§11.2 programme-aware construction + missing-room repair is the prerequisite,
+  and staging alone (§11.3) will not rescue it.** §11.3 stays blocked on §11.2.
 
 ### 11.2 Programme-aware construction + missing-room repair (`homemaker-py-c4c.2`)
 
