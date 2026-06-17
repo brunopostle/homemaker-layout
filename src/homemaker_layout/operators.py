@@ -277,6 +277,153 @@ def mutate_level_compound_fix(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), desc
 
 
+def _programme_codes(reqs) -> dict:
+    """Required programme spaces only (drop generic circulation/outside/sahn)."""
+    return {c: r for c, r in reqs.items() if c[0].lower() not in "cos"}
+
+
+def mutate_place_missing(root: dom.Node, rng: np.random.Generator,
+                         types: list[str], reqs=None) -> tuple[dom.Node, str]:
+    """Repair operator: insert a required-but-absent space (DESIGN.md §11.2).
+
+    Detects a missing required room via ``graph.check_space_counts`` and inserts
+    one instance by dividing a host leaf into ``[new room | remainder]``.  Lex-
+    safety (cf. the §4.10 deceptive-valley lesson): the host is chosen to *not*
+    create more new fails than the missing-stack it removes — generic ``O``
+    leaves are preferred (unbounded, no "too many", nothing displaced), then
+    other non-required leaves; a required room is never displaced.  The new room
+    is forced onto its required storey when the programme constrains its level.
+    """
+    if not reqs:
+        return _finalise(copy.deepcopy(root)), "place_missing noop"
+
+    from . import geometry as _geo, graph as _graph
+
+    child = copy.deepcopy(root)
+    _failures, missing = _graph.check_space_counts(child, reqs)
+    if not missing:
+        return _finalise(child), "place_missing noop"
+
+    mid = _pick(rng, missing)
+    code = mid.split("#")[0]
+    req = reqs.get(code)
+    target_level = getattr(req, "level", None)
+    lvls = dom.levels(child)
+    if target_level is not None and target_level < len(lvls):
+        host_levels = [target_level]
+    else:
+        host_levels = list(range(len(lvls)))
+
+    # Rank candidate hosts: 0 = generic outside (safest — nothing displaced),
+    # 1 = other non-required leaf, 2 = circulation/stair (carve only as last
+    # resort — disrupts the core). Required rooms are never candidates.
+    cands: list[tuple[int, float, dom.Node]] = []
+    for li in host_levels:
+        for leaf in lvls[li].leaves():
+            if not leaf.type:
+                continue
+            t0 = leaf.type[0].lower()
+            if t0 == "o":
+                pref = 0
+            elif t0 in ("c", "s"):
+                pref = 2
+            elif leaf.type in reqs:
+                continue
+            else:
+                pref = 1
+            cands.append((pref, _geo.area(leaf), leaf))
+
+    if cands:
+        best_pref = min(p for p, _, _ in cands)
+        pool = [(a, lf) for p, a, lf in cands if p == best_pref]
+        _, host = max(pool, key=lambda x: x[0])
+        keep = host.type if host.type and host.type[0].lower() != "o" else "O"
+    else:
+        # No safe host on the required storey — split its largest leaf and
+        # preserve that leaf's type on the large side.
+        all_leaves = [lf for li in host_levels for lf in lvls[li].leaves()]
+        if not all_leaves:
+            return _finalise(child), "place_missing noop"
+        host = max(all_leaves, key=_geo.area)
+        keep = host.type or "O"
+
+    host_id = host.id or "root"
+    # New room small (left, adjacent to remainder); inner NM tunes the ratio.
+    host.division = [0.3, 0.3]
+    host.rotation = int(rng.integers(4))
+    host.left = dom.Node(type=code)
+    host.right = dom.Node(type=keep)
+    host.type = None
+    return _finalise(child), f"place_missing {code} -> {host_id}"
+
+
+def _grow_leaves(lvl: dom.Node, n_leaves: int, rng: np.random.Generator) -> None:
+    """Subdivide ``lvl``'s subtree in place until it has ``n_leaves`` leaves."""
+    while len(lvl.leaves()) < n_leaves:
+        leaf = _pick(rng, lvl.leaves())
+        leaf.division = [0.5, 0.5]
+        leaf.rotation = int(rng.integers(4))
+        leaf.left = dom.Node(type=leaf.type)
+        leaf.right = dom.Node(type=leaf.type)
+        leaf.type = None
+
+
+def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
+                          types: list[str], min_storeys: int = 1) -> dom.Node:
+    """Build a seed that instantiates every required space by construction.
+
+    The §11.0 diagnosis: random divide+retype chains leave required programme
+    rooms missing on large programmes, so ``missing`` stacking dominates fitness.
+    This seeder makes the required room set a *constructive invariant*: it sizes
+    each storey to its required rooms (partitioning by ``level``; level-free
+    rooms distributed across storeys), plus one circulation ``C`` and one
+    outside ``O`` per storey, then assigns the types.  Stochastic (random split
+    ratios/rotations and a shuffled type assignment) so a bootstrap batch is
+    still a diverse population.
+
+    Returns a finalised deep copy; ``seed_root`` is unchanged.
+    """
+    from . import genome as _g
+
+    child = copy.deepcopy(seed_root)
+    prog = _programme_codes(reqs)
+    levels_needed = [r.level for r in prog.values() if r.level is not None]
+    n_storeys = max((max(levels_needed) + 1) if levels_needed else 1, min_storeys)
+
+    # grow storeys from the bare base by duplicating the top storey (cf.
+    # mutate_level_add / genome._copy_storey), inheriting floor height.
+    while len(dom.levels(child)) < n_storeys:
+        top = dom.levels(child)[-1]
+        dup = _g._copy_storey(top)
+        dup.height = top.height
+        top.above = dup
+    lvls = dom.levels(child)
+
+    # Partition required instances across storeys: level-constrained rooms to
+    # their storey, level-free rooms round-robin over a shuffled order.
+    buckets: list[list[str]] = [[] for _ in range(n_storeys)]
+    free: list[str] = []
+    for code, req in prog.items():
+        for _ in range(req.count):
+            if req.level is not None and req.level < n_storeys:
+                buckets[req.level].append(code)
+            else:
+                free.append(code)
+    free = [free[i] for i in rng.permutation(len(free))]
+    for i, code in enumerate(free):
+        buckets[i % n_storeys].append(code)
+
+    for li, lvl in enumerate(lvls):
+        assign = list(buckets[li]) + ["C", "O"]  # +core circulation, +outside
+        _grow_leaves(lvl, len(assign), rng)
+        leaves = lvl.leaves()
+        order = rng.permutation(len(leaves))
+        for slot, leaf_idx in enumerate(order):
+            leaves[int(leaf_idx)].type = assign[slot] if slot < len(assign) else "O"
+
+    return _finalise(child)
+
+
 def mutate_core_divide(root: dom.Node, rng: np.random.Generator,
                        types: list[str]) -> tuple[dom.Node, str]:
     """Divide a circulation leaf at the same path across ALL storeys at once.
@@ -416,6 +563,7 @@ MUTATIONS = {
     "core_undivide": mutate_core_undivide,
     "level_fix": mutate_level_fix,
     "level_compound_fix": mutate_level_compound_fix,
+    "place_missing": mutate_place_missing,
     "level_retype": mutate_level_retype,
     "level_add": mutate_level_add,
     "level_delete": mutate_level_delete,
@@ -428,13 +576,15 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     """Apply one random mutation drawn from MUTATIONS."""
     names = sorted(MUTATIONS)
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
-    # level_fix needs programme reqs; disable it silently when not available
+    # these operators need programme reqs; disable them when not available
+    reqs_ops = ("level_fix", "level_compound_fix", "place_missing")
     if reqs is None:
-        p[names.index("level_fix")] = 0.0
+        for op in reqs_ops:
+            p[names.index(op)] = 0.0
     if p.sum() == 0:
         p[:] = 1.0
     name = str(rng.choice(names, p=p / p.sum()))
-    if name in ("level_fix", "level_compound_fix"):
+    if name in reqs_ops:
         return MUTATIONS[name](root, rng, types, reqs=reqs)
     return MUTATIONS[name](root, rng, types)
 

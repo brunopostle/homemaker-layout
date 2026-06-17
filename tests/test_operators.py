@@ -95,6 +95,58 @@ def test_all_mutations_survive_undivided_tree():
             canonical(child)
 
 
+HARBOR = Path(__file__).parent.parent / "examples" / "harbor-house"
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_constructive_topology_has_no_missing_spaces():
+    # §11.2: the constructive seeder must instantiate every required space by
+    # construction (count + level), so check_space_counts reports zero missing.
+    from homemaker_layout import graph, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+    for trial in range(5):
+        root = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(trial), types)
+        _, missing = graph.check_space_counts(root, reqs)
+        assert missing == [], f"trial {trial} left {missing}"
+        # required level partition respected: level-N rooms land on storey N
+        lvls = dom.levels(root)
+        for code, req in reqs.items():
+            if code[0].lower() in "cos" or req.level is None:
+                continue
+            for li, lvl in enumerate(lvls):
+                for leaf in lvl.leaves():
+                    if leaf.type == code:
+                        assert li == req.level
+        canonical(root)
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_place_missing_repairs_deficient_tree():
+    # §11.2 repair: iterating mutate_place_missing drives a deficient design's
+    # missing-space count to zero, then noops once the required set is complete.
+    from homemaker_layout import graph, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    rng = np.random.default_rng(0)
+    root = dom.load(str(HARBOR / "generated.dom"))
+    _, missing0 = graph.check_space_counts(root, reqs)
+    assert missing0, "fixture should start deficient"
+    for _ in range(len(missing0) + 5):
+        root, desc = operators.mutate_place_missing(root, rng, types, reqs=reqs)
+        canonical(root)
+        _, missing = graph.check_space_counts(root, reqs)
+        if not missing:
+            break
+    assert missing == []
+    _, desc = operators.mutate_place_missing(root, rng, types, reqs=reqs)
+    assert desc == "place_missing noop"
+
+
 def test_crossover_yields_canonical_pair():
     a = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[0]))))
     b = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[1]))))

@@ -38,8 +38,11 @@ from . import dom, innerloop, operators, programme
 _CHILD_INNER_KW: dict = {}
 
 # storey add/delete are drastic (geometry perturbation 0.25-0.33 and a
-# deleted storey stacks missing-space failures) — sample them rarely
-_MUTATION_WEIGHTS = {"level_add": 0.2, "level_delete": 0.2}
+# deleted storey stacks missing-space failures) — sample them rarely.
+# place_missing is the high-leverage §11.2 repair: it noops cheaply once the
+# required set is complete, so over-sampling it costs little and directly
+# attacks the dominant missing-space failure mode.
+_MUTATION_WEIGHTS = {"level_add": 0.2, "level_delete": 0.2, "place_missing": 2.0}
 
 
 def _worker_init() -> None:
@@ -218,12 +221,22 @@ def search(
             # Each individual is a cold start, so use the exploratory sigma
             # schedule (inner_kw={} → cma_search defaults: sigmas=(0.05, 0.15)).
             # Leaf count varied ±1 around the target to increase structural diversity.
+            # Programme-aware constructive seeding (§11.2): when the programme
+            # has required spaces, instantiate each by construction so the seed
+            # population starts with ~zero missing-space failures instead of a
+            # random divide+retype walk that leaves required rooms absent.
+            prog = {c: r for c, r in reqs.items() if c[0].lower() not in "cos"}
             n_target = bootstrap_n_leaves or max(len(reqs), 3)
             tasks = []
             for i in range(pop_size):
-                n = int(rng.integers(max(1, n_target - 1), n_target + 2))
-                topo = random_topology(seed_root, n, rng, types)
-                tasks.append((topo, None, child_budget, {}, f"bootstrap/{i}"))
+                if prog:
+                    topo = operators.constructive_topology(seed_root, reqs, rng, types)
+                    lineage = f"construct/{i}"
+                else:
+                    n = int(rng.integers(max(1, n_target - 1), n_target + 2))
+                    topo = random_topology(seed_root, n, rng, types)
+                    lineage = f"bootstrap/{i}"
+                tasks.append((topo, None, child_budget, {}, lineage))
             _run_batch(tasks)
         else:
             seed_ind, used = _evaluate(copy.deepcopy(seed_root), programme_dir, urb_root,
