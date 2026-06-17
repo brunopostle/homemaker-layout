@@ -641,3 +641,108 @@ env `DEBUG=1` to defeat the skip-if-newer cache; reads `<file>.score` and
 - **Oracle ≈ 1 s/dom batched** (1.65 s single; assessment-dominated, startup
   ~0.65 s amortises across a batch). Submit many `.dom`s per call and prefer
   population optimisers; native fitness is a later speed/scale win, not a gate.
+
+---
+
+## 11. Phase 6 — topology-search quality for full / multi-storey programmes
+
+**Epic:** `homemaker-py-c4c`. **Status:** scoped 2026-06-17, pre-implementation.
+This section is the experiment ledger for the epic; each subsection is stubbed
+now and **filled in by the session that runs the experiment** (record the
+command, the numbers, and a one-line verdict, in the style of §4).
+
+### 11.0 Diagnosis (why this phase exists)
+
+The delivered speedups landed in the two layers that were **never the
+bottleneck**. The native fitness (~140× over the oracle, §7 Phase 3) and the
+geometry inner loop (~1.6×, §4.5/§4.7) both operate *within a fixed topology*:
+the inner loop polishes geometry **inside a failure tier** and, by design, the
+`0.5^n` cliff stops it ever changing the failure count (§4.5: 0-fail-change
+across the headroom table). But final design quality is dominated by **failure
+count**, which is almost entirely a **topology** property. So faster fitness and
+better geometry do not move the number an architect would notice.
+
+Topology search on full programmes is the weakness:
+
+- **blank-slate programme-house** (`init.dom`): memetic stalls at **18 fails**;
+  urb-evolve reaches **6** (§7 Phase 2 verdict).
+- **harbor-house** (16 rooms): `out1.dom` = **74 fails**, `generated.dom` =
+  **130 fails**, both at ~machine-epsilon score; failures dominated by
+  **`missing`-room stacking** (each missing room stacks critical + size + width
+  + adjacency + level, §6).
+
+**Smoking gun:** `operators.mutate_divide` (operators.py:71) types each new leaf
+**at random** from `programme-codes + C + O`. Nothing makes the required
+programme spaces a constructive invariant, so on a large programme required
+rooms simply go missing → catastrophic `0.5^n` stacking, and the search is a
+random walk over type assignments with a flat-and-catastrophic gradient in the
+high-fail regime.
+
+**Causal frame for the fixes.** The base-floor tree is the *master* genome;
+upper storeys are divide/undivide deltas (`Below`-inheritance); the programme
+partitions rooms by required level (harbor: **10 on L0, 4 on L1, 2 free**). So
+construction and search should follow the genome's dependency order — credible
+base floor first, upper floors as deltas, with each floor's required-room set
+known from the programme. **Do not hard-freeze the base** when adding floors:
+that recreates the §4.2 partial-objective trap at the topology level (a base
+optimised purely as a ground floor can be a bad *substrate* — the vertical core
+must stay aligned and load-bearing walls must stack).
+
+### 11.1 Premise experiment: single-storey harbor (`homemaker-py-c4c.1`)
+
+*Stub.* Strip harbor to its 10 level-0 rooms as a single-storey programme; run
+the current search from a bare plot (and from a bootstrap population). Records
+the construction-vs-coupling verdict that gates the staging work (§11.3).
+
+- *Expectation / decision rule:* near-zero fails ⇒ bottleneck is multi-storey
+  *coupling* (staging is the lever); still stalls (esp. `missing`) ⇒ per-floor
+  *construction* itself is the bottleneck (§11.2 required first).
+- *Result:* TODO — command, best fails/score, fail histogram, verdict.
+
+### 11.2 Programme-aware construction + missing-room repair (`homemaker-py-c4c.2`)
+
+*Stub.* Constructive seeder that instantiates each required space
+(count/level/type) + `mutate_place_missing` repair operator. Highest-leverage
+fix for the §11.0 diagnosis.
+
+- *Gate:* `missing`-type failures collapse to ~0 across the harbor population;
+  net-fail improvement vs the 74-fail `out1.dom` baseline; no regression on the
+  seeded programme-house 1-fail optimum (§4.10).
+- *Result:* TODO — before/after fail histograms, numbers, verdict.
+
+### 11.3 Staged per-floor search (`homemaker-py-c4c.3`)
+
+*Stub.* Stage 1: base floor over the level-0 room set (one tree, no deltas) +
+reserved core + substrate-readiness term. Stage 2: upper floors as deltas seeded
+with their required room sets, base kept mutable at low probability. Gated by
+§11.1 premise.
+
+- *Gate:* staged beats single-stage on harbor at equal native-fitness budget;
+  reserved-core + readiness shown to prevent the bungalow trap (stage 2 does not
+  carve a core from scratch); no programme-house regression.
+- *Result:* TODO.
+
+### 11.4 Graded high-fail objective (`homemaker-py-c4c.4`)
+
+*Stub.* Extends Phase 4 (§4.9). Lexicographic-by-total-count gives ~zero signal
+when every candidate sits at ~49–74 fails. Add partial credit (proximity per
+unsatisfied constraint and/or count of *distinct* unsatisfied requirements) as a
+secondary key beneath fail-count, preserving the inner-loop cliff (§5.4) and the
+missing-space hierarchy (§6).
+
+- *Gate:* measured escape from a high-fail plateau the current lex comparator
+  cannot escape at equal budget; inner-loop 0/9-regression check (§4.9) still
+  clean.
+- *Result:* TODO.
+
+### 11.5 Topology diversity: structural niching + restarts (`homemaker-py-c4c.5`)
+
+*Stub.* Replace the fitness-scalar dedup (driver.py:174) with a topology
+signature so niching is by *structure*, not score; add crowding/restarts/islands
+to match urb-evolve's upfront diversity on blank slate.
+
+- *Gate:* blank-slate programme-house reaches ≤ 6 fails at equal budget; distinct
+  topology-signature count over time quantified before/after.
+- *Result:* TODO. (Capstone `homemaker-py-9gp` canonical Polish encoding is the
+  principled long-term signature — `(a|b)|c == a|(b|c)` collapse — and lands
+  after §11.2.)
