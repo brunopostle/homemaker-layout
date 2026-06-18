@@ -32,6 +32,36 @@ from .dom import Node
 
 FAIL_THRESHOLD = 0.1  # Urb::Dom::Fitness::Base
 
+# Per-leaf quality factors that emit a failure when they drop below
+# FAIL_THRESHOLD (evaluate_leaf, in emission order). The graded objective
+# (DESIGN.md §11.4) reads each failing factor's value as a continuous proximity
+# to satisfaction — it does NOT change the scalar fitness or the fail count, only
+# supplies a tie/secondary signal to the outer comparator (driver.py).
+_GRADED_FACTORS = ("perpendicular", "proportion", "size", "width",
+                   "crinkliness", "access")
+
+
+def _leaf_grade(factors: dict[str, float]) -> float:
+    """Proximity credit for one leaf's *failing* quality factors.
+
+    Each factor below FAIL_THRESHOLD contributes ``f / FAIL_THRESHOLD`` ∈ [0, 1):
+    deeper failures score ~0, near-threshold failures score ~1. Summing this over
+    all failing factors gives a continuous proximity signal. Passing factors
+    contribute nothing — the signal lives entirely in the failing set — and
+    structural/binary fails (missing, adjacency, edge-too-long, …) contribute 0,
+    so the measure can never reward dropping a required room (§6 preserved).
+
+    Intended as an outer-comparator secondary key, but REJECTED as such (DESIGN.md
+    §11.4): within a fixed fail-tier the scalar fitness is not flat, so this added
+    no benefit. Kept for reproducibility / possible reuse as a diversity signal.
+    """
+    g = 0.0
+    for name in _GRADED_FACTORS:
+        fv = factors.get(name, 1.0)
+        if fv < FAIL_THRESHOLD:
+            g += fv / FAIL_THRESHOLD
+    return g
+
 # Urb::Dom::Fitness::Base $CONF — keep values byte-identical to the Perl
 # expressions (5.0/6 etc. evaluate to the same IEEE doubles in both languages).
 CONF_DEFAULTS: dict = {
@@ -953,14 +983,28 @@ class Fitness:
 
         Returns ``value / cost`` (the final score as in Urb).
         """
-        score, _ = self._evaluate_full(root)
+        score, _, _ = self._evaluate_full(root)
         return score
 
     def score_with_fails(self, root: Node) -> tuple[float, tuple[str, ...]]:
         """Same as ``evaluate`` but also returns the sorted failure strings."""
-        return self._evaluate_full(root)
+        score, fails, _ = self._evaluate_full(root)
+        return score, fails
 
-    def _evaluate_full(self, root: Node) -> tuple[float, tuple[str, ...]]:
+    def score_with_grade(
+        self, root: Node
+    ) -> tuple[float, tuple[str, ...], float]:
+        """``score_with_fails`` plus the graded proximity scalar (§11.4).
+
+        The grade is a continuous secondary signal for the outer comparator only;
+        it leaves ``score`` and the fail count untouched (and so the inner-loop
+        0.5^n cliff protection, §5.4, intact).
+        """
+        return self._evaluate_full(root, want_grade=True)
+
+    def _evaluate_full(
+        self, root: Node, want_grade: bool = False
+    ) -> tuple[float, tuple[str, ...], float]:
         from . import graph as graph_mod
 
         geometry.clear_cache()
@@ -1005,6 +1049,7 @@ class Fitness:
 
         cost = self.plot_cost(root)
         value = 0.0
+        grade = 0.0
         lvls = dom_mod.levels(root)
 
         for li, lvl in enumerate(lvls):
@@ -1017,6 +1062,9 @@ class Fitness:
             )
             cost += se.cost
             value += se.value
+            if want_grade:  # §11.4 outer-comparator signal only; off by default
+                for le in se.leaves:
+                    grade += _leaf_grade(le.factors)
 
         building_factor = self.evaluate_building(root, tracking)
         value *= building_factor
@@ -1025,7 +1073,7 @@ class Fitness:
         value *= 0.5 ** len(failures)
 
         score = value / cost if cost != 0.0 else 0.0
-        return score, tuple(sorted(failures))
+        return score, tuple(sorted(failures)), grade
 
     @property
     def _programme(self) -> dict | None:

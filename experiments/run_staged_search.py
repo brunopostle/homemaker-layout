@@ -17,6 +17,7 @@ Defaults: harbor-house, budget=20000, rng_seed=0, init.dom seed.
 from __future__ import annotations
 
 import math
+import os
 import sys
 import time
 from pathlib import Path
@@ -50,10 +51,13 @@ def main() -> int:
         print(f"ERROR: no seed .dom at {seed_file}", file=sys.stderr)
         return 1
 
+    use_grade = os.environ.get("USE_GRADE") == "1"  # §11.4 graded objective A/B
+
     print(f"programme : {programme_dir.name}")
     print(f"seed      : {seed_file.name}")
     print(f"budget    : {budget} native evals (staged)")
     print(f"rng seed  : {rng_seed}")
+    print(f"use_grade : {use_grade}")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -71,6 +75,7 @@ def main() -> int:
         p_crossover=0.2,
         seed=rng_seed,
         log=lambda m: print(m, flush=True),
+        use_grade=use_grade,
     )
 
     elapsed = time.perf_counter() - t0

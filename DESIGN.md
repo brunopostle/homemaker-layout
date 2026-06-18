@@ -869,18 +869,72 @@ stages composed from the existing `driver.search`:
   and the floors now assembled in dependency order, the lever left is navigation
   *within* the high-fail plateau, where lex-by-count gives near-zero gradient.
 
-### 11.4 Graded high-fail objective (`homemaker-py-c4c.4`)
+### 11.4 Graded high-fail objective (`homemaker-py-c4c.4`) — DONE (negative)
 
-*Stub.* Extends Phase 4 (§4.9). Lexicographic-by-total-count gives ~zero signal
-when every candidate sits at ~49–74 fails. Add partial credit (proximity per
-unsatisfied constraint and/or count of *distinct* unsatisfied requirements) as a
-secondary key beneath fail-count, preserving the inner-loop cliff (§5.4) and the
-missing-space hierarchy (§6).
+Premise (from Phase 4, §4.9): lexicographic-by-total-count `(-n_fails, fitness)`
+gives ~zero selection signal in the high-fail regime because the `0.5^n` cliff
+flattens fitness to ~machine-epsilon, so neighbours at ~49–105 fails look
+indistinguishable. Proposed fix: a continuous proximity key *beneath* fail-count
+and *above* fitness — `(-n_fails, grade, fitness)`.
 
-- *Gate:* measured escape from a high-fail plateau the current lex comparator
-  cannot escape at equal budget; inner-loop 0/9-regression check (§4.9) still
-  clean.
-- *Result:* TODO.
+**Implementation (kept, default-off).** `fitness._leaf_grade` reads each *failing*
+per-leaf quality factor (perpendicular/proportion/size/width/crinkliness/access)
+as proximity-to-satisfaction `f / FAIL_THRESHOLD ∈ [0,1)` and sums it;
+`Fitness.score_with_grade` returns it alongside score/fails. The scalar fitness
+and the fail count are **untouched**, so the inner-loop `0.5^n` cliff (§5.4) is
+unaffected — **inner-loop 0/9-regression check: PASS** (re-ran §4.9 part 1,
+`run_inner_loop_protection`, 0/9 regressions). The grade is read once per child
+off the already-optimised tree in `driver._evaluate` (one extra native eval,
+~1/child_budget) and used **only** in the outer comparator key, behind
+`search(..., use_grade=True)` / `search_staged(..., use_grade=True)` (default
+`False`; threaded to Stage 2 only — Stage 1 keeps its readiness key, §11.3).
+Structural fails (missing/adjacency/edge-too-long/level/…) score 0 grade, so the
+missing-space hierarchy (§6) is preserved: grade can never reward dropping a room.
+
+- *Commands (reproduce, `URB_NO_OCCLUSION=1`, 20000 evals):*
+  ```bash
+  USE_GRADE=0 python3 experiments/run_staged_search.py examples/harbor-house 20000 <seed> \
+    examples/harbor-house/init.dom scratch/st_lex.dom        # lex baseline
+  USE_GRADE=1 python3 experiments/run_staged_search.py examples/harbor-house 20000 <seed> \
+    examples/harbor-house/init.dom scratch/st_grade.dom      # lex + grade
+  ```
+- *Result (harbor-house, staged, 20000 native evals, total fails at budget):*
+
+  | seed | staged `lex` | staged `lex+grade` |
+  |-----:|-------------:|-------------------:|
+  | 0    | **95**       | 99                 |
+  | 1    | **96**       | 98                 |
+  | 2    | 106          | **102**            |
+  | mean | **99.0**     | 99.7               |
+
+  Grade wins 1/3 seeds, loses 2/3, and is **slightly worse on the mean** —
+  within seed-noise, **no escape** from the plateau. Single-stage seed 0 is a
+  dead heat (105 = 105). Stage-1 is identical by construction (grade off there);
+  the divergence is entirely in Stage 2, where the grade run **stalls early**
+  (seed 0: last improvement at 13600/20000 evals, stuck at 99) while lex keeps
+  reducing the count (99→95).
+
+- *Why it fails — the premise is falsified by measurement.* The cliff is constant
+  *within* a fail-tier (`0.5^n`, `n` fixed), so within a tier reported fitness is
+  `value/cost × const` and still spans **~6 orders of magnitude** (seed-0 Stage-2
+  history: 1.2e-37 → 4.6e-31 *all inside the same descending fail count*). The
+  outer comparator only ever compares within a tier (−`n_fails` dominates across
+  tiers), so lex's secondary `fitness` key already carries a strong, well-graded
+  signal — exactly the gradient §11.4 assumed was missing. Inserting `grade`
+  *above* `fitness` **displaces** that working signal: the population fills with
+  high-grade (shallow-fail) incumbents and the fail-reducing restructurings — which
+  transiently deepen other fails and so look worse on grade — are no longer
+  selected. Placing `grade` *below* `fitness` instead would be near-inert (fitness
+  ties are measure-zero in a continuous objective). Either way there is no lever:
+  the high-fail plateau is a *topology* basin, not a comparator-resolution problem.
+
+- *Verdict: reject the graded objective; lexicographic `(-n_fails, fitness)`
+  stands.* The §11.3 staged **95-fail** result remains the harbor best. The
+  remaining load is genuinely structural (escaping topology basins), which is what
+  **§11.5 (structural niching + restarts)** and the `9gp` canonical-encoding
+  capstone target — not outer-comparator reshaping. The `use_grade` flag and
+  `score_with_grade` are kept default-off for reproducibility and possible reuse
+  (e.g. as a *diversity* signal under §11.5 rather than a selection key).
 
 ### 11.5 Topology diversity: structural niching + restarts (`homemaker-py-c4c.5`)
 

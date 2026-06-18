@@ -28,14 +28,27 @@ prevent stale id-keyed entries inherited from the parent process.
 from __future__ import annotations
 
 import copy
+import functools
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
 
-from . import dom, innerloop, operators, programme
+from . import dom, fitness, innerloop, operators, programme
 
 _CHILD_INNER_KW: dict = {}
+
+
+@functools.lru_cache(maxsize=None)
+def _fitness_for(programme_dir: str) -> "fitness.Fitness":
+    """Cached Fitness evaluator per programme dir (config load is the cost).
+
+    Used only to read the graded proximity scalar (§11.4) off an already-
+    optimised tree in :func:`_evaluate`; the inner loop's own NativeEvaluator is
+    untouched. Cached per process — workers fork their own copy.
+    """
+    conf, cost = fitness.load_config(programme_dir)
+    return fitness.Fitness(conf, cost)
 
 # storey add/delete are drastic (geometry perturbation 0.25-0.33 and a
 # deleted storey stacks missing-space failures) — sample them rarely.
@@ -63,6 +76,7 @@ class Individual:
     n_fails: int
     ratios: dict[tuple[int, str], float]
     lineage: str = "seed"
+    grade: float = 0.0  # §11.4 graded proximity; secondary comparator key only
 
 
 @dataclass
@@ -91,11 +105,20 @@ def random_topology(seed_root: dom.Node, n_leaves: int,
 
 
 def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
-              lineage: str) -> tuple[Individual, int]:
+              lineage: str, want_grade: bool = False) -> tuple[Individual, int]:
     r = innerloop.optimise(root, programme_dir, x0=x0, budget=budget,
                            urb_root=urb_root, **inner_kw)
+    # §11.4: read the graded proximity scalar off the optimised tree. The inner
+    # loop left ``root`` at the optimum (Lamarckian write-back), so re-scoring a
+    # copy reproduces r.fitness/r.n_fails exactly and adds the grade. One extra
+    # native eval per child (~1/child_budget overhead); skipped unless requested.
+    grade = 0.0
+    if want_grade:
+        _, _, grade = _fitness_for(str(programme_dir)).score_with_grade(
+            copy.deepcopy(root))
     ind = Individual(root=root, fitness=r.fitness, n_fails=r.n_fails,
-                     ratios=innerloop.ratio_map(root), lineage=lineage)
+                     ratios=innerloop.ratio_map(root), lineage=lineage,
+                     grade=grade)
     return ind, r.n_evals
 
 
@@ -125,6 +148,7 @@ def search(
     rank_bonus_weight: float = 1.0,
     seed_factory=None,
     base_p: float = 1.0,
+    use_grade: bool = False,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -158,8 +182,22 @@ def search(
             return ind.fitness
         return ind.fitness * (1.0 + rank_bonus_weight * rank_bonus_fn(ind.root))
 
-    _key = ((lambda ind: (-ind.n_fails, _rank_fitness(ind))) if use_lex
-            else (lambda ind: _rank_fitness(ind)))
+    # §11.4 graded objective (EXPERIMENT, default off — REJECTED, see DESIGN.md
+    # §11.4): a continuous proximity bonus (ind.grade) inserted as a secondary key
+    # BENEATH fail-count and ABOVE fitness, ordering neighbours by how close their
+    # failing constraints are to satisfaction. Hypothesis was that fitness is
+    # ~flat (0.5^n) in the high-fail regime; this was FALSIFIED — within a fixed
+    # fail-tier 0.5^n is constant so fitness still spans ~6 orders of magnitude,
+    # and grade above it merely displaces that working signal (no plateau escape).
+    # Kept default-off for reproducibility. Strictly beneath -n_fails ⇒ the
+    # missing-space hierarchy (§6) is preserved and the inner-loop cliff (§5.4)
+    # is untouched.
+    if use_lex and use_grade:
+        _key = lambda ind: (-ind.n_fails, ind.grade, _rank_fitness(ind))
+    elif use_lex:
+        _key = lambda ind: (-ind.n_fails, _rank_fitness(ind))
+    else:
+        _key = lambda ind: _rank_fitness(ind)
     # Always load reqs so bootstrap_n_leaves can be auto-derived from programme.
     reqs = programme.load_programme_dir(programme_dir)
     if types is None:
@@ -213,7 +251,7 @@ def search(
         """Evaluate a batch of tasks and admit results; parallel when _pool set."""
         nonlocal n_evals
         full = [
-            (root, programme_dir, urb_root, x0, budget_, kw_, lin)
+            (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade)
             for root, x0, budget_, kw_, lin in tasks
         ]
         if _pool is not None:
@@ -262,7 +300,8 @@ def search(
         else:
             seed_ind, used = _evaluate(copy.deepcopy(seed_root), programme_dir, urb_root,
                                        x0=None, budget=seed_budget,
-                                       inner_kw={}, lineage="seed")
+                                       inner_kw={}, lineage="seed",
+                                       want_grade=use_grade)
             n_evals += used
             admit(seed_ind, pop)
 
@@ -332,6 +371,7 @@ def search_staged(
     inner_kw: dict | None = None,
     log=None,
     n_workers: int = 1,
+    use_grade: bool = False,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -367,7 +407,8 @@ def search_staged(
         return search(seed_root, programme_dir, budget=budget, pop_size=pop_size,
                       child_budget=child_budget, seed_budget=seed_budget,
                       p_crossover=p_crossover, seed=seed, types=types,
-                      inner_kw=inner_kw, log=log, n_workers=n_workers)
+                      inner_kw=inner_kw, log=log, n_workers=n_workers,
+                      use_grade=use_grade)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -411,6 +452,10 @@ def search_staged(
         p_crossover=p_crossover, seed=seed, types=types,
         inner_kw=inner_kw, log=log, n_workers=n_workers,
         bootstrap=True, seed_factory=_seed_factory, base_p=base_p,
+        # §11.4: the graded objective targets the dense two-floor quality-fail
+        # regime, which is Stage 2. Stage 1 keeps its readiness-biased key so the
+        # substrate-selection semantics (§11.3) are unchanged.
+        use_grade=use_grade,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

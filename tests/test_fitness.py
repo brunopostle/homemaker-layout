@@ -4,7 +4,14 @@ import pytest
 
 from homemaker_layout import dom, geometry
 from homemaker_layout.dom import Node
-from homemaker_layout.fitness import CONF_DEFAULTS, COST_DEFAULTS, Fitness, gaussian
+from homemaker_layout.fitness import (
+    CONF_DEFAULTS,
+    COST_DEFAULTS,
+    FAIL_THRESHOLD,
+    Fitness,
+    _leaf_grade,
+    gaussian,
+)
 
 
 def _leaf(type_: str, size: float = 4.0) -> Node:
@@ -234,3 +241,36 @@ def test_ideal_going_above_minimum():
     result = Fitness._ideal_going(0.15)
     assert result >= 0.22
     assert result <= 0.625
+
+
+# --------------------------------------------------------------------------- #
+# Graded high-fail objective (§11.4)
+# --------------------------------------------------------------------------- #
+
+
+def test_leaf_grade_no_failing_factors_is_zero():
+    # All factors above FAIL_THRESHOLD → no proximity credit.
+    assert _leaf_grade({"size": 0.9, "width": 1.0, "access": 1.0}) == 0.0
+
+
+def test_leaf_grade_credits_only_failing_factors():
+    # Only size fails (0.05 < 0.1); credit = 0.05 / 0.1 = 0.5.
+    g = _leaf_grade({"size": 0.05, "width": 0.5, "proportion": 1.0})
+    assert g == pytest.approx(0.05 / FAIL_THRESHOLD)
+
+
+def test_leaf_grade_monotone_in_proximity():
+    # A failing factor closer to the threshold scores higher (better).
+    deep = _leaf_grade({"size": 0.01})
+    shallow = _leaf_grade({"size": 0.09})
+    assert shallow > deep
+
+
+def test_leaf_grade_sums_over_failing_factors():
+    g = _leaf_grade({"size": 0.04, "width": 0.06, "access": 1.0})
+    assert g == pytest.approx((0.04 + 0.06) / FAIL_THRESHOLD)
+
+
+def test_leaf_grade_ignores_non_graded_keys():
+    # daylight is pinned and never a graded factor even if below threshold.
+    assert _leaf_grade({"daylight": 0.0}) == 0.0
