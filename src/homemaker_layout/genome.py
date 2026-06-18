@@ -103,6 +103,47 @@ def encode(root: dom.Node) -> Genome:
 
 
 # --------------------------------------------------------------------------- #
+# signature: Genome -> structural topology hash (homemaker-py-c4c.5, §11.5)
+# --------------------------------------------------------------------------- #
+# A cheap structural signature so the search can niche by *topology* rather than
+# by the fitness scalar. It captures tree shape, cut orientation (rotation) and
+# leaf-type assignment per storey, but deliberately ignores division *ratios*
+# (geometry): two designs with the same topology and different geometry collapse
+# to one signature, which is exactly the "same topology, different geometry"
+# equivalence the niching wants. Routing through ``encode`` first canonicalises
+# the dead inherited fields (rotation/division on below-linked nodes, see module
+# docstring), so genome-equal trees always share a signature. This is the cheap
+# stand-in for the canonical Polish encoding (homemaker-py-9gp), which would
+# additionally collapse associativity ``(a|b)|c == a|(b|c)``.
+def _gnode_sig(g: GNode) -> str:
+    if g.divided:
+        return f"({g.rotation}{_gnode_sig(g.left)}{_gnode_sig(g.right)})"
+    return g.type or "."
+
+
+def _delta_sig(d: StoreyDelta) -> str:
+    parts: list[str] = []
+    for path in sorted(d.undivides):
+        parts.append(f"u{path}={d.retypes.get(path) or '.'}")
+    for path in sorted(d.divides):
+        parts.append(f"d{path}={_gnode_sig(d.divides[path])}")
+    for path in sorted(p for p in d.retypes if p not in d.undivides):
+        parts.append(f"t{path}={d.retypes[path] or '.'}")
+    return ";".join(parts)
+
+
+def signature(root: dom.Node) -> str:
+    """Structural topology signature of a (possibly multi-storey) Node tree.
+
+    Equal iff two trees have the same per-storey tree shape, cut orientations and
+    leaf types — independent of division ratios, heights and other geometry. Used
+    as the niching key in :func:`homemaker_layout.driver.search`.
+    """
+    g = encode(root)
+    return _gnode_sig(g.base) + "||" + "||".join(_delta_sig(d) for d in g.deltas)
+
+
+# --------------------------------------------------------------------------- #
 # decode: Genome -> Node tree
 # --------------------------------------------------------------------------- #
 def _node_from(g: GNode) -> dom.Node:

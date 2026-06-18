@@ -148,6 +148,40 @@ def test_random_topology_leaf_count():
         assert n_leaves <= n + 1  # mutate_divide adds exactly one leaf per call
 
 
+def test_niche_by_signature_keeps_distinct_topologies(fake_inner):
+    """§11.5: niching admits at most one individual per topology signature, so
+    the population is structurally distinct and diversity is reported."""
+    from homemaker_layout import genome
+    init_root = dom.load(str(INIT_FILE))
+    r = driver.search(init_root, CORPUS, budget=2000, pop_size=6,
+                      child_budget=60, seed=3, niche_by_signature=True)
+    sigs = [genome.signature(p.root) for p in r.population]
+    assert len(sigs) == len(set(sigs)), "population must be one-per-topology"
+    assert r.n_distinct_signatures >= len(r.population)
+    assert r.diversity_history  # recorded on each improvement
+
+
+def test_restart_keeps_elite_and_counts(monkeypatch):
+    """§11.5: a stagnation restart fires, is counted, and preserves the best."""
+    # Saturating fake (no monotone tiebreaker, unlike `fake_inner`): fitness
+    # peaks at 12 leaves and plateaus, so the best stalls and restarts trigger.
+    def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+        n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(root))
+        fitness = 1.0 / (1.0 + abs(12 - n_leaves))
+        return innerloop.Result(
+            x=np.array([0.25]), fitness=fitness, n_fails=0, fail_lines=(),
+            x0_fitness=fitness / 2, x0_n_fails=1, n_evals=budget, n_oracle_calls=1,
+        )
+
+    monkeypatch.setattr(innerloop, "optimise", fake_optimise)
+    init_root = dom.load(str(INIT_FILE))
+    r = driver.search(init_root, CORPUS, budget=4000, pop_size=4,
+                      child_budget=60, seed=5, niche_by_signature=True,
+                      restart_patience=300, restart_elite=1)
+    assert r.n_restarts >= 1
+    assert r.best is not None and r.best.fitness > 0
+
+
 def test_search_parallel_smoke():
     """n_workers>1 runs without error and produces valid results."""
     init_root = dom.load(str(INIT_FILE))

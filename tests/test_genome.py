@@ -66,3 +66,38 @@ def test_storey_counts():
     for f in corpus():
         root = dom.load(str(f))
         assert genome.encode(root).n_storeys == len(dom.levels(root)), f.name
+
+
+# --- signature (§11.5 structural niching) --------------------------------- #
+
+def test_signature_invariant_under_roundtrip():
+    # genome-equal trees (decode canonicalises dead fields) share a signature
+    for f in corpus():
+        root = dom.load(str(f))
+        root2 = genome.decode(genome.encode(root))
+        assert genome.signature(root) == genome.signature(root2), f.name
+
+
+def test_signature_ignores_division_ratios():
+    # same topology, different geometry -> same signature (the niching premise)
+    import copy
+    for f in corpus():
+        root = dom.load(str(f))
+        sig0 = genome.signature(root)
+        perturbed = copy.deepcopy(root)
+        for lvl in dom.levels(perturbed):
+            for b in solver._branches(lvl):
+                b.division = [0.37, 0.63]  # arbitrary ratio change, same shape
+        assert genome.signature(perturbed) == sig0, f.name
+
+
+def test_signature_changes_with_topology():
+    # a divide mutation changes the structure -> changes the signature
+    import numpy as np
+
+    from homemaker_layout import operators
+    for f in corpus():
+        root = genome.decode(genome.encode(dom.load(str(f))))
+        child, _ = operators.mutate_divide(root, np.random.default_rng(0),
+                                            ["k1", "l1", "C", "O"])
+        assert genome.signature(child) != genome.signature(root), f.name

@@ -52,12 +52,17 @@ def main() -> int:
         return 1
 
     use_grade = os.environ.get("USE_GRADE") == "1"  # §11.4 graded objective A/B
+    niche = os.environ.get("NICHE", "0") == "1"     # §11.5 structural niching A/B
+    rp = os.environ.get("RESTART_PATIENCE")
+    restart_patience = int(rp) if rp else None
 
     print(f"programme : {programme_dir.name}")
     print(f"seed      : {seed_file.name}")
     print(f"budget    : {budget} native evals (staged)")
     print(f"rng seed  : {rng_seed}")
     print(f"use_grade : {use_grade}")
+    print(f"niche     : {niche}")
+    print(f"restart_p : {restart_patience}")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -76,6 +81,8 @@ def main() -> int:
         seed=rng_seed,
         log=lambda m: print(m, flush=True),
         use_grade=use_grade,
+        niche_by_signature=niche,
+        restart_patience=restart_patience,
     )
 
     elapsed = time.perf_counter() - t0
@@ -86,6 +93,10 @@ def main() -> int:
     print("population: " + ", ".join(
         f"{p.fitness:.4g}/{p.n_fails}f" for p in r.population
     ))
+    pop_distinct = len({p.sig for p in r.population})
+    print(f"diversity : {r.n_distinct_signatures} distinct topologies seen, "
+          f"{pop_distinct}/{len(r.population)} distinct in final population, "
+          f"{r.n_restarts} restarts")
 
     if r.history:
         print("\nimprovement history:")

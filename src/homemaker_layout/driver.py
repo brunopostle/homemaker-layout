@@ -34,7 +34,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import dom, fitness, innerloop, operators, programme
+from . import dom, fitness, genome, innerloop, operators, programme
 
 _CHILD_INNER_KW: dict = {}
 
@@ -77,6 +77,7 @@ class Individual:
     ratios: dict[tuple[int, str], float]
     lineage: str = "seed"
     grade: float = 0.0  # §11.4 graded proximity; secondary comparator key only
+    sig: str = ""  # §11.5 structural topology signature; niching key
 
 
 @dataclass
@@ -88,6 +89,10 @@ class SearchResult:
     history: list[tuple[int, float, str]] = field(default_factory=list)
     # (oracle evals consumed, new best fitness, lineage) per improvement
     interrupted: bool = False
+    n_distinct_signatures: int = 0  # §11.5 total distinct topologies ever admitted
+    diversity_history: list[tuple[int, int, int]] = field(default_factory=list)
+    # (evals, distinct sigs in population, cumulative distinct sigs seen)
+    n_restarts: int = 0  # §11.5 diversity restarts triggered
 
 
 def random_topology(seed_root: dom.Node, n_leaves: int,
@@ -118,7 +123,7 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
             copy.deepcopy(root))
     ind = Individual(root=root, fitness=r.fitness, n_fails=r.n_fails,
                      ratios=innerloop.ratio_map(root), lineage=lineage,
-                     grade=grade)
+                     grade=grade, sig=genome.signature(root))
     return ind, r.n_evals
 
 
@@ -149,6 +154,9 @@ def search(
     seed_factory=None,
     base_p: float = 1.0,
     use_grade: bool = False,
+    niche_by_signature: bool = False,
+    restart_patience: int | None = None,
+    restart_elite: int = 1,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -166,6 +174,24 @@ def search(
     iteration from the current population snapshot and evaluates them in
     parallel.  Results are admitted in completion order (fastest first), so
     later children in each batch see an already-updated population.
+
+    ``niche_by_signature`` (DESIGN.md §11.5, default ``False`` — REJECTED, kept
+    for reuse) replaces the legacy fitness-scalar duplicate guard with structural
+    niching: the population holds at most one individual per
+    :func:`genome.signature` (topology), keeping the better of any collision, so
+    distinct topologies whose fitness scalars coincide (common in the high-fail
+    ``0.5^n`` regime) are no longer discarded. ``restart_patience`` (default
+    ``None`` = off) triggers a soft restart when the best has not improved for
+    that many evals: the top ``restart_elite`` incumbents are kept and the rest of
+    the population is refilled with fresh constructive/random seeds, the
+    soft-restart analog of urb-evolve's upfront random-population diversity.
+
+    Both default off: §11.5 measured that they raise structural diversity as
+    designed (final-population distinct topologies ~5/16 → 16/16) but do **not**
+    lower the fail count — a tie within seed noise on blank-slate programme-house
+    (mean 12.3 → 12.7) and harbor (95 → 94), with restarts strictly worse. The
+    high-fail plateau is therefore not a population-diversity deficit; the lever
+    is the canonical encoding (``homemaker-py-9gp``) and richer operators.
     """
     from .oracle import DEFAULT_URB_ROOT
 
@@ -215,21 +241,40 @@ def search(
 
     n_evals = 0
     n_topologies = 0
+    last_improve = 0  # n_evals at the last best-fitness improvement (restart clock)
+    seen_sigs: set[str] = set()  # §11.5 cumulative distinct topologies ever admitted
     result = SearchResult(best=None, population=[], n_evals=0, n_topologies=0)
 
     def admit(ind: Individual, pop: list[Individual]) -> None:
-        nonlocal n_topologies
+        nonlocal n_topologies, last_improve
         n_topologies += 1
+        seen_sigs.add(ind.sig)
         if result.best is None or _key(ind) > _key(result.best):
             result.best = ind
+            last_improve = n_evals
             result.history.append((n_evals, ind.fitness, ind.lineage))
+            result.diversity_history.append(
+                (n_evals, len({p.sig for p in pop} | {ind.sig}), len(seen_sigs)))
             _log(f"[{n_evals:6d} evals] best {ind.fitness:.6g} "
                  f"(fails {ind.n_fails}) via {ind.lineage}")
-        # reject near-duplicates of existing members (population collapse
-        # guard — neutral mutations are common, homemaker-py-8cs)
-        if any(abs(ind.fitness - p.fitness) <= 1e-9 * max(abs(p.fitness), 1e-300)
-               for p in pop):
-            return
+        if niche_by_signature:
+            # §11.5 structural niching: at most one individual per topology
+            # signature, keeping the better of any collision. This preserves
+            # STRUCTURAL diversity directly — distinct topologies whose fitness
+            # scalars happen to coincide (common in the high-fail 0.5^n regime)
+            # are no longer wrongly discarded, and neutral geometry variants of an
+            # incumbent topology can never crowd out a rival topology.
+            for i, p in enumerate(pop):
+                if p.sig == ind.sig:
+                    if _key(ind) > _key(p):
+                        pop[i] = ind
+                    return
+        else:
+            # legacy fitness-scalar dedup (population collapse guard —
+            # neutral mutations are common, homemaker-py-8cs)
+            if any(abs(ind.fitness - p.fitness) <= 1e-9 * max(abs(p.fitness), 1e-300)
+                   for p in pop):
+                return
         if len(pop) < pop_size:
             pop.append(ind)
             return
@@ -267,6 +312,25 @@ def search(
                 n_evals += used
                 admit(ind, pop)
 
+    # A fresh seed individual (used for the initial bootstrap and for §11.5
+    # restart injections). Mirrors the construction order: custom seed_factory >
+    # programme-aware construction > random divide-grown topology.
+    prog = {c: r for c, r in reqs.items() if c[0].lower() not in "cos"}
+    n_target = bootstrap_n_leaves or max(len(reqs), 3)
+
+    def _make_seed_task(tag: str) -> tuple:
+        if seed_factory is not None:
+            # Custom seed (DESIGN.md §11.3 Stage 2: lift the evolved base into a
+            # full multi-storey design with the upper room sets instantiated by
+            # construction).
+            return (seed_factory(rng), None, child_budget, {}, f"lift/{tag}")
+        if prog:
+            topo = operators.constructive_topology(seed_root, reqs, rng, types)
+            return (topo, None, child_budget, {}, f"construct/{tag}")
+        n = int(rng.integers(max(1, n_target - 1), n_target + 2))
+        return (random_topology(seed_root, n, rng, types), None, child_budget,
+                {}, f"bootstrap/{tag}")
+
     interrupted = False
     try:
         if do_bootstrap:
@@ -278,25 +342,7 @@ def search(
             # has required spaces, instantiate each by construction so the seed
             # population starts with ~zero missing-space failures instead of a
             # random divide+retype walk that leaves required rooms absent.
-            prog = {c: r for c, r in reqs.items() if c[0].lower() not in "cos"}
-            n_target = bootstrap_n_leaves or max(len(reqs), 3)
-            tasks = []
-            for i in range(pop_size):
-                if seed_factory is not None:
-                    # Custom seed (DESIGN.md §11.3 Stage 2: lift the evolved base
-                    # into a full multi-storey design with the upper room sets
-                    # instantiated by construction).
-                    topo = seed_factory(rng)
-                    lineage = f"lift/{i}"
-                elif prog:
-                    topo = operators.constructive_topology(seed_root, reqs, rng, types)
-                    lineage = f"construct/{i}"
-                else:
-                    n = int(rng.integers(max(1, n_target - 1), n_target + 2))
-                    topo = random_topology(seed_root, n, rng, types)
-                    lineage = f"bootstrap/{i}"
-                tasks.append((topo, None, child_budget, {}, lineage))
-            _run_batch(tasks)
+            _run_batch([_make_seed_task(str(i)) for i in range(pop_size)])
         else:
             seed_ind, used = _evaluate(copy.deepcopy(seed_root), programme_dir, urb_root,
                                        x0=None, budget=seed_budget,
@@ -306,6 +352,28 @@ def search(
             admit(seed_ind, pop)
 
         while n_evals < budget:
+            # §11.5 diversity restart: if the best has not improved for
+            # restart_patience evals, keep the top restart_elite incumbents and
+            # refill the population with fresh constructive/random seeds. This
+            # re-injects the upfront structural diversity a single mutation chain
+            # loses (the blank-slate gap, §7 Phase 2) — the soft-restart analog of
+            # urb-evolve's random initial population. Off by default
+            # (restart_patience=None) so existing experiments are unaffected.
+            if (restart_patience is not None and pop
+                    and n_evals - last_improve >= restart_patience
+                    and n_evals + child_budget <= budget):
+                keep = sorted(pop, key=_key, reverse=True)[:max(1, restart_elite)]
+                pop[:] = keep
+                result.n_restarts += 1
+                last_improve = n_evals  # reset clock; avoid immediate re-trigger
+                n_fresh = min(pop_size - len(pop),
+                              max(0, (budget - n_evals) // child_budget))
+                _log(f"[{n_evals:6d} evals] restart #{result.n_restarts}: "
+                     f"keep {len(keep)}, inject {n_fresh} fresh seeds")
+                if n_fresh:
+                    _run_batch([_make_seed_task(f"r{result.n_restarts}.{i}")
+                                for i in range(n_fresh)])
+                continue
             # How many children to generate this iteration: n_workers in parallel,
             # but cap at what the remaining budget can afford (ceiling division).
             batch_n = (
@@ -351,6 +419,7 @@ def search(
     result.population = sorted(pop, key=_key, reverse=True)
     result.n_evals = n_evals
     result.n_topologies = n_topologies
+    result.n_distinct_signatures = len(seen_sigs)
     result.interrupted = interrupted
     return result
 
@@ -372,6 +441,9 @@ def search_staged(
     log=None,
     n_workers: int = 1,
     use_grade: bool = False,
+    niche_by_signature: bool = False,
+    restart_patience: int | None = None,
+    restart_elite: int = 1,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -408,7 +480,8 @@ def search_staged(
                       child_budget=child_budget, seed_budget=seed_budget,
                       p_crossover=p_crossover, seed=seed, types=types,
                       inner_kw=inner_kw, log=log, n_workers=n_workers,
-                      use_grade=use_grade)
+                      use_grade=use_grade, niche_by_signature=niche_by_signature,
+                      restart_patience=restart_patience, restart_elite=restart_elite)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -430,6 +503,8 @@ def search_staged(
             inner_kw=inner_kw, log=log, n_workers=n_workers,
             rank_bonus_fn=lambda root: graph.substrate_readiness(root, reqs, n_storeys),
             rank_bonus_weight=rank_bonus_weight,
+            niche_by_signature=niche_by_signature,
+            restart_patience=restart_patience, restart_elite=restart_elite,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -455,14 +530,21 @@ def search_staged(
         # §11.4: the graded objective targets the dense two-floor quality-fail
         # regime, which is Stage 2. Stage 1 keeps its readiness-biased key so the
         # substrate-selection semantics (§11.3) are unchanged.
-        use_grade=use_grade,
+        use_grade=use_grade, niche_by_signature=niche_by_signature,
+        restart_patience=restart_patience, restart_elite=restart_elite,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).
     r2.n_evals += r1.n_evals
     r2.n_topologies += r1.n_topologies
+    r2.n_distinct_signatures += r1.n_distinct_signatures
+    r2.n_restarts += r1.n_restarts
     r2.history = (
         [(e, f, f"S1:{lin}") for e, f, lin in r1.history]
         + [(e + r1.n_evals, f, f"S2:{lin}") for e, f, lin in r2.history]
+    )
+    r2.diversity_history = (
+        [(e, d, c) for e, d, c in r1.diversity_history]
+        + [(e + r1.n_evals, d, c) for e, d, c in r2.diversity_history]
     )
     return r2

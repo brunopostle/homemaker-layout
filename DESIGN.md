@@ -936,14 +936,73 @@ missing-space hierarchy (§6) is preserved: grade can never reward dropping a ro
   `score_with_grade` are kept default-off for reproducibility and possible reuse
   (e.g. as a *diversity* signal under §11.5 rather than a selection key).
 
-### 11.5 Topology diversity: structural niching + restarts (`homemaker-py-c4c.5`)
+### 11.5 Topology diversity: structural niching + restarts (`homemaker-py-c4c.5`) — DONE (negative)
 
-*Stub.* Replace the fitness-scalar dedup (driver.py:174) with a topology
-signature so niching is by *structure*, not score; add crowding/restarts/islands
-to match urb-evolve's upfront diversity on blank slate.
+Premise (epic diagnosis): the population dedups on the **fitness scalar**
+(`driver.admit`, `abs(fitness)` within `1e-9`) and so has no structural diversity
+preservation — proposed as the root cause of the blank-slate gap (§7 Phase 2:
+memetic 18 fails vs urb-evolve 6), a single mutation chain losing to urb-evolve's
+upfront random-population diversity.
 
-- *Gate:* blank-slate programme-house reaches ≤ 6 fails at equal budget; distinct
-  topology-signature count over time quantified before/after.
-- *Result:* TODO. (Capstone `homemaker-py-9gp` canonical Polish encoding is the
-  principled long-term signature — `(a|b)|c == a|(b|c)` collapse — and lands
-  after §11.2.)
+**Implementation (kept, default-off).** A cheap structural topology signature
+(`genome.signature`) string-encodes each storey's tree shape + cut orientations
++ leaf types, routed through `encode` so dead inherited fields canonicalise; it
+is **ratio-invariant** (same topology, different geometry → same signature). Two
+diversity mechanisms, both behind flags on `search`/`search_staged`:
+`niche_by_signature` holds at most one individual per signature in the population
+(structural niching, keeping the better of a collision) in place of the
+fitness-scalar guard; `restart_patience=<evals>` does a soft restart on
+stagnation (keep `restart_elite` incumbents, refill with fresh
+constructive/random seeds — urb-evolve's upfront diversity as a soft restart).
+`SearchResult` gained `n_distinct_signatures` / `diversity_history` /
+`n_restarts` to quantify diversity over time.
+
+- *Commands (reproduce, `URB_NO_OCCLUSION=1`, 20000 evals):*
+  ```bash
+  NICHE=0 python3 experiments/run_search_scaled.py examples/programme-house 20000 <seed> \
+    examples/programme-house/init.dom scratch/ph_before.dom   # legacy dedup (before)
+  NICHE=1 python3 experiments/run_search_scaled.py examples/programme-house 20000 <seed> \
+    examples/programme-house/init.dom scratch/ph_niche.dom    # structural niching
+  NICHE=1 RESTART_PATIENCE=2000 python3 experiments/run_search_scaled.py \
+    examples/programme-house 20000 <seed> examples/programme-house/init.dom scratch/ph_restart.dom
+  # harbor (staged): swap run_staged_search.py, seed examples/harbor-house/init.dom
+  ```
+
+- *Diversity (the secondary criterion) — MET.* Niching takes the final
+  population from ~**4–6 / 16** distinct topologies (legacy dedup) to **16 / 16**;
+  restarts raise distinct topologies *seen* by ~30 % (≈105–138 → ≈164–186 on
+  programme-house). The signature machinery works exactly as designed.
+
+- *Fail count (the gate) — NOT MET.* Blank-slate programme-house, total fails at
+  budget (lower is better):
+
+  | seed | before (legacy) | niche | niche + restart |
+  |-----:|----------------:|------:|----------------:|
+  | 0    | **11**          | 14    | 12              |
+  | 1    | **11**          | 11    | 14              |
+  | 2    | 15              | **13**| 13              |
+  | mean | **12.3**        | 12.7  | 13.0            |
+
+  Harbor-house (staged, seed 0): legacy **95** (reproduces §11.3 exactly), niche
+  **94**, niche+restart **108**. Across both programmes niching is a **tie within
+  seed noise** and restarts are **strictly worse**; nothing approaches the ≤ 6
+  gate.
+
+- *Why it fails — the premise is falsified by measurement.* More *structural*
+  population diversity does not buy lower fails: the legacy dedup already holds
+  14/16 distinct topologies on harbor (Stage-2 starts from lifted bootstraps), so
+  it was never the diversity bottleneck the epic assumed. Maximal diversity
+  (16/16) with the fixed tournament pressure just **diffuses** effort — the
+  fitness-scalar dedup's smaller effective population exploits a basin slightly
+  harder. Restarts throw away converging Stage-2 work and regress hardest. The
+  high-fail plateau is a **reachability** problem (operators + encoding cannot
+  reach the low-fail basins), not a population-management one — the same
+  conclusion §11.4 reached from the comparator side.
+
+- *Verdict: reject niching/restarts as defaults; the legacy fitness-scalar dedup
+  stands.* `niche_by_signature` / `restart_patience` are kept default-off for
+  reproducibility and reuse, and `genome.signature` is the cheap stand-in that the
+  canonical Polish encoding (**`homemaker-py-9gp`**) supersedes. With §11.3–§11.5
+  all landed, the residual load is genuinely structural: the principled lever is
+  the canonical encoding (associativity collapse `(a|b)|c == a|(b|c)`) plus richer
+  topology operators, not outer-loop selection/population reshaping.
