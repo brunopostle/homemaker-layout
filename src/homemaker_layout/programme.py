@@ -75,6 +75,100 @@ def load_programme(path: str) -> dict[str, SpaceReq]:
     return _parse_spaces(conf)
 
 
+def n_storeys_required(reqs: dict[str, SpaceReq]) -> int:
+    """Number of storeys the programme implies, from the highest ``level:`` key.
+
+    Level-free rooms (no ``level``) do not force extra storeys — they are
+    distributed across whatever storeys the level-constrained rooms require.
+    """
+    levels = [r.level for r in reqs.values() if r.level is not None]
+    return (max(levels) + 1) if levels else 1
+
+
+def partition_rooms_by_storey(
+    reqs: dict[str, SpaceReq], n_storeys: int, rng,
+) -> list[dict[str, int]]:
+    """Per-storey required-room multisets (DESIGN.md §11.3 staging).
+
+    Level-constrained rooms land on their required storey; level-free rooms are
+    distributed round-robin over a shuffled order across all storeys. Generic
+    circulation/outside/sahn codes are excluded (they are added per storey at
+    construction time). Mirrors the inline partition in
+    ``operators.constructive_topology`` so Stage 1 (base) and Stage 2 (upper
+    deltas) draw from one consistent partition.
+
+    Returns a list of length ``n_storeys``; each entry maps room code -> count.
+    """
+    buckets: list[dict[str, int]] = [{} for _ in range(n_storeys)]
+
+    def _add(li: int, code: str) -> None:
+        buckets[li][code] = buckets[li].get(code, 0) + 1
+
+    free: list[str] = []
+    for code, req in reqs.items():
+        if code[0].lower() in ("c", "o", "s"):
+            continue
+        for _ in range(req.count):
+            if req.level is not None and req.level < n_storeys:
+                _add(req.level, code)
+            else:
+                free.append(code)
+    free = [free[i] for i in rng.permutation(len(free))]
+    for i, code in enumerate(free):
+        _add(i % n_storeys, code)
+    return buckets
+
+
+def write_stage1_programme(
+    full_dir: str | Path, out_dir: str | Path, base_codes: dict[str, int],
+) -> Path:
+    """Derive a single-storey base-floor programme (DESIGN.md §11.3 Stage 1).
+
+    Filters the full merged ``patterns.config`` down to the rooms assigned to the
+    base floor (``base_codes``: code -> count), drops their ``level:`` keys,
+    prunes each kept space's ``adjacency`` to references that survive (retained
+    codes or generic c/o/s), and forces single-storey building constraints. The
+    result is written as a *self-contained* ``patterns.config`` in ``out_dir`` so
+    ``fitness.load_config``'s parent-dir merge contributes nothing — keep
+    ``out_dir`` outside the corpus tree (e.g. a tempdir).
+
+    Returns ``out_dir`` as a ``Path``.
+    """
+    from pathlib import Path as _Path
+
+    from . import fitness as _fit
+
+    out_dir = _Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    conf, _cost = _fit.load_config(full_dir)
+
+    keep = set(base_codes)
+    src_spaces = conf.get("spaces") or {}
+    new_spaces: dict = {}
+    for code, count in base_codes.items():
+        if code not in src_spaces:
+            continue
+        spec = dict(src_spaces[code])
+        spec.pop("level", None)
+        spec["count"] = count
+        adj = spec.get("adjacency")
+        if adj is not None:
+            spec["adjacency"] = [
+                r for r in adj if r in keep or r[0].lower() in ("c", "o", "s")
+            ]
+        new_spaces[code] = spec
+
+    new_conf = {k: v for k, v in conf.items() if k != "spaces"}
+    new_conf["spaces"] = new_spaces
+    new_conf.update(
+        storey_minimum=1, storey_limit=1, staircase_min=1, staircase_max=1,
+    )
+
+    with open(out_dir / "patterns.config", "w") as fh:
+        yaml.safe_dump(new_conf, fh, sort_keys=False, default_flow_style=False)
+    return out_dir
+
+
 def load_programme_dir(directory: str | Path) -> dict[str, SpaceReq]:
     """Load programme from a directory, merging parent patterns.config as base.
 

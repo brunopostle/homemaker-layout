@@ -44,6 +44,22 @@ def _pick(rng: np.random.Generator, items: list):
     return items[int(rng.integers(len(items)))]
 
 
+def _pick_weighted_by_storey(rng: np.random.Generator, items: list, base_p: float):
+    """Pick one ``(level_index, node)`` tuple, downweighting the base storey.
+
+    Base-storey leaves/branches (``li == 0``) are sampled with relative weight
+    ``base_p``; everything else with weight 1.0. ``base_p == 1.0`` (default)
+    reproduces a uniform pick exactly (DESIGN.md §11.3 Stage 2 keeps the base
+    mutable at low probability rather than freezing it).
+    """
+    if base_p >= 1.0 or not items:
+        return _pick(rng, items)
+    w = np.array([base_p if li == 0 else 1.0 for li, _ in items], dtype=float)
+    if w.sum() == 0:
+        w[:] = 1.0
+    return items[int(rng.choice(len(items), p=w / w.sum()))]
+
+
 def _owned_branches(root: dom.Node) -> list[tuple[int, dom.Node]]:
     """(level_index, node) for every divided node whose cut is live here."""
     out = []
@@ -62,9 +78,9 @@ def _leaves(root: dom.Node) -> list[tuple[int, dom.Node]]:
 # Mutations
 # --------------------------------------------------------------------------- #
 def mutate_divide(root: dom.Node, rng: np.random.Generator,
-                  types: list[str]) -> tuple[dom.Node, str]:
+                  types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
     child = copy.deepcopy(root)
-    li, leaf = _pick(rng, _leaves(child))
+    li, leaf = _pick_weighted_by_storey(rng, _leaves(child), base_p)
     leaf.division = [0.5, 0.5]
     leaf.rotation = int(rng.integers(4))
     leaf.left = dom.Node(type=leaf.type)
@@ -74,13 +90,13 @@ def mutate_divide(root: dom.Node, rng: np.random.Generator,
 
 
 def mutate_undivide(root: dom.Node, rng: np.random.Generator,
-                    types: list[str]) -> tuple[dom.Node, str]:
+                    types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
     child = copy.deepcopy(root)
     cands = [(li, n) for li, n in _owned_branches(child)
              if not n.left.divided and not n.right.divided]
     if not cands:
         return _finalise(child), "undivide noop"
-    li, n = _pick(rng, cands)
+    li, n = _pick_weighted_by_storey(rng, cands, base_p)
     # generic classes (circulation/outside/sahn) match case-insensitively,
     # cf. Urb Is_Circulation/Is_Outside
     keep = [t for t in (n.left.type, n.right.type) if t and t[0].lower() not in "cos"]
@@ -91,33 +107,33 @@ def mutate_undivide(root: dom.Node, rng: np.random.Generator,
 
 
 def mutate_retype(root: dom.Node, rng: np.random.Generator,
-                  types: list[str]) -> tuple[dom.Node, str]:
+                  types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
     child = copy.deepcopy(root)
-    li, leaf = _pick(rng, _leaves(child))
+    li, leaf = _pick_weighted_by_storey(rng, _leaves(child), base_p)
     leaf.type = str(_pick(rng, [t for t in types if t != leaf.type] or types))
     return _finalise(child), f"retype {li}/{leaf.id or 'root'}->{leaf.type}"
 
 
 def mutate_swap(root: dom.Node, rng: np.random.Generator,
-                types: list[str]) -> tuple[dom.Node, str]:
+                types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
     child = copy.deepcopy(root)
     cands = _owned_branches(child)
     if not cands:  # undivided topology (e.g. a bare plot seed)
         return _finalise(child), "swap noop"
-    li, n = _pick(rng, cands)
+    li, n = _pick_weighted_by_storey(rng, cands, base_p)
     n.left, n.right = n.right, n.left
     return _finalise(child), f"swap {li}/{n.id or 'root'}"
 
 
 def mutate_rotate(root: dom.Node, rng: np.random.Generator,
-                  types: list[str]) -> tuple[dom.Node, str]:
+                  types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
     # re-orient a live cut; live rotation = node without a below link (base
     # storey or inside an upper-storey divide delta)
     child = copy.deepcopy(root)
     cands = [(li, n) for li, n in _owned_branches(child) if n.below is None]
     if not cands:
         return _finalise(child), "rotate noop"
-    li, n = _pick(rng, cands)
+    li, n = _pick_weighted_by_storey(rng, cands, base_p)
     n.rotation = (n.rotation + int(rng.integers(1, 4))) % 4
     return _finalise(child), f"rotate {li}/{n.id or 'root'}"
 
@@ -424,6 +440,67 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
     return _finalise(child)
 
 
+def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]],
+                         rng: np.random.Generator, types: list[str]) -> dom.Node:
+    """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
+
+    Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
+    **untouched**; each upper storey is constructed as a delta that (a) inherits
+    and preserves the base's largest circulation ``C`` leaf as a vertically-aligned
+    core (so Stage 2 does not carve a core from scratch — the anti-bungalow
+    invariant) and (b) instantiates its required room multiset (``upper_buckets``,
+    one dict per storey >= 1) by construction, plus one outside ``O``. Stochastic
+    splits/assignment keep a bootstrap batch diverse; ``mutate_place_missing``
+    repairs any residual gaps during the loop.
+
+    Returns a finalised deep copy; ``base_root`` is unchanged.
+    """
+    from . import genome as _g, geometry as _geo
+
+    child = copy.deepcopy(base_root)
+    base = dom.levels(child)[0]
+    base.above = None  # start from the single-storey base only
+
+    base_cs = [lf for lf in base.leaves()
+               if lf.type and lf.type[0].lower() == "c"]
+    core_path = max(base_cs, key=_geo.area).id if base_cs else None
+
+    prev = base
+    for bucket in upper_buckets:
+        dup = _g._copy_storey(prev)
+        dup.height = prev.height
+        core_node = dup.by_id(core_path) if core_path is not None else None
+
+        assign = [code for code, cnt in bucket.items() for _ in range(cnt)]
+        assign.append("O")  # courtyard / outside on the upper floor
+        if core_node is None:
+            assign.append("C")  # no inherited core to reuse — make one
+
+        def _free() -> list[dom.Node]:
+            return [lf for lf in dup.leaves() if lf is not core_node]
+
+        # grow only non-core leaves so the inherited core footprint is preserved
+        while len(_free()) < len(assign):
+            leaf = _pick(rng, _free())
+            leaf.division = [0.5, 0.5]
+            leaf.rotation = int(rng.integers(4))
+            leaf.left = dom.Node(type=leaf.type)
+            leaf.right = dom.Node(type=leaf.type)
+            leaf.type = None
+
+        frees = _free()
+        order = rng.permutation(len(frees))
+        for slot, leaf_idx in enumerate(order):
+            frees[int(leaf_idx)].type = assign[slot] if slot < len(assign) else "O"
+        if core_node is not None:
+            core_node.type = "C"  # keep the inherited core as circulation
+
+        prev.above = dup
+        prev = dup
+
+    return _finalise(child)
+
+
 def mutate_core_divide(root: dom.Node, rng: np.random.Generator,
                        types: list[str]) -> tuple[dom.Node, str]:
     """Divide a circulation leaf at the same path across ALL storeys at once.
@@ -570,9 +647,16 @@ MUTATIONS = {
 }
 
 
+# Exploratory ops that freely pick any leaf/branch; Stage 2 downweights the
+# base storey for these via ``base_p`` (DESIGN.md §11.3). The repair op
+# ``place_missing`` is deliberately excluded — a missing base room must still be
+# repairable — as are the core_* ops, which exist to MAINTAIN the core.
+_BASE_P_OPS = ("divide", "undivide", "retype", "swap", "rotate")
+
+
 def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
            weights: dict[str, float] | None = None,
-           reqs=None) -> tuple[dom.Node, str]:
+           reqs=None, base_p: float = 1.0) -> tuple[dom.Node, str]:
     """Apply one random mutation drawn from MUTATIONS."""
     names = sorted(MUTATIONS)
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
@@ -586,6 +670,8 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     name = str(rng.choice(names, p=p / p.sum()))
     if name in reqs_ops:
         return MUTATIONS[name](root, rng, types, reqs=reqs)
+    if name in _BASE_P_OPS:
+        return MUTATIONS[name](root, rng, types, base_p=base_p)
     return MUTATIONS[name](root, rng, types)
 
 

@@ -593,3 +593,62 @@ def check_vertical_connectivity(
                         f"{code} not connected to {req.requires_below} below"
                     )
     return failures
+
+
+# --------------------------------------------------------------------------- #
+# Substrate readiness (DESIGN.md §11.3 Stage 1 objective)
+# --------------------------------------------------------------------------- #
+
+STAIR_MIN_AREA = 6.0  # a C leaf must be at least this big to count as a core
+
+
+def substrate_readiness(
+    base_root: Node,
+    reqs: dict[str, SpaceReq],
+    n_storeys: int,
+) -> float:
+    """Score in [0,1] of how well a single-storey base can HOST upper floors.
+
+    Stage 1 must optimise the base as a *substrate*, not merely as a ground floor
+    (the §4.2 partial-objective / bungalow trap). Two structural proxies from the
+    bead:
+
+    - **Reserved core**: a vertically-alignable circulation core must already
+      exist, so Stage 2 keeps it rather than carving one from scratch. Full credit
+      when at least one base ``C`` leaf is at least ``STAIR_MIN_AREA``; otherwise a
+      small floor (0.25) so the term still rewards adding/enlarging a core.
+    - **Capacity**: enough divisible base footprint to carve the upper-floor room
+      set above. ``min(1, usable_base_area / required_upper_area)`` where the
+      reserved core area is excluded from the usable footprint.
+
+    Returns ``core_factor * capacity`` (both in [0,1]).
+    """
+    base_lvl = levels(base_root)[0]
+    base_leaves = base_lvl.leaves()
+    total_base_area = sum(geometry.area(lf) for lf in base_leaves)
+
+    core_leaves = [
+        lf for lf in base_leaves
+        if lf.type and lf.type[0].lower() == "c" and geometry.area(lf) >= STAIR_MIN_AREA
+    ]
+    core_factor = 1.0 if core_leaves else 0.25
+    core_area = max((geometry.area(lf) for lf in core_leaves), default=0.0)
+
+    # Required floor area on storeys >= 1: level-constrained upper rooms plus the
+    # expected share of level-free rooms distributed to upper storeys.
+    upper_levels = sum(
+        req.size * req.count
+        for req in reqs.values()
+        if req.level is not None and req.level >= 1
+    )
+    free_area = sum(
+        req.size * req.count
+        for code, req in reqs.items()
+        if code[0].lower() not in ("c", "o", "s") and req.level is None
+    )
+    upper_free = free_area * (n_storeys - 1) / n_storeys if n_storeys > 0 else 0.0
+    required_upper_area = upper_levels + upper_free
+
+    usable = max(0.0, total_base_area - core_area)
+    capacity = 1.0 if required_upper_area <= 0 else min(1.0, usable / required_upper_area)
+    return core_factor * capacity

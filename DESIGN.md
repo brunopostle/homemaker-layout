@@ -802,17 +802,72 @@ Two changes (`operators.py`, wired in `driver.py`):
   identical-config A/B against the pre-change code (133 fails), not the stale
   `out1.dom` number.
 
-### 11.3 Staged per-floor search (`homemaker-py-c4c.3`)
+### 11.3 Staged per-floor search (`homemaker-py-c4c.3`) — DONE
 
-*Stub.* Stage 1: base floor over the level-0 room set (one tree, no deltas) +
-reserved core + substrate-readiness term. Stage 2: upper floors as deltas seeded
-with their required room sets, base kept mutable at low probability. Gated by
-§11.1 premise.
+Searches the genome in causal dependency order (`driver.search_staged`), two
+stages composed from the existing `driver.search`:
 
-- *Gate:* staged beats single-stage on harbor at equal native-fitness budget;
-  reserved-core + readiness shown to prevent the bungalow trap (stage 2 does not
-  carve a core from scratch); no programme-house regression.
-- *Result:* TODO.
+1. **Stage 1 — base floor** (40 % of budget). A single-storey programme is
+   auto-derived to a tempdir (`programme.write_stage1_programme`): the full
+   `patterns.config` filtered to the storey-0 room set
+   (`programme.partition_rooms_by_storey`), `level:` keys dropped, adjacencies
+   pruned to surviving refs, `storey_limit/staircase` forced to 1. The base is
+   searched on that reduced programme but **ranked** with a substrate-readiness
+   bonus — key `(-n_fails, fitness·(1 + W·readiness))`, `W=1` — so it is selected
+   as a good *substrate*, not merely a good ground floor (anti-§4.2).
+   `graph.substrate_readiness` = `core_factor · capacity`: full credit for a
+   reserved `C` leaf ≥ `STAIR_MIN_AREA` (vertically-alignable core), times
+   `min(1, usable_base_area / required_upper_area)` (enough divisible footprint
+   for the upper set).
+2. **Stage 2 — upper floors as deltas** (remaining budget). The best base is
+   lifted (`operators.lift_base_to_storeys`) into a full multi-storey design that
+   **preserves the base storey and its inherited core** and instantiates each
+   upper storey's required room set by construction (the Stage-2 analog of §11.2
+   seeding). Deltas are searched with the base kept **mutable at low probability**
+   (`base_p=0.15`, threaded through the exploratory ops; `place_missing`/`core_*`
+   stay unbiased — repair and core-maintenance must reach the base).
+
+- *Gate:* staged beats single-stage on harbor at equal budget; reserved-core +
+  readiness prevent the bungalow trap (stage 2 does not carve a core from
+  scratch); no programme-house regression.
+- *Commands (reproduce, `URB_NO_OCCLUSION=1`, 20000 evals, seed 0):*
+  ```bash
+  python3 experiments/run_search_scaled.py examples/harbor-house 20000 0 \
+    examples/harbor-house/init.dom scratch/ab_single.dom        # single-stage
+  python3 experiments/run_staged_search.py examples/harbor-house 20000 0 \
+    examples/harbor-house/init.dom scratch/ab_staged.dom         # staged
+  ```
+- *Result (harbor-house, 20000 native evals, seed 0, identical config):*
+
+  | metric | single-stage | **staged** |
+  |--------|-------------:|-----------:|
+  | total fails | 105 | **95** |
+  | crinkliness | 27 | 18 |
+  | edge too long | 12 | 8 |
+  | proportion | 6 | 4 |
+  | width | 4 | 2 |
+  | size | 25 | 26 |
+  | access | 13 | 18 |
+  | missing | 8 | 8 |
+  | adjacency | 2 | 2 |
+
+  Single-stage reproduces the §11.2 baseline **exactly (105 fails)**; staged ends
+  at **95 (−10, −9.5 %)**. The gain is concentrated in the packing fails staging
+  targets — crinkliness 27→18 and edge-too-long 12→8 — at a small cost in access
+  (+5). **Anti-bungalow: confirmed.** Every `core_divide`/`core_undivide` in the
+  Stage-2 winning lineage is a *noop* — the core is inherited from Stage 1 and is
+  never carved from scratch. **Programme-house regression: PASS** — single-storey
+  programmes fall through to plain `search`; the warmstart-2f4 seed (50000 evals,
+  pop 8, 4 workers) still reaches a whole-population **1-fail** optimum (§4.10).
+
+- *Verdict: staging helps, modestly, and is the right structural frame.* Building
+  one credible, substrate-ready floor first — then upper floors as constructed
+  deltas with an inherited core — beats cramming both floors simultaneously
+  (95 vs 105) without touching the inner loop. The remaining load is the dense
+  quality-fail regime (size/access/crinkliness on two fully-populated floors) that
+  **§11.4 (graded objective)** targets: with `missing` already collapsed (§11.2)
+  and the floors now assembled in dependency order, the lever left is navigation
+  *within* the high-fail plateau, where lex-by-count gives near-zero gradient.
 
 ### 11.4 Graded high-fail objective (`homemaker-py-c4c.4`)
 
