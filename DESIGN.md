@@ -1107,3 +1107,62 @@ core as `fixed_circ`; threaded through `search_staged(seed_adjacency_aware=True)
   residual is geometry- and shape-bound (size/proportion/crinkliness on the
   denser, more-circulation layouts), which is the canonical-encoding /
   shape-feasibility territory of `homemaker-py-9gp`.
+
+## 12. Phase 7 — scaling validation & residual reduction (post-c4c)
+
+**Epic:** `homemaker-py-leu`. **Status:** opened 2026-06-19. Continuation of the
+closed Phase 6 (§11). Phase 6 evidence located the leverage in *construction /
+seed quality* (§11.6/§11.7 wins) rather than search machinery (§11.4/§11.5 both
+regressed); the harbor residual is now geometry/shape-bound at ~85 fails. This
+section is the experiment ledger for Phase 7, same discipline as §11: each
+subsection records the command, the numbers, and a one-line verdict.
+
+### 12.1 Larger-than-house benchmark: `maple-court` (`homemaker-py-leu.1`) — DONE
+
+**Why.** Harbor (16 programme entries, 2 storeys) was the biggest real programme
+in `examples/`. `homemaker-py-9gp`'s headline claim is scaling **>16 rooms** and
+its acceptance criterion demands "a larger-than-house programme" to measure on —
+so a bigger benchmark is a prerequisite, not optional. Proportion-aware seeding
+(`leu.2`) and re-scoped 9gp are both measured against this baseline.
+
+**The benchmark.** `examples/maple-court/` — a three-storey assisted-living /
+co-housing facility: **26 distinct programme entries / 52 room instances** across
+**3 required storeys** (`storey_minimum: 3`), ~1015 m² target internal area on a
+~790 m²/floor plot. It mirrors harbor's structure deliberately — a dominant
+adjacency-to-`c` load on nearly every room plus a handful of secondary
+adjacencies (`da1↔k1`, `da1↔o`, `lr1/ws1/lo1/gh1/gy1 ↔ o`), anonymous
+interchangeable room families (`m`×3, `t`×6, `n`×4, `r`×12, `em`×2, `py`×2,
+`tt`×4), and `staircase_min/max: 2`. Code letters avoid the generic `c`/`o`/`s`
+leading-letter trap (those are reserved in `fitness.py`/`graph.py` for
+circulation/outside/sahn): no *room* code starts with c/o/s, so harbor's quirk of
+typing Common Room / Storage / Office as quasi-generic (`cr1`/`st1`/`of`) is not
+reproduced. `init.dom` is a single `O` footprint; storeys are built by the search
+from `storey_minimum`, exactly as harbor.
+
+**Baseline (current default search: adjacency-aware seeding + staged, §11.7).**
+Reproduce (`URB_NO_OCCLUSION=1`, 20000 evals, staged, `ADJ=1` default):
+
+```bash
+URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py \
+  examples/maple-court 20000 <seed> examples/maple-court/init.dom scratch/mc_s<seed>.dom
+```
+
+| seed | total fails | best lineage        |
+|-----:|------------:|---------------------|
+| 0    | **145**     | rotate 0/rrlr       |
+| 1    | 158         | core_undivide noop  |
+| 2    | 152         | swap 0/rrlllr       |
+| mean | **151.7**   |                     |
+
+Each run executed exactly 20000 native evals across 250 topologies (~36 min,
+~9.1 evals/s) and re-scored native-consistent (`→ OK`). The best layout (seed 0,
+145 fails) is saved as `examples/maple-court/generated.dom` with its `.fails`.
+The single-stage harness (`run_search_scaled.py`) also accepts the programme
+unchanged. The score prints near-zero (`0.5^145` fail cliff) — the **fail count**
+is the yardstick.
+
+- *Verdict: benchmark established at mean 151.7 fails (best 145).* As expected for
+  a programme ~3× harbor's room count, the absolute fail floor is well above
+  harbor's ~85; this is the scaling yardstick `leu.2` (proportion-aware seeding)
+  and the re-scoped `9gp` are measured against. The residual character is the same
+  geometry/shape family flagged at the close of §11.7.
