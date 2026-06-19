@@ -384,8 +384,82 @@ def _grow_leaves(lvl: dom.Node, n_leaves: int, rng: np.random.Generator) -> None
         leaf.type = None
 
 
+def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
+                            rng: np.random.Generator, door_width: float = 1.2) -> None:
+    """Assign leaf types so rooms cluster around a connected circulation spine.
+
+    s44 (DESIGN.md §11.2 follow-up): random type assignment leaves rooms stranded
+    from circulation, so adjacency-to-``c`` and access ("inaccessible usable
+    space") fails dominate the seeded design. Here the leftover (non-room,
+    non-outside) leaf budget is spent on a **connected dominating set** of the
+    geometric leaf-adjacency graph: every room leaf ends up adjacent to a
+    circulation leaf, and the circulation set is connected, so access is
+    satisfied by construction at the seed geometry. Rooms are placed on dominated
+    leaves; one peripheral leaf becomes the outside ``O``.
+
+    ``lvl`` already has the right number of leaves grown; their types are
+    (re)written in place. Stochastic where it is free (room order, tie-breaks) so
+    a bootstrap batch stays diverse.
+    """
+    from . import geometry
+
+    leaves = lvl.leaves()
+    n = len(leaves)
+    idx = {leaf: i for i, leaf in enumerate(leaves)}
+    R = len(room_codes)
+    n_circ = max(1, n - (R + 1))  # leftover after rooms + one outside
+
+    # Geometry is type-independent (coords derive from divisions/rotations/plot);
+    # clear the id-keyed cache so freshly grown leaves never hit stale entries.
+    geometry.clear_cache()
+    G = geometry.leaf_graph(lvl, door_width)
+    deg = dict(G.degree())
+
+    def _nbrs(leaf):
+        return set(G.neighbors(leaf)) if G.has_node(leaf) else set()
+
+    # Greedy connected dominating set of size n_circ: start at the most central
+    # (highest-degree) leaf, then repeatedly add the frontier leaf that newly
+    # dominates the most leaves (keeping the set connected).
+    start = max(leaves, key=lambda L: (deg.get(L, 0), -idx[L]))
+    circ = {start}
+    dominated = _nbrs(start) | {start}
+    while len(circ) < n_circ:
+        frontier = (set().union(*(_nbrs(s) for s in circ)) - circ) if circ else set()
+        if frontier:
+            pick = max(frontier, key=lambda L: (len(_nbrs(L) - dominated),
+                                                deg.get(L, 0), -idx[L]))
+        else:  # disconnected remainder — seed a new component by degree
+            rest = [L for L in leaves if L not in circ]
+            if not rest:
+                break
+            pick = max(rest, key=lambda L: (deg.get(L, 0), -idx[L]))
+        circ.add(pick)
+        dominated |= _nbrs(pick) | {pick}
+
+    for s in circ:
+        s.type = "C"
+
+    # Outside on the most peripheral non-circulation leaf (fewest circulation
+    # neighbours, then lowest degree) so it does not steal a circulation-adjacent
+    # slot a room needs.
+    noncirc = [L for L in leaves if L not in circ]
+    o_leaf = min(noncirc, key=lambda L: (sum(1 for nb in _nbrs(L) if nb in circ),
+                                         deg.get(L, 0), idx[L]))
+    o_leaf.type = "O"
+
+    # Rooms onto the remaining leaves, dominated (circulation-adjacent) leaves
+    # first so adjacency-to-c is satisfied; codes shuffled for diversity.
+    room_slots = [L for L in noncirc if L is not o_leaf]
+    room_slots.sort(key=lambda L: (L in dominated, deg.get(L, 0), -idx[L]), reverse=True)
+    codes = [room_codes[i] for i in rng.permutation(len(room_codes))]
+    for slot, leaf in enumerate(room_slots):
+        leaf.type = codes[slot] if slot < len(codes) else "O"
+
+
 def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
-                          types: list[str], min_storeys: int = 1) -> dom.Node:
+                          types: list[str], min_storeys: int = 1,
+                          adjacency_aware: bool = True) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -430,12 +504,23 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
         buckets[i % n_storeys].append(code)
 
     for li, lvl in enumerate(lvls):
-        assign = list(buckets[li]) + ["C", "O"]  # +core circulation, +outside
-        _grow_leaves(lvl, len(assign), rng)
-        leaves = lvl.leaves()
-        order = rng.permutation(len(leaves))
-        for slot, leaf_idx in enumerate(order):
-            leaves[int(leaf_idx)].type = assign[slot] if slot < len(assign) else "O"
+        rooms = list(buckets[li])
+        if adjacency_aware:
+            # Spend extra leaves on a circulation spine (~one circ per 3 rooms),
+            # then assign so every room is adjacent to it (s44). Geometry must be
+            # available to read the leaf-adjacency graph; _grow_leaves leaves the
+            # tree finalisable and geometry.leaf_graph derives coords on demand.
+            n_circ = max(1, -(-len(rooms) // 3))  # ceil(rooms / 3)
+            _grow_leaves(lvl, len(rooms) + 1 + n_circ, rng)
+            dom._link(child)
+            _assign_adjacency_aware(lvl, rooms, reqs, rng)
+        else:
+            assign = rooms + ["C", "O"]  # +core circulation, +outside
+            _grow_leaves(lvl, len(assign), rng)
+            leaves = lvl.leaves()
+            order = rng.permutation(len(leaves))
+            for slot, leaf_idx in enumerate(order):
+                leaves[int(leaf_idx)].type = assign[slot] if slot < len(assign) else "O"
 
     return _finalise(child)
 

@@ -1006,3 +1006,64 @@ constructive/random seeds — urb-evolve's upfront diversity as a soft restart).
   all landed, the residual load is genuinely structural: the principled lever is
   the canonical encoding (associativity collapse `(a|b)|c == a|(b|c)`) plus richer
   topology operators, not outer-loop selection/population reshaping.
+
+### 11.6 Adjacency-aware constructive seeding (`homemaker-py-s44`) — DONE (positive)
+
+Premise (follow-up to §11.2): `constructive_topology` instantiated every required
+room but **typed the leaves at random**, so rooms landed stranded from
+circulation. On harbor the seed carried ~29 adjacency-to-`c` + ~27 per-leaf
+`access` + level-`inaccessible` fails (≈ 56 of the seeder-controllable load; the
+remaining size/width/proportion/crinkliness fails are geometry, the inner loop's
+job). The programme confirms the shape: of 16 harbor spaces all 16 require
+adjacency to `c`, so the dominant lever is *connect every room to circulation*.
+
+**Implementation (`operators._assign_adjacency_aware`, default-on).** A single
+circulation leaf cannot border a dozen rooms, and a slicing tree guarantees
+adjacency only between *siblings* — so adjacency must be read from the geometric
+leaf graph, not the tree. The seeder now spends ~one extra leaf per three rooms
+on circulation, builds the type-independent `geometry.leaf_graph`, and picks a
+**greedy connected dominating set** of circulation leaves (start at the
+highest-degree leaf, extend along the frontier by most-newly-dominated): every
+room leaf ends up bordering a *connected* circulation spine, so adjacency-to-`c`
+and access are satisfied by construction at the seed geometry. Rooms are placed on
+dominated leaves (constraint-hardest first), outside `O` on the most peripheral
+leaf; room order and tie-breaks stay stochastic so a bootstrap batch is diverse.
+Threaded through `driver.search(seed_adjacency_aware=True)`; `adjacency_aware`
+flag on `constructive_topology` (env `ADJ` in `run_search_scaled.py`) for the A/B.
+
+- *Commands (reproduce, `URB_NO_OCCLUSION=1`, 20000 evals, single-stage):*
+  ```bash
+  ADJ=0 python3 experiments/run_search_scaled.py examples/harbor-house 20000 <seed> \
+    examples/harbor-house/init.dom scratch/hh_adj0.dom        # random assignment (before)
+  ADJ=1 python3 experiments/run_search_scaled.py examples/harbor-house 20000 <seed> \
+    examples/harbor-house/init.dom scratch/hh_adj1.dom        # adjacency-aware (after)
+  ```
+
+- *Seed quality (harbor, 10 seeds, raw seed before optimisation):* adjacency-to-`c`
+  **29.2 → 12.2**, per-leaf access **26.6 → 8.3**, level-inaccessible 0.4 → 0.2
+  (≈ 56 → 21 seeder-controllable fails). Geometry fails rise at the raw 0.5-split
+  seed (more, smaller leaves) but are recovered by the inner loop.
+
+- *End-to-end (total fails at budget, single-stage, lower is better):*
+
+  | seed | harbor before | harbor after | prog-house before | prog-house after |
+  |-----:|--------------:|-------------:|------------------:|-----------------:|
+  | 0    | 105           | 100          | 11                | 10               |
+  | 1    | 115           | **85**       | 11                | **8**            |
+  | 2    | 110           | 87           | 15                | 10               |
+  | mean | **110.0**     | **90.7**     | **12.3**          | **9.3**          |
+
+  Harbor **−19.3 fails (−17.5 %)**, programme-house **−3.0 (−24 %)**. `ADJ=0`
+  seed 0 reproduces the §11.2 single-stage **105** baseline exactly (clean
+  control). Notably the adjacency-aware **single-stage** harbor (mean 90.7, best
+  85) now **beats the §11.3 staged best of 95** — the first Phase-6 fail-count
+  reduction from *seeding* rather than search machinery.
+
+- *Verdict: keep adjacency-aware seeding as the default.* It is the first lever in
+  Phase 6 to move the fail count on both programmes. The win is the dominant
+  adjacency-to-`c` / access load; secondary adjacencies (`k1↔da1`, `da1↔o`, ~4
+  rooms on harbor) are not yet clustered, and `lift_base_to_storeys` (staged
+  Stage-2 upper floors) still assigns randomly — both are follow-ups
+  (`homemaker-py-s44` notes). The residual ~90-fail harbor load is now geometry-
+  and secondary-constraint-bound, consistent with the §11.4/§11.5 reachability
+  conclusion.

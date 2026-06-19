@@ -125,6 +125,35 @@ def test_constructive_topology_has_no_missing_spaces():
 
 
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_adjacency_aware_seeding_cuts_adjacency_access_fails():
+    # s44: adjacency-aware construction clusters rooms around a connected
+    # circulation spine, cutting the adjacency-to-c + access fails that random
+    # type assignment leaves stranded. Compare like-for-like over several seeds.
+    import copy
+
+    from homemaker_layout import fitness, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    conf, cost = fitness.load_config(str(HARBOR))
+    fit = fitness.Fitness(conf, cost)
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+
+    def adj_access(aware: bool) -> float:
+        total = 0
+        for trial in range(6):
+            root = operators.constructive_topology(
+                seed, reqs, np.random.default_rng(trial), types,
+                adjacency_aware=aware)
+            _, fails = fit.score_with_fails(copy.deepcopy(root))
+            total += sum(1 for f in fails if "adjacent" in f or "access" in f
+                         or "inaccessible" in f)
+        return total / 6
+
+    assert adj_access(True) < adj_access(False)
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
 def test_place_missing_repairs_deficient_tree():
     # §11.2 repair: iterating mutate_place_missing drives a deficient design's
     # missing-space count to zero, then noops once the required set is complete.

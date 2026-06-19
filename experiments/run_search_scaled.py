@@ -73,6 +73,7 @@ def main() -> int:
     niche = os.environ.get("NICHE", "0") == "1"
     rp = os.environ.get("RESTART_PATIENCE")
     restart_patience = int(rp) if rp else None
+    adj = os.environ.get("ADJ", "1") == "1"  # s44 adjacency-aware seeding
 
     print(f"programme : {programme_dir.name}")
     print(f"seed      : {seed_file.name}")
@@ -81,6 +82,7 @@ def main() -> int:
     print(f"use_grade : {use_grade}")
     print(f"niche     : {niche}")
     print(f"restart_p : {restart_patience}")
+    print(f"adj_aware : {adj}")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -99,6 +101,7 @@ def main() -> int:
         use_grade=use_grade,
         niche_by_signature=niche,
         restart_patience=restart_patience,
+        seed_adjacency_aware=adj,
         # urb_root not needed: use_native=True is the default
     )
 

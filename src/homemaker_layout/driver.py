@@ -157,6 +157,7 @@ def search(
     niche_by_signature: bool = False,
     restart_patience: int | None = None,
     restart_elite: int = 1,
+    seed_adjacency_aware: bool = True,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -325,7 +326,8 @@ def search(
             # construction).
             return (seed_factory(rng), None, child_budget, {}, f"lift/{tag}")
         if prog:
-            topo = operators.constructive_topology(seed_root, reqs, rng, types)
+            topo = operators.constructive_topology(
+                seed_root, reqs, rng, types, adjacency_aware=seed_adjacency_aware)
             return (topo, None, child_budget, {}, f"construct/{tag}")
         n = int(rng.integers(max(1, n_target - 1), n_target + 2))
         return (random_topology(seed_root, n, rng, types), None, child_budget,
