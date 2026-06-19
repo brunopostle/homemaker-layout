@@ -446,6 +446,7 @@ def search_staged(
     niche_by_signature: bool = False,
     restart_patience: int | None = None,
     restart_elite: int = 1,
+    seed_adjacency_aware: bool = True,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -483,7 +484,8 @@ def search_staged(
                       p_crossover=p_crossover, seed=seed, types=types,
                       inner_kw=inner_kw, log=log, n_workers=n_workers,
                       use_grade=use_grade, niche_by_signature=niche_by_signature,
-                      restart_patience=restart_patience, restart_elite=restart_elite)
+                      restart_patience=restart_patience, restart_elite=restart_elite,
+                      seed_adjacency_aware=seed_adjacency_aware)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -507,6 +509,7 @@ def search_staged(
             rank_bonus_weight=rank_bonus_weight,
             niche_by_signature=niche_by_signature,
             restart_patience=restart_patience, restart_elite=restart_elite,
+            seed_adjacency_aware=seed_adjacency_aware,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -520,7 +523,9 @@ def search_staged(
     upper = buckets[1:]
 
     def _seed_factory(rng2):
-        return operators.lift_base_to_storeys(best_base, upper, rng2, types)
+        return operators.lift_base_to_storeys(
+            best_base, upper, rng2, types, reqs=reqs,
+            adjacency_aware=seed_adjacency_aware)
 
     _log(f"[staged] stage 2: upper floors as deltas, budget {b2}, base_p {base_p}")
     r2 = search(

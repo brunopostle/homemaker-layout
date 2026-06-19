@@ -154,6 +154,40 @@ def test_adjacency_aware_seeding_cuts_adjacency_access_fails():
 
 
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_adjacency_aware_lift_cuts_adjacency_access_fails():
+    # ld5: lift_base_to_storeys grows the upper-floor circulation spine off the
+    # inherited core and clusters rooms around it, cutting the same fail classes
+    # on the storeys above the base.
+    import copy
+
+    from homemaker_layout import fitness, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    conf, cost = fitness.load_config(str(HARBOR))
+    fit = fitness.Fitness(conf, cost)
+    types = sorted(reqs) + ["C", "O"]
+    n_st = programme.n_storeys_required(reqs)
+    seed = dom.load(str(HARBOR / "init.dom"))
+
+    def adj_access(aware: bool) -> float:
+        total = 0
+        for trial in range(5):
+            rng = np.random.default_rng(trial)
+            buckets = programme.partition_rooms_by_storey(reqs, n_st, rng)
+            base = operators.constructive_topology(seed, reqs, rng, types)
+            base0 = dom.levels(base)[0]
+            base0.above = None
+            lifted = operators.lift_base_to_storeys(
+                base0, buckets[1:], rng, types, reqs=reqs, adjacency_aware=aware)
+            _, fails = fit.score_with_fails(copy.deepcopy(lifted))
+            total += sum(1 for f in fails if "adjacent" in f or "access" in f
+                         or "inaccessible" in f)
+        return total / 5
+
+    assert adj_access(True) < adj_access(False)
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
 def test_place_missing_repairs_deficient_tree():
     # §11.2 repair: iterating mutate_place_missing drives a deficient design's
     # missing-space count to zero, then noops once the required set is complete.

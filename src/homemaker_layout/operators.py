@@ -385,7 +385,8 @@ def _grow_leaves(lvl: dom.Node, n_leaves: int, rng: np.random.Generator) -> None
 
 
 def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
-                            rng: np.random.Generator, door_width: float = 1.2) -> None:
+                            rng: np.random.Generator, door_width: float = 1.2,
+                            fixed_circ: "list[dom.Node] | None" = None) -> None:
     """Assign leaf types so rooms cluster around a connected circulation spine.
 
     s44 (DESIGN.md §11.2 follow-up): random type assignment leaves rooms stranded
@@ -397,17 +398,26 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     satisfied by construction at the seed geometry. Rooms are placed on dominated
     leaves; one peripheral leaf becomes the outside ``O``.
 
+    ``fixed_circ`` (ld5, §11.7): leaves that must stay circulation and seed the
+    dominating set — the inherited vertical core when lifting upper storeys, so
+    the spine grows *off the core* rather than from scratch. Rooms with a
+    secondary adjacency requirement (beyond ``c``, e.g. ``k1↔da1``, ``da1↔o``)
+    are then placed next to an already-typed neighbour of the required code.
+
     ``lvl`` already has the right number of leaves grown; their types are
     (re)written in place. Stochastic where it is free (room order, tie-breaks) so
     a bootstrap batch stays diverse.
     """
     from . import geometry
 
+    reqs = reqs or {}
     leaves = lvl.leaves()
     n = len(leaves)
     idx = {leaf: i for i, leaf in enumerate(leaves)}
     R = len(room_codes)
     n_circ = max(1, n - (R + 1))  # leftover after rooms + one outside
+    seeds = [c for c in (fixed_circ or []) if c in idx]
+    n_circ = max(n_circ, len(seeds))  # never fewer circ leaves than the fixed core
 
     # Geometry is type-independent (coords derive from divisions/rotations/plot);
     # clear the id-keyed cache so freshly grown leaves never hit stale entries.
@@ -418,12 +428,11 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     def _nbrs(leaf):
         return set(G.neighbors(leaf)) if G.has_node(leaf) else set()
 
-    # Greedy connected dominating set of size n_circ: start at the most central
-    # (highest-degree) leaf, then repeatedly add the frontier leaf that newly
+    # Greedy connected dominating set of size n_circ: seed from the fixed core (or
+    # the most central leaf), then repeatedly add the frontier leaf that newly
     # dominates the most leaves (keeping the set connected).
-    start = max(leaves, key=lambda L: (deg.get(L, 0), -idx[L]))
-    circ = {start}
-    dominated = _nbrs(start) | {start}
+    circ = set(seeds) if seeds else {max(leaves, key=lambda L: (deg.get(L, 0), -idx[L]))}
+    dominated = set().union(*( _nbrs(s) | {s} for s in circ))
     while len(circ) < n_circ:
         frontier = (set().union(*(_nbrs(s) for s in circ)) - circ) if circ else set()
         if frontier:
@@ -448,13 +457,38 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
                                          deg.get(L, 0), idx[L]))
     o_leaf.type = "O"
 
-    # Rooms onto the remaining leaves, dominated (circulation-adjacent) leaves
-    # first so adjacency-to-c is satisfied; codes shuffled for diversity.
+    # Rooms onto the remaining leaves, dominated (circulation-adjacent) slots
+    # first so adjacency-to-c holds. Codes are placed hardest-constrained first
+    # (most adjacency requirements), each onto the open slot that satisfies the
+    # most of its requirements against already-typed neighbours (circulation and
+    # rooms placed so far) — clustering k1↔da1, da1↔o, etc. Ties broken randomly.
     room_slots = [L for L in noncirc if L is not o_leaf]
-    room_slots.sort(key=lambda L: (L in dominated, deg.get(L, 0), -idx[L]), reverse=True)
+    open_slots = sorted(room_slots,
+                        key=lambda L: (L in dominated, deg.get(L, 0), -idx[L]),
+                        reverse=True)
     codes = [room_codes[i] for i in rng.permutation(len(room_codes))]
-    for slot, leaf in enumerate(room_slots):
-        leaf.type = codes[slot] if slot < len(codes) else "O"
+
+    def _n_secondary(code: str) -> int:
+        r = reqs.get(code)
+        return len([a for a in (r.adjacency if r else []) if a and a[0].lower() != "c"])
+
+    codes.sort(key=_n_secondary, reverse=True)
+    for code in codes:
+        if not open_slots:
+            break
+        req_adj = [a[0].lower() for a in (reqs.get(code).adjacency if reqs.get(code) else [])]
+        secondary = [a for a in req_adj if a != "c"]
+
+        def _sat(slot, secondary=secondary) -> int:
+            nb_types = {(nb.type or "")[:1].lower() for nb in _nbrs(slot) if nb.type}
+            return sum(1 for a in secondary if a in nb_types)
+
+        best = max(open_slots, key=lambda L: (_sat(L), L in dominated,
+                                              deg.get(L, 0), -idx[L]))
+        best.type = code
+        open_slots.remove(best)
+    for leaf in open_slots:  # any leftover slot (count mismatch) → outside
+        leaf.type = "O"
 
 
 def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
@@ -526,7 +560,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
 
 
 def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]],
-                         rng: np.random.Generator, types: list[str]) -> dom.Node:
+                         rng: np.random.Generator, types: list[str],
+                         reqs=None, adjacency_aware: bool = True) -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
     Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
@@ -556,31 +591,50 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
         dup.height = prev.height
         core_node = dup.by_id(core_path) if core_path is not None else None
 
-        assign = [code for code, cnt in bucket.items() for _ in range(cnt)]
-        assign.append("O")  # courtyard / outside on the upper floor
-        if core_node is None:
-            assign.append("C")  # no inherited core to reuse — make one
+        rooms = [code for code, cnt in bucket.items() for _ in range(cnt)]
 
         def _free() -> list[dom.Node]:
             return [lf for lf in dup.leaves() if lf is not core_node]
 
-        # grow only non-core leaves so the inherited core footprint is preserved
-        while len(_free()) < len(assign):
-            leaf = _pick(rng, _free())
-            leaf.division = [0.5, 0.5]
-            leaf.rotation = int(rng.integers(4))
-            leaf.left = dom.Node(type=leaf.type)
-            leaf.right = dom.Node(type=leaf.type)
-            leaf.type = None
+        if adjacency_aware:
+            # ld5 (§11.7): grow the upper floor a circulation spine (~one circ per
+            # 3 rooms, the inherited core counted) and assign rooms around it via
+            # the geometric leaf graph, seeding the dominating set from the
+            # inherited vertical core so the spine grows off the core, not anew.
+            n_circ = max(1, -(-len(rooms) // 3))  # ceil(rooms / 3)
+            target_total = len(rooms) + 1 + n_circ
+            n_free_target = target_total - (1 if core_node is not None else 0)
+            while len(_free()) < n_free_target:
+                leaf = _pick(rng, _free())
+                leaf.division = [0.5, 0.5]
+                leaf.rotation = int(rng.integers(4))
+                leaf.left = dom.Node(type=leaf.type)
+                leaf.right = dom.Node(type=leaf.type)
+                leaf.type = None
+            prev.above = dup
+            dom._link(child)  # link so the upper storey's geometry is computable
+            _assign_adjacency_aware(
+                dup, rooms, reqs, rng,
+                fixed_circ=[core_node] if core_node is not None else None)
+        else:
+            assign = rooms + ["O"]  # courtyard / outside on the upper floor
+            if core_node is None:
+                assign.append("C")  # no inherited core to reuse — make one
+            while len(_free()) < len(assign):
+                leaf = _pick(rng, _free())
+                leaf.division = [0.5, 0.5]
+                leaf.rotation = int(rng.integers(4))
+                leaf.left = dom.Node(type=leaf.type)
+                leaf.right = dom.Node(type=leaf.type)
+                leaf.type = None
+            frees = _free()
+            order = rng.permutation(len(frees))
+            for slot, leaf_idx in enumerate(order):
+                frees[int(leaf_idx)].type = assign[slot] if slot < len(assign) else "O"
+            if core_node is not None:
+                core_node.type = "C"  # keep the inherited core as circulation
+            prev.above = dup
 
-        frees = _free()
-        order = rng.permutation(len(frees))
-        for slot, leaf_idx in enumerate(order):
-            frees[int(leaf_idx)].type = assign[slot] if slot < len(assign) else "O"
-        if core_node is not None:
-            core_node.type = "C"  # keep the inherited core as circulation
-
-        prev.above = dup
         prev = dup
 
     return _finalise(child)

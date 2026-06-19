@@ -1061,9 +1061,49 @@ flag on `constructive_topology` (env `ADJ` in `run_search_scaled.py`) for the A/
 
 - *Verdict: keep adjacency-aware seeding as the default.* It is the first lever in
   Phase 6 to move the fail count on both programmes. The win is the dominant
-  adjacency-to-`c` / access load; secondary adjacencies (`k1↔da1`, `da1↔o`, ~4
-  rooms on harbor) are not yet clustered, and `lift_base_to_storeys` (staged
-  Stage-2 upper floors) still assigns randomly — both are follow-ups
-  (`homemaker-py-s44` notes). The residual ~90-fail harbor load is now geometry-
-  and secondary-constraint-bound, consistent with the §11.4/§11.5 reachability
-  conclusion.
+  adjacency-to-`c` / access load; secondary adjacencies and the staged
+  `lift_base_to_storeys` upper floors are picked up in §11.7 (`homemaker-py-ld5`).
+
+### 11.7 Adjacency-aware lift + secondary adjacencies (`homemaker-py-ld5`) — DONE (positive)
+
+Two gaps left by §11.6: (a) `lift_base_to_storeys` — the staged Stage-2 seeder —
+still typed upper-floor leaves at random, so staged search did not get the
+adjacency win; (b) secondary adjacencies (`k1↔da1`, `da1↔o`, ~4 harbor rooms)
+were ignored.
+
+**Implementation.** `_assign_adjacency_aware` gained a `fixed_circ` parameter: the
+dominating-set search is *seeded from* given circulation leaves, so on an upper
+floor the spine grows off the **inherited vertical core** rather than from
+scratch (preserving the §11.3 anti-bungalow core-alignment invariant). Room
+placement is now constraint-ordered: codes with the most non-`c` adjacency
+requirements are placed first, each onto the open slot that satisfies the most of
+its requirements against already-typed neighbours (circulation + rooms placed so
+far), clustering `k1↔da1`, `da1↔o`, etc. `lift_base_to_storeys(reqs=…,
+adjacency_aware=True)` grows a per-floor circulation budget and calls it with the
+core as `fixed_circ`; threaded through `search_staged(seed_adjacency_aware=True)`
+(`ADJ` env in `run_staged_search.py`).
+
+- *Seed quality (harbor lift, 8 seeds, raw seed):* adjacency-to-`c` **16.1 → 7.6**,
+  access **16.2 → 7.2** on the lifted upper floor.
+
+- *End-to-end (harbor, staged, 20000 evals, total fails at budget):*
+
+  | seed | staged before (`ADJ=0`) | staged after (`ADJ=1`) |
+  |-----:|------------------------:|-----------------------:|
+  | 0    | 95                      | 97                     |
+  | 1    | 96                      | **78**                 |
+  | 2    | 106                     | 81                     |
+  | mean | **99.0**                | **85.3**               |
+
+  `ADJ=0` reproduces the §11.4 staged lex baseline **exactly** (95/96/106, mean
+  99.0 — clean control). Staged adjacency-aware is **−13.7 fails (−14 %)** and is
+  now the **best harbor configuration overall**: staged baseline 99.0 → single-
+  stage adjacency-aware (§11.6) 90.7 → **staged + adjacency-aware lift 85.3**
+  (best **78**, seed 1). Staging and adjacency-aware seeding compose: the
+  credible Stage-1 base and the core-seeded upper spine each contribute.
+
+- *Verdict: keep adjacency-aware lift + secondary clustering as defaults.* Harbor
+  is now ~85 fails, down from the 95/105 plateaus that opened Phase 6. The
+  residual is geometry- and shape-bound (size/proportion/crinkliness on the
+  denser, more-circulation layouts), which is the canonical-encoding /
+  shape-feasibility territory of `homemaker-py-9gp`.
