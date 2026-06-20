@@ -169,12 +169,8 @@ def write_stage1_programme(
     return out_dir
 
 
-def load_programme_dir(directory: str | Path) -> dict[str, SpaceReq]:
-    """Load programme from a directory, merging parent patterns.config as base.
-
-    Mirrors urb-evolve.pl: ../patterns.config loaded first, then the local
-    file's top-level keys override it (same shallow-merge as fitness.load_config).
-    """
+def _load_merged_conf(directory: "str | Path") -> dict:
+    """Merge ``../patterns.config`` then the local one (mirrors load_config)."""
     from pathlib import Path as _Path
     directory = _Path(directory)
     conf: dict = {}
@@ -182,4 +178,32 @@ def load_programme_dir(directory: str | Path) -> dict[str, SpaceReq]:
         if p.is_file():
             with open(p) as fh:
                 conf.update(yaml.safe_load(fh) or {})
-    return _parse_spaces(conf)
+    return conf
+
+
+def load_programme_dir(directory: str | Path) -> dict[str, SpaceReq]:
+    """Load programme from a directory, merging parent patterns.config as base.
+
+    Mirrors urb-evolve.pl: ../patterns.config loaded first, then the local
+    file's top-level keys override it (same shallow-merge as fitness.load_config).
+    """
+    return _parse_spaces(_load_merged_conf(directory))
+
+
+def storey_minimum(directory: str | Path) -> int:
+    """Minimum storey count the programme requires (``storey_minimum`` key).
+
+    Independent of ``level:`` keys: a programme can demand N storeys via
+    ``storey_minimum`` without pinning any room to an upper floor (e.g.
+    programme-house: ``storey_minimum: 2`` but all rooms ``level: 0``). The
+    constructive seeder and the staged/plain dispatch must honour it, else the
+    seed is built one storey short and fitness fires a ``storey minimum`` fail the
+    search has to repair structurally (DESIGN.md §12.2).
+    """
+    return int(_load_merged_conf(directory).get("storey_minimum") or 1)
+
+
+def n_storeys_for(directory: str | Path) -> int:
+    """Storeys the programme implies: the max of level-derived and storey_minimum."""
+    reqs = load_programme_dir(directory)
+    return max(n_storeys_required(reqs), storey_minimum(directory))

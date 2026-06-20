@@ -158,6 +158,7 @@ def search(
     restart_patience: int | None = None,
     restart_elite: int = 1,
     seed_adjacency_aware: bool = True,
+    seed_proportion_aware: bool = True,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -227,6 +228,8 @@ def search(
         _key = lambda ind: _rank_fitness(ind)
     # Always load reqs so bootstrap_n_leaves can be auto-derived from programme.
     reqs = programme.load_programme_dir(programme_dir)
+    # Constructive seed must honour storey_minimum, not just level: keys (§12.2).
+    min_storeys = programme.storey_minimum(programme_dir)
     if types is None:
         # Urb's generic types are canonically UPPERCASE (get_space_types:
         # qw/C O S/; the corpus is 100% uppercase). Predicates match
@@ -327,7 +330,9 @@ def search(
             return (seed_factory(rng), None, child_budget, {}, f"lift/{tag}")
         if prog:
             topo = operators.constructive_topology(
-                seed_root, reqs, rng, types, adjacency_aware=seed_adjacency_aware)
+                seed_root, reqs, rng, types, min_storeys=min_storeys,
+                adjacency_aware=seed_adjacency_aware,
+                proportion_aware=seed_proportion_aware)
             return (topo, None, child_budget, {}, f"construct/{tag}")
         n = int(rng.integers(max(1, n_target - 1), n_target + 2))
         return (random_topology(seed_root, n, rng, types), None, child_budget,
@@ -447,6 +452,7 @@ def search_staged(
     restart_patience: int | None = None,
     restart_elite: int = 1,
     seed_adjacency_aware: bool = True,
+    seed_proportion_aware: bool = True,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -471,7 +477,11 @@ def search_staged(
     from . import graph
 
     reqs = programme.load_programme_dir(programme_dir)
-    n_storeys = programme.n_storeys_required(reqs)
+    # Honour storey_minimum even when no room is pinned to an upper level (§12.2):
+    # e.g. programme-house is storey_minimum:2 with all rooms level:0, so its
+    # valid solutions are multi-storey and it must stage, not fall through.
+    n_storeys = max(programme.n_storeys_required(reqs),
+                    programme.storey_minimum(programme_dir))
 
     def _log(msg: str) -> None:
         if log:
@@ -485,7 +495,8 @@ def search_staged(
                       inner_kw=inner_kw, log=log, n_workers=n_workers,
                       use_grade=use_grade, niche_by_signature=niche_by_signature,
                       restart_patience=restart_patience, restart_elite=restart_elite,
-                      seed_adjacency_aware=seed_adjacency_aware)
+                      seed_adjacency_aware=seed_adjacency_aware,
+                      seed_proportion_aware=seed_proportion_aware)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -510,6 +521,7 @@ def search_staged(
             niche_by_signature=niche_by_signature,
             restart_patience=restart_patience, restart_elite=restart_elite,
             seed_adjacency_aware=seed_adjacency_aware,
+            seed_proportion_aware=seed_proportion_aware,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -525,7 +537,8 @@ def search_staged(
     def _seed_factory(rng2):
         return operators.lift_base_to_storeys(
             best_base, upper, rng2, types, reqs=reqs,
-            adjacency_aware=seed_adjacency_aware)
+            adjacency_aware=seed_adjacency_aware,
+            proportion_aware=seed_proportion_aware)
 
     _log(f"[staged] stage 2: upper floors as deltas, budget {b2}, base_p {base_p}")
     r2 = search(

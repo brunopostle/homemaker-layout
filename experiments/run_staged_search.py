@@ -56,6 +56,7 @@ def main() -> int:
     rp = os.environ.get("RESTART_PATIENCE")
     restart_patience = int(rp) if rp else None
     adj = os.environ.get("ADJ", "1") == "1"  # s44/ld5 adjacency-aware seeding A/B
+    prop = os.environ.get("PROP", "1") == "1"  # leu.2 proportion-aware split sizing (default-on)
 
     print(f"programme : {programme_dir.name}")
     print(f"seed      : {seed_file.name}")
@@ -65,6 +66,7 @@ def main() -> int:
     print(f"niche     : {niche}")
     print(f"restart_p : {restart_patience}")
     print(f"adj_aware : {adj}")
+    print(f"prop_aware: {prop}")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -86,6 +88,7 @@ def main() -> int:
         niche_by_signature=niche,
         restart_patience=restart_patience,
         seed_adjacency_aware=adj,
+        seed_proportion_aware=prop,
     )
 
     elapsed = time.perf_counter() - t0

@@ -1156,7 +1156,8 @@ URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py \
 
 Each run executed exactly 20000 native evals across 250 topologies (~36 min,
 ~9.1 evals/s) and re-scored native-consistent (`→ OK`). The best layout (seed 0,
-145 fails) is saved as `examples/maple-court/generated.dom` with its `.fails`.
+145 fails) was saved as `examples/maple-court/generated.dom` with its `.fails`
+(superseded in §12.2 by the proportion-aware 126-fail layout).
 The single-stage harness (`run_search_scaled.py`) also accepts the programme
 unchanged. The score prints near-zero (`0.5^145` fail cliff) — the **fail count**
 is the yardstick.
@@ -1166,3 +1167,110 @@ is the yardstick.
   harbor's ~85; this is the scaling yardstick `leu.2` (proportion-aware seeding)
   and the re-scoped `9gp` are measured against. The residual character is the same
   geometry/shape family flagged at the close of §11.7.
+
+### 12.2 Proportion-aware constructive seeding (`homemaker-py-leu.2`) — DONE (positive)
+
+Premise (follow-up to §11.6/§11.7). The constructive seeders grow geometry with
+uniform `[0.5, 0.5]` cuts *before* types are assigned, so the raw seed is "more,
+smaller leaves" of equal area: a room with a large programme target comes out too
+small, a small room too big, and the inner loop must recover all of
+size/width/proportion from scratch. With the adjacency load now cut by seeding
+(§11.6/§11.7), this geometry residual is the dominant remaining term. Attacking it
+at the seed — in the proven *construction* direction — is far cheaper than the
+`9gp` encoding rewrite.
+
+**Implementation (`operators._size_divisions_from_targets`, flag
+`seed_proportion_aware`, env `PROP`, default-on per the A/B below).** After the
+adjacency-aware type assignment (§11.6/§11.7, left exactly as is), each leaf
+carries a target area — a sized room's programme `size`; circulation/outside
+absorb the plot slack (floored at `0.4 ×` mean room area so a circulation leaf
+never shrinks below door-width and undoes the §11.6 adjacency win). Because
+`division=[f, f]` cuts off left area-fraction `f` (rotation-independent —
+verified), bottom-up subtree-target sums compose multiplicatively to give every
+leaf area ∝ its target. **Area alone regressed the raw seed**, though: choosing
+only the cut *fraction* to hit a target *area* slices thin slivers with terrible
+aspect (proportion/width/edge-too-long fails swamp the size gain — measured
+below). So each cut also picks the **rotation** (the two distinct cut directions)
+that makes its two children squarest; rotation depends on realised parent
+geometry, so the pass runs top-down. Both ratio and rotation derive from the
+target dims; neither touches topology or type assignment. Threaded through
+`driver.search`/`search_staged(seed_proportion_aware=…)`.
+
+- *Raw-seed fails (10 seeds, single-stage constructive, before optimisation),
+  area-only vs area+rotation:*
+
+  | family      | harbor before | area-only | area+rot |
+  |-------------|--------------:|----------:|---------:|
+  | geometry    | 123.0         | 135.9     | **99.9** |
+  | access/adj  | 19.1          | 23.8      | 20.4     |
+  | total       | 144.1         | 162.1     | **123.7** |
+
+  Area-only makes geometry *worse* (slivers); area+rotation drops the geometry
+  family on every programme — harbor **123.0 → 99.9 (−19 %)**, programme-house
+  **13.1 → 8.7 (−34 %)**, maple-court **200.5 → 164.1 (−18 %)**. Access/adjacency
+  regresses slightly (rotation shifts the leaf graph the adjacency assignment was
+  computed against): harbor +1.3, prog-house +2.4, maple +3.4 — far smaller than
+  the geometry gain. The size family in particular falls as intended
+  (harbor size 31.4 → 22.0), and proportion flips from a regression to a win
+  (21.3 → 12.8) once rotation is co-chosen.
+
+- *End-to-end (total fails at budget, 20000 evals, 3 seeds, PROP=0 vs PROP=1;
+  harbor & maple-court staged):*
+
+  | seed | harbor PROP=0 | harbor PROP=1 | maple PROP=0 | maple PROP=1 |
+  |-----:|--------------:|--------------:|-------------:|-------------:|
+  | 0    | 97            | 72            | 145          | 126          |
+  | 1    | 78            | 81            | 158          | 148          |
+  | 2    | 81            | 69            | 152          | 134          |
+  | mean | **85.3**      | **74.0**      | **151.7**    | **136.0**    |
+
+  Harbor **−13 % (best 69, was 78)**, maple-court **−10 % (best 126, was 145)**.
+  PROP=0 reproduces the §11.7 staged harbor (85.3) and §12.1 maple baseline
+  (151.7) *exactly* — clean controls. Proportion-aware seeding is the first
+  Phase-7 lever to move the fail count on the larger-than-house benchmark.
+
+- *A storey-count bug surfaced (`homemaker-py-cq1`).* programme-house has
+  `storey_minimum: 2` but all rooms `level: 0`, and `n_storeys_required` only read
+  `level:` keys — so the constructive seeder built a **1-storey** seed for a
+  2-storey programme and `search_staged` fell through to plain search. Fixed
+  (`programme.storey_minimum`/`n_storeys_for`; `driver.search` passes `min_storeys`
+  to the seeder; `search_staged` routes on `max(level-derived, storey_minimum)`).
+  No-op for harbor/maple (level-derived already ≥ storey_minimum); independent win
+  on programme-house (single-stage baseline **8.0 → 5.0** with a correct 2-storey
+  seed).
+
+- *programme-house regresses, but it is a convergence-speed artifact, not a worse
+  optimum.* On the 6-room programme proportion-aware seeding loses at 20000 evals
+  on every path tested (single-stage 1-storey 8.0→11.7, single-stage 2-storey
+  5.0→8.3, staged 2-storey 4.3→6.0). The mechanism is a *deeper local optimum*:
+  the equal-area PROP=0 seed has badly-proportioned leaves, so `undivide` moves —
+  the route to programme-house's simpler optimum — are accepted as improvements;
+  the well-fitted PROP=1 seed makes `undivide` an immediate fitness drop (merging
+  two good leaves yields one bad one), walling off the restructuring path. A
+  budget sweep (staged, storey-fixed) shows this is *reachability speed*, not an
+  asymptotic trap:
+
+  | budget | PROP=0 (s0/s1) | PROP=1 (s0/s1) |
+  |-------:|---------------:|---------------:|
+  | 20000  | 4 / 5          | 8 / 6          |
+  | 60000  | 2 / 2          | 4 / 3          |
+  | 150000 | 2 / 0          | **1** / 10     |
+
+  PROP=1 reaches **1 fail** (seed 0, 150k — beating PROP=0's 2; best-known is 2),
+  so it is not trapped; the gap narrows with budget and crosses over. (Staged
+  splits budget by *fraction*, so runs at different budgets evolve different
+  Stage-1 bases and are not nested — hence the high variance, e.g. PROP=1 seed 1
+  swinging 3→10.) The same "deeper basin" that *helps* where the constructed
+  topology is roughly right (large programmes, scarce budget) *delays* convergence
+  where the seed must be restructured (small programmes).
+
+- *Verdict: keep proportion-aware split sizing, default-on (`seed_proportion_aware`
+  default `True`, env `PROP=1`).* It is a measured win on both larger programmes —
+  harbor −13 %, the maple-court scaling benchmark −10 % — exactly the regime
+  Phase 7 targets and the basis the re-scoped `9gp` is measured on. The only
+  regression is a small-programme convergence-speed effect that washes out with
+  budget (PROP=1 reaches the known floor), with no evidence of an asymptotic
+  penalty, so default-on is not paid for by a worse optimum anywhere. The win is
+  rotation-and-ratio sizing from target dims; the bare ratio is not enough
+  (area-only regressed). Area sizing assumes total target ≈ plot area; choosing
+  the cut *direction* for aspect is what makes it pay.

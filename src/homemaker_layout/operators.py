@@ -384,6 +384,79 @@ def _grow_leaves(lvl: dom.Node, n_leaves: int, rng: np.random.Generator) -> None
         leaf.type = None
 
 
+def _size_divisions_from_targets(lvl: dom.Node, reqs, fmin: float = 0.04,
+                                 fmax: float = 0.96) -> None:
+    """Resize each divided node's split ratio from its leaves' TARGET areas.
+
+    leu.2 (DESIGN.md §12.2, follow-up to §11.6/§11.7): the constructive seeders
+    grow geometry with uniform ``[0.5, 0.5]`` cuts *before* types are assigned, so
+    the raw seed is "more, smaller leaves" of equal area — rooms with a large
+    programme target come out too small, small rooms too big, and the inner loop
+    must recover all of size/width/proportion from scratch. Once types are known,
+    every leaf carries a target area (a sized room's ``size``; circulation/outside
+    absorb the slack), and because ``division=[f, f]`` cuts off left area-fraction
+    ``f`` (rotation-independent), bottom-up target sums compose multiplicatively to
+    give every leaf area ∝ its target.
+
+    Area alone is not enough: choosing only the cut *fraction* to hit a target
+    *area* slices thin slivers with terrible aspect (proportion/width/edge-too-long
+    fails swamp the size gain — measured, §12.2). So each cut also picks the
+    **rotation** (the two distinct cut directions) that makes its two children
+    squarest. Rotation depends on the realised parent geometry, so the pass runs
+    *top-down*; both the ratio and the rotation derive from the target dims, and
+    neither touches topology or type assignment (§11.6/§11.7 placement is intact).
+
+    Generic (non-sized) leaves get a nominal target: the per-leaf share of the
+    plot slack, floored at ``0.4 ×`` mean room target so a circulation leaf never
+    shrinks to a sub-door-width sliver (which would undo the §11.6 adjacency win).
+    """
+    from . import geometry
+
+    reqs = reqs or {}
+    geometry.clear_cache()
+    leaves = lvl.leaves()
+    if len(leaves) < 2:
+        return
+
+    sized = {lf: reqs[lf.type].size for lf in leaves
+             if lf.type in reqs and reqs[lf.type].size > 0}
+    mean_sized = (sum(sized.values()) / len(sized)) if sized else 1.0
+    n_generic = len(leaves) - len(sized)
+    slack = geometry.area(lvl) - sum(sized.values())
+    floor = 0.4 * mean_sized  # keep circulation/outside above door-width scale
+    generic_t = max(floor, slack / n_generic) if n_generic else floor
+    target = {lf: sized.get(lf, generic_t) for lf in leaves}
+
+    def _subtree_target(n: dom.Node) -> float:
+        if not n.divided:
+            return max(target.get(n, floor), 1e-6)
+        return _subtree_target(n.left) + _subtree_target(n.right)
+
+    def _rec(n: dom.Node) -> None:
+        if not n.divided:
+            return
+        left = _subtree_target(n.left)
+        f = min(max(left / (left + _subtree_target(n.right)), fmin), fmax)
+        # Pick the cut direction (rotation 0 vs 1; 2/3 mirror these for aspect)
+        # that makes the worse child squarest, given this node's settled geometry.
+        best_rot, best_aspect = n.rotation, None
+        for rot in (0, 1):
+            n.rotation = rot
+            n.division = [f, f]
+            geometry.clear_cache()
+            worst = max(geometry.aspect(n.left), geometry.aspect(n.right))
+            if best_aspect is None or worst < best_aspect:
+                best_aspect, best_rot = worst, rot
+        n.rotation = best_rot
+        n.division = [f, f]
+        geometry.clear_cache()
+        _rec(n.left)
+        _rec(n.right)
+
+    _rec(lvl)
+    geometry.clear_cache()
+
+
 def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
                             rng: np.random.Generator, door_width: float = 1.2,
                             fixed_circ: "list[dom.Node] | None" = None) -> None:
@@ -493,7 +566,8 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
 
 def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           types: list[str], min_storeys: int = 1,
-                          adjacency_aware: bool = True) -> dom.Node:
+                          adjacency_aware: bool = True,
+                          proportion_aware: bool = True) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -556,12 +630,22 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             for slot, leaf_idx in enumerate(order):
                 leaves[int(leaf_idx)].type = assign[slot] if slot < len(assign) else "O"
 
+        if proportion_aware:
+            # leu.2: now that leaves are typed, replace the uniform 0.5 cuts with
+            # target-proportional ratios so the raw seed sits near feasible size/
+            # width/proportion. Topology and type assignment are unchanged. Link
+            # first so upper-storey roots resolve geometry (the else branch above
+            # does not link, unlike the adjacency-aware branch).
+            dom._link(child)
+            _size_divisions_from_targets(lvl, reqs)
+
     return _finalise(child)
 
 
 def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]],
                          rng: np.random.Generator, types: list[str],
-                         reqs=None, adjacency_aware: bool = True) -> dom.Node:
+                         reqs=None, adjacency_aware: bool = True,
+                         proportion_aware: bool = True) -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
     Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
@@ -634,6 +718,15 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             if core_node is not None:
                 core_node.type = "C"  # keep the inherited core as circulation
             prev.above = dup
+
+        if proportion_aware:
+            # leu.2: size the upper-floor cuts from target areas too. The base is
+            # the evolved Stage-1 ground floor and is left untouched; only the
+            # constructed upper storey's ratios are rewritten. (Cuts inherited from
+            # the base via below-links are no-ops here — their geometry is fixed
+            # below — so this best-effort sizes the floor's own new divisions.)
+            dom._link(child)
+            _size_divisions_from_targets(dup, reqs)
 
         prev = dup
 
