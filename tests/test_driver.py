@@ -182,6 +182,51 @@ def test_restart_keeps_elite_and_counts(monkeypatch):
     assert r.best is not None and r.best.fitness > 0
 
 
+def test_feasibility_filter_off_matches_baseline(fake_inner):
+    """§12.3: with the filter and reassociate OFF (defaults), the run is
+    identical to one that omits the params — a clean A/B control."""
+    init_root = dom.load(str(INIT_FILE))
+    base = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                         child_budget=60, seed_budget=100, seed=9)
+    off = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                        child_budget=60, seed_budget=100, seed=9,
+                        enable_reassociate=False, feasibility_filter=False,
+                        feasibility_max_shape_fails=0)
+    # Same search trajectory: identical best topology and accounting. (Absolute
+    # fitness carries the fake_inner monotone tiebreaker, which shares one call
+    # counter across both runs in this fixture, so compare the signature.)
+    assert off.best.sig == base.best.sig
+    assert off.n_topologies == base.n_topologies
+    assert off.n_evals == base.n_evals
+
+
+def test_feasibility_filter_prunes_cheaply(fake_inner, monkeypatch):
+    """§12.3 (homemaker-py-9gp.1): a pruned topology costs one feasibility eval
+    instead of the full child_budget, so the filter explores far more topologies
+    per budget; pruned individuals never displace the incumbent."""
+    from homemaker_layout import operators
+
+    # Force every filtered child to be pruned (shape-fail floor above any
+    # threshold and ≥ the incumbent's fail count).
+    monkeypatch.setattr(operators, "predicted_shape_fails",
+                        lambda root, reqs, fit: 999)
+
+    init_root = dom.load(str(INIT_FILE))
+    budget, child_budget, pop_size = 1200, 60, 4
+    on = driver.search(init_root, CORPUS, budget=budget, pop_size=pop_size,
+                       child_budget=child_budget, seed_budget=100, seed=4,
+                       feasibility_filter=True, feasibility_max_shape_fails=0)
+
+    # Bootstrap (pop_size topologies at child_budget) then 1-eval prunes: the
+    # remaining budget buys ~one topology per eval, far more than child_budget.
+    bootstrap_evals = pop_size * child_budget
+    assert on.n_topologies > pop_size + (budget - bootstrap_evals) // child_budget
+    assert on.n_evals >= budget
+    # No pruned (untuned, fitness=0) individual is admitted to the population.
+    assert all(p.lineage and not p.lineage.startswith("pruned/") for p in on.population)
+    assert on.best is not None and not on.best.lineage.startswith("pruned/")
+
+
 def test_search_parallel_smoke():
     """n_workers>1 runs without error and produces valid results."""
     init_root = dom.load(str(INIT_FILE))

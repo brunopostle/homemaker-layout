@@ -50,6 +50,13 @@ def _fitness_for(programme_dir: str) -> "fitness.Fitness":
     conf, cost = fitness.load_config(programme_dir)
     return fitness.Fitness(conf, cost)
 
+
+@functools.lru_cache(maxsize=None)
+def _reqs_for(programme_dir: str) -> dict:
+    """Cached programme requirements per dir, for the §12.3 shape-feasibility
+    pre-filter (homemaker-py-9gp.1). Cached per process — workers fork a copy."""
+    return programme.load_programme_dir(programme_dir)
+
 # storey add/delete are drastic (geometry perturbation 0.25-0.33 and a
 # deleted storey stacks missing-space failures) — sample them rarely.
 # place_missing is the high-leverage §11.2 repair: it noops cheaply once the
@@ -110,7 +117,24 @@ def random_topology(seed_root: dom.Node, n_leaves: int,
 
 
 def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
-              lineage: str, want_grade: bool = False) -> tuple[Individual, int]:
+              lineage: str, want_grade: bool = False,
+              feasibility_max_shape_fails: int | None = None,
+              best_n_fails: int | None = None) -> tuple[Individual, int]:
+    # §12.3 shape-feasibility pre-filter (homemaker-py-9gp.1): if even the best
+    # achievable (proportion-aware) geometry of this topology already has at least
+    # as many shape fails as the incumbent's TOTAL fails — and exceeds the tunable
+    # threshold — it cannot beat the incumbent, so prune it for one feasibility
+    # eval instead of spending the full inner-loop budget. The best_n_fails guard
+    # makes the proxy safe: a topology whose shape-fail floor is still below the
+    # incumbent is never discarded. Pruned individuals are tagged and never admitted.
+    if (feasibility_max_shape_fails is not None and best_n_fails is not None):
+        pred = operators.predicted_shape_fails(
+            root, _reqs_for(str(programme_dir)), _fitness_for(str(programme_dir)))
+        if pred > feasibility_max_shape_fails and pred >= best_n_fails:
+            ind = Individual(root=root, fitness=0.0, n_fails=pred, ratios={},
+                             lineage=f"pruned/{lineage}", grade=0.0,
+                             sig=genome.signature(root))
+            return ind, 1
     r = innerloop.optimise(root, programme_dir, x0=x0, budget=budget,
                            urb_root=urb_root, **inner_kw)
     # §11.4: read the graded proximity scalar off the optimised tree. The inner
@@ -159,6 +183,9 @@ def search(
     restart_elite: int = 1,
     seed_adjacency_aware: bool = True,
     seed_proportion_aware: bool = True,
+    enable_reassociate: bool = False,
+    feasibility_filter: bool = False,
+    feasibility_max_shape_fails: int | None = None,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -200,6 +227,12 @@ def search(
     urb_root = urb_root or DEFAULT_URB_ROOT
     rng = np.random.default_rng(seed)
     inner_kw = dict(_CHILD_INNER_KW, **(inner_kw or {}))
+    # §12.3 M3 reassociate (homemaker-py-9gp.2) is default-OFF: force its weight to
+    # 0 unless enabled, so the leu.2 baseline reproduces byte-for-byte (the operator
+    # never fires) and the A/B is a clean single-variable toggle.
+    mutation_weights = dict(_MUTATION_WEIGHTS)
+    if not enable_reassociate:
+        mutation_weights["reassociate"] = 0.0
     # Optional ranking bonus (DESIGN.md §11.3 Stage 1): bias selection toward
     # individuals with high substrate-readiness via a multiplicative factor
     # (1 + W·bonus) on fitness. The reported fitness/history stay the TRUE
@@ -253,6 +286,10 @@ def search(
         nonlocal n_topologies, last_improve
         n_topologies += 1
         seen_sigs.add(ind.sig)
+        # §12.3 pruned by the shape-feasibility filter: counted as an explored
+        # topology (so the prune rate is visible) but never bred from or ranked.
+        if ind.lineage.startswith("pruned/"):
+            return
         if result.best is None or _key(ind) > _key(result.best):
             result.best = ind
             last_improve = n_evals
@@ -296,11 +333,18 @@ def search(
 
     def _run_batch(
         tasks: list[tuple],  # (root, x0, budget_, inner_kw_, lineage)
+        filter_on: bool = False,
     ) -> None:
-        """Evaluate a batch of tasks and admit results; parallel when _pool set."""
+        """Evaluate a batch of tasks and admit results; parallel when _pool set.
+
+        ``filter_on`` enables the §12.3 shape-feasibility pre-filter for this
+        batch — used for mutation children only, never for the seed/bootstrap or
+        restart batches (construction invariants must survive)."""
         nonlocal n_evals
+        mx = feasibility_max_shape_fails if (filter_on and feasibility_filter) else None
+        best_nf = result.best.n_fails if result.best is not None else None
         full = [
-            (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade)
+            (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade, mx, best_nf)
             for root, x0, budget_, kw_, lin in tasks
         ]
         if _pool is not None:
@@ -397,7 +441,7 @@ def search(
                 else:
                     parent = _tournament(pop, rng, _key)
                     child_root, desc = operators.mutate(parent.root, rng, types,
-                                                        weights=_MUTATION_WEIGHTS,
+                                                        weights=mutation_weights,
                                                         reqs=reqs, base_p=base_p)
                     # Carry operator-specified ratios for nodes that are genuinely
                     # newly divided (existed as leaves in the parent, are now
@@ -415,7 +459,7 @@ def search(
                     ratios = {**new_splits, **parent.ratios}
                 x0 = innerloop.warm_x0(child_root, ratios)
                 tasks.append((child_root, x0, child_budget, inner_kw, desc))
-            _run_batch(tasks)
+            _run_batch(tasks, filter_on=True)
     except KeyboardInterrupt:
         interrupted = True
         _log(f"[{n_evals:6d} evals] interrupted — returning best-so-far")
@@ -453,6 +497,9 @@ def search_staged(
     restart_elite: int = 1,
     seed_adjacency_aware: bool = True,
     seed_proportion_aware: bool = True,
+    enable_reassociate: bool = False,
+    feasibility_filter: bool = False,
+    feasibility_max_shape_fails: int | None = None,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -496,7 +543,10 @@ def search_staged(
                       use_grade=use_grade, niche_by_signature=niche_by_signature,
                       restart_patience=restart_patience, restart_elite=restart_elite,
                       seed_adjacency_aware=seed_adjacency_aware,
-                      seed_proportion_aware=seed_proportion_aware)
+                      seed_proportion_aware=seed_proportion_aware,
+                      enable_reassociate=enable_reassociate,
+                      feasibility_filter=feasibility_filter,
+                      feasibility_max_shape_fails=feasibility_max_shape_fails)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -522,6 +572,9 @@ def search_staged(
             restart_patience=restart_patience, restart_elite=restart_elite,
             seed_adjacency_aware=seed_adjacency_aware,
             seed_proportion_aware=seed_proportion_aware,
+            enable_reassociate=enable_reassociate,
+            feasibility_filter=feasibility_filter,
+            feasibility_max_shape_fails=feasibility_max_shape_fails,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -552,6 +605,9 @@ def search_staged(
         # substrate-selection semantics (§11.3) are unchanged.
         use_grade=use_grade, niche_by_signature=niche_by_signature,
         restart_patience=restart_patience, restart_elite=restart_elite,
+        enable_reassociate=enable_reassociate,
+        feasibility_filter=feasibility_filter,
+        feasibility_max_shape_fails=feasibility_max_shape_fails,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

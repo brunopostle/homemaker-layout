@@ -57,6 +57,10 @@ def main() -> int:
     restart_patience = int(rp) if rp else None
     adj = os.environ.get("ADJ", "1") == "1"  # s44/ld5 adjacency-aware seeding A/B
     prop = os.environ.get("PROP", "1") == "1"  # leu.2 proportion-aware split sizing (default-on)
+    reassoc = os.environ.get("REASSOC", "0") == "1"  # 9gp.2 M3 reassociate move A/B
+    feas = os.environ.get("FEAS", "0") == "1"  # 9gp.1 shape-feasibility pre-filter A/B
+    _ms = os.environ.get("MAXSHAPE")           # 9gp.1 prune threshold (shape-fail count)
+    max_shape = int(_ms) if _ms else None
 
     print(f"programme : {programme_dir.name}")
     print(f"seed      : {seed_file.name}")
@@ -67,6 +71,8 @@ def main() -> int:
     print(f"restart_p : {restart_patience}")
     print(f"adj_aware : {adj}")
     print(f"prop_aware: {prop}")
+    print(f"reassoc   : {reassoc}")
+    print(f"feas_filt : {feas} (max_shape={max_shape})")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -89,6 +95,9 @@ def main() -> int:
         restart_patience=restart_patience,
         seed_adjacency_aware=adj,
         seed_proportion_aware=prop,
+        enable_reassociate=reassoc,
+        feasibility_filter=feas,
+        feasibility_max_shape_fails=max_shape,
     )
 
     elapsed = time.perf_counter() - t0

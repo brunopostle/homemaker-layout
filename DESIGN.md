@@ -1274,3 +1274,72 @@ target dims; neither touches topology or type assignment. Threaded through
   rotation-and-ratio sizing from target dims; the bare ratio is not enough
   (area-only regressed). Area sizing assumes total target ≈ plot area; choosing
   the cut *direction* for aspect is what makes it pay.
+
+### 12.3 Re-scoped 9gp: shape feasibility + reachability moves (`homemaker-py-9gp`)
+
+Re-scoped capstone of the epic (2026-06-19): the original canonical-Polish-
+expression rewrite was justified partly by a niching *signature*, but §11.5
+falsified niching and `genome.signature` already supplies the cheap stand-in. The
+two surviving, evidence-supported parts are landed here as operators on the
+existing decoded `Node` tree — **no** Polish-expression rewrite — each measured
+independently against the §12.2 leu.2 baseline (maple-court staged 136.0, harbor
+74.0). A true canonical encoding is revisited only if the M3 measurement proves
+associativity valuable at scale.
+
+**9gp.1 — shape-feasibility pre-filter (scaling lever).** `operators.
+predicted_shape_fails(root, reqs, fit)` lays a topology out at its proportion-
+aware target geometry (reusing `_size_divisions_from_targets`, §12.2 — the
+squarest layout the inner loop warm-starts from) and counts the
+size/width/proportion/crinkliness fails the native fitness reports: a cheap
+lower-bound proxy for the best shape the topology can reach. `driver._evaluate`
+calls it *before* the inner loop and **prunes** (1 feasibility eval instead of
+~80 inner-loop evals) when the predicted shape fails both exceed a tunable
+threshold *and* are ≥ the incumbent's total fails — the second guard makes the
+proxy safe (a topology whose shape floor is still below the incumbent is never
+discarded). Pruned individuals are tagged `pruned/…`, counted as explored
+topologies but never bred from or ranked, so budget flows to feasible topologies.
+Seed/bootstrap/restart batches are never filtered (construction invariants must
+survive). Threaded as `search(…, feasibility_filter, feasibility_max_shape_fails)`
+through `search_staged`; **default OFF** so the §12.2 controls reproduce exactly
+(`test_feasibility_filter_off_matches_baseline`). Env: `FEAS=1 MAXSHAPE=<n>`.
+
+**9gp.2 — M3 Wong-Liu re-association move (reachability lever).** `operators.
+mutate_reassociate` adds the associativity move `(a|b)|c ↔ a|(b|c)` on two
+**same-orientation** live cuts (both directions, for reversibility): a pure-
+topology move that preserves the leaf set and types but reaches tree shapes the
+existing set cannot. M1 (operand swap) is `mutate_swap` and M2 (single-cut
+orientation complement) is `mutate_rotate`; associativity was the missing
+canonical-slicing move attacking the reachability bottleneck §11.4/§11.5 both
+fingered. Only live cuts (`below is None`, as `mutate_rotate`) are restructured,
+so dead inherited fields are untouched and `encode` re-anchors deltas; the two
+restructured cuts default to `0.5` and the inner loop recovers their ratios.
+Registered in `MUTATIONS`; **default OFF** via `enable_reassociate` (forces its
+mutation weight to 0 so the baseline is byte-identical). Env: `REASSOC=1`.
+
+- *Implementation status (this session):* both land with unit tests
+  (`tests/test_operators.py`: reassociate preserves the leaf multiset, changes
+  the signature, noops on perpendicular cuts, stays canonical on the harbor
+  corpus; `predicted_shape_fails` is non-negative, pure, deterministic.
+  `tests/test_driver.py`: filter-off reproduces the baseline trajectory;
+  filter-on prunes at 1 eval/topology and never admits a pruned individual).
+  Full suite green (211 passed). A short smoke run on maple-court confirms both
+  paths execute under the real native fitness.
+
+- *Measurement (A/B sweep — TODO, handed off).* maple-court + harbor, seeds
+  0/1/2, 20000 evals, four configs vs the §12.2 baseline:
+
+  ```bash
+  # baseline control (must reproduce 136.0 / 74.0)
+  URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py examples/maple-court 20000 <seed> …
+  # 9gp.2 reassociate only
+  REASSOC=1  URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py …
+  # 9gp.1 shape-feasibility filter only (sweep MAXSHAPE)
+  FEAS=1 MAXSHAPE=<n> URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py …
+  # combined
+  REASSOC=1 FEAS=1 MAXSHAPE=<n> URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py …
+  ```
+
+  Per the re-scoped bead, **either result is a valid verdict** — the discipline
+  is to MEASURE associativity's value at >16 rooms, not assume it (the §11.4/§11.5
+  failure mode). Record the table + one-line verdict here, then close 9gp.1,
+  9gp.2, 9gp.

@@ -733,6 +733,81 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
     return _finalise(child)
 
 
+def mutate_reassociate(root: dom.Node, rng: np.random.Generator,
+                       types: list[str]) -> tuple[dom.Node, str]:
+    """Wong-Liu M3 associativity move: ``(a|b)|c <-> a|(b|c)`` on parallel cuts.
+
+    A pure-topology reachability move (homemaker-py-9gp.2, DESIGN.md §12.3). M1
+    (operand swap) is ``mutate_swap`` and M2 (single-cut orientation complement)
+    is ``mutate_rotate``; the missing canonical-slicing move is *associativity* —
+    regrouping three regions split by two **same-orientation** cuts into the
+    mirror tree shape. It preserves the leaf set and types but reaches tree
+    structures the divide/undivide/swap/rotate set cannot, attacking the
+    reachability bottleneck §11.4/§11.5 both fingered.
+
+    Only **live** cuts are restructured (``below is None``, as ``mutate_rotate``),
+    so dead inherited fields are never touched and ``encode`` re-anchors any
+    upper-storey deltas (operators edit the phenotype; the genome re-derives).
+    The two restructured cuts default to ``[0.5, 0.5]`` and the inner loop
+    recovers their ratios (cold, cf. ``mutate_divide``'s new cut).
+    """
+    child = copy.deepcopy(root)
+    # Candidate parents P with a same-orientation, live, divided child on a side.
+    cands: list[tuple[int, dom.Node, str]] = []
+    for li, P in _owned_branches(child):
+        if P.below is not None:
+            continue
+        for side in ("l", "r"):
+            kid = P.left if side == "l" else P.right
+            if (kid.divided and kid.below is None
+                    and (kid.rotation % 2) == (P.rotation % 2)):
+                cands.append((li, P, side))
+    if not cands:
+        return _finalise(child), "reassociate noop"
+
+    li, P, side = _pick(rng, cands)
+    rot = P.rotation
+    if side == "l":  # (a|b)|c -> a|(b|c)
+        a, b, c = P.left.left, P.left.right, P.right
+        inner = dom.Node(rotation=rot)
+        inner.division = [0.5, 0.5]
+        inner.left, inner.right = b, c
+        P.left, P.right = a, inner
+    else:            # a|(b|c) -> (a|b)|c
+        a, b, c = P.left, P.right.left, P.right.right
+        inner = dom.Node(rotation=rot)
+        inner.division = [0.5, 0.5]
+        inner.left, inner.right = a, b
+        P.left, P.right = inner, c
+    P.division = [0.5, 0.5]
+    return _finalise(child), f"reassociate {li}/{P.id or 'root'}"
+
+
+def predicted_shape_fails(root: dom.Node, reqs, fit) -> int:
+    """Predicted per-leaf shape fails at the proportion-aware target geometry.
+
+    Shape-feasibility proxy (homemaker-py-9gp.1, DESIGN.md §12.3). Lays the
+    topology out with :func:`_size_divisions_from_targets` — the squarest
+    target-proportional geometry the inner loop warm-starts from, i.e. the best
+    shape this topology can plausibly reach — then counts the
+    size/width/proportion/crinkliness fails the native ``fit`` reports. Used to
+    prune clearly-infeasible topologies *before* the inner loop, so budget flows
+    to feasible ones. A heuristic lower-bound proxy, not a true bound; the caller
+    guards against pruning anything that could still beat the incumbent.
+
+    ``root`` is left untouched (a deep copy is laid out and scored).
+    """
+    child = copy.deepcopy(root)
+    dom._link(child)
+    for lvl in dom.levels(child):
+        _size_divisions_from_targets(lvl, reqs)
+    _, fails = fit.score_with_fails(child)
+    return sum(1 for f in fails if f.endswith(_SHAPE_FAIL_SUFFIXES))
+
+
+_SHAPE_FAIL_SUFFIXES = (" size", " width", " proportion", " crinkliness")
+
+
 def mutate_core_divide(root: dom.Node, rng: np.random.Generator,
                        types: list[str]) -> tuple[dom.Node, str]:
     """Divide a circulation leaf at the same path across ALL storeys at once.
@@ -868,6 +943,7 @@ MUTATIONS = {
     "retype": mutate_retype,
     "swap": mutate_swap,
     "rotate": mutate_rotate,
+    "reassociate": mutate_reassociate,
     "core_divide": mutate_core_divide,
     "core_undivide": mutate_core_undivide,
     "level_fix": mutate_level_fix,

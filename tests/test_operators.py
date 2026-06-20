@@ -218,3 +218,86 @@ def test_crossover_yields_canonical_pair():
         assert desc.startswith("crossover")
         canonical(ca)
         canonical(cb)
+
+
+# --------------------------------------------------------------------------- #
+# 9gp.2 — M3 re-association move
+# --------------------------------------------------------------------------- #
+def _leaf_types(root: dom.Node) -> list[str]:
+    return sorted(lf.type or "." for lvl in dom.levels(root) for lf in lvl.leaves())
+
+
+def _same_axis_chain() -> dom.Node:
+    """A 3-leaf ``(a|b)|c`` tree with two parallel (same-orientation) cuts."""
+    root = dom.Node(rotation=0, division=[0.4, 0.4])
+    root.left = dom.Node(rotation=0, division=[0.5, 0.5])
+    root.left.left = dom.Node(type="A")
+    root.left.right = dom.Node(type="B")
+    root.right = dom.Node(type="C")
+    dom._link(root)
+    return root
+
+
+def test_reassociate_preserves_leaves_changes_shape():
+    root = _same_axis_chain()
+    before_types = _leaf_types(root)
+    before_sig = genome.signature(root)
+    child, desc = operators.mutate_reassociate(root, np.random.default_rng(0), TYPES)
+    assert "noop" not in desc
+    # leaf set + types are an invariant; only the tree shape changes
+    assert _leaf_types(child) == before_types
+    assert genome.signature(child) != before_sig
+    canonical(child)
+    # parent untouched in place
+    assert genome.signature(root) == before_sig
+    canonical(root)
+
+
+def test_reassociate_noop_on_perpendicular_cuts():
+    # Outer cut rotation 0, inner cut rotation 1 (perpendicular) → not the
+    # associativity precondition, so there is no candidate and it noops.
+    root = dom.Node(rotation=0, division=[0.4, 0.4])
+    root.left = dom.Node(rotation=1, division=[0.5, 0.5])
+    root.left.left = dom.Node(type="A")
+    root.left.right = dom.Node(type="B")
+    root.right = dom.Node(type="C")
+    dom._link(root)
+    _, desc = operators.mutate_reassociate(root, np.random.default_rng(0), TYPES)
+    assert desc == "reassociate noop"
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_reassociate_on_corpus_is_canonical_and_total():
+    from homemaker_layout import programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    root = dom.load(str(HARBOR / "generated.dom"))
+    before = _leaf_types(root)
+    for seed in range(8):
+        child, desc = operators.mutate_reassociate(root, np.random.default_rng(seed), types)
+        canonical(child)
+        if "noop" not in desc:
+            # leaf multiset preserved even on a real multi-storey tree
+            assert _leaf_types(child) == before
+
+
+# --------------------------------------------------------------------------- #
+# 9gp.1 — shape-feasibility proxy
+# --------------------------------------------------------------------------- #
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_predicted_shape_fails_is_nonneg_and_pure():
+    from homemaker_layout import fitness, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    conf, cost = fitness.load_config(str(HARBOR))
+    fit = fitness.Fitness(conf, cost)
+    root = dom.load(str(HARBOR / "generated.dom"))
+    n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(root))
+
+    pred = operators.predicted_shape_fails(root, reqs, fit)
+    assert isinstance(pred, int) and pred >= 0
+    # input root is untouched (a deep copy is laid out and scored)
+    assert sum(len(lvl.leaves()) for lvl in dom.levels(root)) == n_leaves
+    # deterministic
+    assert operators.predicted_shape_fails(root, reqs, fit) == pred
