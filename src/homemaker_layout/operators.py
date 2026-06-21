@@ -567,7 +567,8 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
 def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           types: list[str], min_storeys: int = 1,
                           adjacency_aware: bool = True,
-                          proportion_aware: bool = True) -> dom.Node:
+                          proportion_aware: bool = True,
+                          circ_divisor: int = 3) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -618,7 +619,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             # then assign so every room is adjacent to it (s44). Geometry must be
             # available to read the leaf-adjacency graph; _grow_leaves leaves the
             # tree finalisable and geometry.leaf_graph derives coords on demand.
-            n_circ = max(1, -(-len(rooms) // 3))  # ceil(rooms / 3)
+            # c3g granularity knob: ~one circ per `circ_divisor` rooms (default 3).
+            n_circ = max(1, -(-len(rooms) // circ_divisor))
             _grow_leaves(lvl, len(rooms) + 1 + n_circ, rng)
             dom._link(child)
             _assign_adjacency_aware(lvl, rooms, reqs, rng)
@@ -645,7 +647,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
 def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]],
                          rng: np.random.Generator, types: list[str],
                          reqs=None, adjacency_aware: bool = True,
-                         proportion_aware: bool = True) -> dom.Node:
+                         proportion_aware: bool = True,
+                         circ_divisor: int = 3) -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
     Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
@@ -685,7 +688,7 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             # 3 rooms, the inherited core counted) and assign rooms around it via
             # the geometric leaf graph, seeding the dominating set from the
             # inherited vertical core so the spine grows off the core, not anew.
-            n_circ = max(1, -(-len(rooms) // 3))  # ceil(rooms / 3)
+            n_circ = max(1, -(-len(rooms) // circ_divisor))  # c3g granularity knob
             target_total = len(rooms) + 1 + n_circ
             n_free_target = target_total - (1 if core_node is not None else 0)
             while len(_free()) < n_free_target:

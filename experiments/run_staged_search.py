@@ -61,6 +61,7 @@ def main() -> int:
     feas = os.environ.get("FEAS", "0") == "1"  # 9gp.1 shape-feasibility pre-filter A/B
     _ms = os.environ.get("MAXSHAPE")           # 9gp.1 prune threshold (shape-fail count)
     max_shape = int(_ms) if _ms else None
+    circ_div = int(os.environ.get("CIRCDIV", "3"))  # c3g circ-per-room granularity knob
 
     print(f"programme : {programme_dir.name}")
     print(f"seed      : {seed_file.name}")
@@ -73,6 +74,7 @@ def main() -> int:
     print(f"prop_aware: {prop}")
     print(f"reassoc   : {reassoc}")
     print(f"feas_filt : {feas} (max_shape={max_shape})")
+    print(f"circ_div  : {circ_div}")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -98,6 +100,7 @@ def main() -> int:
         enable_reassociate=reassoc,
         feasibility_filter=feas,
         feasibility_max_shape_fails=max_shape,
+        circ_divisor=circ_div,
     )
 
     elapsed = time.perf_counter() - t0
