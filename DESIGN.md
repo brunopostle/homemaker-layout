@@ -1325,21 +1325,50 @@ mutation weight to 0 so the baseline is byte-identical). Env: `REASSOC=1`.
   Full suite green (211 passed). A short smoke run on maple-court confirms both
   paths execute under the real native fitness.
 
-- *Measurement (A/B sweep — TODO, handed off).* maple-court + harbor, seeds
-  0/1/2, 20000 evals, four configs vs the §12.2 baseline:
+- *Calibration (predicted shape-fail floor of the constructive seeds).* Over 8
+  proportion-aware constructive seeds, `predicted_shape_fails` is maple **121–163
+  (mean 135.6)** and harbor **72–90 (mean 84.6)** — essentially equal to the final
+  *achieved* total fail counts (maple 126–148, harbor 69–81). So the shape floor at
+  the best achievable geometry already accounts for almost the whole residual:
+  independent confirmation of §11.7 that the Phase-7 residual is geometry/shape-
+  bound. `MAXSHAPE` was set below the incumbent range (maple 100, harbor 55) so the
+  `pred ≥ incumbent` safety guard is the dominant prune gate (`experiments/
+  run_9gp_ab.sh`).
 
-  ```bash
-  # baseline control (must reproduce 136.0 / 74.0)
-  URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py examples/maple-court 20000 <seed> …
-  # 9gp.2 reassociate only
-  REASSOC=1  URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py …
-  # 9gp.1 shape-feasibility filter only (sweep MAXSHAPE)
-  FEAS=1 MAXSHAPE=<n> URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py …
-  # combined
-  REASSOC=1 FEAS=1 MAXSHAPE=<n> URB_NO_OCCLUSION=1 python3 experiments/run_staged_search.py …
-  ```
+- *A/B sweep (DONE — negative). maple-court + harbor, seeds 0/1/2, 20000 evals,
+  staged, total fails at budget:*
 
-  Per the re-scoped bead, **either result is a valid verdict** — the discipline
-  is to MEASURE associativity's value at >16 rooms, not assume it (the §11.4/§11.5
-  failure mode). Record the table + one-line verdict here, then close 9gp.1,
-  9gp.2, 9gp.
+  | programme   | seed | baseline | reassoc | feas | combined |
+  |-------------|-----:|---------:|--------:|-----:|---------:|
+  | maple-court | 0    | **126**  | 131     | 129  | 131      |
+  | maple-court | 1    | **148**  | 141     | 151  | 142      |
+  | maple-court | 2    | **134**  | 146     | 140  | 144      |
+  | maple-court | mean | **136.0**| 139.3   | 140.0| 139.0    |
+  | harbor      | 0    | **72**   | 83      | 82   | 81       |
+  | harbor      | 1    | **81**   | 81      | 80   | 81       |
+  | harbor      | 2    | **69**   | 70      | 69   | 70       |
+  | harbor      | mean | **74.0** | 78.0    | 77.0 | 77.3     |
+
+  The baseline controls reproduce the §12.2 leu.2 means **exactly** (maple 136.0,
+  harbor 74.0) — a clean control, so the negative is real. Every variant is
+  neutral-to-slightly-worse on every programme: reassoc +3.3/+4.0, feas +4.0/+3.0,
+  combined +3.0/+3.3 (maple/harbor). The feasibility filter *did* prune and explore
+  more topologies in several runs (maple s1/s2 combined 342/319, s2 feas 317 vs the
+  baseline 250) — but the extra topologies did not lower the fail count, and M3
+  reassociate never produced a win despite reaching new tree shapes.
+
+- *Verdict: keep both default-OFF; the Phase-7 residual is NOT reachability- or
+  feasibility-bound.* This is the third independent negative on **search machinery**
+  (§11.4 graded objective, §11.5 niching+restarts, now §12.3 M3 moves + shape
+  pruning), against four positives all from **construction/seed quality** (§11.2,
+  §11.6, §11.7, §12.2). The associativity move reaches new topologies but they are
+  not better; the shape filter saves budget on topologies whose shape floor already
+  matches the incumbent, but — precisely because the floor ≈ the achieved total
+  (calibration above) — there is no lower-fail basin for that saved budget to find.
+  The geometry/shape residual is intrinsic to the *constructed* layouts at this
+  programme density, not a search-reachability deficit. The next lever, if any, is
+  again on the construction side (e.g. shape-aware *placement*, not post-hoc
+  pruning), or accepting the residual as the geometry floor of the slicing
+  representation. A full canonical Polish-expression rewrite is **not** justified:
+  its one measurable promise here (associativity reachability) was tested directly
+  and did not pay.
