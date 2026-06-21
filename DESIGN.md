@@ -1393,3 +1393,50 @@ mutation weight to 0 so the baseline is byte-identical). Env: `REASSOC=1`.
   above. It may also be that 52 distinct rooms simply cannot be well-shaped as 52
   leaves at this density, i.e. the residual is the geometry floor of the slicing
   representation; the experiment is what decides.
+
+### 12.4 Construction granularity A/B (`homemaker-py-c3g`) — DONE (null) + a noise finding
+
+The c3g hypothesis tested directly. The cheap **raw-seed probe** (circ-per-room
+divisor `circ_divisor`, env `CIRCDIV`, default 3) confirmed the mechanism but also
+its catch: a coarser spine lowers the **shape** floor (maple 135→110, harbor 83→66
+as `div` 3→∞) yet raises **access/adjacency** by as much, leaving the raw **total**
+floor flat-to-worse (maple 198→210, harbor 121→134). `div=3` already sits near the
+total-floor minimum. Because §12.3 showed shape is the *hard* residual and
+access/adjacency are *cheap* to repair, the open question was whether that trade
+pays **end-to-end**.
+
+- *End-to-end A/B (20000 evals, staged, total fails at budget; div=3 reuses §12.3):*
+
+  | programme   | div=3 (baseline) | div=6        | div=8     |
+  |-------------|-----------------:|-------------:|----------:|
+  | maple-court | **136.0**        | 137.0        | 134.3     |
+  | harbor      | **74.0**         | 75.3         | —         |
+
+  Per-seed: maple div6 143/122/146, div8 132/138/133; harbor div6 65/76/85. **Every
+  arm is within ±1.7 of baseline** — inside the noise floor (below) — with a huge
+  per-seed spread (maple div6 122–146). *Null result:* coarsening the spine does not
+  pay end-to-end. The raw-probe prediction held — the shape-floor gain is cancelled
+  by access/adjacency damage that is *not* free to repair after all.
+
+- *A reproducibility finding surfaced en route (`homemaker-py-xcy`, P2 bug).*
+  The `div=3` control gave **129** vs §12.3's **126** for the same maple seed 0.
+  Cause: `operators._assign_adjacency_aware` iterates Python **sets of `Node`
+  objects**, whose order is `id()`-based and varies across processes — so
+  `constructive_topology(seed=0)` yields *different topology signatures* in separate
+  runs (verified: sig hashes 4480 vs 16064). **Single-run noise ≈ ±3 fails.**
+  Implication for the whole §11/§12 ledger: per-seed numbers are not reproducible
+  run-to-run; only multi-seed *means* are stable, and small effects (the §12.3
+  +3-4 negatives, the §12.4 ±1.7) sit near the noise floor — directionally trusted
+  via consistency across seeds, not as exact magnitudes. Fix (drive all tie-breaks
+  through the deterministic leaf index) filed separately; it will shift baselines
+  slightly and is a prerequisite for resolving any sub-±3 effect.
+
+- *Verdict: keep `circ_divisor=3` default; the granularity lever is null.* Together
+  with §12.3 this closes the residual-reduction question for now from both sides:
+  neither search machinery (§12.3) nor construction granularity (§12.4) moves the
+  maple/harbor geometry residual beyond noise. The weight of evidence is that the
+  residual is the **geometry floor of the slicing representation** at this room
+  density — 52 distinct rooms as 52 adjacency-connected leaves inherently incur
+  ~135 shape+access fails. Further progress, if wanted, needs either the
+  determinism fix (to even see sub-±3 effects) or a representational change beyond
+  the slicing tree — not another seed/search tweak at this scale.
