@@ -1365,10 +1365,31 @@ mutation weight to 0 so the baseline is byte-identical). Env: `REASSOC=1`.
   not better; the shape filter saves budget on topologies whose shape floor already
   matches the incumbent, but — precisely because the floor ≈ the achieved total
   (calibration above) — there is no lower-fail basin for that saved budget to find.
-  The geometry/shape residual is intrinsic to the *constructed* layouts at this
-  programme density, not a search-reachability deficit. The next lever, if any, is
-  again on the construction side (e.g. shape-aware *placement*, not post-hoc
-  pruning), or accepting the residual as the geometry floor of the slicing
-  representation. A full canonical Polish-expression rewrite is **not** justified:
-  its one measurable promise here (associativity reachability) was tested directly
-  and did not pay.
+  The geometry/shape residual is intrinsic to the *constructed* layouts, not a
+  search-reachability deficit. A full canonical Polish-expression rewrite is **not**
+  justified: its one measurable promise here (associativity reachability) was tested
+  directly and did not pay.
+
+- *Residual diagnostic (where the shape fails actually live, maple-court, 6
+  constructive seeds).* A per-leaf breakdown — to test, not assume, what the next
+  lever would be — overturns the obvious "shape-aware placement" guess:
+
+  | signal | measured | reading |
+  |---|---|---|
+  | plot utilisation (target/plot area) | **0.44** (0.28–0.54) | NOT density/area-bound — ample slack |
+  | failing leaves / total | **~68 / 73** | shape fails are *uniform*, not concentrated |
+  | dominant factors | **crinkliness 346, size 242**, proportion 121, width 102 | perimeter/area + undersize, both granularity effects |
+
+  Because nearly *every* leaf fails (not a few mismatched ones), the residual is
+  **not** a room→leaf placement mismatch — there are no well-shaped leaves to place
+  demanding rooms into. The mechanism is **over-granular construction**: 73 small
+  leaves for 52 rooms at 44 % utilisation gives every leaf a high perimeter/area
+  ratio (crinkliness) and rooms below their target area (size). So the measured
+  candidate lever is construction **granularity / leaf shape** (fewer, larger
+  leaves; merge or share leaves across same-class rooms; a coarser spine), NOT
+  shape-aware placement and NOT more search machinery. This is a *hypothesis with a
+  measured motivation*, filed as **`homemaker-py-c3g`** — it is unproven and must be
+  A/B'd against the §12.2 baseline before adoption, same discipline as every lever
+  above. It may also be that 52 distinct rooms simply cannot be well-shaped as 52
+  leaves at this density, i.e. the residual is the geometry floor of the slicing
+  representation; the experiment is what decides.
