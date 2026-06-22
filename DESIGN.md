@@ -1418,18 +1418,35 @@ pays **end-to-end**.
   pay end-to-end. The raw-probe prediction held — the shape-floor gain is cancelled
   by access/adjacency damage that is *not* free to repair after all.
 
-- *A reproducibility finding surfaced en route (`homemaker-py-xcy`, P2 bug).*
-  The `div=3` control gave **129** vs §12.3's **126** for the same maple seed 0.
-  Cause: `operators._assign_adjacency_aware` iterates Python **sets of `Node`
-  objects**, whose order is `id()`-based and varies across processes — so
-  `constructive_topology(seed=0)` yields *different topology signatures* in separate
-  runs (verified: sig hashes 4480 vs 16064). **Single-run noise ≈ ±3 fails.**
-  Implication for the whole §11/§12 ledger: per-seed numbers are not reproducible
-  run-to-run; only multi-seed *means* are stable, and small effects (the §12.3
-  +3-4 negatives, the §12.4 ±1.7) sit near the noise floor — directionally trusted
-  via consistency across seeds, not as exact magnitudes. Fix (drive all tie-breaks
-  through the deterministic leaf index) filed separately; it will shift baselines
-  slightly and is a prerequisite for resolving any sub-±3 effect.
+- *A reproducibility finding surfaced en route (`homemaker-py-xcy`, P2 bug) —
+  later RE-DIAGNOSED and FIXED (2026-06-22).* The `div=3` control gave **129** vs
+  §12.3's **126** for the same maple seed 0. The first diagnosis blamed
+  `operators._assign_adjacency_aware` iterating `id()`-ordered Python sets of
+  `Node`s — **this was wrong.** That function already ends every `max`/`min` with a
+  unique leaf-`idx` tiebreak, and its set unions are used only for membership, so
+  order never leaks: `constructive_topology(seed=0)` is **byte-identical across
+  processes** for every example programme (stable sha1, e.g. maple `e688f744326b`).
+  The "sig hashes 4480 vs 16064" was a **measurement artifact** — Python's builtin
+  `hash()` of a *string* is salted per process (`PYTHONHASHSEED`), so an *identical*
+  signature hashes to different ints run-to-run (reproduced 51920/5342/59970 for one
+  identical string). Use `genome.signature` equality or a stable hash, never builtin
+  `hash()`, to compare topologies.
+  The **real** cause was parallel-only: `driver._run_batch` admitted futures via
+  `concurrent.futures.as_completed`, i.e. in **completion order**, and `admit()` is
+  order-sensitive (accrues `n_evals` per result; keeps the *first* individual of an
+  equal-key tie as `best`). A long parallel run diverged **167 vs 161 fails** (maple
+  seed 0) — the true source of the ±3..6 "noise". **Fix:** iterate the futures in
+  *submission* order (`for f in futs: f.result()`; all still run concurrently),
+  reproducing the serial admission sequence. After the fix two `workers=4` runs are
+  byte-identical (162 fails). Serial (`workers=1`) was already byte-for-byte
+  reproducible.
+  Implication for the §11/§12 ledger: per-seed numbers are reproducible **only at a
+  fixed worker count**. Serial≠parallel is *expected* (children/iteration = 1 vs
+  `n_workers` changes batch granularity, hence the search), not nondeterminism. Any
+  A/B that compared runs at *different* worker counts — or any pre-fix parallel run —
+  conflated this with a real effect; sub-±3 effects (the §12.3 +3-4 negatives, the
+  §12.4 ±1.7) should be re-run at a single fixed worker count before being trusted as
+  magnitudes.
 
 - *Verdict: keep `circ_divisor=3` default; the granularity lever is null.* Together
   with §12.3 this closes the residual-reduction question for now from both sides:

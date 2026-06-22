@@ -237,3 +237,22 @@ def test_search_parallel_smoke():
     assert r.n_evals >= 160
     assert 1 <= len(r.population) <= 2
     assert r.n_topologies >= 2  # at least the bootstrap individuals
+
+
+def test_search_parallel_is_reproducible():
+    """Two same-seed parallel runs must be byte-identical (homemaker-py-xcy).
+
+    ``_run_batch`` used to admit futures in completion order (``as_completed``),
+    which varies run-to-run; with the order-sensitive ``admit`` (n_evals accrual,
+    first-of-tie wins ``best``) that made parallel searches non-reproducible.
+    Admitting in submission order fixed it. Guard the invariant directly: same
+    seed + same worker count ⇒ identical best (n_fails, fitness, signature) and
+    identical improvement history."""
+    def run():
+        r = driver.search(dom.load(str(INIT_FILE)), CORPUS, budget=1200,
+                          pop_size=8, child_budget=80, seed=0, n_workers=3)
+        return (r.best.n_fails, r.best.fitness, r.best.sig, tuple(r.history))
+
+    a = run()
+    b = run()
+    assert a == b, "parallel search is not reproducible run-to-run"

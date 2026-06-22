@@ -349,9 +349,17 @@ def search(
             for root, x0, budget_, kw_, lin in tasks
         ]
         if _pool is not None:
-            from concurrent.futures import as_completed
+            # Submit the whole batch in parallel, but admit results in SUBMISSION
+            # order, not completion order (homemaker-py-xcy). ``admit`` is
+            # order-sensitive — it accrues ``n_evals`` per result and keeps the
+            # FIRST individual of any equal-key tie as ``best`` — so consuming
+            # futures as they complete made a parallel run non-reproducible
+            # (completion order varies run-to-run; measured 167 vs 161 fails for
+            # maple-court seed 0). Iterating ``futs`` in order blocks on each in
+            # turn while all still run concurrently, reproducing the serial
+            # admission sequence exactly (verified byte-identical .dom).
             futs = [_pool.submit(_evaluate, *t) for t in full]
-            for f in as_completed(futs):
+            for f in futs:
                 ind, used = f.result()
                 n_evals += used
                 admit(ind, pop)
