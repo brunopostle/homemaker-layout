@@ -1523,3 +1523,65 @@ null: that lever removed CIRCULATION leaves and the shape gain was cancelled by
 access/adjacency damage; leaf-sharing removes ROOM-leaf count (multi-room leaves)
 without disturbing the circulation spine, so the access penalty that killed c3g
 need not apply. Recommendation: close/deprioritise `erc.5`, advance `erc.3`.
+
+### 13.2 Diagnostic B: undersize-despite-slack localization (`homemaker-py-erc.2`) — DONE
+
+GATES plot-fill construction (`erc.4`) vs the inner-loop slack-expansion term
+(`erc.6`). The §12.3 paradox: plot utilisation ≈ 0.44 (over half the plot
+"empty") yet rooms are UNDERSIZE. Where is the slack stranded, and at which stage
+should it be spent? Reads only. Builds the §12.2 constructive seed (whose
+geometry already sits at the proportion-aware TARGET ratios — the inner-loop warm
+start, so it *is* the "before" state), measures per sized-room leaf achieved-vs-
+target area and a plot accounting, then runs `innerloop.optimise` (nm, budget 80
+= the bootstrap child budget) and re-measures. Script:
+`experiments/diag_slack_localization.py` (harbor-house + maple-court, seeds 0/1/2).
+
+| programme    | state            | sizeF | util | tgtFill | ā/t | %und | %ovr | sized% | circ% | out% |
+|--------------|------------------|------:|-----:|--------:|----:|-----:|-----:|-------:|------:|-----:|
+| harbor-house | BEFORE (target)  | 23.3 | 0.50 | 0.50    |1.43 |  43  |  12  |   50   |  46   |  4   |
+| harbor-house | AFTER (innerloop)| 21.7 | 0.49 | 0.50    |1.40 |  54  |  16  |   49   |  46   |  4   |
+| maple-court  | BEFORE (target)  | 41.0 | 0.54 | 0.44    |1.46 |  42  |  15  |   54   |  43   |  3   |
+| maple-court  | AFTER (innerloop)| 37.3 | 0.53 | 0.44    |1.46 |  42  |  19  |   53   |  44   |  3   |
+
+(util = sized-room area ÷ plot; tgtFill = Σ room targets ÷ plot; ā/t = mean
+achieved/target over sized leaves; %und/%ovr = leaves below 0.9× / above 1.1×
+target.)
+
+**The "56 % empty plot" is a misreading.** Sized rooms already occupy ~50–54 %
+of the plot and hold **1.4–1.5× their aggregate target area** (util > tgtFill);
+the other ~46 % of the plot is **circulation**, not claimable void (out/uncovered
+is only 3–4 %). So rooms are *over*-provisioned in total — there is no unused plot
+to hand them.
+
+**The size fails are pure MALDISTRIBUTION, set by SLICING POSITION not by need.**
+The median room sits right at target (a/t ≈ 1.0), but a long undersize tail
+(p25 ≈ 0.35, min 0.05) starves while a few giant leaves balloon (max **6.8×**
+harbor, **14.7×** maple). Decisively, *the same room type with the same target
+lands at both extremes* — harbor `r` (target 10 m²) appears at 68 m² (6.8×) and
+2.3 m² (0.23×); maple `n` (target 60 m²) appears near target and at 2.7 m²
+(0.05×). A leaf's area is dictated by its depth/position in the binary slicing
+tree (ratios multiply down the ancestry), essentially independent of its target;
+`_size_divisions_from_targets` sets each *local* cut proportionally but cannot
+defeat the multiplicative depth effect. This is the same root cause as §13.1 (the
+binary-slicing structure), now seen on the size axis.
+
+**The inner loop cannot repair it.** Over budget 80 the size fails move only
+−1.6 (harbor) / −3.7 (maple), util is flat-to-down, and %undersize is flat-to-
+*worse* (43→54 harbor). On a frozen topology the equal-offset ratio DOF cannot
+shrink a 14× leaf to feed a starved one without trading into shape fails (the
+0.5ⁿ cliff, §4.5, blocks it), and the symmetric size Gaussian (`quality_size` is
+`gaussian(area, 1, target, σ)`) gives no net reward for redistribution.
+
+**VERDICT — the slack is depth-driven maldistribution inside the room set, not
+unclaimed plot, and the inner loop (frozen-topology ratios) provably cannot move
+it.** This *falsifies plot-fill construction* in the "claim the empty plot" sense
+(`erc.4` as scoped — rooms are already 1.4× over aggregate target; the empty-
+looking plot is circulation) and *deprioritises the inner-loop slack-expansion
+term* (`erc.6` — wrong DOF: ratios on a frozen tree cannot undo a depth-set 14×
+leaf, and the blocker is position not a missing expansion reward). The fix must
+live UPSTREAM of the inner loop, where leaf area is actually decided: construction
+that balances tree DEPTH so equal-target rooms land at comparable depth / caps
+giant leaves (re-scope `erc.4` from "plot-fill" to **depth-balanced / giant-
+splitting construction**), reinforcing §13.1's call to advance leaf-sharing
+(`erc.3`) for the starved tail. Recommendation: re-scope `erc.4`, deprioritise
+`erc.6`.
