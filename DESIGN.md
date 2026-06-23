@@ -1457,3 +1457,69 @@ pays **end-to-end**.
   ~135 shape+access fails. Further progress, if wanted, needs either the
   determinism fix (to even see sub-±3 effects) or a representational change beyond
   the slicing tree — not another seed/search tweak at this scale.
+
+## 13. Phase 8 — lowering the geometry/shape floor (`homemaker-py-erc`)
+
+Phase 8 runs DIAGNOSTICS FIRST to decide *which* floor-lowering lever to invest
+in, then the construction/inner-loop experiments in dependency order. §12.3/§12.4
+established the floor is real (search machinery and circulation-granularity both
+null); the open question is *what about the floor* — per-leaf slicing tax, or
+fixable cuts — and *where the slack hides* (util 0.44 yet rooms undersize).
+
+### 13.1 Diagnostic A: per-leaf shape-fail vs density/granularity (`homemaker-py-erc.1`) — DONE
+
+GATES leaf-sharing (`erc.3`) vs compactness-cuts (`erc.5`). Reads only; no A/B, no
+baseline reproduction. Builds the §12.2 constructive seed (adjacency- and
+proportion-aware), lays it out at the proportion-aware TARGET geometry — the
+squarest geometry the inner loop warm-starts from, exactly as
+`operators.predicted_shape_fails` — then counts size/width/proportion/crinkliness
+fails per leaf. Script: `experiments/diag_leaf_shapefail.py` (seeds 0/1/2).
+
+*View 1 — cross-programme density sweep* (per-leaf rate = shape-fails ÷ leaves):
+
+| programme        | rooms | leaves | l/room | util | shape | /leaf | siz/lf | wid/lf | prp/lf | crk/lf |
+|------------------|------:|-------:|-------:|-----:|------:|------:|-------:|-------:|-------:|-------:|
+| programme-house  |   6   |   9.0  | 1.50   | 0.83 |   8.0 | 0.889 | 0.000  | 0.519  | 0.222  | 0.148  |
+| harbor-house-l0  |  13   |  13.0  | 1.00   | 0.31 |  19.0 | 1.462 | 0.231  | 0.154  | 0.487  | 0.590  |
+| harbor-house     |  37   |  45.0  | 1.22   | 0.50 |  87.3 | 1.941 | 0.519  | 0.378  | 0.296  | 0.748  |
+| maple-court      |  52   |  73.0  | 1.40   | 0.54 | 134.3 | 1.840 | 0.562  | 0.224  | 0.251  | 0.804  |
+
+Per-leaf shape-fail SATURATES at ~1.8–1.9 once the programme is non-trivial: the
+tiny 6-room case is the only outlier (0.89, no size fails, high util 0.83), and
+the three larger programmes cluster at 1.46→1.94 with no dependence on
+leaves-per-room (which barely moves, 1.0–1.5). Cross-programme "density" here is
+confounded by plot/room-mix/util (util swings 0.31→0.83), so this view alone
+cannot separate "intrinsic per-leaf tax" from "more leaves, worse cuts".
+
+*View 2 — synthetic granularity sweep, maple-court, room set FIXED, leaf count
+varied via the c3g `circ_divisor` knob* (the controlled test):
+
+| circ_div | leaves | l/room | util | shape | /leaf | siz/lf | wid/lf | prp/lf | crk/lf |
+|---------:|-------:|-------:|-----:|------:|------:|-------:|-------:|-------:|-------:|
+|     2    |  81.0  | 1.56   | 0.46 | 139.0 | 1.716 | 0.477  | 0.169  | 0.226  | 0.844  |
+|     3    |  73.0  | 1.40   | 0.54 | 134.3 | 1.840 | 0.562  | 0.224  | 0.251  | 0.804  |
+|     4    |  68.0  | 1.31   | 0.44 | 126.7 | 1.863 | 0.495  | 0.294  | 0.289  | 0.784  |
+|     6    |  65.0  | 1.25   | 0.47 | 126.0 | 1.938 | 0.554  | 0.303  | 0.262  | 0.821  |
+|     9    |  63.0  | 1.21   | 0.50 | 116.3 | 1.847 | 0.481  | 0.280  | 0.339  | 0.746  |
+
+With the programme held fixed, the per-leaf shape-fail rate is **FLAT** as leaf
+count varies (1.72–1.94, no monotone trend; if anything a slight *rise* as you
+coarsen, since the survivors are bigger but still fail). Crucially **TOTAL shape
+fails track leaf count almost linearly** (139 → 116 as leaves 81 → 63), and
+crinkliness — the dominant factor (crk/lf ≈ 0.75–0.84) — is itself flat per leaf.
+Each leaf carries a roughly fixed ~1.8 shape-fail tax regardless of how finely the
+*same plot* is sliced. The target layout already picks the squarest-aspect cut
+direction (`_size_divisions_from_targets` chooses rotation for squarest children),
+so leaves are already near-optimally shaped and STILL fail at ~1.8/leaf — there is
+little compactness headroom left to recover at fixed leaf count.
+
+**VERDICT — per-leaf shape-fail is FLAT vs slicing density (controlled view 2) →
+the floor is INTRINSIC to per-leaf slicing, not to cut quality.** By the
+diagnostic's decision rule this *prioritises leaf-sharing* (`erc.3` — fewer leaves
+for the same rooms is the only lever that moves the floor) and *deprioritises
+compactness-aware cuts* (`erc.5` — cuts are already squarest and still pay the
+tax; little headroom at fixed count). Note this is *not* the §12.4 `circ_divisor`
+null: that lever removed CIRCULATION leaves and the shape gain was cancelled by
+access/adjacency damage; leaf-sharing removes ROOM-leaf count (multi-room leaves)
+without disturbing the circulation spine, so the access penalty that killed c3g
+need not apply. Recommendation: close/deprioritise `erc.5`, advance `erc.3`.
