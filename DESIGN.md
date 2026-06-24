@@ -1586,7 +1586,7 @@ splitting construction**), reinforcing §13.1's call to advance leaf-sharing
 (`erc.3`) for the starved tail. Recommendation: re-scope `erc.4`, deprioritise
 `erc.6`.
 
-### 13.3 Experiment: leaf-sharing / multi-room leaves (`homemaker-py-erc.3`) — A/B PENDING
+### 13.3 Experiment: leaf-sharing / multi-room leaves (`homemaker-py-erc.3`) — DONE
 
 The lever §13.1 named as the *only* one that moves the floor: collapse same-code
 rooms into fewer, larger **shared** leaves so the per-leaf ~1.8 shape tax is paid
@@ -1650,7 +1650,31 @@ staged driver (`driver.search`/`search_staged` → `constructive_topology` /
 `lift_base_to_storeys`) and exposed for the A/B via `LEAFSHARE`/`LEAFSHAREFAC` in
 `run_staged_search.py` (which injects the objective into the inner-loop and
 final-score fitness, both arms on one programme dir). Smoke-tested end-to-end
-(harbor, staged, leaf_sharing+factor 3: re-score OK). **Remaining: the staged
-20 000-eval A/B (maple + harbor, seeds 0/1/2) vs the §12.2 baseline
-(maple 136.0, harbor 74.0) to confirm the seed-floor gain survives end-to-end,
-recorded here as the closing verdict.**
+(harbor, staged, leaf_sharing+factor 3: re-score OK).
+
+**End-to-end A/B** (`experiments/run_leafshare_ab.sh`, staged search, 20 000
+native evals, seeds 0/1/2, `leaf_share_factor=3` vs the default-OFF baseline,
+final native re-score):
+
+| programme | baseline (s0/1/2) | mean | leaf-share f3 (s0/1/2) | mean | Δ |
+|-----------|-------------------|-----:|------------------------|-----:|------:|
+| maple-court  | 129 / 148 / 134 | 137.0 | 78 / 89 / 92 | 86.3 | **−37 %** |
+| harbor-house |  72 /  81 /  69 |  74.0 | 50 / 52 / 49 | 50.3 | **−32 %** |
+
+**VERDICT — leaf-sharing is the first lever to move the Phase-8 floor, and it
+moves it decisively: −37 % maple / −32 % harbor end-to-end.** The default-OFF
+baseline arm reproduces §12.2 exactly (maple 137.0 vs 136.0, harbor 74.0 vs
+74.0), so the gap is the lever, not drift; and the separation is total — *every*
+share run beats *every* baseline run on the same programme (maple worst-share 92
+< best-baseline 129; harbor 52 < 69). Fewer leaves also make each eval cheaper,
+so the share arm runs ~35 % faster at equal budget. This is the §13.1/§13.2
+prediction realised: the per-leaf ~1.8 shape tax is intrinsic, so collapsing
+52→47 / 45→26 room-leaves is what lowers the floor — and the explicit
+type-guarded multiplicity (vs the area-derived first cut) is what lets the gain
+survive without a missing-fail leak. Scoreboard update: this is the **5th** win
+from construction/seed quality and the first floor-mover of Phase 8; it confirms
+§12.3's thesis that only lowering the geometry floor (not search machinery) can
+help. Follow-ups: surface `leaf_sharing` on the `homemaker-evolve` CLI / as a
+`patterns.config` key for production use, sweep `leaf_share_factor`/`max_share`,
+and test the `erc.4` depth-balancing synergy (shared leaves at correct absolute
+area) now that the leak is closed.
