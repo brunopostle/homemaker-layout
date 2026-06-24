@@ -124,6 +124,48 @@ def test_constructive_topology_has_no_missing_spaces():
         canonical(root)
 
 
+def test_leaf_share_mult_recovery():
+    # erc.3 §13.3: multiplicity recovered from area = round(area/target), clamped.
+    from homemaker_layout.graph import _leaf_share_mult
+
+    assert _leaf_share_mult(10.0, 10.0, 4) == 1
+    assert _leaf_share_mult(19.0, 10.0, 4) == 2   # ~2x target → covers 2
+    assert _leaf_share_mult(100.0, 10.0, 4) == 4  # clamped at max_share
+    assert _leaf_share_mult(3.0, 10.0, 4) == 1    # never below 1
+    assert _leaf_share_mult(10.0, 0.0, 4) == 1    # no target → 1
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_leaf_sharing_reduces_leaves_and_covers_rooms():
+    # erc.3 §13.3: leaf_sharing builds fewer leaves, and coverage-counting lets
+    # the larger shared leaves satisfy several same-code rooms without missing.
+    from homemaker_layout import graph, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+    for trial in range(3):
+        plain = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(trial), types)
+        shared = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(trial), types,
+            leaf_sharing=True, leaf_share_factor=2)
+
+        n_plain = sum(len(l.leaves()) for l in dom.levels(plain))
+        n_shared = sum(len(l.leaves()) for l in dom.levels(shared))
+        assert n_shared < n_plain, f"trial {trial}: {n_shared} !< {n_plain}"
+
+        # Default-OFF parity: the flag defaults reproduce the strict count check.
+        assert (graph.check_space_counts(shared, reqs)
+                == graph.check_space_counts(shared, reqs, leaf_sharing=False))
+
+        # Coverage suppresses missings: the shared tree scored WITH leaf_sharing
+        # has fewer missing fails than the same tree scored without it.
+        _strict, miss_off = graph.check_space_counts(shared, reqs)
+        _cov, miss_on = graph.check_space_counts(shared, reqs, leaf_sharing=True)
+        assert len(miss_on) < len(miss_off), f"trial {trial}: sharing didn't cover"
+
+
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
 def test_adjacency_aware_seeding_cuts_adjacency_access_fails():
     # s44: adjacency-aware construction clusters rooms around a connected

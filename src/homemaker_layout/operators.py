@@ -384,8 +384,65 @@ def _grow_leaves(lvl: dom.Node, n_leaves: int, rng: np.random.Generator) -> None
         leaf.type = None
 
 
+def _share_rooms(rooms: list[str], reqs,
+                 share_factor: int) -> tuple[list[str], dict[str, list[int]]]:
+    """Collapse same-code room instances into fewer, larger shared leaves (erc.3).
+
+    Each sized, multi-instance code in ``rooms`` is grouped into runs of up to
+    ``share_factor`` instances → one leaf per run carrying that run's
+    multiplicity. Returns ``(reduced_codes, mult_plan)`` where ``reduced_codes``
+    is the new per-leaf code list (fewer entries) and ``mult_plan[code]`` lists
+    the multiplicities of that code's leaves (summing to the original count).
+    Circulation/outside and single-instance or non-sized codes are untouched
+    (multiplicity 1), so they cannot incur a missing fail under sharing.
+    """
+    from collections import Counter
+
+    counts = Counter(rooms)
+    reduced: list[str] = []
+    plan: dict[str, list[int]] = {}
+    for code in counts:
+        c = counts[code]
+        req = reqs.get(code) if reqs else None
+        shareable = (req is not None and req.has_size and req.size > 0
+                     and share_factor >= 2 and c >= 2)
+        if not shareable:
+            mults = [1] * c
+        else:
+            mults, remaining = [], c
+            while remaining > 0:
+                m = min(share_factor, remaining)
+                mults.append(m)
+                remaining -= m
+        plan[code] = mults
+        reduced.extend([code] * len(mults))
+    return reduced, plan
+
+
+def _leaf_mult_from_plan(lvl: dom.Node, plan: dict[str, list[int]]) -> dict:
+    """Map each typed leaf to its intended multiplicity from a ``_share_rooms``
+    plan, so ``_size_divisions_from_targets`` sizes shared leaves to k×target.
+
+    Bigger multiplicities go to whichever leaves already read largest, so the
+    proportional sizing pass has the least work to do. Defensive against a leaf
+    count that differs from the plan (assignment dropped/added a slot): extra
+    leaves default to multiplicity 1, surplus plan entries are ignored."""
+    from . import geometry
+    by_code: dict[str, list[dom.Node]] = {}
+    for lf in lvl.leaves():
+        if lf.type:
+            by_code.setdefault(lf.type, []).append(lf)
+    leaf_mult: dict = {}
+    for code, mults in plan.items():
+        leaves = sorted(by_code.get(code, []), key=geometry.area, reverse=True)
+        for lf, m in zip(leaves, sorted(mults, reverse=True)):
+            if m > 1:
+                leaf_mult[lf] = m
+    return leaf_mult
+
+
 def _size_divisions_from_targets(lvl: dom.Node, reqs, fmin: float = 0.04,
-                                 fmax: float = 0.96) -> None:
+                                 fmax: float = 0.96, leaf_mult: dict | None = None) -> None:
     """Resize each divided node's split ratio from its leaves' TARGET areas.
 
     leu.2 (DESIGN.md §12.2, follow-up to §11.6/§11.7): the constructive seeders
@@ -418,7 +475,8 @@ def _size_divisions_from_targets(lvl: dom.Node, reqs, fmin: float = 0.04,
     if len(leaves) < 2:
         return
 
-    sized = {lf: reqs[lf.type].size for lf in leaves
+    leaf_mult = leaf_mult or {}
+    sized = {lf: reqs[lf.type].size * leaf_mult.get(lf, 1) for lf in leaves
              if lf.type in reqs and reqs[lf.type].size > 0}
     mean_sized = (sum(sized.values()) / len(sized)) if sized else 1.0
     n_generic = len(leaves) - len(sized)
@@ -568,7 +626,9 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           types: list[str], min_storeys: int = 1,
                           adjacency_aware: bool = True,
                           proportion_aware: bool = True,
-                          circ_divisor: int = 3) -> dom.Node:
+                          circ_divisor: int = 3,
+                          leaf_sharing: bool = False,
+                          leaf_share_factor: int = 2) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -614,6 +674,14 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
 
     for li, lvl in enumerate(lvls):
         rooms = list(buckets[li])
+        # erc.3 leaf-sharing (§13.3): collapse same-code rooms into fewer, larger
+        # shared leaves BEFORE growing the tree, so the storey carries fewer total
+        # leaves (each paying the ~1.8 shape-fail tax once, §13.1). The fitness
+        # recovers each leaf's multiplicity from area; here we only reduce the
+        # code list and remember the plan to size shared leaves to k×target.
+        share_plan: dict[str, list[int]] = {}
+        if leaf_sharing:
+            rooms, share_plan = _share_rooms(rooms, reqs, leaf_share_factor)
         if adjacency_aware:
             # Spend extra leaves on a circulation spine (~one circ per 3 rooms),
             # then assign so every room is adjacent to it (s44). Geometry must be
@@ -639,7 +707,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             # first so upper-storey roots resolve geometry (the else branch above
             # does not link, unlike the adjacency-aware branch).
             dom._link(child)
-            _size_divisions_from_targets(lvl, reqs)
+            _size_divisions_from_targets(
+                lvl, reqs, leaf_mult=_leaf_mult_from_plan(lvl, share_plan))
 
     return _finalise(child)
 

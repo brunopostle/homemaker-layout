@@ -427,9 +427,24 @@ def has_vertical_connection(leaf: Node, target_code: str, lvls: list[Node]) -> b
 # Space-count detection + failure stacking (ProgrammeDriven.pm:154-215)
 # --------------------------------------------------------------------------- #
 
+def _leaf_share_mult(area: float, target: float, max_share: int) -> int:
+    """Recover how many same-code rooms a leaf of ``area`` covers (erc.3).
+
+    Leaf-sharing carries no explicit genome state: a shared leaf is just a
+    larger leaf of the code, sized by construction to ``k × target`` area. The
+    multiplicity is recovered here from area alone — ``round(area/target)``,
+    clamped to ``[1, max_share]`` — so the count check and ``quality_size``
+    agree on the same ``k`` (both use this helper / its rounding)."""
+    if target <= 0:
+        return 1
+    return max(1, min(max_share, round(area / target)))
+
+
 def check_space_counts(
     root: Node,
     targets: dict[str, SpaceReq],
+    leaf_sharing: bool = False,
+    max_share: int = 4,
 ) -> tuple[list[str], list[str]]:
     """Check design has exactly the required spaces; mirrors
     ``check_space_counts`` in ``ProgrammeDriven.pm:156-215``.
@@ -439,13 +454,19 @@ def check_space_counts(
       space, up to ~7 per missing space; also "too many" for excess spaces).
     - ``missing_ids`` is the list of virtual space ids used to suppress false
       adjacency/level/vertical failures for absent spaces.
+
+    With ``leaf_sharing`` (erc.3, DESIGN.md §13.3) presence is counted by
+    *coverage* not leaf count: one sufficiently large leaf of a code covers
+    ``round(area/target)`` required instances (capped at ``max_share``), so a
+    single shared leaf can satisfy several same-code rooms without a missing
+    fail. Default OFF reproduces the strict per-leaf count exactly.
     """
     # Count spaces by type (case-sensitive, as in Perl exact-match for unique)
-    count: dict[str, list[str]] = {}
+    count: dict[str, list[Node]] = {}
     for lvl in levels(root):
         for leaf in lvl.leaves():
             if leaf.type:
-                count.setdefault(leaf.type, []).append(leaf.id)
+                count.setdefault(leaf.type, []).append(leaf)
 
     failures: list[str] = []
     missing: list[str] = []
@@ -454,7 +475,13 @@ def check_space_counts(
         if code[0].lower() in ("c", "o", "s"):
             continue
 
-        actual = len(count.get(code, []))
+        leaves_of = count.get(code, [])
+        if leaf_sharing and req.size > 0:
+            # Coverage: sum the per-leaf multiplicity recovered from area.
+            actual = sum(_leaf_share_mult(geometry.area(lf), req.size, max_share)
+                         for lf in leaves_of)
+        else:
+            actual = len(leaves_of)
         expected = req.count
 
         if actual < expected:

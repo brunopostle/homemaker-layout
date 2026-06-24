@@ -1585,3 +1585,70 @@ giant leaves (re-scope `erc.4` from "plot-fill" to **depth-balanced / giant-
 splitting construction**), reinforcing §13.1's call to advance leaf-sharing
 (`erc.3`) for the starved tail. Recommendation: re-scope `erc.4`, deprioritise
 `erc.6`.
+
+### 13.3 Experiment: leaf-sharing / multi-room leaves (`homemaker-py-erc.3`) — IN PROGRESS
+
+The lever §13.1 named as the *only* one that moves the floor: collapse same-code
+rooms into fewer, larger **shared** leaves so the per-leaf ~1.8 shape tax is paid
+once per group instead of once per room. Unlike c3g (§12.4) this removes
+ROOM-leaf count, not circulation, so the access/adjacency penalty that sank c3g
+need not apply.
+
+**Mechanism (no genome change).** A shared leaf carries no explicit state — it is
+just a larger leaf of the code, which construction sizes to `k × target` area.
+Its multiplicity `k` is *recovered from area* at scoring time,
+`k = clamp(round(area/target), 1, max_share)` (`graph._leaf_share_mult`), used in
+two places, both gated by a default-OFF `leaf_sharing` config key (controls
+reproduce the §12.2 baseline exactly — all 212 tests pass with it off):
+- `graph.check_space_counts` counts **coverage** (Σ per-leaf `k`) against
+  `req.count`, so one shared leaf satisfies several same-code rooms with no
+  missing fail;
+- `fitness.quality_size` centres the size Gaussian on `k × target` (σ scaled by
+  `k`, preserving the *fractional* tolerance) so the shared leaf is not read as
+  oversize. `quality_proportion`/`quality_width` need no change — a
+  proportionally-scaled leaf keeps its aspect and only gets wider.
+
+Construction (`operators._share_rooms`, `constructive_topology` with
+`leaf_sharing=True`, `leaf_share_factor=N`) groups each sized, multi-instance
+code into runs of ≤ N instances → one leaf per run, then `_size_divisions_from_
+targets` sizes that leaf to the run's `k × target`. Only same-code merges (rooms
+with identical adjacency/level reqs) so the spine assignment stays valid.
+
+**Floor probe** (`experiments/diag_leaf_sharing.py`, harbor + maple, seeds 0/1/2)
+— a cheap de-risk before the full A/B: build the §12.2 seed both ways, score at
+the seed geometry and again after `innerloop.optimise` (nm, budget 80) under the
+*same* objective. Averaged fails:
+
+| programme | mode        | leaves | total | missing | size | crink |
+|-----------|-------------|-------:|------:|--------:|-----:|------:|
+| harbor    | OFF +il     |  45.0  | 120.3 |   0.0   | 21.7 | 33.7  |
+| harbor    | share2 +il  |  31.7  | 106.0 |  24.0   | 14.0 | 22.7  |
+| harbor    | share3 +il  |  25.7  |  87.3 |  16.7   | 10.0 | 18.0  |
+| maple     | OFF +il     |  73.0  | 194.7 |   0.0   | 37.3 | 58.3  |
+| maple     | share2 +il  |  52.0  | 184.3 |  44.3   | 23.3 | 41.0  |
+| maple     | share3 +il  |  47.0  | 162.7 |  35.3   | 17.7 | 39.0  |
+
+**The floor moves** — total fails drop **−27 % harbor / −16 % maple** at
+`share3`, and the drop is exactly where §13.1 predicted: the shape factors fall
+roughly with leaf count (harbor size 22→10, crinkliness 34→18 as leaves 45→26).
+The §13.1 linear-in-leaves model holds.
+
+**But a missing-fail leak caps the gain, and the inner loop cannot close it.**
+Sharing buys back 17–44 *missing* fails, and `innerloop.optimise` barely moves
+them (harbor 17→17, maple 37→35). This is the §13.2 mechanism on the new axis:
+the area-derived `k` recovery is defeated by binary-tree **depth maldistribution**
+— a leaf "sized to `k × target`" lands at the wrong *absolute* area because
+ratios multiply down the ancestry, so `round(area/target) < k` and the uncovered
+rooms read as missing; the frozen-topology ratio DOF then cannot grow it back
+(0.5ⁿ cliff). Net is still positive because the shape savings outweigh the leak.
+
+**Verdict so far — leaf-sharing is validated as a real floor-mover (−16…−27 %),
+and its cap is the predicted `erc.3`↔`erc.4` synergy: shared leaves only pay off
+fully when construction puts them at the right absolute area (depth-balancing).**
+Open design fork for the full 20 000-eval A/B: (a) thread the (working, tested)
+area-derived flag through the driver and run as-is — a valid experiment that
+already shows net gain; or (b) first replace area-derived `k` with an **explicit
+per-leaf multiplicity** (present-but-undersize → light size fail, not a heavy
+missing fail) and/or pair with `erc.4` depth-balancing to land shared leaves at
+`k × target`. The implementation (operators + fitness + graph, default-OFF) and
+the probe are committed; driver plumbing + the staged A/B remain.

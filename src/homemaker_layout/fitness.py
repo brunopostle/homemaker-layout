@@ -188,6 +188,10 @@ class Fitness:
         self.spaces: dict = self._conf.get("spaces") or {}
         self._programme_cache: dict | None = None
         self._load_programme(self._conf)
+        # erc.3 leaf-sharing (DESIGN.md §13.3): default OFF. When on, a leaf sized
+        # to k×target counts as k same-code rooms (count check + size centring).
+        self._leaf_sharing = bool(self.conf("leaf_sharing"))
+        self._max_share = int(self.conf("leaf_share_max") or 4)
 
     def conf(self, key: str):
         v = self._conf.get(key)
@@ -277,7 +281,16 @@ class Fitness:
             params = self.conf("size_circulation")
         else:
             params = self.get_space_params(leaf.type, "size")
-        return gaussian(geometry.area(leaf), 1.0, params[0], params[1])
+        target, sigma = params[0], params[1]
+        if self._leaf_sharing and t0 != "c" and target > 0:
+            # erc.3: a shared leaf holds k same-code rooms; centre the Gaussian on
+            # k×target (k recovered from area, as in graph._leaf_share_mult) and
+            # scale sigma by k so the *fractional* size tolerance is preserved.
+            from . import graph as _graph
+            k = _graph._leaf_share_mult(geometry.area(leaf), target, self._max_share)
+            if k > 1:
+                target, sigma = target * k, sigma * k
+        return gaussian(geometry.area(leaf), 1.0, target, sigma)
 
     def quality_width(self, leaf: Node) -> float:
         t0 = _t0(leaf)
@@ -1024,7 +1037,8 @@ class Fitness:
         programme = self._programme or {}
 
         # --- Phase 1: UNMERGED tree checks ---
-        check_fails, missing = graph_mod.check_space_counts(root, programme)
+        check_fails, missing = graph_mod.check_space_counts(
+            root, programme, self._leaf_sharing, self._max_share)
         failures.extend(check_fails)
 
         self.preprocess_building(root)
