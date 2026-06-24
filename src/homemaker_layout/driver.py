@@ -187,6 +187,8 @@ def search(
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
+    leaf_sharing: bool = False,
+    leaf_share_factor: int = 2,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -386,7 +388,8 @@ def search(
                 seed_root, reqs, rng, types, min_storeys=min_storeys,
                 adjacency_aware=seed_adjacency_aware,
                 proportion_aware=seed_proportion_aware,
-                circ_divisor=circ_divisor)
+                circ_divisor=circ_divisor,
+                leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor)
             return (topo, None, child_budget, {}, f"construct/{tag}")
         n = int(rng.integers(max(1, n_target - 1), n_target + 2))
         return (random_topology(seed_root, n, rng, types), None, child_budget,
@@ -511,6 +514,8 @@ def search_staged(
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
+    leaf_sharing: bool = False,
+    leaf_share_factor: int = 2,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -558,7 +563,9 @@ def search_staged(
                       enable_reassociate=enable_reassociate,
                       feasibility_filter=feasibility_filter,
                       feasibility_max_shape_fails=feasibility_max_shape_fails,
-                      circ_divisor=circ_divisor)
+                      circ_divisor=circ_divisor,
+                      leaf_sharing=leaf_sharing,
+                      leaf_share_factor=leaf_share_factor)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -588,6 +595,8 @@ def search_staged(
             feasibility_filter=feasibility_filter,
             feasibility_max_shape_fails=feasibility_max_shape_fails,
             circ_divisor=circ_divisor,
+            leaf_sharing=leaf_sharing,
+            leaf_share_factor=leaf_share_factor,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -605,7 +614,8 @@ def search_staged(
             best_base, upper, rng2, types, reqs=reqs,
             adjacency_aware=seed_adjacency_aware,
             proportion_aware=seed_proportion_aware,
-            circ_divisor=circ_divisor)
+            circ_divisor=circ_divisor,
+            leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor)
 
     _log(f"[staged] stage 2: upper floors as deltas, budget {b2}, base_p {base_p}")
     r2 = search(
@@ -623,6 +633,8 @@ def search_staged(
         feasibility_filter=feasibility_filter,
         feasibility_max_shape_fails=feasibility_max_shape_fails,
         circ_divisor=circ_divisor,
+        leaf_sharing=leaf_sharing,
+        leaf_share_factor=leaf_share_factor,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

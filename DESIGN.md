@@ -1586,7 +1586,7 @@ splitting construction**), reinforcing §13.1's call to advance leaf-sharing
 (`erc.3`) for the starved tail. Recommendation: re-scope `erc.4`, deprioritise
 `erc.6`.
 
-### 13.3 Experiment: leaf-sharing / multi-room leaves (`homemaker-py-erc.3`) — IN PROGRESS
+### 13.3 Experiment: leaf-sharing / multi-room leaves (`homemaker-py-erc.3`) — A/B PENDING
 
 The lever §13.1 named as the *only* one that moves the floor: collapse same-code
 rooms into fewer, larger **shared** leaves so the per-leaf ~1.8 shape tax is paid
@@ -1594,61 +1594,63 @@ once per group instead of once per room. Unlike c3g (§12.4) this removes
 ROOM-leaf count, not circulation, so the access/adjacency penalty that sank c3g
 need not apply.
 
-**Mechanism (no genome change).** A shared leaf carries no explicit state — it is
-just a larger leaf of the code, which construction sizes to `k × target` area.
-Its multiplicity `k` is *recovered from area* at scoring time,
-`k = clamp(round(area/target), 1, max_share)` (`graph._leaf_share_mult`), used in
-two places, both gated by a default-OFF `leaf_sharing` config key (controls
-reproduce the §12.2 baseline exactly — all 212 tests pass with it off):
+**Mechanism — explicit, type-guarded per-leaf multiplicity.** A construction
+stamps `leaf.share = k` and `leaf.share_type = code` on each shared leaf
+(`operators._share_rooms` groups a sized, multi-instance code into runs of ≤ `N`
+= `leaf_share_factor`; `_leaf_mult_from_plan` stamps the survivors and
+`_size_divisions_from_targets` sizes them to `k × target`). The fitness honours
+`k` only while `leaf.type == leaf.share_type` (`graph.leaf_share`), so any
+retype/undivide silently invalidates a stale share — the mutation operators need
+no resets, and a small leaf can never *retype* its way into claiming rooms it
+does not provide. Two scoring sites, both gated by a default-OFF `leaf_sharing`
+key (controls reproduce the §12.2 baseline exactly — 214 tests pass with it off):
 - `graph.check_space_counts` counts **coverage** (Σ per-leaf `k`) against
   `req.count`, so one shared leaf satisfies several same-code rooms with no
   missing fail;
 - `fitness.quality_size` centres the size Gaussian on `k × target` (σ scaled by
-  `k`, preserving the *fractional* tolerance) so the shared leaf is not read as
-  oversize. `quality_proportion`/`quality_width` need no change — a
+  `k`). `quality_proportion`/`quality_width` need no change — a
   proportionally-scaled leaf keeps its aspect and only gets wider.
 
-Construction (`operators._share_rooms`, `constructive_topology` with
-`leaf_sharing=True`, `leaf_share_factor=N`) groups each sized, multi-instance
-code into runs of ≤ N instances → one leaf per run, then `_size_divisions_from_
-targets` sizes that leaf to the run's `k × target`. Only same-code merges (rooms
-with identical adjacency/level reqs) so the spine assignment stays valid.
+*Design history:* the first cut recovered `k` from area
+(`round(area/target)`) to avoid genome state, but the §13.2 depth
+maldistribution left shared leaves below `k × target`, so `round` undercounted
+and **17–44 missing fails leaked back** (harbor `share3`+il: 87.3 total, 16.7
+missing; the inner loop could not close it — frozen-topology ratios, §13.2).
+Switching to **explicit** `share` (an undersize shared leaf is *present* → a
+light size fail, not a heavy missing fail) closes the leak. Because the phenotype
+tree is never rebuilt from the genome in the hot path (`genome.decode` is unused;
+operators edit `dom.Node` trees in place), the two `Node` fields survive the whole
+search via deepcopy without threading through `GNode`/encode/decode; `.dom`
+serialisation emits `share` only on a live shared leaf.
 
 **Floor probe** (`experiments/diag_leaf_sharing.py`, harbor + maple, seeds 0/1/2)
-— a cheap de-risk before the full A/B: build the §12.2 seed both ways, score at
-the seed geometry and again after `innerloop.optimise` (nm, budget 80) under the
-*same* objective. Averaged fails:
+— build the §12.2 seed both ways, score at the seed geometry and again after
+`innerloop.optimise` (nm, budget 80) under the *same* objective. Averaged fails:
 
 | programme | mode        | leaves | total | missing | size | crink |
 |-----------|-------------|-------:|------:|--------:|-----:|------:|
 | harbor    | OFF +il     |  45.0  | 120.3 |   0.0   | 21.7 | 33.7  |
-| harbor    | share2 +il  |  31.7  | 106.0 |  24.0   | 14.0 | 22.7  |
-| harbor    | share3 +il  |  25.7  |  87.3 |  16.7   | 10.0 | 18.0  |
+| harbor    | share2 +il  |  31.7  |  86.0 |   0.0   | 15.3 | 22.0  |
+| harbor    | share3 +il  |  25.7  |  73.3 |   0.0   | 12.7 | 17.7  |
 | maple     | OFF +il     |  73.0  | 194.7 |   0.0   | 37.3 | 58.3  |
-| maple     | share2 +il  |  52.0  | 184.3 |  44.3   | 23.3 | 41.0  |
-| maple     | share3 +il  |  47.0  | 162.7 |  35.3   | 17.7 | 39.0  |
+| maple     | share2 +il  |  52.0  | 145.7 |   0.0   | 25.7 | 41.3  |
+| maple     | share3 +il  |  47.0  | 133.0 |   0.0   | 21.0 | 39.3  |
 
-**The floor moves** — total fails drop **−27 % harbor / −16 % maple** at
-`share3`, and the drop is exactly where §13.1 predicted: the shape factors fall
-roughly with leaf count (harbor size 22→10, crinkliness 34→18 as leaves 45→26).
-The §13.1 linear-in-leaves model holds.
+**The floor moves and the leak is closed** — `share3` cuts the achievable floor
+**−39 % harbor (120.3 → 73.3) / −32 % maple (194.7 → 133.0)** with **zero missing
+fails**, and the missing did *not* re-emerge as size fails (size still falls,
+22→13 harbor / 37→21 maple). The drop is exactly where §13.1 predicted: shape
+factors fall with leaf count (harbor leaves 45→26, crinkliness 34→18). Larger
+`leaf_share_factor` helps monotonically here (share2 → share3), bounded by
+`leaf_share_max` (default 4).
 
-**But a missing-fail leak caps the gain, and the inner loop cannot close it.**
-Sharing buys back 17–44 *missing* fails, and `innerloop.optimise` barely moves
-them (harbor 17→17, maple 37→35). This is the §13.2 mechanism on the new axis:
-the area-derived `k` recovery is defeated by binary-tree **depth maldistribution**
-— a leaf "sized to `k × target`" lands at the wrong *absolute* area because
-ratios multiply down the ancestry, so `round(area/target) < k` and the uncovered
-rooms read as missing; the frozen-topology ratio DOF then cannot grow it back
-(0.5ⁿ cliff). Net is still positive because the shape savings outweigh the leak.
-
-**Verdict so far — leaf-sharing is validated as a real floor-mover (−16…−27 %),
-and its cap is the predicted `erc.3`↔`erc.4` synergy: shared leaves only pay off
-fully when construction puts them at the right absolute area (depth-balancing).**
-Open design fork for the full 20 000-eval A/B: (a) thread the (working, tested)
-area-derived flag through the driver and run as-is — a valid experiment that
-already shows net gain; or (b) first replace area-derived `k` with an **explicit
-per-leaf multiplicity** (present-but-undersize → light size fail, not a heavy
-missing fail) and/or pair with `erc.4` depth-balancing to land shared leaves at
-`k × target`. The implementation (operators + fitness + graph, default-OFF) and
-the probe are committed; driver plumbing + the staged A/B remain.
+**Verdict — leaf-sharing is the floor-mover §13.1/§13.2 called for: −32…−39 % on
+the achievable floor, no missing-fail leak.** The flag is threaded through the
+staged driver (`driver.search`/`search_staged` → `constructive_topology` /
+`lift_base_to_storeys`) and exposed for the A/B via `LEAFSHARE`/`LEAFSHAREFAC` in
+`run_staged_search.py` (which injects the objective into the inner-loop and
+final-score fitness, both arms on one programme dir). Smoke-tested end-to-end
+(harbor, staged, leaf_sharing+factor 3: re-score OK). **Remaining: the staged
+20 000-eval A/B (maple + harbor, seeds 0/1/2) vs the §12.2 baseline
+(maple 136.0, harbor 74.0) to confirm the seed-floor gain survives end-to-end,
+recorded here as the closing verdict.**

@@ -420,13 +420,16 @@ def _share_rooms(rooms: list[str], reqs,
 
 
 def _leaf_mult_from_plan(lvl: dom.Node, plan: dict[str, list[int]]) -> dict:
-    """Map each typed leaf to its intended multiplicity from a ``_share_rooms``
-    plan, so ``_size_divisions_from_targets`` sizes shared leaves to k×target.
+    """Stamp each typed leaf with its share multiplicity from a ``_share_rooms``
+    plan and return a leaf→multiplicity map for sizing.
 
-    Bigger multiplicities go to whichever leaves already read largest, so the
-    proportional sizing pass has the least work to do. Defensive against a leaf
-    count that differs from the plan (assignment dropped/added a slot): extra
-    leaves default to multiplicity 1, surplus plan entries are ignored."""
+    Sets ``leaf.share = k`` and ``leaf.share_type = leaf.type`` (the explicit,
+    type-guarded multiplicity the fitness reads, §13.3) on shared leaves, and
+    returns ``{leaf: k}`` so ``_size_divisions_from_targets`` sizes them to
+    k×target. Bigger multiplicities go to whichever leaves already read largest,
+    so the proportional sizing pass has the least work to do. Defensive against a
+    leaf count that differs from the plan (assignment dropped/added a slot):
+    extra leaves stay multiplicity 1, surplus plan entries are ignored."""
     from . import geometry
     by_code: dict[str, list[dom.Node]] = {}
     for lf in lvl.leaves():
@@ -438,6 +441,8 @@ def _leaf_mult_from_plan(lvl: dom.Node, plan: dict[str, list[int]]) -> dict:
         for lf, m in zip(leaves, sorted(mults, reverse=True)):
             if m > 1:
                 leaf_mult[lf] = m
+                lf.share = m
+                lf.share_type = lf.type
     return leaf_mult
 
 
@@ -717,7 +722,9 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
                          rng: np.random.Generator, types: list[str],
                          reqs=None, adjacency_aware: bool = True,
                          proportion_aware: bool = True,
-                         circ_divisor: int = 3) -> dom.Node:
+                         circ_divisor: int = 3,
+                         leaf_sharing: bool = False,
+                         leaf_share_factor: int = 2) -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
     Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
@@ -748,6 +755,11 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
         core_node = dup.by_id(core_path) if core_path is not None else None
 
         rooms = [code for code, cnt in bucket.items() for _ in range(cnt)]
+        # erc.3: collapse same-code rooms into fewer shared leaves on this storey
+        # too (§13.3), so upper floors get the same per-leaf-tax saving.
+        share_plan: dict[str, list[int]] = {}
+        if leaf_sharing:
+            rooms, share_plan = _share_rooms(rooms, reqs, leaf_share_factor)
 
         def _free() -> list[dom.Node]:
             return [lf for lf in dup.leaves() if lf is not core_node]
@@ -798,7 +810,8 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             # the base via below-links are no-ops here — their geometry is fixed
             # below — so this best-effort sizes the floor's own new divisions.)
             dom._link(child)
-            _size_divisions_from_targets(dup, reqs)
+            _size_divisions_from_targets(
+                dup, reqs, leaf_mult=_leaf_mult_from_plan(dup, share_plan))
 
         prev = dup
 

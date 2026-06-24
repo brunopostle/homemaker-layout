@@ -284,10 +284,12 @@ class Fitness:
         target, sigma = params[0], params[1]
         if self._leaf_sharing and t0 != "c" and target > 0:
             # erc.3: a shared leaf holds k same-code rooms; centre the Gaussian on
-            # k×target (k recovered from area, as in graph._leaf_share_mult) and
-            # scale sigma by k so the *fractional* size tolerance is preserved.
+            # k×target (k = leaf's explicit, type-guarded share) and scale sigma by
+            # k so the *fractional* size tolerance is preserved. An undersize
+            # shared leaf now lands a (light) size fail here instead of a (heavy)
+            # missing fail in the count check — the §13.3 leak fix.
             from . import graph as _graph
-            k = _graph._leaf_share_mult(geometry.area(leaf), target, self._max_share)
+            k = _graph.leaf_share(leaf, self._max_share)
             if k > 1:
                 target, sigma = target * k, sigma * k
         return gaussian(geometry.area(leaf), 1.0, target, sigma)

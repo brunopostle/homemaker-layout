@@ -124,15 +124,18 @@ def test_constructive_topology_has_no_missing_spaces():
         canonical(root)
 
 
-def test_leaf_share_mult_recovery():
-    # erc.3 §13.3: multiplicity recovered from area = round(area/target), clamped.
-    from homemaker_layout.graph import _leaf_share_mult
+def test_leaf_share_explicit_and_type_guarded():
+    # erc.3 §13.3: explicit multiplicity, honoured only while type==share_type so
+    # a retype silently invalidates a stale share (no operator reset needed).
+    from homemaker_layout.graph import leaf_share
 
-    assert _leaf_share_mult(10.0, 10.0, 4) == 1
-    assert _leaf_share_mult(19.0, 10.0, 4) == 2   # ~2x target → covers 2
-    assert _leaf_share_mult(100.0, 10.0, 4) == 4  # clamped at max_share
-    assert _leaf_share_mult(3.0, 10.0, 4) == 1    # never below 1
-    assert _leaf_share_mult(10.0, 0.0, 4) == 1    # no target → 1
+    leaf = dom.Node(type="n", share=3, share_type="n")
+    assert leaf_share(leaf, 4) == 3
+    assert leaf_share(leaf, 2) == 2          # clamped at max_share
+    leaf.type = "ba"                          # retyped → share no longer matches
+    assert leaf_share(leaf, 4) == 1
+    plain = dom.Node(type="n")                # default share 1
+    assert leaf_share(plain, 4) == 1
 
 
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")

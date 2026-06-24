@@ -62,6 +62,23 @@ def main() -> int:
     _ms = os.environ.get("MAXSHAPE")           # 9gp.1 prune threshold (shape-fail count)
     max_shape = int(_ms) if _ms else None
     circ_div = int(os.environ.get("CIRCDIV", "3"))  # c3g circ-per-room granularity knob
+    leaf_share = os.environ.get("LEAFSHARE", "0") == "1"  # erc.3 leaf-sharing A/B
+    leaf_share_fac = int(os.environ.get("LEAFSHAREFAC", "2"))
+
+    if leaf_share:
+        # erc.3 §13.3: the inner-loop and final-score fitness are built from the
+        # dir's patterns.config (which has no leaf_sharing key); inject it here so
+        # the WHOLE pipeline scores under the same relaxed objective the
+        # constructed shared leaves target. Keeps both A/B arms on one dir.
+        _orig_load = fitness.load_config
+
+        def _load_with_sharing(directory):
+            conf, cost = _orig_load(directory)
+            conf = dict(conf)
+            conf["leaf_sharing"] = True
+            return conf, cost
+
+        fitness.load_config = _load_with_sharing
 
     print(f"programme : {programme_dir.name}")
     print(f"seed      : {seed_file.name}")
@@ -75,6 +92,7 @@ def main() -> int:
     print(f"reassoc   : {reassoc}")
     print(f"feas_filt : {feas} (max_shape={max_shape})")
     print(f"circ_div  : {circ_div}")
+    print(f"leaf_share: {leaf_share} (factor={leaf_share_fac})")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -101,6 +119,8 @@ def main() -> int:
         feasibility_filter=feas,
         feasibility_max_shape_fails=max_shape,
         circ_divisor=circ_div,
+        leaf_sharing=leaf_share,
+        leaf_share_factor=leaf_share_fac,
     )
 
     elapsed = time.perf_counter() - t0

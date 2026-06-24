@@ -31,6 +31,14 @@ class Node:
     right: "Node | None" = None
     above: "Node | None" = None
 
+    # erc.3 leaf-sharing (DESIGN.md §13.3): how many same-code rooms this leaf
+    # covers (1 = a normal leaf). ``share_type`` records the type the share was
+    # assigned for; the fitness honours ``share`` only while ``type ==
+    # share_type``, so any retype/undivide automatically invalidates a stale
+    # share without the mutation operators needing to reset it.
+    share: int = 1
+    share_type: "str | None" = None
+
     # level-root only
     node: list[list[float]] | None = None  # working corners (wall-inset)
     node_file: list[list[float]] | None = None  # raw outer corners as read from disk
@@ -82,6 +90,11 @@ def _parse(d: dict) -> Node:
     n.rotation = int(d.get("rotation") or 0)
     if d.get("type") is not None:
         n.type = str(d["type"])
+    if d.get("share") is not None:
+        # share is only emitted for leaves where it is live (share>1 and the
+        # type still matches), so on read the assigned-for type is this leaf's.
+        n.share = int(d["share"])
+        n.share_type = n.type
     if d.get("node") is not None:
         n.node = [[float(p[0]), float(p[1])] for p in d["node"]]
     if d.get("perimeter") is not None:
@@ -177,6 +190,8 @@ def _emit(n: Node, is_level_root: bool) -> dict:
         d["perimeter"] = dict(n.perimeter)
     if n.type and not n.divided:
         d["type"] = n.type
+        if n.share > 1 and n.share_type == n.type:  # erc.3: live leaf-share only
+            d["share"] = n.share
     d["rotation"] = n.rotation
     if n.divided:
         d["division"] = list(n.division)

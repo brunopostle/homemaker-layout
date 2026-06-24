@@ -427,17 +427,18 @@ def has_vertical_connection(leaf: Node, target_code: str, lvls: list[Node]) -> b
 # Space-count detection + failure stacking (ProgrammeDriven.pm:154-215)
 # --------------------------------------------------------------------------- #
 
-def _leaf_share_mult(area: float, target: float, max_share: int) -> int:
-    """Recover how many same-code rooms a leaf of ``area`` covers (erc.3).
+def leaf_share(leaf: Node, max_share: int) -> int:
+    """How many same-code rooms a leaf covers under leaf-sharing (erc.3, §13.3).
 
-    Leaf-sharing carries no explicit genome state: a shared leaf is just a
-    larger leaf of the code, sized by construction to ``k × target`` area. The
-    multiplicity is recovered here from area alone — ``round(area/target)``,
-    clamped to ``[1, max_share]`` — so the count check and ``quality_size``
-    agree on the same ``k`` (both use this helper / its rounding)."""
-    if target <= 0:
-        return 1
-    return max(1, min(max_share, round(area / target)))
+    Explicit per-leaf multiplicity: construction stamps ``leaf.share = k`` and
+    ``leaf.share_type = code``; this is honoured only while ``leaf.type`` still
+    equals ``share_type``, so any retype/undivide silently invalidates a stale
+    share (a retyped small leaf cannot claim to cover rooms it does not provide).
+    Clamped to ``max_share``. Both the count check and ``quality_size`` read this
+    one helper so they always agree on ``k``."""
+    if leaf.share > 1 and leaf.share_type == leaf.type:
+        return min(max_share, leaf.share)
+    return 1
 
 
 def check_space_counts(
@@ -477,9 +478,8 @@ def check_space_counts(
 
         leaves_of = count.get(code, [])
         if leaf_sharing and req.size > 0:
-            # Coverage: sum the per-leaf multiplicity recovered from area.
-            actual = sum(_leaf_share_mult(geometry.area(lf), req.size, max_share)
-                         for lf in leaves_of)
+            # Coverage: sum each leaf's explicit (type-guarded) share multiplicity.
+            actual = sum(leaf_share(lf, max_share) for lf in leaves_of)
         else:
             actual = len(leaves_of)
         expected = req.count
