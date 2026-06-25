@@ -373,10 +373,33 @@ def mutate_place_missing(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"place_missing {code} -> {host_id}"
 
 
-def _grow_leaves(lvl: dom.Node, n_leaves: int, rng: np.random.Generator) -> None:
-    """Subdivide ``lvl``'s subtree in place until it has ``n_leaves`` leaves."""
+def _leaves_with_depth(n: dom.Node, d: int = 0) -> list[tuple[dom.Node, int]]:
+    """Every leaf under ``n`` paired with its depth below ``n``."""
+    if not n.divided:
+        return [(n, d)]
+    return _leaves_with_depth(n.left, d + 1) + _leaves_with_depth(n.right, d + 1)
+
+
+def _grow_leaves(lvl: dom.Node, n_leaves: int, rng: np.random.Generator,
+                 balance: bool = False) -> None:
+    """Subdivide ``lvl``'s subtree in place until it has ``n_leaves`` leaves.
+
+    ``balance`` (erc.4, §13.4): always split a *shallowest* current leaf, growing
+    a near-complete binary tree instead of the default random caterpillar. Diag B
+    (§13.2) localized the size fails to depth-driven MALDISTRIBUTION — leaf area is
+    set by the product of cut fractions down its ancestry, so a random unbalanced
+    tree lands equal-target rooms at depths that differ by many levels (same code
+    seen at 0.05× and 14.7× target). Keeping all leaves at comparable depth lets
+    the proportion-aware sizing pass hit each target with cut fractions near their
+    proportional value, instead of compounding fmin/fmax clamp error down a deep
+    spine."""
     while len(lvl.leaves()) < n_leaves:
-        leaf = _pick(rng, lvl.leaves())
+        if balance:
+            ld = _leaves_with_depth(lvl)
+            dmin = min(d for _l, d in ld)
+            leaf = _pick(rng, [l for l, d in ld if d == dmin])
+        else:
+            leaf = _pick(rng, lvl.leaves())
         leaf.division = [0.5, 0.5]
         leaf.rotation = int(rng.integers(4))
         leaf.left = dom.Node(type=leaf.type)
@@ -633,7 +656,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           proportion_aware: bool = True,
                           circ_divisor: int = 3,
                           leaf_sharing: bool = False,
-                          leaf_share_factor: int = 2) -> dom.Node:
+                          leaf_share_factor: int = 2,
+                          depth_balanced: bool = False) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -694,12 +718,12 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             # tree finalisable and geometry.leaf_graph derives coords on demand.
             # c3g granularity knob: ~one circ per `circ_divisor` rooms (default 3).
             n_circ = max(1, -(-len(rooms) // circ_divisor))
-            _grow_leaves(lvl, len(rooms) + 1 + n_circ, rng)
+            _grow_leaves(lvl, len(rooms) + 1 + n_circ, rng, balance=depth_balanced)
             dom._link(child)
             _assign_adjacency_aware(lvl, rooms, reqs, rng)
         else:
             assign = rooms + ["C", "O"]  # +core circulation, +outside
-            _grow_leaves(lvl, len(assign), rng)
+            _grow_leaves(lvl, len(assign), rng, balance=depth_balanced)
             leaves = lvl.leaves()
             order = rng.permutation(len(leaves))
             for slot, leaf_idx in enumerate(order):
@@ -724,7 +748,8 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
                          proportion_aware: bool = True,
                          circ_divisor: int = 3,
                          leaf_sharing: bool = False,
-                         leaf_share_factor: int = 2) -> dom.Node:
+                         leaf_share_factor: int = 2,
+                         depth_balanced: bool = False) -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
     Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
@@ -773,7 +798,13 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             target_total = len(rooms) + 1 + n_circ
             n_free_target = target_total - (1 if core_node is not None else 0)
             while len(_free()) < n_free_target:
-                leaf = _pick(rng, _free())
+                frees = _free()
+                if depth_balanced:
+                    fd = [(l, d) for l, d in _leaves_with_depth(dup) if l in frees]
+                    dmin = min(d for _l, d in fd)
+                    leaf = _pick(rng, [l for l, d in fd if d == dmin])
+                else:
+                    leaf = _pick(rng, frees)
                 leaf.division = [0.5, 0.5]
                 leaf.rotation = int(rng.integers(4))
                 leaf.left = dom.Node(type=leaf.type)
@@ -789,7 +820,13 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             if core_node is None:
                 assign.append("C")  # no inherited core to reuse — make one
             while len(_free()) < len(assign):
-                leaf = _pick(rng, _free())
+                frees = _free()
+                if depth_balanced:
+                    fd = [(l, d) for l, d in _leaves_with_depth(dup) if l in frees]
+                    dmin = min(d for _l, d in fd)
+                    leaf = _pick(rng, [l for l, d in fd if d == dmin])
+                else:
+                    leaf = _pick(rng, frees)
                 leaf.division = [0.5, 0.5]
                 leaf.rotation = int(rng.integers(4))
                 leaf.left = dom.Node(type=leaf.type)

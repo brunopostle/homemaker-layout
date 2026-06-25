@@ -189,6 +189,7 @@ def search(
     circ_divisor: int = 3,
     leaf_sharing: bool = False,
     leaf_share_factor: int = 2,
+    depth_balanced: bool = False,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -389,7 +390,8 @@ def search(
                 adjacency_aware=seed_adjacency_aware,
                 proportion_aware=seed_proportion_aware,
                 circ_divisor=circ_divisor,
-                leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor)
+                leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor,
+                depth_balanced=depth_balanced)
             return (topo, None, child_budget, {}, f"construct/{tag}")
         n = int(rng.integers(max(1, n_target - 1), n_target + 2))
         return (random_topology(seed_root, n, rng, types), None, child_budget,
@@ -516,6 +518,7 @@ def search_staged(
     circ_divisor: int = 3,
     leaf_sharing: bool = False,
     leaf_share_factor: int = 2,
+    depth_balanced: bool = False,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -565,7 +568,8 @@ def search_staged(
                       feasibility_max_shape_fails=feasibility_max_shape_fails,
                       circ_divisor=circ_divisor,
                       leaf_sharing=leaf_sharing,
-                      leaf_share_factor=leaf_share_factor)
+                      leaf_share_factor=leaf_share_factor,
+                      depth_balanced=depth_balanced)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -597,6 +601,7 @@ def search_staged(
             circ_divisor=circ_divisor,
             leaf_sharing=leaf_sharing,
             leaf_share_factor=leaf_share_factor,
+            depth_balanced=depth_balanced,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -615,7 +620,8 @@ def search_staged(
             adjacency_aware=seed_adjacency_aware,
             proportion_aware=seed_proportion_aware,
             circ_divisor=circ_divisor,
-            leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor)
+            leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor,
+            depth_balanced=depth_balanced)
 
     _log(f"[staged] stage 2: upper floors as deltas, budget {b2}, base_p {base_p}")
     r2 = search(
@@ -635,6 +641,7 @@ def search_staged(
         circ_divisor=circ_divisor,
         leaf_sharing=leaf_sharing,
         leaf_share_factor=leaf_share_factor,
+        depth_balanced=depth_balanced,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

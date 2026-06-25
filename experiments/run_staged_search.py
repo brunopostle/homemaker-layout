@@ -64,6 +64,7 @@ def main() -> int:
     circ_div = int(os.environ.get("CIRCDIV", "3"))  # c3g circ-per-room granularity knob
     leaf_share = os.environ.get("LEAFSHARE", "0") == "1"  # erc.3 leaf-sharing A/B
     leaf_share_fac = int(os.environ.get("LEAFSHAREFAC", "2"))
+    depth_bal = os.environ.get("DEPTHBAL", "0") == "1"  # erc.4 depth-balanced grow A/B
 
     if leaf_share:
         # erc.3 §13.3: the inner-loop and final-score fitness are built from the
@@ -121,6 +122,7 @@ def main() -> int:
         circ_divisor=circ_div,
         leaf_sharing=leaf_share,
         leaf_share_factor=leaf_share_fac,
+        depth_balanced=depth_bal,
     )
 
     elapsed = time.perf_counter() - t0

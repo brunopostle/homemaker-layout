@@ -1678,3 +1678,55 @@ help. Follow-ups: surface `leaf_sharing` on the `homemaker-evolve` CLI / as a
 `patterns.config` key for production use, sweep `leaf_share_factor`/`max_share`,
 and test the `erc.4` depth-balancing synergy (shared leaves at correct absolute
 area) now that the leak is closed.
+
+### 13.4 Experiment: depth-balanced construction (`homemaker-py-erc.4`) — A/B RUNNING
+
+The lever Diagnostic B (§13.2) called for. B localized the size fails to
+depth-driven **maldistribution**: a leaf's area is the product of cut fractions
+down its ancestry in the binary slicing tree, so the same-target room lands at
+0.05× and 14.7× by *slicing position*, and the inner loop (frozen topology)
+provably cannot move it. The fix must live in construction, where leaf area is
+decided.
+
+**Mechanism — depth-balanced tree growth.** `_grow_leaves` grew the tree by
+splitting a *random* leaf each step → a random caterpillar whose leaves sit at
+wildly different depths. The `depth_balanced` flag instead always splits a
+*shallowest* current leaf (`operators._leaves_with_depth`), growing a
+near-complete binary tree so all leaves land at comparable depth. The
+proportion-aware sizing pass (`_size_divisions_from_targets`) then hits each
+target with cut fractions near their proportional value instead of compounding
+`fmin`/`fmax` clamp error down a deep spine. Type-agnostic and topology-only — it
+changes *which* leaf is split, not the type assignment or the proportional sizing
+— so it composes with adjacency-aware seeding and leaf-sharing unchanged. Default
+OFF (214 tests pass with it off); threaded through `constructive_topology` /
+`lift_base_to_storeys` → `driver.search`/`search_staged`, exposed via `DEPTHBAL`
+in `run_staged_search.py`.
+
+**Floor probe** (`experiments/diag_depth_balance.py`, harbor + maple, seeds
+0/1/2) — build the §12.2 seed OFF vs balanced (vs balanced+share3 as the `erc.7`
+preview), score at the seed geometry and after `innerloop.optimise` (nm, budget
+80). `dDep` = leaf-depth spread (max−min); `maxR`/`minR` = max/min achieved/target
+over sized leaves; `%und` = fraction below 0.9×target. Averaged:
+
+| programme | mode        | leaves | total | size | crink | %und | maxR | minR | dDep |
+|-----------|-------------|-------:|------:|-----:|------:|-----:|-----:|-----:|-----:|
+| harbor    | OFF +il     |  45.0  | 120.3 | 21.7 | 33.7  | 54.2 | 12.0 | 0.1  | 7.0  |
+| harbor    | bal +il     |  45.0  | 106.0 | 21.0 | 31.3  | 25.0 |  8.3 | 0.2  | 1.0  |
+| harbor    | bal+sh3 +il |  25.7  |  65.3 | 11.7 | 17.3  | 29.0 |  4.1 | 0.3  | 1.0  |
+| maple     | OFF +il     |  73.0  | 194.7 | 37.3 | 58.3  | 42.3 | 16.4 | 0.0  | 6.7  |
+| maple     | bal +il     |  73.0  | 173.0 | 37.3 | 61.7  | 22.4 |  6.2 | 0.2  | 1.0  |
+| maple     | bal+sh3 +il |  47.0  | 113.7 | 22.3 | 38.7  | 17.7 |  7.9 | 0.4  | 2.0  |
+
+**The depth spread collapses (7→1) and the giant leaf is tamed** — maxR 12.0→8.3
+harbor / 16.4→6.2 maple, %undersize 54→25 / 42→22 — at **equal leaf count** (45 /
+73, no rooms removed). The achievable floor drops **−12 % harbor (120.3→106.0) /
+−11 % maple (194.7→173.0)** purely from tree *shape*, with zero missing-fail
+leak. Most of the total drop is in width/proportion (the giants were the wide,
+wrong-aspect leaves), not the soft size Gaussian (size barely moves). Crucially
+it is **additive with leaf-sharing**: `bal+sh3` beats §13.3's `share3`-alone floor
+(harbor 65.3 vs 73.3, maple 113.7 vs 133.0) — balancing places the *survivors* of
+sharing at correct absolute area, exactly the synergy `erc.7` was filed for.
+
+**End-to-end A/B** (`experiments/run_depthbal_ab.sh`, staged search, 20 000 native
+evals, seeds 0/1/2, `DEPTHBAL=1` vs default-OFF baseline, leaf-sharing OFF in both
+arms) — IN PROGRESS; verdict + scoreboard update to follow.
