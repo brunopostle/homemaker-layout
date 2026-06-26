@@ -1761,3 +1761,50 @@ convergence when stacked on the share lever that the search *cannot* erode.
 Scoreboard: a 6th construction/seed lever, but the first Phase-8 lever whose
 end-to-end gain is *materially* smaller than its seed-floor gain — a useful
 calibration of how much seed-floor reduction the staged search actually banks.
+
+### 13.5 Experiment: leaf-sharing × depth-balancing synergy (`homemaker-py-erc.7`) — DONE (synergy confirmed)
+
+The decisive test the §13.4 floor probe set up. Depth-balancing was only MODEST
+standalone (§13.4: −5.8 % maple / −3.2 % harbor, overlapping arms) because the
+20k search erodes a tree-shape seed advantage via divide/undivide. But the probe
+showed `bal+sh3` beats `share3`-alone at **equal leaf count** (harbor 65.3 vs
+73.3, maple 113.7 vs 133.0) — additive on the leaf-COUNT cut the search *cannot*
+erode (you cannot mutate 26 leaves back up to 45 cheaply). Question: does that
+additive seed-floor advantage survive to convergence once stacked on the share
+lever that the search can't undo?
+
+**Setup** (`experiments/run_synergy_ab.sh`, staged search, 20 000 native evals,
+seeds 0/1/2, final native re-score). Both arms hold `LEAFSHARE=1` at factor 3 (the
+§13.3 winner). The control arm is share-alone (`DEPTHBAL=0`) and must reproduce
+§13.3; the experiment arm adds `DEPTHBAL=1` (depth-balanced grow). One programme
+dir per programme — `run_staged_search.py` injects `leaf_sharing` into the whole
+pipeline so both arms score under the same relaxed objective.
+
+| programme | share-alone db0 (s0/1/2) | mean | bal+share db1 (s0/1/2) | mean | Δ |
+|-----------|--------------------------|-----:|------------------------|-----:|------:|
+| maple-court  | 78 / 89 / 92 | 86.3 | 76 / 85 / 86 | 82.3 | **−4.6 %** |
+| harbor-house | 51 / 52 / 49 | 50.7 | 41 / 41 / 38 | 40.0 | **−21.1 %** |
+
+The control arm reproduces §13.3 exactly (maple 86.3 = 86.3, harbor 50.7 ≈ 50.3),
+so the comparison is clean and the gap is the lever, not drift.
+
+**VERDICT — the synergy is REAL and SURVIVES to convergence, unlike depth-balance
+alone.** Harbor is **decisive**: −21 %, every seed improves by 10–11 fails, and the
+arms are **non-overlapping** (bal+share worst 41 < share-alone best 49) — the total
+separation §13.4-standalone never reached. Maple is **modest but uniform**: −4.6 %,
+every seed improves (−2 / −4 / −6), ranges overlapping. This is the mirror image of
+§13.4: there the seed-floor advantage washed out because the search could erode
+tree *shape*; here depth-balancing rides on top of the leaf-COUNT cut that the
+search cannot erode, so balancing the survivors of sharing onto their correct
+absolute k×target area banks. The probe prediction held — `bal+sh3` beats
+`share3`-alone end-to-end, not just at the seed.
+
+Recommendation: make `depth_balanced` + `leaf_sharing` the default Phase-8 stack
+(both default OFF today, no test/runtime cost). The factor/max_share sweep
+(`erc.7` second half, `experiments/run_sharefactor_sweep.sh`: `leaf_share_factor`
+2/4 under bal+share vs the known factor-3 bal+share maple 82.3 / harbor 40.0) is
+running to confirm factor 3 is still the optimum once depth-balancing is stacked.
+Scoreboard: the first Phase-8 lever *combination* whose end-to-end gain (harbor
+−21 %) exceeds either lever alone (share −32 %→ this stacks a further −21 % on top;
+depth-balance −3 % alone), confirming the §13.4 thesis that levers the search
+cannot erode compound where shape levers do not.
