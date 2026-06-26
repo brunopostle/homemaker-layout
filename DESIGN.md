@@ -1679,7 +1679,7 @@ help. Follow-ups: surface `leaf_sharing` on the `homemaker-evolve` CLI / as a
 and test the `erc.4` depth-balancing synergy (shared leaves at correct absolute
 area) now that the leak is closed.
 
-### 13.4 Experiment: depth-balanced construction (`homemaker-py-erc.4`) — A/B RUNNING
+### 13.4 Experiment: depth-balanced construction (`homemaker-py-erc.4`) — DONE (modest)
 
 The lever Diagnostic B (§13.2) called for. B localized the size fails to
 depth-driven **maldistribution**: a leaf's area is the product of cut fractions
@@ -1729,4 +1729,35 @@ sharing at correct absolute area, exactly the synergy `erc.7` was filed for.
 
 **End-to-end A/B** (`experiments/run_depthbal_ab.sh`, staged search, 20 000 native
 evals, seeds 0/1/2, `DEPTHBAL=1` vs default-OFF baseline, leaf-sharing OFF in both
-arms) — IN PROGRESS; verdict + scoreboard update to follow.
+arms, final native re-score):
+
+| programme | baseline (s0/1/2) | mean | depth-bal (s0/1/2) | mean | Δ |
+|-----------|-------------------|-----:|--------------------|-----:|------:|
+| maple-court  | 129 / 148 / 134 | 137.0 | 142 / 126 / 119 | 129.0 | **−5.8 %** |
+| harbor-house |  72 /  81 /  69 |  74.0 |  67 /  77 /  71 |  71.7 | **−3.2 %** |
+
+**VERDICT — depth-balancing is a real but MODEST standalone lever: −5.8 % maple /
+−3.2 % harbor, much smaller than the −11/−12 % the seed-floor probe predicted, and
+the arms OVERLAP** (maple balanced worst 142 > baseline best 129; harbor balanced
+77 > baseline 69) — *not* the total separation leaf-sharing showed (§13.3, every
+share run beat every baseline). The default-OFF baseline reproduces §12.2 exactly
+(maple 137.0 vs 136.0, harbor 74.0 vs 74.0), so the comparison is clean and the
+small gap is the lever, not drift. **The 20k search erodes most of the seed-floor
+advantage**: the random-caterpillar arm partly catches up via divide/undivide
+mutations over the budget, so an 11 % lower *seed* floor realises only ~5 % at
+convergence. This is the mirror image of the §12.3/§11 thesis — seed quality
+helps, but here the search recovers enough of the gap that depth-balance *alone*
+is marginal, unlike the structural leaf-count cut of §13.3 which the search cannot
+undo (you cannot mutate 26 leaves back up to 45 cheaply).
+
+Its real promise is the **additive floor with leaf-sharing**: the probe showed
+`bal+sh3` beats `share3`-alone by a wide margin (harbor 65.3 vs 73.3, maple 113.7
+vs 133.0) because balancing places the *survivors* of sharing at correct absolute
+area. The decisive end-to-end test is therefore `erc.7` (depth-balance ×
+leaf-sharing synergy + factor sweep), not depth-balance in isolation.
+Recommendation: keep `depth_balanced` (default OFF, no test/runtime cost, same
+leaf count), advance `erc.7` to test whether the additive seed floor survives to
+convergence when stacked on the share lever that the search *cannot* erode.
+Scoreboard: a 6th construction/seed lever, but the first Phase-8 lever whose
+end-to-end gain is *materially* smaller than its seed-floor gain — a useful
+calibration of how much seed-floor reduction the staged search actually banks.
