@@ -1799,12 +1799,25 @@ search cannot erode, so balancing the survivors of sharing onto their correct
 absolute k×target area banks. The probe prediction held — `bal+sh3` beats
 `share3`-alone end-to-end, not just at the seed.
 
-Recommendation: make `depth_balanced` + `leaf_sharing` the default Phase-8 stack
-(both default OFF today, no test/runtime cost). The factor/max_share sweep
-(`erc.7` second half, `experiments/run_sharefactor_sweep.sh`: `leaf_share_factor`
-2/4 under bal+share vs the known factor-3 bal+share maple 82.3 / harbor 40.0) is
-running to confirm factor 3 is still the optimum once depth-balancing is stacked.
-Scoreboard: the first Phase-8 lever *combination* whose end-to-end gain (harbor
+**Factor sweep** (`experiments/run_sharefactor_sweep.sh`, `leaf_share_factor` 2/4
+under bal+share, seeds 0/1/2, vs the factor-3 bal+share above):
+
+| programme | factor 2 | factor 3 | factor 4 |
+|-----------|---------:|---------:|---------:|
+| maple-court  | 92.7 | **82.3** | 83.3 |
+| harbor-house | 53.0 | 40.0 | **39.7** |
+
+**Factor 3 confirmed as the robust default once depth-balancing is stacked.**
+Factor 2 regresses on both (maple +10.4, harbor +13.0) — too little sharing leaves
+more, smaller rooms for the depth-balance to fix. Factor 3 and 4 are statistically
+tied (maple f3 wins by 1.0, harbor f4 wins by 0.3 — both inside seed noise, ranges
+overlap), so factor 4 buys nothing material and gives up maple while risking larger
+shared leaves. `leaf_share_max` (scoring cap, default 4) already credits every
+multiplicity at factor ≤4 with zero missing-fail leak (final re-score OK in all
+runs), so it needs no separate sweep at the chosen factor 3.
+
+Recommendation: make `depth_balanced` + `leaf_sharing` (factor 3) the default
+Phase-8 stack (both default OFF today, no test/runtime cost). Scoreboard: the first Phase-8 lever *combination* whose end-to-end gain (harbor
 −21 %) exceeds either lever alone (share −32 %→ this stacks a further −21 % on top;
 depth-balance −3 % alone), confirming the §13.4 thesis that levers the search
 cannot erode compound where shape levers do not.
