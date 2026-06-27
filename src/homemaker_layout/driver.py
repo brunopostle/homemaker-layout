@@ -187,9 +187,9 @@ def search(
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
-    leaf_sharing: bool = False,
-    leaf_share_factor: int = 2,
-    depth_balanced: bool = False,
+    leaf_sharing: bool = True,
+    leaf_share_factor: int = 3,
+    depth_balanced: bool = True,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -516,9 +516,9 @@ def search_staged(
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
-    leaf_sharing: bool = False,
-    leaf_share_factor: int = 2,
-    depth_balanced: bool = False,
+    leaf_sharing: bool = True,
+    leaf_share_factor: int = 3,
+    depth_balanced: bool = True,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
