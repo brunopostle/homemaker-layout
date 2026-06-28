@@ -217,6 +217,56 @@ def test_leaf_cost_inside():
 
 
 # --------------------------------------------------------------------------- #
+# Share-aware edge-too-long cap (hph §13.7)
+# --------------------------------------------------------------------------- #
+
+
+def _shared_leaf(type_: str = "k1", k: int = 3) -> Node:
+    leaf = _leaf(type_)
+    leaf.share = k
+    leaf.share_type = type_
+    return leaf
+
+
+def test_edge_cap_flat_by_default():
+    # no leaf_sharing → flat 8 m regardless of any share stamp
+    fit = Fitness()
+    assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(8.0)
+
+
+def test_edge_cap_flat_when_lever_off_even_with_sharing():
+    # leaf_sharing on but the hph lever off → still flat (control arm)
+    fit = Fitness(conf={"leaf_sharing": True})
+    assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(8.0)
+
+
+def test_edge_cap_scales_by_share_when_lever_on():
+    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": True})
+    assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(24.0)
+
+
+def test_edge_cap_unshared_leaf_keeps_flat_cap():
+    # a non-shared leaf (the narrow-sliver pathology) is never relaxed
+    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": True})
+    assert fit._edge_cap(_leaf("k1")) == pytest.approx(8.0)
+
+
+def test_edge_cap_stale_share_type_ignored():
+    # retyped leaf whose stamp no longer matches type → share invalid → flat
+    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": True})
+    leaf = _shared_leaf("k1", k=3)
+    leaf.type = "b1"  # retyped; share_type still "k1"
+    assert fit._edge_cap(leaf) == pytest.approx(8.0)
+
+
+def test_edge_cap_uses_largest_share_among_adjoining_leaves():
+    # an interior wall takes the max share of the two leaves it separates
+    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": True})
+    cap = fit._edge_cap(_leaf("k1"), _shared_leaf("b1", k=2))
+    assert cap == pytest.approx(16.0)
+
+
+# --------------------------------------------------------------------------- #
 # Stair helpers
 # --------------------------------------------------------------------------- #
 

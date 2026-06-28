@@ -64,6 +64,7 @@ def main() -> int:
     circ_div = int(os.environ.get("CIRCDIV", "3"))  # c3g circ-per-room granularity knob
     leaf_share = os.environ.get("LEAFSHARE", "0") == "1"  # erc.3 leaf-sharing A/B
     leaf_share_fac = int(os.environ.get("LEAFSHAREFAC", "2"))
+    share_edge = os.environ.get("SHAREEDGE", "0") == "1"  # hph §13.7 share-aware edge cap A/B
     depth_bal = os.environ.get("DEPTHBAL", "0") == "1"  # erc.4 depth-balanced grow A/B
     interior_o = os.environ.get("INTERIORO", "0") == "1"  # ld2 interior light-well A/B
     out_div = int(os.environ.get("ODIV", "6"))  # ld2 outside-leaf-per-room divisor
@@ -79,6 +80,8 @@ def main() -> int:
             conf, cost = _orig_load(directory)
             conf = dict(conf)
             conf["leaf_sharing"] = True
+            if share_edge:  # hph §13.7: share-aware edge-too-long cap
+                conf["share_edge_cap"] = True
             return conf, cost
 
         fitness.load_config = _load_with_sharing
@@ -96,6 +99,7 @@ def main() -> int:
     print(f"feas_filt : {feas} (max_shape={max_shape})")
     print(f"circ_div  : {circ_div}")
     print(f"leaf_share: {leaf_share} (factor={leaf_share_fac})")
+    print(f"share_edge: {share_edge}")
     print(f"interior_o: {interior_o} (odiv={out_div})")
     print(flush=True)
 

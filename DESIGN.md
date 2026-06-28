@@ -1936,3 +1936,54 @@ robust signal is the **composition collapse** (crinkliness 13→4, landlocked
 harbor landlocked fails). Follow-up observation, not part of this verdict:
 edge-too-long is now the single largest harbor class (6) — a candidate seed for
 any future floor work, distinct from the crinkliness regime Phase-8 addressed.
+
+### 13.8 Experiment: share-aware edge-too-long cap (`homemaker-py-hph`) — DONE (positive, harmless)
+
+§13.7's follow-up observation (edge-too-long = harbor's top class, 6 fails) is the
+seed. **Dissection first** (`experiments/diag_edge_too_long.py` on the 500k probe
+best): the 6 fails are only **2 distinct locations**. (1) DOMINANT ~4/6: leaf
+`lllr` is a `share=3` leaf — one quad holding 3 rooms (247 m², edges 15–17 m,
+aspect 1.2, NEARLY SQUARE). Its walls exceed the flat 8 m cap purely because it
+*aggregates 3 rooms* — a leaf-sharing REPRESENTATION ARTIFACT, not a design flaw.
+§13.3 relaxed size/missing for shared leaves (`quality_size` centres on k×target)
+but `edge_cost` (fitness.py) and `outside_edge_cost` still used a flat 8 m
+regardless of `leaf.share` — the same §13.3 leak on a different measure. (2) ~2/6:
+leaf `llll`, a 1.2 m × 16.7 m sliver (aspect 14) — a REAL narrow-room pathology,
+already independently caught by width/proportion; its edge-too-long is the wall it
+shares with `lllr`. No corridors involved.
+
+**Fix.** New `Fitness._edge_cap(*leaves)` scales the 8 m cap by the largest
+type-guarded `leaf_share` (graph.leaf_share, §13.3's helper) among the adjoining
+leaves, mirroring `quality_size`'s k×target; non-shared leaves keep the flat cap.
+Used by both `edge_cost` (interior wall, max share of the two leaves) and
+`outside_edge_cost` (one leaf). Gated behind a new `share_edge_cap` config knob
+(`SHAREEDGE` env), default OFF, so the §13.x controls reproduce. On the probe best
+the lever clears all 6 edge-too-long (20→14 total fails); the `llll` sliver stays
+flagged via width/proportion.
+
+**Setup** (`experiments/run_shareedge_ab.sh`, full Phase-8 default stack
+LEAFSHARE=1/fac3 + DEPTHBAL=1 + INTERIORO=1/odiv3, staged, 20 000 native evals,
+seeds 0/1/2, final native re-score). Control SHAREEDGE=0 (flat cap) — must
+reproduce §13.6/§13.7; experiment SHAREEDGE=1.
+
+| programme | flat cap off (s0/1/2) | mean | share-aware on (s0/1/2) | mean | Δ |
+|-----------|-----------------------|-----:|-------------------------|-----:|------:|
+| maple-court  | 74 / 78 / 89 | 80.3 | 73 / 78 / 71 | 74.0 | −7.9 % |
+| harbor-house | 28 / 41 / 35 | 34.7 | 27 / 39 / 27 | 31.0 | −10.6 % |
+
+The control reproduces §13.7 (maple 80.3 *exactly*, harbor 34.7 ≈ 34.0), so the
+gap is the lever, not drift.
+
+**VERDICT — positive and HARMLESS; recommend default-ON.** Both programmes improve
+on the mean with **zero regressions across all 6 seeds**: harbor every seed
+(−1/−2/−8), maple two flat/down + one −18 (seed2). The asymmetry of magnitude
+(maple's big seed2 swing) is search noise, but the *direction* is structural: the
+lever only ever *removes* a false-positive fail on an aggregate shared leaf — it
+cannot add one (non-shared leaves are untouched), so it is monotone-harmless on the
+objective. This is unlike the §13.4-family construction levers that trade leaves
+for fails; there is no tax to wash out. Recommendation: flip `share_edge_cap`
+default-ON for leaf-sharing runs (it is the §13.3 relaxation completed on the wall
+measure), mirroring the `pll`/`interior_outside` default flips. A follow-up issue
+flips the default + rebaselines the §13.x floor numbers (harbor 34.7→31.0,
+maple 80.3→74.0 become the new full-stack baseline). Repro:
+`experiments/diag_edge_too_long.py`, `experiments/run_shareedge_ab.sh`.

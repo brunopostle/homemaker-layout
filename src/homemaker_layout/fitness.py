@@ -192,6 +192,10 @@ class Fitness:
         # to k×target counts as k same-code rooms (count check + size centring).
         self._leaf_sharing = bool(self.conf("leaf_sharing"))
         self._max_share = int(self.conf("leaf_share_max") or 4)
+        # erc.hph §13.7: scale the edge-too-long cap by a shared leaf's share k so
+        # an aggregate (k-room) leaf is not penalised for long walls — the §13.3
+        # leak on a different measure. A/B knob, default OFF until the verdict.
+        self._share_edge_cap = bool(self.conf("share_edge_cap"))
 
     def conf(self, key: str):
         v = self._conf.get(key)
@@ -459,6 +463,23 @@ class Fitness:
             rate = self.cost("inside")
         return rate * geometry.area(leaf)
 
+    def _edge_cap(self, *leaves: Node) -> float:
+        """Wall-length cap before 'edge too long' fires (erc.hph/§13.7).
+
+        Default flat 8 m, as Urb. A shared leaf (share=k, type-guarded) holds k
+        same-code rooms, so its walls run ~k× longer purely as a leaf-sharing
+        representation artifact — the same leak §13.3 closed for size. Scale the
+        cap by the largest share among the adjoining leaves, mirroring
+        quality_size's k×target. Non-shared leaves keep the flat cap, so genuine
+        narrow/oversize pathologies stay flagged."""
+        cap = 8.0
+        if self._leaf_sharing and self._share_edge_cap:
+            from . import graph as _graph
+            k = max(_graph.leaf_share(leaf, self._max_share) for leaf in leaves)
+            if k > 1:
+                cap *= k
+        return cap
+
     def edge_cost(self, G: nx.Graph, a: Node, b: Node, fail) -> float:
         """Interior/exterior wall cost for one graph edge
         (``Storey.pm::calculate_edge_cost``)."""
@@ -471,7 +492,7 @@ class Fitness:
         else:
             rate = self.cost("exterior_wall")
         width = G[a][b]["width"]
-        if width > 8.0 and rate > 0.0:
+        if width > self._edge_cap(a, b) and rate > 0.0:
             fail(f"{dom_mod.level_of(a)}/{a.id} {b.id} edge too long")
         return rate * width * height
 
@@ -479,6 +500,7 @@ class Fitness:
         """Plot-boundary cost for a leaf's external edges
         (``Leaf.pm::calculate_outside_edge_cost``)."""
         rate = self.cost("boundary") if dom_mod.is_outside(leaf) else self.cost("boundary_wall")
+        cap = self._edge_cap(leaf)
         length = 0.0
         for e in range(4):
             if geometry.boundary_id(leaf, e) not in geometry._EXTERNAL:
@@ -487,7 +509,7 @@ class Fitness:
             length += edge_len
             if dom_mod.is_outside(leaf):
                 continue
-            if edge_len > 8.0:
+            if edge_len > cap:
                 fail(f"{dom_mod.level_of(leaf)}/{leaf.id} outside edge too long")
         return rate * length * _height(leaf)
 
