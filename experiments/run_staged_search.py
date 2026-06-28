@@ -65,6 +65,8 @@ def main() -> int:
     leaf_share = os.environ.get("LEAFSHARE", "0") == "1"  # erc.3 leaf-sharing A/B
     leaf_share_fac = int(os.environ.get("LEAFSHAREFAC", "2"))
     depth_bal = os.environ.get("DEPTHBAL", "0") == "1"  # erc.4 depth-balanced grow A/B
+    interior_o = os.environ.get("INTERIORO", "0") == "1"  # ld2 interior light-well A/B
+    out_div = int(os.environ.get("ODIV", "6"))  # ld2 outside-leaf-per-room divisor
 
     if leaf_share:
         # erc.3 §13.3: the inner-loop and final-score fitness are built from the
@@ -94,6 +96,7 @@ def main() -> int:
     print(f"feas_filt : {feas} (max_shape={max_shape})")
     print(f"circ_div  : {circ_div}")
     print(f"leaf_share: {leaf_share} (factor={leaf_share_fac})")
+    print(f"interior_o: {interior_o} (odiv={out_div})")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -123,6 +126,8 @@ def main() -> int:
         leaf_sharing=leaf_share,
         leaf_share_factor=leaf_share_fac,
         depth_balanced=depth_bal,
+        interior_outside=interior_o,
+        outside_divisor=out_div,
     )
 
     elapsed = time.perf_counter() - t0

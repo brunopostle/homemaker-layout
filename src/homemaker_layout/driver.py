@@ -190,6 +190,8 @@ def search(
     leaf_sharing: bool = True,
     leaf_share_factor: int = 3,
     depth_balanced: bool = True,
+    interior_outside: bool = False,
+    outside_divisor: int = 3,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -391,7 +393,8 @@ def search(
                 proportion_aware=seed_proportion_aware,
                 circ_divisor=circ_divisor,
                 leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor,
-                depth_balanced=depth_balanced)
+                depth_balanced=depth_balanced,
+                interior_outside=interior_outside, outside_divisor=outside_divisor)
             return (topo, None, child_budget, {}, f"construct/{tag}")
         n = int(rng.integers(max(1, n_target - 1), n_target + 2))
         return (random_topology(seed_root, n, rng, types), None, child_budget,
@@ -519,6 +522,8 @@ def search_staged(
     leaf_sharing: bool = True,
     leaf_share_factor: int = 3,
     depth_balanced: bool = True,
+    interior_outside: bool = False,
+    outside_divisor: int = 3,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -569,7 +574,9 @@ def search_staged(
                       circ_divisor=circ_divisor,
                       leaf_sharing=leaf_sharing,
                       leaf_share_factor=leaf_share_factor,
-                      depth_balanced=depth_balanced)
+                      depth_balanced=depth_balanced,
+                      interior_outside=interior_outside,
+                      outside_divisor=outside_divisor)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -602,6 +609,8 @@ def search_staged(
             leaf_sharing=leaf_sharing,
             leaf_share_factor=leaf_share_factor,
             depth_balanced=depth_balanced,
+            interior_outside=interior_outside,
+            outside_divisor=outside_divisor,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -621,7 +630,8 @@ def search_staged(
             proportion_aware=seed_proportion_aware,
             circ_divisor=circ_divisor,
             leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor,
-            depth_balanced=depth_balanced)
+            depth_balanced=depth_balanced,
+            interior_outside=interior_outside, outside_divisor=outside_divisor)
 
     _log(f"[staged] stage 2: upper floors as deltas, budget {b2}, base_p {base_p}")
     r2 = search(
@@ -642,6 +652,8 @@ def search_staged(
         leaf_sharing=leaf_sharing,
         leaf_share_factor=leaf_share_factor,
         depth_balanced=depth_balanced,
+        interior_outside=interior_outside,
+        outside_divisor=outside_divisor,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

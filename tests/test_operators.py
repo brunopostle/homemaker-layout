@@ -170,6 +170,51 @@ def test_leaf_sharing_reduces_leaves_and_covers_rooms():
 
 
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_interior_outside_seeds_landlocked_wells_and_scales_count():
+    # ld2 §13.6: interior_outside seeds O on the most landlocked leaves (lower
+    # external-perimeter exposure) instead of the most peripheral one, and scales
+    # the O count with the room count. Construction must still cover every room.
+    from homemaker_layout import graph, geometry, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+
+    def _outside_exposure(root):
+        geometry.clear_cache()
+        dom._link(root)
+        exps, n_o = [], 0
+        for lvl in dom.levels(root):
+            for leaf in lvl.leaves():
+                if leaf.type and leaf.type[0].lower() == "o":
+                    n_o += 1
+                    exps.append(operators._ext_exposure(leaf))
+        return n_o, (sum(exps) / len(exps) if exps else 0.0)
+
+    for trial in range(3):
+        peri = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(trial), types)
+        inter = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(trial), types,
+            interior_outside=True, outside_divisor=3)
+
+        # no missing rooms either way
+        assert graph.check_space_counts(inter, reqs)[1] == []
+
+        n_peri, _exp_peri = _outside_exposure(peri)
+        n_inter, exp_inter = _outside_exposure(inter)
+
+        # the lever adds more outside leaves (scaled with room count)…
+        assert n_inter > n_peri, f"trial {trial}: {n_inter} !> {n_peri}"
+        # …and places them on landlocked leaves: a well averaging < 1 external
+        # plot edge is interior by construction (peripheral mode does not aim
+        # for this — its single O is chosen by circulation distance, so it can
+        # land anywhere — hence we assert the absolute landlocked property).
+        assert exp_inter < 1.0, (
+            f"trial {trial}: interior O wells not landlocked (mean exp {exp_inter})")
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
 def test_adjacency_aware_seeding_cuts_adjacency_access_fails():
     # s44: adjacency-aware construction clusters rooms around a connected
     # circulation spine, cutting the adjacency-to-c + access fails that random

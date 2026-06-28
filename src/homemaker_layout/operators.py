@@ -543,9 +543,22 @@ def _size_divisions_from_targets(lvl: dom.Node, reqs, fmin: float = 0.04,
     geometry.clear_cache()
 
 
+def _ext_exposure(leaf: dom.Node) -> int:
+    """Number of the leaf's four edges that lie on the external plot perimeter
+    ('a'/'b'/'c'/'d'); 0 means a fully landlocked (interior) leaf. Used by the
+    interior-``O`` light-well placement (ld2, §13.6) to find the most landlocked
+    leaves — those whose room neighbours have no facade and so would otherwise
+    fail crinkliness (``area_outside`` ~ 0)."""
+    from . import geometry
+    return sum(1 for e in range(4)
+               if geometry.boundary_id(leaf, e) in geometry._EXTERNAL)
+
+
 def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
                             rng: np.random.Generator, door_width: float = 1.2,
-                            fixed_circ: "list[dom.Node] | None" = None) -> None:
+                            fixed_circ: "list[dom.Node] | None" = None,
+                            interior_outside: bool = False,
+                            n_outside: int = 1) -> None:
     """Assign leaf types so rooms cluster around a connected circulation spine.
 
     s44 (DESIGN.md §11.2 follow-up): random type assignment leaves rooms stranded
@@ -574,7 +587,7 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     n = len(leaves)
     idx = {leaf: i for i, leaf in enumerate(leaves)}
     R = len(room_codes)
-    n_circ = max(1, n - (R + 1))  # leftover after rooms + one outside
+    n_circ = max(1, n - (R + max(1, n_outside)))  # leftover after rooms + outside
     seeds = [c for c in (fixed_circ or []) if c in idx]
     n_circ = max(n_circ, len(seeds))  # never fewer circ leaves than the fixed core
 
@@ -608,20 +621,46 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     for s in circ:
         s.type = "C"
 
-    # Outside on the most peripheral non-circulation leaf (fewest circulation
-    # neighbours, then lowest degree) so it does not steal a circulation-adjacent
-    # slot a room needs.
     noncirc = [L for L in leaves if L not in circ]
-    o_leaf = min(noncirc, key=lambda L: (sum(1 for nb in _nbrs(L) if nb in circ),
-                                         deg.get(L, 0), idx[L]))
-    o_leaf.type = "O"
+    if interior_outside:
+        # ld2 (§13.6): seed ``O`` as INTERIOR light wells instead of one
+        # peripheral leaf. A landlocked room (no plot facade, no uncovered-O
+        # neighbour) has area_outside ~ 0 → crinkliness ~ 0 → fail (the erc
+        # crinkliness residual). Placing the outside leaves on the most
+        # landlocked slots (fewest external edges, then highest degree = most
+        # room neighbours to illuminate) gives those rooms a daylight source by
+        # construction. Wells are spread greedily so each covers a fresh set of
+        # rooms rather than clustering on one over-lit pocket.
+        o_leaves: list[dom.Node] = []
+        covered: set = set()
+        cands = list(noncirc)
+        for _ in range(max(1, n_outside)):
+            if not cands:
+                break
+            pick = max(cands, key=lambda L: (-_ext_exposure(L),
+                                             len(_nbrs(L) - covered),
+                                             deg.get(L, 0), -idx[L]))
+            o_leaves.append(pick)
+            cands.remove(pick)
+            covered |= _nbrs(pick) | {pick}
+        for L in o_leaves:
+            L.type = "O"
+    else:
+        # Outside on the most peripheral non-circulation leaf (fewest circulation
+        # neighbours, then lowest degree) so it does not steal a circulation-
+        # adjacent slot a room needs.
+        o_leaf = min(noncirc, key=lambda L: (sum(1 for nb in _nbrs(L) if nb in circ),
+                                             deg.get(L, 0), idx[L]))
+        o_leaf.type = "O"
+        o_leaves = [o_leaf]
 
     # Rooms onto the remaining leaves, dominated (circulation-adjacent) slots
     # first so adjacency-to-c holds. Codes are placed hardest-constrained first
     # (most adjacency requirements), each onto the open slot that satisfies the
     # most of its requirements against already-typed neighbours (circulation and
     # rooms placed so far) — clustering k1↔da1, da1↔o, etc. Ties broken randomly.
-    room_slots = [L for L in noncirc if L is not o_leaf]
+    o_set = set(o_leaves)
+    room_slots = [L for L in noncirc if L not in o_set]
     open_slots = sorted(room_slots,
                         key=lambda L: (L in dominated, deg.get(L, 0), -idx[L]),
                         reverse=True)
@@ -657,7 +696,9 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           circ_divisor: int = 3,
                           leaf_sharing: bool = False,
                           leaf_share_factor: int = 2,
-                          depth_balanced: bool = False) -> dom.Node:
+                          depth_balanced: bool = False,
+                          interior_outside: bool = False,
+                          outside_divisor: int = 3) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -718,9 +759,13 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             # tree finalisable and geometry.leaf_graph derives coords on demand.
             # c3g granularity knob: ~one circ per `circ_divisor` rooms (default 3).
             n_circ = max(1, -(-len(rooms) // circ_divisor))
-            _grow_leaves(lvl, len(rooms) + 1 + n_circ, rng, balance=depth_balanced)
+            # ld2 (§13.6): scale the outside-leaf count with the room count when
+            # seeding interior light wells (default 1 peripheral O otherwise).
+            n_o = max(1, round(len(rooms) / outside_divisor)) if interior_outside else 1
+            _grow_leaves(lvl, len(rooms) + n_o + n_circ, rng, balance=depth_balanced)
             dom._link(child)
-            _assign_adjacency_aware(lvl, rooms, reqs, rng)
+            _assign_adjacency_aware(lvl, rooms, reqs, rng,
+                                    interior_outside=interior_outside, n_outside=n_o)
         else:
             assign = rooms + ["C", "O"]  # +core circulation, +outside
             _grow_leaves(lvl, len(assign), rng, balance=depth_balanced)
@@ -749,7 +794,9 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
                          circ_divisor: int = 3,
                          leaf_sharing: bool = False,
                          leaf_share_factor: int = 2,
-                         depth_balanced: bool = False) -> dom.Node:
+                         depth_balanced: bool = False,
+                         interior_outside: bool = False,
+                         outside_divisor: int = 3) -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
     Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
@@ -795,7 +842,9 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             # the geometric leaf graph, seeding the dominating set from the
             # inherited vertical core so the spine grows off the core, not anew.
             n_circ = max(1, -(-len(rooms) // circ_divisor))  # c3g granularity knob
-            target_total = len(rooms) + 1 + n_circ
+            # ld2 (§13.6): scale interior light-well count with room count.
+            n_o = max(1, round(len(rooms) / outside_divisor)) if interior_outside else 1
+            target_total = len(rooms) + n_o + n_circ
             n_free_target = target_total - (1 if core_node is not None else 0)
             while len(_free()) < n_free_target:
                 frees = _free()
@@ -814,7 +863,8 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             dom._link(child)  # link so the upper storey's geometry is computable
             _assign_adjacency_aware(
                 dup, rooms, reqs, rng,
-                fixed_circ=[core_node] if core_node is not None else None)
+                fixed_circ=[core_node] if core_node is not None else None,
+                interior_outside=interior_outside, n_outside=n_o)
         else:
             assign = rooms + ["O"]  # courtyard / outside on the upper floor
             if core_node is None:

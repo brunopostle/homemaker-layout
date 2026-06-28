@@ -1821,3 +1821,56 @@ Phase-8 stack (both default OFF today, no test/runtime cost). Scoreboard: the fi
 −21 %) exceeds either lever alone (share −32 %→ this stacks a further −21 % on top;
 depth-balance −3 % alone), confirming the §13.4 thesis that levers the search
 cannot erode compound where shape levers do not.
+
+### 13.6 Experiment: interior-O courtyard / light-well seeding (`homemaker-py-ld2`) — DONE (positive on dense floors)
+
+The construction lever aimed at the erc crinkliness residual directly. The
+adjacency-aware seeder placed ONE `O` on the most PERIPHERAL leaf — where the
+adjacent rooms already have plot facade, wasting the daylight source — while the
+landlocked rooms (no facade, no uncovered-`O` neighbour → `area_outside` ≈ 0 →
+crinkliness ≈ 0 → fail) get nothing. This arm instead seeds `O` as INTERIOR light
+wells (the most-landlocked leaves first, greedily spread so each illuminates a
+fresh room set) and scales their count with the room count.
+
+**Seed diagnostic first** (the epic mandate). Decomposing every crinkliness fail
+in the bal+share seed by side of the gaussian: **all** are UNDER-exposed
+(crink < 0.62, landlocked) — **zero** over-exposed slivers (crink > 21.7). So the
+residual is genuine under-daylighting, validating the premise (and correcting the
+epic's loose "high perimeter/area" wording — the *failing* leaves are starved, not
+over-walled). The naive default `outside_divisor=6` was **null** (too few/small
+wells; harbor seed 147→142, crinkliness even rose). Sweeping the divisor found
+`odiv=3` seed-optimal: harbor seed fails 147→129 (−18), maple 219→206 (−14),
+landlocked fails down — at the cost of more leaves (harbor +4, maple +8). Because
+it ADDS leaves it carries the §13.4 wash-out risk, so the convergence A/B decides.
+
+**Setup** (`experiments/run_interioro_ab.sh`, staged search, 20 000 native evals,
+seeds 0/1/2, final native re-score). Both arms hold the default stack
+`LEAFSHARE=1` (factor 3) + `DEPTHBAL=1`. Control is interior-OFF (peripheral `O`)
+— must reproduce §13.5 bal+share; experiment adds `INTERIORO=1` (odiv=3).
+
+| programme | peripheral off (s0/1/2) | mean | interior odiv=3 (s0/1/2) | mean | Δ |
+|-----------|-------------------------|-----:|--------------------------|-----:|------:|
+| maple-court  | 77 / 85 / 86 | 82.7 | 74 / 78 / 89 | 80.3 | −2.8 % |
+| harbor-house | 41 / 43 / 38 | 40.7 | 28 / 39 / 35 | 34.0 | **−16.4 %** |
+
+The control reproduces §13.5 (maple 82.7 ≈ 82.3, harbor 40.7 ≈ 40.0), so the gap
+is the lever, not drift.
+
+**VERDICT — positive on the DENSE floor, marginal elsewhere.** Harbor is the win
+the issue targeted (it named "harbor-house ~19 rooms/floor" as where the single
+peripheral `O` is wasted): **−16.4 %**, every seed improves (−13 / −4 / −3), arms
+nearly non-overlapping (interior worst 39 ≈ control best 38). Maple is **−2.8 %**,
+within seed noise — two seeds improve, one regresses (+3), ranges overlap. This is
+the §13.4 pattern: the seed advantage (harbor −18, maple −14) survives roughly a
+THIRD on harbor but mostly washes out on maple, because a dense floor has enough
+landlocked rooms that the daylight gain outweighs the added-leaf tax, whereas on
+the sparser maple the +8 leaves nearly cancel it. Unlike depth-balance-alone
+(§13.4) which washed out *entirely*, interior-O holds on the dense floor.
+
+Recommendation: make `interior_outside` (odiv=3) a default-ON Phase-8 lever
+(default OFF today). Harbor is decisive and maple is net-neutral (mean still
+−2.8 %, no programme regresses on mean), so the flip is strictly ≥ on both means
+and matches the dense-programme target. Follow-up `homemaker-py-*` flips the
+default (mirroring `pll` after erc.7). `outside_divisor` left at 3 (seed-optimal
+joint); a finer odiv sweep under convergence is low-prior given maple's marginal
+response.
