@@ -1987,3 +1987,21 @@ measure), mirroring the `pll`/`interior_outside` default flips. A follow-up issu
 flips the default + rebaselines the §13.x floor numbers (harbor 34.7→31.0,
 maple 80.3→74.0 become the new full-stack baseline). Repro:
 `experiments/diag_edge_too_long.py`, `experiments/run_shareedge_ab.sh`.
+
+### 13.9 Flip `share_edge_cap` default-ON + rebaseline §13.x floor (`homemaker-py-rq2`) — DONE
+
+Acting on the §13.8 recommendation. `Fitness.__init__` now defaults the
+share-aware edge cap to `self._leaf_sharing` when `share_edge_cap` is unset:
+under leaf-sharing the cap is ON, mirroring the `pll` bal+share and §13.6
+`interior_outside` default flips. An explicit `share_edge_cap=False` still
+reproduces the pre-flip control arm, so the §13.8 A/B and any §13.x control stay
+reproducible (`run_staged_search.py` now pins `conf["share_edge_cap"] = share_edge`
+explicitly in both arms; the `SHAREEDGE` override is preserved). Non-sharing runs
+(every example `patterns.config`, where `leaf_sharing` is absent) are untouched —
+a control re-score of `programme-house` reproduces bit-for-bit.
+
+**New §13.x full-stack floor** (Phase-8 default stack, staged, 20 000 evals,
+seeds 0/1/2): **maple-court 80.3 → 74.0, harbor-house 34.7 → 31.0** — the
+share-aware arm from §13.8 becomes the baseline. `test_edge_cap_flat_when_lever_off_even_with_sharing`
+now pins `share_edge_cap=False`; `test_edge_cap_defaults_on_under_leaf_sharing`
+guards the flip. 222 tests pass.

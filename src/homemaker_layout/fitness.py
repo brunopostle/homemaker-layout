@@ -192,10 +192,14 @@ class Fitness:
         # to k×target counts as k same-code rooms (count check + size centring).
         self._leaf_sharing = bool(self.conf("leaf_sharing"))
         self._max_share = int(self.conf("leaf_share_max") or 4)
-        # erc.hph §13.7: scale the edge-too-long cap by a shared leaf's share k so
-        # an aggregate (k-room) leaf is not penalised for long walls — the §13.3
-        # leak on a different measure. A/B knob, default OFF until the verdict.
-        self._share_edge_cap = bool(self.conf("share_edge_cap"))
+        # erc.hph §13.7/§13.8: scale the edge-too-long cap by a shared leaf's
+        # share k so an aggregate (k-room) leaf is not penalised for long walls —
+        # the §13.3 leak on a different measure. The §13.8 A/B verdict was
+        # positive and monotone-harmless, so the default is ON for leaf-sharing
+        # runs (mirrors the pll/interior_outside default flips). An explicit
+        # share_edge_cap=False still reproduces the pre-flip control arm.
+        cap = self.conf("share_edge_cap")
+        self._share_edge_cap = self._leaf_sharing if cap is None else bool(cap)
 
     def conf(self, key: str):
         v = self._conf.get(key)

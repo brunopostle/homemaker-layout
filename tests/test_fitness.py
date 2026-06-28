@@ -235,13 +235,20 @@ def test_edge_cap_flat_by_default():
 
 
 def test_edge_cap_flat_when_lever_off_even_with_sharing():
-    # leaf_sharing on but the hph lever off → still flat (control arm)
-    fit = Fitness(conf={"leaf_sharing": True})
+    # leaf_sharing on but the hph lever explicitly off → still flat (control arm).
+    # Post-§13.8 the lever defaults ON under sharing, so the control must pin it.
+    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": False})
     assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(8.0)
 
 
 def test_edge_cap_scales_by_share_when_lever_on():
     fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": True})
+    assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(24.0)
+
+
+def test_edge_cap_defaults_on_under_leaf_sharing():
+    # §13.8 default flip: leaf_sharing on, lever unset → cap scales by share
+    fit = Fitness(conf={"leaf_sharing": True})
     assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(24.0)
 
 

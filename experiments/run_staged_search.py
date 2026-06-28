@@ -80,8 +80,10 @@ def main() -> int:
             conf, cost = _orig_load(directory)
             conf = dict(conf)
             conf["leaf_sharing"] = True
-            if share_edge:  # hph §13.7: share-aware edge-too-long cap
-                conf["share_edge_cap"] = True
+            # hph §13.8: share-aware edge-too-long cap now defaults ON under
+            # leaf_sharing, so pin both A/B arms explicitly (SHAREEDGE=0 keeps
+            # the pre-flip control reproducible).
+            conf["share_edge_cap"] = share_edge
             return conf, cost
 
         fitness.load_config = _load_with_sharing
