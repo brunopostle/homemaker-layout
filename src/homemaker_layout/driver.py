@@ -190,7 +190,7 @@ def search(
     leaf_sharing: bool = True,
     leaf_share_factor: int = 3,
     depth_balanced: bool = True,
-    interior_outside: bool = False,
+    interior_outside: bool = True,
     outside_divisor: int = 3,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
@@ -522,7 +522,7 @@ def search_staged(
     leaf_sharing: bool = True,
     leaf_share_factor: int = 3,
     depth_balanced: bool = True,
-    interior_outside: bool = False,
+    interior_outside: bool = True,
     outside_divisor: int = 3,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).

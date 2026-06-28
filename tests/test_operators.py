@@ -193,7 +193,8 @@ def test_interior_outside_seeds_landlocked_wells_and_scales_count():
 
     for trial in range(3):
         peri = operators.constructive_topology(
-            seed, reqs, np.random.default_rng(trial), types)
+            seed, reqs, np.random.default_rng(trial), types,
+            interior_outside=False)
         inter = operators.constructive_topology(
             seed, reqs, np.random.default_rng(trial), types,
             interior_outside=True, outside_divisor=3)

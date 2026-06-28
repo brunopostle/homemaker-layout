@@ -697,7 +697,7 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           leaf_sharing: bool = False,
                           leaf_share_factor: int = 2,
                           depth_balanced: bool = False,
-                          interior_outside: bool = False,
+                          interior_outside: bool = True,
                           outside_divisor: int = 3) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
@@ -795,7 +795,7 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
                          leaf_sharing: bool = False,
                          leaf_share_factor: int = 2,
                          depth_balanced: bool = False,
-                         interior_outside: bool = False,
+                         interior_outside: bool = True,
                          outside_divisor: int = 3) -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
