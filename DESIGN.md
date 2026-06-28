@@ -1874,3 +1874,65 @@ and matches the dense-programme target. Follow-up `homemaker-py-*` flips the
 default (mirroring `pll` after erc.7). `outside_divisor` left at 3 (seed-optimal
 joint); a finer odiv sweep under convergence is low-prior given maple's marginal
 response.
+
+### §13.7 High-budget harbor floor probe — 71d go/no-go (homemaker-py-71d.1)
+
+The whole Phase-8 construction stack is now default-ON (leaf-sharing factor 3,
+depth-balanced, interior-O odiv=3, circ_divisor 3, proportion-aware). Cumulative
+floor vs the §12.2 leu.2 baseline (all under the §13.3 leaf-share-relaxed
+objective, staged, seeds 0/1/2): **maple 136.0 → 80.3 (−41 %), harbor 74.0 → 34.0
+(−54 %)** — the entire drop from construction levers, zero from search machinery,
+exactly the epic's thesis.
+
+This probe decides **71d** (failure-directed topology-repair operator). 71d's
+premise: the pre-stack harbor 3M-eval plateau (`3m.dom`, re-scores to 27 fails)
+is dominated by **13 crinkliness** fails, characterised as **landlocked** rooms
+(`area_outside == 0` → `crink == 0` → `quality_uncrinkliness` hits the
+`if not crink: return 0.0` branch, fitness.py:355 → guaranteed fail for ALL
+ratios), repairable only by topology — *specifically interior O courtyards /
+facade access*. That fix has since shipped DEFAULT-ON (interior_outside, §13.6),
+so the premise needs re-measuring on the current stack.
+
+**Setup** (`experiments/probe_harbor_floor.py`, harbor-house, full default stack,
+seed 0, **500 000** native evals, staged, SERIAL — the leaf-share relaxed
+objective is injected by a parent-process `fitness.load_config` monkeypatch that
+does NOT reach `ProcessPoolExecutor` workers, so every §13.x floor run is serial;
+see homemaker-py-x3b for the production CLI wiring). The probe re-scores the best
+and splits each crinkliness fail into **landlocked** (`area_outside == 0`, 71d's
+ratio-invariant target) vs **under-exposed** (`0 < crink < target`, reachable by
+ratios/seeding).
+
+| metric | old 3M plateau (pre-stack) | full default stack, 500k |
+|--------|---------------------------:|-------------------------:|
+| total fails | 27 | **20** |
+| crinkliness | 13 | **4** |
+| landlocked crinkliness | ~13 | **2** |
+| top residual class | crinkliness | edge-too-long (6) |
+
+Final residual histogram (20 fails): 6 edge-too-long, 4 crinkliness, 4 size,
+2 proportion, 2 width, 2 level-not-connected. Re-score OK (relaxed config
+consistent end-to-end).
+
+**VERDICT — NO-GO on 71d as scoped; interior-O already dissolved its target.**
+The landlocked-crinkliness block 71d was built to repair collapsed from ~13 to
+**2 of 20** — because interior-O seeding *is* 71d's named fix (interior O
+courtyards) and now does it by default. Crinkliness is no longer the dominant
+class; the residual is small and spread across edge-too-long / size / proportion
+/ width / connected, with **no concentrated ratio-invariant block** for a targeted
+repair operator to attack. A deterministic repair operator remains a genuine new
+operator class (not refuted by the §11.4/§11.5/§12.3 search-machinery losses), but
+its expected value is now low: its highest-leverage target is gone, and what
+remains is diffuse. Recommendation: close 71d (and prerequisites 7u5/jrb/u8x) as
+superseded-by-construction; the floor 71d targeted was lowered by interior-O, not
+by search machinery — consistent with the epic scoreboard. The deprioritised P4
+levers erc.5 (compactness cuts — Diag A: floor is leaf-count not cut-quality, and
+leaf-sharing over-delivered) and erc.6 (inner-loop slack — Diag B: wrong DOF)
+close wont-fix on unmet revisit conditions, completing the epic.
+
+Caveat (honest): single seed, 500k not 3M, relaxed config vs the old strict
+standalone 27 — so the 20-vs-27 *total* is not a clean apples-to-apples. The
+robust signal is the **composition collapse** (crinkliness 13→4, landlocked
+13→2), which the §13.6 three-seed data corroborates (interior-O reliably cuts
+harbor landlocked fails). Follow-up observation, not part of this verdict:
+edge-too-long is now the single largest harbor class (6) — a candidate seed for
+any future floor work, distinct from the crinkliness regime Phase-8 addressed.
