@@ -2005,3 +2005,43 @@ seeds 0/1/2): **maple-court 80.3 → 74.0, harbor-house 34.7 → 31.0** — the
 share-aware arm from §13.8 becomes the baseline. `test_edge_cap_flat_when_lever_off_even_with_sharing`
 now pins `share_edge_cap=False`; `test_edge_cap_defaults_on_under_leaf_sharing`
 guards the flip. 222 tests pass.
+
+### 13.10 Productionise leaf-sharing: per-code `share` + CLI wiring (`homemaker-py-x3b`) — DONE
+
+Make the §13.3 lever a first-class, programme-author-controllable feature instead
+of an experiment-only env var + monkeypatch. Three pieces:
+
+**1. Per-code grain (`SpaceReq.share`).** `patterns.config` spaces accept an
+optional `share: N` → `SpaceReq.share` (int, default 1 = not shareable; a
+`has_share` flag distinguishes an explicit `share: 1` from the default).
+`operators._share_grain(req, leaf_share_factor)` resolves each code's grain from
+the global selector:
+- `leaf_share_factor == 0` — **per-code opt-in**: a code shares iff it sets
+  `share: N≥2`; this is the safe default-on philosophy (sharing off unless the
+  author asks, per space).
+- `leaf_share_factor ≥ 2` — **global mode**: every sized code shares at the
+  factor, with an explicit `share` overriding (`share: 1` opts a code OUT,
+  `share: N` sets that code's grain to N). Reproduces the §13.3 experiment with
+  **no edits to example programmes** (so §13.3/§13.9 baselines stay reproducible).
+
+Only sized codes are ever shareable (an unsized c/o/s absorbs slack — no target
+to centre `k` rooms on). `_share_rooms` now groups per resolved grain.
+
+**2. End-to-end conf injection.** The §13.3 scoring sites gate on a `leaf_sharing`
+conf key, but example `patterns.config` files don't set it — the experiment
+harness monkeypatched `fitness.load_config` to inject it. Productionised cleanly:
+`load_config(dir, overrides=None)` merges run-level keys last, and
+`driver.search` / `innerloop.optimise` / `NativeEvaluator` / `_fitness_for` thread
+`conf_overrides={"leaf_sharing": True}` through both the inner-loop scorer and the
+off-tree grade/feasibility scorer when sharing is on. So the whole pipeline scores
+under the relaxed objective the shared seed targets, with no monkeypatch and no
+on-disk edits. (`share_edge_cap`'s §13.9 default-ON-under-sharing derivation in
+`Fitness.__init__` rides along automatically.)
+
+**3. CLI.** `homemaker-evolve` gains `--leaf-sharing/--no-leaf-sharing` (default
+ON, `HOMEMAKER_LEAF_SHARING`) and `--leaf-share-factor N` (default 3,
+`HOMEMAKER_LEAF_SHARE_FACTOR`), threaded to `driver.search`.
+
+Default-OFF parity holds: `overrides=None` leaves `load_config` byte-identical and
+`_share_rooms` is never reached. Smoke-checked end-to-end on harbor-house (sharing
+on 37 fails vs `--no-leaf-sharing` 95 at budget 160). 233 tests pass.

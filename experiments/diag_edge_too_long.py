@@ -26,8 +26,9 @@ BEST = REPO / "scratch" / "harbor_floor_probe" / "harbor_fullstack_s0.dom"
 
 # same relaxed-config injection the probe used, so fails match
 _orig = fitness.load_config
-def _load(d):
-    c, k = _orig(d); c = dict(c); c["leaf_sharing"] = True; c["max_share"] = 3
+def _load(d, overrides=None):
+    c, k = _orig(d, overrides=overrides); c = dict(c)
+    c["leaf_sharing"] = True; c["max_share"] = 3
     return c, k
 fitness.load_config = _load
 conf, cost = fitness.load_config(HARBOR)

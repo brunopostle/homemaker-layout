@@ -346,12 +346,13 @@ class NativeEvaluator:
     scale).
     """
 
-    def __init__(self, root: dom.Node, programme_dir: str | Path):
+    def __init__(self, root: dom.Node, programme_dir: str | Path,
+                 conf_overrides: dict | None = None):
         from . import fitness as fit_mod
 
         self.root = root
         self.free = solver.free_branches(root)
-        conf, cost = fit_mod.load_config(programme_dir)
+        conf, cost = fit_mod.load_config(programme_dir, overrides=conf_overrides)
         self._fit = fit_mod.Fitness(conf, cost)
         self.n_evals = 0
         self.n_oracle_calls = 0  # kept for interface parity with OracleEvaluator
@@ -397,6 +398,7 @@ def optimise(
     method: str = "nm",
     use_native: bool = True,
     urb_root: str | Path = oracle.DEFAULT_URB_ROOT,
+    conf_overrides: dict | None = None,
     **search_kw,
 ) -> Result:
     """Optimise the free division ratios of ``root`` in place; return the best.
@@ -409,7 +411,8 @@ def optimise(
     fall back to the Perl oracle (kept for validation only).
     """
     ev_cls = NativeEvaluator if use_native else OracleEvaluator
-    ev_args = (root, programme_dir) if use_native else (root, programme_dir, urb_root)
+    ev_args = ((root, programme_dir, conf_overrides) if use_native
+               else (root, programme_dir, urb_root))
     with ev_cls(*ev_args) as ev:
         if x0 is None:
             x0 = ev.x_current

@@ -104,8 +104,8 @@ def main() -> int:
     # how every §13.x floor number was produced.
     _orig_load = fitness.load_config
 
-    def _load_with_sharing(directory):
-        conf, cost = _orig_load(directory)
+    def _load_with_sharing(directory, overrides=None):
+        conf, cost = _orig_load(directory, overrides=overrides)
         conf = dict(conf)
         conf["leaf_sharing"] = True
         conf["max_share"] = 3

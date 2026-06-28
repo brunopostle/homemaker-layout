@@ -50,8 +50,8 @@ class _force_sharing:
     def __enter__(self):
         self._orig = fitness.load_config
         if self.on:
-            def patched(directory):
-                conf, cost = self._orig(directory)
+            def patched(directory, overrides=None):
+                conf, cost = self._orig(directory, overrides=overrides)
                 conf = dict(conf)
                 conf["leaf_sharing"] = True
                 return conf, cost

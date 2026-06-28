@@ -407,17 +407,40 @@ def _grow_leaves(lvl: dom.Node, n_leaves: int, rng: np.random.Generator,
         leaf.type = None
 
 
+def _share_grain(req, share_factor: int) -> int:
+    """Per-code leaf-sharing grain (homemaker-py-x3b, §13.3).
+
+    Returns the maximum number of same-code rooms that may collapse into one
+    shared leaf, or 1 when the code must not be shared. Only sized codes are ever
+    shareable (an unsized circulation/outside code absorbs slack and has no target
+    to centre k rooms on). ``share_factor`` is the global selector:
+
+    - ``0`` — per-code opt-in: a code is shared iff it carries an explicit
+      ``share: N`` (>=2); everything else stays unshared. This is the safe
+      default-on philosophy — the programme author chooses per space.
+    - ``>=2`` — global mode: every sized code shares at grain ``share_factor``,
+      except codes with an explicit ``share`` which overrides it (``share: 1``
+      opts the code OUT, ``share: N`` sets that code's grain to N). This
+      reproduces the §13.3 experiment without editing example programmes.
+    """
+    if req is None or not (req.has_size and req.size > 0):
+        return 1
+    if share_factor == 0:
+        return req.share if req.has_share else 1
+    return req.share if req.has_share else share_factor
+
+
 def _share_rooms(rooms: list[str], reqs,
                  share_factor: int) -> tuple[list[str], dict[str, list[int]]]:
     """Collapse same-code room instances into fewer, larger shared leaves (erc.3).
 
-    Each sized, multi-instance code in ``rooms`` is grouped into runs of up to
-    ``share_factor`` instances → one leaf per run carrying that run's
+    Each shareable code in ``rooms`` (grain from :func:`_share_grain`) is grouped
+    into runs of up to its grain → one leaf per run carrying that run's
     multiplicity. Returns ``(reduced_codes, mult_plan)`` where ``reduced_codes``
     is the new per-leaf code list (fewer entries) and ``mult_plan[code]`` lists
     the multiplicities of that code's leaves (summing to the original count).
-    Circulation/outside and single-instance or non-sized codes are untouched
-    (multiplicity 1), so they cannot incur a missing fail under sharing.
+    Circulation/outside and single-instance, non-sized, or opted-out codes are
+    untouched (multiplicity 1), so they cannot incur a missing fail under sharing.
     """
     from collections import Counter
 
@@ -426,15 +449,13 @@ def _share_rooms(rooms: list[str], reqs,
     plan: dict[str, list[int]] = {}
     for code in counts:
         c = counts[code]
-        req = reqs.get(code) if reqs else None
-        shareable = (req is not None and req.has_size and req.size > 0
-                     and share_factor >= 2 and c >= 2)
-        if not shareable:
+        grain = _share_grain(reqs.get(code) if reqs else None, share_factor)
+        if grain < 2 or c < 2:
             mults = [1] * c
         else:
             mults, remaining = [], c
             while remaining > 0:
-                m = min(share_factor, remaining)
+                m = min(grain, remaining)
                 mults.append(m)
                 remaining -= m
         plan[code] = mults

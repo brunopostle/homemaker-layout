@@ -122,10 +122,16 @@ def gaussian(x: float, a: float, b: float, c: float) -> float:
     return a * (_E ** (0 - ((x - b) ** 2 / (2 * c * c))))
 
 
-def load_config(directory: str | Path) -> tuple[dict, dict]:
+def load_config(directory: str | Path,
+                overrides: dict | None = None) -> tuple[dict, dict]:
     """Load (patterns, costs) config for a corpus directory, mirroring
     ``urb-fitness.pl``: project-level ``../<name>.config`` first, then the
-    local file's keys override it."""
+    local file's keys override it.
+
+    ``overrides`` (homemaker-py-x3b) are merged into the patterns conf last, so a
+    caller can switch on run-level knobs (e.g. ``leaf_sharing``) without editing
+    any ``patterns.config`` on disk — keeping the §13.3 example programmes
+    reproducible while the CLI/driver drives sharing programmatically."""
     directory = Path(directory)
     conf: dict = {}
     cost: dict = {}
@@ -134,6 +140,8 @@ def load_config(directory: str | Path) -> tuple[dict, dict]:
             if p.is_file():
                 with open(p) as fh:
                     target.update(yaml.safe_load(fh) or {})
+    if overrides:
+        conf.update(overrides)
     return conf, cost
 
 

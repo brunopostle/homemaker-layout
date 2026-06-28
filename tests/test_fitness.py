@@ -331,3 +331,47 @@ def test_leaf_grade_sums_over_failing_factors():
 def test_leaf_grade_ignores_non_graded_keys():
     # daylight is pinned and never a graded factor even if below threshold.
     assert _leaf_grade({"daylight": 0.0}) == 0.0
+
+
+# --------------------------------------------------------------------------- #
+# load_config overrides (homemaker-py-x3b)
+# --------------------------------------------------------------------------- #
+
+
+def test_load_config_overrides_merge_last(tmp_path):
+    # The CLI/driver injects run-level knobs (leaf_sharing) without editing any
+    # on-disk patterns.config, so §13.3 example programmes stay reproducible.
+    import yaml
+
+    from homemaker_layout.fitness import load_config
+
+    (tmp_path / "patterns.config").write_text(
+        yaml.safe_dump({"spaces": {"b": {"size": [12.0, 1.0]}}}))
+
+    conf, _ = load_config(tmp_path)
+    assert "leaf_sharing" not in conf  # absent on disk
+
+    conf2, _ = load_config(tmp_path, overrides={"leaf_sharing": True})
+    assert conf2["leaf_sharing"] is True
+    assert conf2["spaces"]["b"] == {"size": [12.0, 1.0]}  # disk content preserved
+
+    # None / empty overrides are a no-op (default-OFF parity).
+    assert "leaf_sharing" not in load_config(tmp_path, overrides=None)[0]
+    assert "leaf_sharing" not in load_config(tmp_path, overrides={})[0]
+
+
+def test_programme_parses_per_code_share(tmp_path):
+    # homemaker-py-x3b: SpaceReq carries the optional per-code 'share' grain and a
+    # has_share flag distinguishing an explicit share:1 (opt out) from the default.
+    import yaml
+
+    from homemaker_layout.programme import load_programme
+
+    p = tmp_path / "patterns.config"
+    p.write_text(yaml.safe_dump({"spaces": {
+        "b": {"size": [12.0, 1.0], "share": 3},
+        "k": {"size": [20.0, 1.0]},            # no share key
+    }}))
+    reqs = load_programme(str(p))
+    assert reqs["b"].share == 3 and reqs["b"].has_share is True
+    assert reqs["k"].share == 1 and reqs["k"].has_share is False

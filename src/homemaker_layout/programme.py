@@ -29,10 +29,16 @@ class SpaceReq:
     level: int | None = None
     requires_below: str | None = None
     count: int = 1
+    # erc.3 §13.3 leaf-sharing grain (homemaker-py-x3b): how many rooms of this
+    # code may collapse into one shared leaf. Default 1 = not shareable. Under the
+    # global ``leaf_share_factor`` selector an explicit value overrides the global
+    # grain (share:1 opts a code OUT, share:N>=2 sets that code's grain to N).
+    share: int = 1
     # Whether each quality param was explicitly in the config (not a default)
     has_size: bool = False
     has_width: bool = False
     has_proportion: bool = False
+    has_share: bool = False
 
 
 def _pair(d: dict, key: str, default: tuple[float, float]) -> tuple[float, float]:
@@ -62,9 +68,11 @@ def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
             level=c.get("level"),
             requires_below=c.get("requires_below"),
             count=int(c.get("count") or 1),
+            share=int(c.get("share") or 1),
             has_size="size" in c,
             has_width="width" in c,
             has_proportion="proportion" in c,
+            has_share="share" in c,
         )
     return out
 

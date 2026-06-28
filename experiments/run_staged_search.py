@@ -76,8 +76,10 @@ def main() -> int:
         # constructed shared leaves target. Keeps both A/B arms on one dir.
         _orig_load = fitness.load_config
 
-        def _load_with_sharing(directory):
-            conf, cost = _orig_load(directory)
+        def _load_with_sharing(directory, overrides=None):
+            # x3b: driver/innerloop now pass overrides={"leaf_sharing": True}; honour
+            # the kwarg, then pin the experiment's extra A/B knob on top.
+            conf, cost = _orig_load(directory, overrides=overrides)
             conf = dict(conf)
             conf["leaf_sharing"] = True
             # hph §13.8: share-aware edge-too-long cap now defaults ON under

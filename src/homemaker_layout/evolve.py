@@ -40,6 +40,13 @@ def _env_int(name: str, default: int) -> int:
     return int(v) if v is not None else default
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    v = os.environ.get(name)
+    if v is None:
+        return default
+    return v.strip().lower() in ("1", "true", "yes", "on")
+
+
 def _parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="homemaker-evolve",
@@ -65,6 +72,18 @@ def _parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--seed", type=int,
                    default=_env_int("HOMEMAKER_SEED", 0),
                    metavar="N", help="RNG seed")
+    p.add_argument("--leaf-sharing", action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_LEAF_SHARING", True),
+                   help="collapse same-code rooms into fewer, larger shared "
+                        "leaves (erc.3, §13.3); --no-leaf-sharing for the strict "
+                        "per-leaf baseline (default: on)")
+    p.add_argument("--leaf-share-factor", type=int,
+                   default=_env_int("HOMEMAKER_LEAF_SHARE_FACTOR", 3),
+                   metavar="N",
+                   help="global sharing grain: 0 = per-code opt-in only (share a "
+                        "code iff its programme entry sets 'share: N>=2'); N>=2 = "
+                        "share every sized code at grain N, with a code's explicit "
+                        "'share' overriding (share:1 opts out) (default: 3)")
     p.add_argument("--output", type=Path, default=None, metavar="PATH",
                    help="output .dom path (- for stdout)")
     return p.parse_args(argv)
@@ -100,6 +119,8 @@ def main(argv=None) -> int:
     print(f"child_budget : {args.child_budget}", file=sys.stderr)
     print(f"workers      : {args.workers}", file=sys.stderr)
     print(f"rng seed     : {args.seed}", file=sys.stderr)
+    print(f"leaf sharing : {args.leaf_sharing} (factor={args.leaf_share_factor})",
+          file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -117,6 +138,8 @@ def main(argv=None) -> int:
         p_crossover=0.2,
         seed=args.seed,
         n_workers=args.workers,
+        leaf_sharing=args.leaf_sharing,
+        leaf_share_factor=args.leaf_share_factor,
         log=lambda m: print(m, file=sys.stderr, flush=True),
     )
 

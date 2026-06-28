@@ -138,6 +138,72 @@ def test_leaf_share_explicit_and_type_guarded():
     assert leaf_share(plain, 4) == 1
 
 
+def _reqs(**share_kw):
+    """Build a tiny programme: sized 'b' (share per kwarg), sized 'k', unsized 'C'."""
+    from homemaker_layout.programme import SpaceReq
+
+    b = SpaceReq(code="b", size=12.0, has_size=True, count=5)
+    if "b" in share_kw:
+        b.share, b.has_share = share_kw["b"], True
+    k = SpaceReq(code="k", size=20.0, has_size=True, count=4)
+    if "k" in share_kw:
+        k.share, k.has_share = share_kw["k"], True
+    c = SpaceReq(code="C", size=0.0, has_size=False, count=3)  # unsized circulation
+    return {"b": b, "k": k, "C": c}
+
+
+def _mults(plan_entry):
+    return sorted(plan_entry)
+
+
+def test_share_grain_opt_in_mode():
+    # homemaker-py-x3b: factor 0 = per-code opt-in. A code shares iff it carries an
+    # explicit share:N>=2; sized codes without the key, and unsized codes, do not.
+    reqs = _reqs(b=3)
+    assert operators._share_grain(reqs["b"], 0) == 3   # explicit opt-in
+    assert operators._share_grain(reqs["k"], 0) == 1   # sized but no key → unshared
+    assert operators._share_grain(reqs["C"], 0) == 1   # unsized → never shareable
+    assert operators._share_grain(_reqs(b=1)["b"], 0) == 1  # share:1 stays unshared
+
+
+def test_share_grain_global_mode_with_per_code_override():
+    # factor>=2 = global: every sized code shares at the factor unless its entry
+    # overrides — share:1 opts OUT, share:N sets that code's grain to N.
+    reqs = _reqs(b=1, k=4)
+    assert operators._share_grain(reqs["b"], 3) == 1   # explicit share:1 → opt out
+    assert operators._share_grain(reqs["k"], 3) == 4   # explicit share:4 → grain 4
+    assert operators._share_grain(_reqs()["k"], 3) == 3  # no key → global factor 3
+    assert operators._share_grain(_reqs()["C"], 3) == 1  # unsized → never shareable
+
+
+def test_share_rooms_opt_in_groups_only_flagged_code():
+    # factor 0: only 'b' (share:3) collapses into runs of 3; 'k' and 'C' untouched.
+    rooms = ["b"] * 5 + ["k"] * 4 + ["C"] * 3
+    reduced, plan = operators._share_rooms(rooms, _reqs(b=3), 0)
+    assert _mults(plan["b"]) == [2, 3]      # 5 rooms → runs of 3 + 2
+    assert plan["k"] == [1, 1, 1, 1]        # no share key → unshared
+    assert plan["C"] == [1, 1, 1]           # unsized → unshared
+    assert reduced.count("b") == 2 and reduced.count("k") == 4
+
+
+def test_share_rooms_global_with_opt_out():
+    # factor 3 global: 'k' shares at 3 (no key), 'b' opted OUT via share:1.
+    rooms = ["b"] * 5 + ["k"] * 4
+    reduced, plan = operators._share_rooms(rooms, _reqs(b=1), 3)
+    assert plan["b"] == [1, 1, 1, 1, 1]     # share:1 → opt out, stays 5 leaves
+    assert _mults(plan["k"]) == [1, 3]      # 4 rooms → run of 3 + 1
+    # multiplicities always sum back to the original room counts (no rooms lost)
+    assert sum(plan["b"]) == 5 and sum(plan["k"]) == 4
+
+
+def test_share_rooms_default_off_parity():
+    # Master switch off path: callers never invoke _share_rooms, but a single
+    # instance or grain<2 must yield the identity plan regardless of factor.
+    rooms = ["b", "k", "k", "C"]
+    reduced, plan = operators._share_rooms(rooms, _reqs(), 0)  # opt-in, no keys
+    assert reduced == rooms and all(m == 1 for ms in plan.values() for m in ms)
+
+
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
 def test_leaf_sharing_reduces_leaves_and_covers_rooms():
     # erc.3 §13.3: leaf_sharing builds fewer leaves, and coverage-counting lets
