@@ -2045,3 +2045,71 @@ ON, `HOMEMAKER_LEAF_SHARING`) and `--leaf-share-factor N` (default 3,
 Default-OFF parity holds: `overrides=None` leaves `load_config` byte-identical and
 `_share_rooms` is never reached. Smoke-checked end-to-end on harbor-house (sharing
 on 37 fails vs `--no-leaf-sharing` 95 at budget 160). 233 tests pass.
+
+## 14. Island model: multi-run recombination (`homemaker-py-psk`) — DONE (null)
+
+**Lever (user-proposed).** Perl Urb ran the search many times and kept the best,
+because independent runs settle into different local minima. The Python tool is
+deterministic per `--seed`, so the analog is an *island model with synchronous
+migration*: run N independent seeds to convergence (Phase A), then PRIME a fresh
+population with those N converged elites and run a second, crossover-heavy phase
+(Phase B) to recombine basins. Distinct from §11.5 (`c4c.5`), which injected
+**fresh** random/constructive seeds for raw diversity and landed null — here the
+migrants are **fully-converged elites**, high-quality building blocks, so the
+"diversity does not help" result does not directly refute it. The one untested
+sub-mechanism: can crossover *stack* wins across independent basins (run A solved
+cluster X, run B solved cluster Y, child inherits both)?
+
+**Design (`experiments/run_island_ab.py`).** Three numbers per programme, all
+`leaf_sharing` OFF so controls track the §12.2 baselines (maple 136 / harbor 74),
+all on **equal actual eval budget** (the staged search has a hard ~`pop·child·2`
+bootstrap floor, so we account `r.n_evals`, never the request):
+- **`bestN@A`** — best-of-N over Phase A (the FREE reference; these N runs happen
+  anyway — the legitimate descendant of Urb's multi-run habit).
+- **`island`** — Phase B result: a population primed from the N Phase-A elites via
+  the existing `seed_factory`+`bootstrap` path (no new representation), evolved at
+  `p_crossover=0.7`. Total budget = Phase A + migration.
+- **`bestN@T`** — best-of-N over N independent runs at the *same total* per seed
+  (the "N+ longer independent runs" control). **THE BAR**: island must beat it.
+
+A default-off `child_probe` hook (`driver.search`) instruments the deciding
+mechanism: for every crossover child it records whether the spliced child beats
+`max`/`min(parent fails)`. Parent fails are appended to the child lineage as
+`|pf=a,b` (only when the probe is set) so the signal survives the
+`ProcessPoolExecutor` pickle round-trip an `id(root)` key cannot.
+
+**Result (N=4, master_seed 0, 28160 actual evals/arm, 4 workers):**
+
+| programme | bestN@A | island | **bestN@T** | verdict | crossover beat-min-parent |
+|-----------|--------:|-------:|------------:|---------|--------------------------:|
+| harbor    |      73 |     68 |      **67** | loses by 1 (within noise) | 1 / 65 |
+| maple     |     134 |    124 |     **116** | loses by 8 (decisive)     | 3 / 63 |
+
+**Verdict: NULL / negative.** The island model does **not** beat best-of-N at
+equal total budget. On harbor it ties-to-loses inside the parallel noise band; on
+maple it loses clearly (124 vs 116) — a single *longer* independent run reached
+116 while the migration phase, given the same budget, stalled at 124. The migration
+phase buys nothing a longer independent run does not.
+
+**The mechanistic probe explains why (the deciding diagnostic).** Crossover across
+independently-converged elites almost never synthesizes: of ~64 crossover children
+only **1/65 (harbor) and 3/63 (maple)** beat the *better* parent, with a best
+fail-drop of just 2 and 5. This confirms the issue's **alignment** hypothesis:
+`operators.crossover` is *area-matched* subtree exchange, but two independently
+evolved trees encode similar arrangements at different paths/areas (the encoding
+is non-canonical — `9gp` closed negative), so the splice is mostly disruptive, not
+combinatorial, and the inner loop re-solves ratios at the boundary (spliced quality
+not preserved). The null is therefore **mechanistic, not budget**.
+
+**Noise caveat (carry forward).** Phase A is unaffected by the probe, yet harbor
+seed 2 scored 71 then 73 on byte-identical re-runs — parallel/BLAS
+non-determinism, the same ±2-3 effect §12.4 flagged. Sub-±3 verdicts under
+`n_workers>1` are noise; both arms here ran at the same worker count so the
+*comparison* stays fair, and maple's −8 is safely outside the band.
+
+This is the third search-machinery null after §11.4 (graded objective) and §11.5
+(niching+restarts) / §12.3 (M3 + shape filter), against four construction/seed
+wins (§11.6, §11.7, §12.2, §13.x). best-of-N at the Phase-A budget remains a free,
+worthwhile habit; a dedicated migration phase is not worth its budget. The residual
+stays geometry/shape-bound. NOT gated on canonical encoding (`9gp` closed); the
+`child_probe` hook is kept default-off for reuse.

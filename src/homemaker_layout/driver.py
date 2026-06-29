@@ -185,6 +185,7 @@ def search(
     rank_bonus_weight: float = 1.0,
     seed_factory=None,
     base_p: float = 1.0,
+    child_probe=None,
     use_grade: bool = False,
     niche_by_signature: bool = False,
     restart_patience: int | None = None,
@@ -339,6 +340,16 @@ def search(
 
     pop: list[Individual] = []
 
+    # homemaker-py-psk (island model §14): optional per-child instrumentation
+    # hook, default off (no behaviour change). ``child_probe(ind)`` is called
+    # once per evaluated child. Used by the island-migration A/B to measure
+    # whether area-matched crossover across independently-converged elites EVER
+    # yields a child that beats max(parent fails) — distinguishing a mechanistic
+    # (alignment) null from a budget null. The crossover parents' fail counts are
+    # appended to the child's lineage as ``|pf=a,b`` (only when the probe is set),
+    # so the signal survives the ProcessPoolExecutor pickle round-trip that an
+    # id(root) key cannot (the worker returns a deserialised, distinct object).
+
     # Set up optional process pool for parallel child evaluation.
     _pool = None
     if n_workers > 1:
@@ -376,11 +387,15 @@ def search(
             for f in futs:
                 ind, used = f.result()
                 n_evals += used
+                if child_probe is not None:
+                    child_probe(ind)
                 admit(ind, pop)
         else:
             for t in full:
                 ind, used = _evaluate(*t)
                 n_evals += used
+                if child_probe is not None:
+                    child_probe(ind)
                 admit(ind, pop)
 
     # A fresh seed individual (used for the initial bootstrap and for §11.5
@@ -465,6 +480,8 @@ def search(
                 if len(pop) >= 2 and rng.random() < p_crossover:
                     a, b = _tournament(pop, rng, _key), _tournament(pop, rng, _key)
                     child_root, _, desc = operators.crossover(a.root, b.root, rng)
+                    if child_probe is not None:
+                        desc = f"{desc}|pf={a.n_fails},{b.n_fails}"
                     ratios = {**b.ratios, **a.ratios}  # primary parent wins
                 else:
                     parent = _tournament(pop, rng, _key)
