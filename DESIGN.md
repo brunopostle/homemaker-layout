@@ -1108,6 +1108,81 @@ core as `fixed_circ`; threaded through `search_staged(seed_adjacency_aware=True)
   denser, more-circulation layouts), which is the canonical-encoding /
   shape-feasibility territory of `homemaker-py-9gp`.
 
+### 11.8 Topology diversity × selection pressure, co-tuned (`homemaker-py-6zy`) — DONE (negative)
+
+Premise (loose end from §11.5): structural niching was A/B'd against the legacy
+fitness-scalar dedup with selection pressure **held fixed** at a binary tournament
+(`driver._tournament`, `k=2`). §11.5's own mechanism note named the coupling as
+the reason for its null — "Maximal diversity (16/16) with the fixed tournament
+pressure just **diffuses** effort" — i.e. diversity and pressure are coupled but
+were varied as if independent: niching widens the population, but `k` was never
+**sharpened** to convert the extra exploration back into exploitation. This issue
+isolates that coupling — sweep tournament size jointly with niching to test
+whether sharper selection turns the 16/16 structural diversity into lower fails.
+The project had already pivoted to the canonical encoding (`homemaker-py-9gp`);
+this is a falsification check so the lever is not silently lost, not an expected
+win (§11.4/§11.5 both located the plateau in **reachability**).
+
+**Implementation (knob only; default-off behaviour unchanged).** Exposed
+`tournament_k: int = 2` on `search` / `search_staged`, threaded into both
+`_tournament` call sites (crossover pair + mutation parent) and all three internal
+`search()` calls of the staged path; reuses the §11.5 `genome.signature` /
+`niche_by_signature` machinery unchanged. The experiments harness reads
+`HOMEMAKER_TOURNAMENT_K` (mirrors `NICHE`) in `run_search_scaled.py` /
+`run_staged_search.py`; `experiments/run_6zy_ab.sh` runs the joint grid (RESUME-able).
+
+- *Commands (reproduce, `URB_NO_OCCLUSION=1`, 20000 evals; blank-slate seed
+  `init.dom` to match §11.5):*
+  ```bash
+  # grid: NICHE ∈ {0,1} × HOMEMAKER_TOURNAMENT_K ∈ {2,3,4}
+  NICHE=0 HOMEMAKER_TOURNAMENT_K=2 python3 experiments/run_search_scaled.py \
+    examples/programme-house 20000 <seed> examples/programme-house/init.dom scratch/out.dom
+  # harbor (staged): run_staged_search.py, seed examples/harbor-house/init.dom
+  bash experiments/run_6zy_ab.sh        # full grid → scratch/6zy/summary.tsv
+  ```
+
+- *Diversity (mechanism check) — confirmed biting.* `niche=on` holds the final
+  population at **16/16** distinct topologies at every `k`; `niche=off` sits at
+  **4–11/16**. The pressure knob is genuinely varied (`k`=2,3,4). So both levers
+  are live — the null below is not a machinery artefact.
+
+- *Fail count (the gate) — no cell beats the baseline.* Blank-slate
+  programme-house, total fails at budget over **5 seeds** (0–4), mean (sd):
+
+  | niche \ k |     k=2     |     k=3     |     k=4     |
+  |:---------:|:-----------:|:-----------:|:-----------:|
+  | **off**   | **4.80** (1.60) | 6.40 (2.50) | 6.00 (2.00) |
+  | **on**    | 6.20 (1.72) | 7.00 (1.41) | 6.60 (1.85) |
+
+  The legacy `(off, k=2)` cell is the **best** of the six (4.80); every
+  higher-pressure row and every `niche=on` row is equal-or-worse (6.0–7.0). All
+  differences sit within ~1 sd at 5 seeds, so the grid is a wash — but the central
+  tendency is unambiguous: sharpening `k` and adding niching both *slightly hurt*,
+  the opposite of the rescue the premise hypothesised. Harbor-house (staged, seed
+  0) reinforces it: `niche=on` is uniformly worse than `off` at every `k`
+  (k2 72→83, k3 77→82, k4 67→75); within the `niche=on` row higher `k` helps
+  monotonically (83→82→75) but never catches the `niche=off` row, and the best
+  cell overall (`off, k=4` = 67) is a single-seed wiggle within noise of the
+  `off, k=2` = 72 baseline.
+
+- *Why it fails — the coupling is real but points the wrong way.* Sharper
+  selection does **not** convert the extra structural diversity into lower fails;
+  if anything the 16/16 niched population at high `k` over-commits the
+  larger spread to a handful of basins and loses the occasional lucky low-fail
+  draw the smaller fitness-scalar population stumbles into. §11.5's "diffuses
+  effort" diagnosis survives co-tuning: the bottleneck is **reachability**
+  (operators + encoding cannot reach the low-fail basins), so reshaping
+  selection/population pressure cannot recover what the search space does not
+  expose — the same conclusion §11.4 reached from the comparator side and §11.5
+  from the diversity side.
+
+- *Verdict: §11.5 null is robust to selection pressure — reject `k>2` and niching
+  as defaults; binary tournament + fitness-scalar dedup stand.* `tournament_k` is
+  kept (default-2) as a reusable knob alongside `niche_by_signature`. With
+  §11.4/§11.5/§11.8 all negative on the outer loop, the residual is confirmed
+  structural: the principled lever is the canonical encoding + richer topology
+  operators (`homemaker-py-9gp`), not selection or population management.
+
 ## 12. Phase 7 — scaling validation & residual reduction (post-c4c)
 
 **Epic:** `homemaker-py-leu`. **Status:** opened 2026-06-19. Continuation of the

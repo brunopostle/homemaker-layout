@@ -187,6 +187,7 @@ def search(
     base_p: float = 1.0,
     child_probe=None,
     use_grade: bool = False,
+    tournament_k: int = 2,
     niche_by_signature: bool = False,
     restart_patience: int | None = None,
     restart_elite: int = 1,
@@ -478,13 +479,14 @@ def search(
             tasks = []
             for _ in range(batch_n):
                 if len(pop) >= 2 and rng.random() < p_crossover:
-                    a, b = _tournament(pop, rng, _key), _tournament(pop, rng, _key)
+                    a, b = (_tournament(pop, rng, _key, k=tournament_k),
+                            _tournament(pop, rng, _key, k=tournament_k))
                     child_root, _, desc = operators.crossover(a.root, b.root, rng)
                     if child_probe is not None:
                         desc = f"{desc}|pf={a.n_fails},{b.n_fails}"
                     ratios = {**b.ratios, **a.ratios}  # primary parent wins
                 else:
-                    parent = _tournament(pop, rng, _key)
+                    parent = _tournament(pop, rng, _key, k=tournament_k)
                     child_root, desc = operators.mutate(parent.root, rng, types,
                                                         weights=mutation_weights,
                                                         reqs=reqs, base_p=base_p)
@@ -537,6 +539,7 @@ def search_staged(
     log=None,
     n_workers: int = 1,
     use_grade: bool = False,
+    tournament_k: int = 2,
     niche_by_signature: bool = False,
     restart_patience: int | None = None,
     restart_elite: int = 1,
@@ -591,7 +594,8 @@ def search_staged(
                       child_budget=child_budget, seed_budget=seed_budget,
                       p_crossover=p_crossover, seed=seed, types=types,
                       inner_kw=inner_kw, log=log, n_workers=n_workers,
-                      use_grade=use_grade, niche_by_signature=niche_by_signature,
+                      use_grade=use_grade, tournament_k=tournament_k,
+                      niche_by_signature=niche_by_signature,
                       restart_patience=restart_patience, restart_elite=restart_elite,
                       seed_adjacency_aware=seed_adjacency_aware,
                       seed_proportion_aware=seed_proportion_aware,
@@ -625,6 +629,7 @@ def search_staged(
             inner_kw=inner_kw, log=log, n_workers=n_workers,
             rank_bonus_fn=lambda root: graph.substrate_readiness(root, reqs, n_storeys),
             rank_bonus_weight=rank_bonus_weight,
+            tournament_k=tournament_k,
             niche_by_signature=niche_by_signature,
             restart_patience=restart_patience, restart_elite=restart_elite,
             seed_adjacency_aware=seed_adjacency_aware,
@@ -670,7 +675,8 @@ def search_staged(
         # §11.4: the graded objective targets the dense two-floor quality-fail
         # regime, which is Stage 2. Stage 1 keeps its readiness-biased key so the
         # substrate-selection semantics (§11.3) are unchanged.
-        use_grade=use_grade, niche_by_signature=niche_by_signature,
+        use_grade=use_grade, tournament_k=tournament_k,
+        niche_by_signature=niche_by_signature,
         restart_patience=restart_patience, restart_elite=restart_elite,
         enable_reassociate=enable_reassociate,
         feasibility_filter=feasibility_filter,

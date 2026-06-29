@@ -53,6 +53,7 @@ def main() -> int:
 
     use_grade = os.environ.get("USE_GRADE") == "1"  # §11.4 graded objective A/B
     niche = os.environ.get("NICHE", "0") == "1"     # §11.5 structural niching A/B
+    tournament_k = int(os.environ.get("HOMEMAKER_TOURNAMENT_K", "2"))  # 6zy pressure knob
     rp = os.environ.get("RESTART_PATIENCE")
     restart_patience = int(rp) if rp else None
     adj = os.environ.get("ADJ", "1") == "1"  # s44/ld5 adjacency-aware seeding A/B
@@ -96,6 +97,7 @@ def main() -> int:
     print(f"rng seed  : {rng_seed}")
     print(f"use_grade : {use_grade}")
     print(f"niche     : {niche}")
+    print(f"tourn_k   : {tournament_k}")
     print(f"restart_p : {restart_patience}")
     print(f"adj_aware : {adj}")
     print(f"prop_aware: {prop}")
@@ -123,6 +125,7 @@ def main() -> int:
         seed=rng_seed,
         log=lambda m: print(m, flush=True),
         use_grade=use_grade,
+        tournament_k=tournament_k,
         niche_by_signature=niche,
         restart_patience=restart_patience,
         seed_adjacency_aware=adj,
