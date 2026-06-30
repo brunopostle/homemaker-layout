@@ -208,6 +208,120 @@ class Fitness:
         # share_edge_cap=False still reproduces the pre-flip control arm.
         cap = self.conf("share_edge_cap")
         self._share_edge_cap = self._leaf_sharing if cap is None else bool(cap)
+        # 9o5 type superposition (DESIGN.md §13/homemaker-py-9o5): default OFF.
+        # When on, interchangeable codes (similar requirements) form equivalence
+        # classes; each candidate's fitness re-types (collapses) every superposed
+        # leaf to its best in-class usage before scoring, so search optimises the
+        # condensed objective directly and the relaxation gap is removed.
+        self._superpose = bool(self.conf("superpose"))
+        from .programme import CLASS_CAP as _CLASS_CAP
+        self._class_cap = int(self.conf("superpose_class_cap") or _CLASS_CAP)
+        self._interchange_classes: list | None = None  # lazily derived
+
+    # ------------------------------------------------------------------ #
+    # Type superposition + collapse (homemaker-py-9o5)
+    # ------------------------------------------------------------------ #
+
+    def interchange_classes(self) -> list:
+        """Interchange equivalence classes (size>=2), derived once from the
+        programme and cached. Empty list when superposition has nothing to act
+        on, in which case the collapse is a no-op and scoring matches baseline."""
+        if self._interchange_classes is None:
+            from . import programme as _pr
+            reqs = self._programme or {}
+            self._interchange_classes = (
+                _pr.derive_interchange_classes(reqs) if reqs else []
+            )
+        return self._interchange_classes
+
+    def _usage_quality(self, leaf: Node, usage: str) -> float:
+        """The usage-DEPENDENT part of a leaf's quality (size x width x
+        proportion) as if it were typed ``usage``. The remaining factors
+        (perpendicular, crinkliness, access) and value rate are usage-invariant
+        within a class, so this is the separable per-leaf collapse objective."""
+        orig = leaf.type
+        leaf.type = usage
+        try:
+            return (
+                self.quality_size(leaf)
+                * self.quality_width(leaf)
+                * self.quality_proportion(leaf)
+            )
+        finally:
+            leaf.type = orig
+
+    def _best_assignment(self, quality: list[list[float]]) -> list[tuple[int, int]]:
+        """Maximum-total-quality matching of ``min(rows, cols)`` leaf->slot
+        pairs. Brute-forces <= C! permutations when the smaller side is within
+        the class cap (exact and tiny); otherwise solves the equivalent
+        linear-sum assignment (Hungarian) — both give the optimum because the
+        objective is separable per leaf (§3 cost note)."""
+        rows = len(quality)
+        cols = len(quality[0]) if rows else 0
+        if rows == 0 or cols == 0:
+            return []
+        if min(rows, cols) <= self._class_cap:
+            import itertools
+            best: list[tuple[int, int]] = []
+            best_score = float("-inf")
+            if rows <= cols:
+                for sel in itertools.permutations(range(cols), rows):
+                    s = sum(quality[r][sel[r]] for r in range(rows))
+                    if s > best_score:
+                        best_score = s
+                        best = [(r, sel[r]) for r in range(rows)]
+            else:
+                for sel in itertools.permutations(range(rows), cols):
+                    s = sum(quality[sel[c]][c] for c in range(cols))
+                    if s > best_score:
+                        best_score = s
+                        best = [(sel[c], c) for c in range(cols)]
+            return best
+        from scipy.optimize import linear_sum_assignment
+        import numpy as np
+        ri, ci = linear_sum_assignment(-np.array(quality))
+        return list(zip(ri.tolist(), ci.tolist()))
+
+    def collapse_superposition(self, root: Node) -> None:
+        """Re-type each superposed leaf to its best in-class usage (the per-eval
+        COLLAPSE, homemaker-py-9o5 §1). Runs on the UNMERGED tree before any
+        check, so counts/adjacency/quality downstream see the condensed types.
+
+        Per class: SUPPLY = leaves currently typed into the class; DEMAND = the
+        class codes expanded by their required counts. The optimal supply->demand
+        matching assigns each demand slot to the leaf that fits it best; surplus
+        supply leaves keep their type (a genuine over-supply that scoring still
+        penalises), unmet demand slots stay absent (a genuine missing room)."""
+        classes = self.interchange_classes()
+        if not classes:
+            return
+        prog = self._programme or {}
+        by_type: dict[str, list[Node]] = {}
+        for lvl in dom_mod.levels(root):
+            for leaf in lvl.leaves():
+                if leaf.type:
+                    by_type.setdefault(leaf.type, []).append(leaf)
+
+        for cls in classes:
+            supply = [lf for code in cls for lf in by_type.get(code, [])]
+            if not supply:
+                continue
+            slots: list[str] = []
+            for code in sorted(cls):
+                cnt = prog[code].count if code in prog else 0
+                slots.extend([code] * max(0, cnt))
+            if not slots:
+                continue
+            # Weight each leaf's usage quality by its area: the condensed value is
+            # sum(quality * value_rate * area), and value_rate is constant within a
+            # class (all in-class codes are inside rooms), so area is the per-leaf
+            # weight that makes the matching maximise value, not just mean quality.
+            quality = [
+                [self._usage_quality(lf, s) * geometry.area(lf) for s in slots]
+                for lf in supply
+            ]
+            for r, c in self._best_assignment(quality):
+                supply[r].type = slots[c]
 
     def conf(self, key: str):
         v = self._conf.get(key)
@@ -1071,6 +1185,11 @@ class Fitness:
         }
 
         programme = self._programme or {}
+
+        # 9o5 COLLAPSE: re-type superposed leaves to their best in-class usage
+        # before any check (no-op unless superposition is on and a class exists).
+        if self._superpose:
+            self.collapse_superposition(root)
 
         # --- Phase 1: UNMERGED tree checks ---
         check_fails, missing = graph_mod.check_space_counts(

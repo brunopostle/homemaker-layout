@@ -39,8 +39,19 @@ from . import dom, fitness, genome, innerloop, operators, programme
 _CHILD_INNER_KW: dict = {}
 
 
+def _overrides_for(leaf_sharing: bool, superpose: bool) -> dict | None:
+    """Run-level conf overrides for the native evaluator (None when all off)."""
+    ov: dict = {}
+    if leaf_sharing:
+        ov["leaf_sharing"] = True
+    if superpose:
+        ov["superpose"] = True
+    return ov or None
+
+
 @functools.lru_cache(maxsize=None)
-def _fitness_for(programme_dir: str, leaf_sharing: bool = False) -> "fitness.Fitness":
+def _fitness_for(programme_dir: str, leaf_sharing: bool = False,
+                 superpose: bool = False) -> "fitness.Fitness":
     """Cached Fitness evaluator per (programme dir, leaf_sharing) (config load is
     the cost).
 
@@ -51,7 +62,7 @@ def _fitness_for(programme_dir: str, leaf_sharing: bool = False) -> "fitness.Fit
     inner loop instead of reading the on-disk (sharing-free) patterns.config.
     Cached per process — workers fork their own copy.
     """
-    overrides = {"leaf_sharing": True} if leaf_sharing else None
+    overrides = _overrides_for(leaf_sharing, superpose)
     conf, cost = fitness.load_config(programme_dir, overrides=overrides)
     return fitness.Fitness(conf, cost)
 
@@ -125,7 +136,8 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
               lineage: str, want_grade: bool = False,
               feasibility_max_shape_fails: int | None = None,
               best_n_fails: int | None = None,
-              leaf_sharing: bool = False) -> tuple[Individual, int]:
+              leaf_sharing: bool = False,
+              superpose: bool = False) -> tuple[Individual, int]:
     # §12.3 shape-feasibility pre-filter (homemaker-py-9gp.1): if even the best
     # achievable (proportion-aware) geometry of this topology already has at least
     # as many shape fails as the incumbent's TOTAL fails — and exceeds the tunable
@@ -133,11 +145,11 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     # eval instead of spending the full inner-loop budget. The best_n_fails guard
     # makes the proxy safe: a topology whose shape-fail floor is still below the
     # incumbent is never discarded. Pruned individuals are tagged and never admitted.
-    overrides = {"leaf_sharing": True} if leaf_sharing else None
+    overrides = _overrides_for(leaf_sharing, superpose)
     if (feasibility_max_shape_fails is not None and best_n_fails is not None):
         pred = operators.predicted_shape_fails(
             root, _reqs_for(str(programme_dir)),
-            _fitness_for(str(programme_dir), leaf_sharing))
+            _fitness_for(str(programme_dir), leaf_sharing, superpose))
         if pred > feasibility_max_shape_fails and pred >= best_n_fails:
             ind = Individual(root=root, fitness=0.0, n_fails=pred, ratios={},
                              lineage=f"pruned/{lineage}", grade=0.0,
@@ -151,7 +163,8 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     # native eval per child (~1/child_budget overhead); skipped unless requested.
     grade = 0.0
     if want_grade:
-        _, _, grade = _fitness_for(str(programme_dir), leaf_sharing).score_with_grade(
+        _, _, grade = _fitness_for(
+            str(programme_dir), leaf_sharing, superpose).score_with_grade(
             copy.deepcopy(root))
     ind = Individual(root=root, fitness=r.fitness, n_fails=r.n_fails,
                      ratios=innerloop.ratio_map(root), lineage=lineage,
@@ -199,6 +212,7 @@ def search(
     circ_divisor: int = 3,
     leaf_sharing: bool = True,
     leaf_share_factor: int = 3,
+    superpose: bool = False,
     depth_balanced: bool = True,
     interior_outside: bool = True,
     outside_divisor: int = 3,
@@ -371,7 +385,7 @@ def search(
         best_nf = result.best.n_fails if result.best is not None else None
         full = [
             (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade,
-             mx, best_nf, leaf_sharing)
+             mx, best_nf, leaf_sharing, superpose)
             for root, x0, budget_, kw_, lin in tasks
         ]
         if _pool is not None:
@@ -442,7 +456,8 @@ def search(
                                        x0=None, budget=seed_budget,
                                        inner_kw={}, lineage="seed",
                                        want_grade=use_grade,
-                                       leaf_sharing=leaf_sharing)
+                                       leaf_sharing=leaf_sharing,
+                                       superpose=superpose)
             n_evals += used
             admit(seed_ind, pop)
 
@@ -551,6 +566,7 @@ def search_staged(
     circ_divisor: int = 3,
     leaf_sharing: bool = True,
     leaf_share_factor: int = 3,
+    superpose: bool = False,
     depth_balanced: bool = True,
     interior_outside: bool = True,
     outside_divisor: int = 3,
@@ -605,6 +621,7 @@ def search_staged(
                       circ_divisor=circ_divisor,
                       leaf_sharing=leaf_sharing,
                       leaf_share_factor=leaf_share_factor,
+                      superpose=superpose,
                       depth_balanced=depth_balanced,
                       interior_outside=interior_outside,
                       outside_divisor=outside_divisor)
@@ -640,6 +657,7 @@ def search_staged(
             circ_divisor=circ_divisor,
             leaf_sharing=leaf_sharing,
             leaf_share_factor=leaf_share_factor,
+            superpose=superpose,
             depth_balanced=depth_balanced,
             interior_outside=interior_outside,
             outside_divisor=outside_divisor,
@@ -684,6 +702,7 @@ def search_staged(
         circ_divisor=circ_divisor,
         leaf_sharing=leaf_sharing,
         leaf_share_factor=leaf_share_factor,
+        superpose=superpose,
         depth_balanced=depth_balanced,
         interior_outside=interior_outside,
         outside_divisor=outside_divisor,

@@ -84,6 +84,12 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "code iff its programme entry sets 'share: N>=2'); N>=2 = "
                         "share every sized code at grain N, with a code's explicit "
                         "'share' overriding (share:1 opts out) (default: 3)")
+    p.add_argument("--superpose", action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_SUPERPOSE", False),
+                   help="type superposition (9o5): interchangeable codes (similar "
+                        "requirements) form equivalence classes and each candidate "
+                        "collapses every superposed leaf to its best in-class usage "
+                        "before scoring (default: off)")
     p.add_argument("--output", type=Path, default=None, metavar="PATH",
                    help="output .dom path (- for stdout)")
     return p.parse_args(argv)
@@ -121,6 +127,7 @@ def main(argv=None) -> int:
     print(f"rng seed     : {args.seed}", file=sys.stderr)
     print(f"leaf sharing : {args.leaf_sharing} (factor={args.leaf_share_factor})",
           file=sys.stderr)
+    print(f"superpose    : {args.superpose}", file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -140,6 +147,7 @@ def main(argv=None) -> int:
         n_workers=args.workers,
         leaf_sharing=args.leaf_sharing,
         leaf_share_factor=args.leaf_share_factor,
+        superpose=args.superpose,
         log=lambda m: print(m, file=sys.stderr, flush=True),
     )
 

@@ -83,6 +83,91 @@ def load_programme(path: str) -> dict[str, SpaceReq]:
     return _parse_spaces(conf)
 
 
+# --------------------------------------------------------------------------- #
+# Interchange equivalence classes (homemaker-py-9o5, type superposition)
+# --------------------------------------------------------------------------- #
+#
+# A maximal group of codes whose leaf requirements are SIMILAR enough that one
+# leaf is genuinely substitutable for any in-class usage. Derived as a pure
+# function of the parsed programme (no hand-authored list on the happy path).
+# Used by the superposition+collapse search relaxation: a leaf typed to any
+# in-class code is left uncommitted during search and re-assigned to its best
+# in-class usage at scoring time (fitness.collapse_superposition).
+#
+# Thresholds are LOCKED defaults (Bruno 2026-06-29); conservative on purpose —
+# a missed grouping is cheap, a wrong one corrupts the relaxation.
+R_SIZE = 1.5   # larger area target <= 1.5x smaller
+R_WIDTH = 1.3  # clear-width targets vary less than areas; tighter band
+R_PROP = 1.5   # max length/width aspect targets within 1.5x
+CLASS_CAP = 4  # brute-force collapse <= C! assignments; beyond this use Hungarian
+
+
+def _ratio(x: float, y: float) -> float:
+    """max/min of two positive magnitudes (inf if either is non-positive)."""
+    lo, hi = min(abs(x), abs(y)), max(abs(x), abs(y))
+    return hi / lo if lo > 0 else float("inf")
+
+
+def interchangeable(a: SpaceReq, b: SpaceReq) -> bool:
+    """True iff codes ``a`` and ``b`` satisfy the S1-S4 interchange relation
+    (homemaker-py-9o5 §2). Symmetric."""
+    # S1 — both sized; generic circulation/outside never participate.
+    if not (a.has_size and b.has_size) or a.size <= 0 or b.size <= 0:
+        return False
+    if a.code[0].lower() in ("c", "o", "s") or b.code[0].lower() in ("c", "o", "s"):
+        return False
+    # S2 — requirement similarity within bounded ratios (ALL three).
+    if _ratio(a.size, b.size) > R_SIZE:
+        return False
+    if _ratio(a.width, b.width) > R_WIDTH:
+        return False
+    if _ratio(a.proportion, b.proportion) > R_PROP:
+        return False
+    # S3 — compatible level (equal or one None) and matching service stack.
+    if a.level is not None and b.level is not None and a.level != b.level:
+        return False
+    if (a.requires_below or None) != (b.requires_below or None):
+        return False
+    # S4 — no direct adjacency edge (an adjacency pair are coexisting rooms).
+    if b.code in a.adjacency or a.code in b.adjacency:
+        return False
+    return True
+
+
+def derive_interchange_classes(reqs: dict[str, SpaceReq]) -> list[frozenset[str]]:
+    """Connected components of the interchange relation, size >= 2
+    (homemaker-py-9o5 §2). Each class is a set of mutually-substitutable codes.
+    """
+    codes = [
+        c for c, r in reqs.items()
+        if r.has_size and r.size > 0 and c[0].lower() not in ("c", "o", "s")
+    ]
+    edges: dict[str, set[str]] = {c: set() for c in codes}
+    for i, a in enumerate(codes):
+        for b in codes[i + 1:]:
+            if interchangeable(reqs[a], reqs[b]):
+                edges[a].add(b)
+                edges[b].add(a)
+
+    seen: set[str] = set()
+    classes: list[frozenset[str]] = []
+    for c in codes:
+        if c in seen:
+            continue
+        comp: set[str] = set()
+        stack = [c]
+        while stack:
+            x = stack.pop()
+            if x in comp:
+                continue
+            comp.add(x)
+            seen.add(x)
+            stack.extend(edges[x] - comp)
+        if len(comp) >= 2:
+            classes.append(frozenset(comp))
+    return classes
+
+
 def n_storeys_required(reqs: dict[str, SpaceReq]) -> int:
     """Number of storeys the programme implies, from the highest ``level:`` key.
 
