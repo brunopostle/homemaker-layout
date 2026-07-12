@@ -95,6 +95,34 @@ def test_all_mutations_survive_undivided_tree():
             canonical(child)
 
 
+def test_unfold_shared_leaves_materialises_deficit():
+    # homemaker-py-yaa: a share=k leaf must unfold into k distinct same-code
+    # leaves (paying down the count deficit) with the share stamp cleared, while
+    # every non-shared leaf keeps its identity. Footprint is preserved: the k
+    # children tile the original leaf, so total plot area is unchanged.
+    from homemaker_layout import geometry
+
+    root = dom.Node(node=[[0, 0], [12, 0], [12, 8], [0, 8]],
+                    height=2.7, wall_outer=0.25, wall_inner=0.08,
+                    rotation=0, division=[0.5, 0.5])
+    root.left = dom.Node(type="n", share=3, share_type="n")   # 3-room shared leaf
+    root.right = dom.Node(type="C")                            # untouched
+    dom._link(root)
+    geometry.clear_cache()
+    area_before = geometry.area(root)
+
+    created = operators.unfold_shared_leaves(root)
+
+    assert created == 2                                        # 3 rooms - 1 leaf
+    leaves = root.leaves()
+    assert sum(1 for lf in leaves if lf.type == "n") == 3      # three distinct n
+    assert sum(1 for lf in leaves if lf.type == "C") == 1      # C untouched
+    assert all(lf.share == 1 for lf in leaves)                 # stamps cleared
+    geometry.clear_cache()
+    assert geometry.area(root) == pytest.approx(area_before)   # footprint kept
+    canonical(root)                                            # genome round-trips
+
+
 HARBOR = Path(__file__).parent.parent / "examples" / "harbor-house"
 
 

@@ -564,6 +564,93 @@ def _size_divisions_from_targets(lvl: dom.Node, reqs, fmin: float = 0.04,
     geometry.clear_cache()
 
 
+def _grow_balanced(node: dom.Node, code: str, k: int) -> None:
+    """Turn ``node`` (a leaf) into a balanced binary subtree of ``k`` leaves, all
+    typed ``code``. Split ratio/rotation are placeholders ([0.5,0.5], rot 0);
+    ``_size_subtree_equal`` settles them from realised geometry afterwards."""
+    if k < 2:
+        node.type = code
+        node.share = 1
+        node.share_type = None
+        return
+    kl = k // 2
+    node.type = None
+    node.share = 1
+    node.share_type = None
+    node.division = [0.5, 0.5]
+    node.rotation = 0
+    node.left = dom.Node()
+    node.right = dom.Node()
+    _grow_balanced(node.left, code, kl)
+    _grow_balanced(node.right, code, k - kl)
+
+
+def _size_subtree_equal(node: dom.Node) -> None:
+    """Size a freshly-grown balanced subtree (all leaves equal target) so each
+    cut splits by leaf-count fraction and picks the rotation that makes its
+    children squarest, given the subtree root's *settled* outer geometry. Unlike
+    ``_size_divisions_from_targets`` this touches only ``node``'s subtree, so the
+    unfold leaves every sibling leaf's evolved geometry untouched."""
+    from . import geometry
+
+    def _nleaves(n: dom.Node) -> int:
+        return 1 if not n.divided else _nleaves(n.left) + _nleaves(n.right)
+
+    def _rec(n: dom.Node) -> None:
+        if not n.divided:
+            return
+        nl, nr = _nleaves(n.left), _nleaves(n.right)
+        f = nl / (nl + nr)
+        best_rot, best_aspect = n.rotation, None
+        for rot in (0, 1):
+            n.rotation = rot
+            n.division = [f, f]
+            geometry.clear_cache()
+            worst = max(geometry.aspect(n.left), geometry.aspect(n.right))
+            if best_aspect is None or worst < best_aspect:
+                best_aspect, best_rot = worst, rot
+        n.rotation = best_rot
+        n.division = [f, f]
+        geometry.clear_cache()
+        _rec(n.left)
+        _rec(n.right)
+
+    _rec(node)
+
+
+def unfold_shared_leaves(root: dom.Node) -> int:
+    """Materialise every live shared leaf into ``k`` distinct sibling leaves.
+
+    homemaker-py-yaa: at the sharing→no-sharing phase change a leaf carrying
+    ``share=k`` credits k same-code programme rooms but is a single physical
+    space, so a de-shared genome starts k−1 rooms short per shared leaf — a deep
+    'missing required space (critical)' hole that place_missing/divide dig out of
+    only slowly (measured: naive warm-start from a sharing seed stalled ~60× worse
+    than the direct no-sharing route). This replaces each live shared leaf
+    (``share>1`` and ``share_type==type``) with a balanced binary subtree of k
+    leaves of the SAME code, splitting the footprint into k equal-target children,
+    then sizes each new subtree for squarest proportions. Share stamps are
+    cleared and topology (adjacency skeleton) is otherwise preserved. Returns the
+    number of extra leaves created (materialisation deficit paid down)."""
+    from . import geometry
+
+    grown: list[dom.Node] = []
+    created = 0
+    for lvl in dom.levels(root):
+        for leaf in lvl.leaves():
+            if leaf.share > 1 and leaf.share_type == leaf.type and leaf.type:
+                created += leaf.share - 1
+                _grow_balanced(leaf, leaf.type, leaf.share)
+                grown.append(leaf)
+    if grown:
+        dom._link(root)
+        geometry.clear_cache()
+        for sub in grown:
+            _size_subtree_equal(sub)
+        geometry.clear_cache()
+    return created
+
+
 def _ext_exposure(leaf: dom.Node) -> int:
     """Number of the leaf's four edges that lie on the external plot perimeter
     ('a'/'b'/'c'/'d'); 0 means a fully landlocked (interior) leaf. Used by the
