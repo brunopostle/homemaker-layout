@@ -537,6 +537,88 @@ def search(
     return result
 
 
+def polish_finish(
+    result: SearchResult,
+    programme_dir: str | Path,
+    *,
+    polish_budget: int,
+    pop_size: int = 8,
+    child_budget: int = 80,
+    p_crossover: float = 0.2,
+    seed: int = 0,
+    n_workers: int = 1,
+    superpose: bool = False,
+    rescore_budget: int = 200,
+    log=None,
+) -> SearchResult:
+    """homemaker-py-3l6: convert a leaf-sharing run's dishonest best into a
+    canonically-scored, materialised output.
+
+    A sharing run's internal objective credits a shared leaf (``share=k``) as k
+    programme rooms with its size target re-centred on ``k*target``, so
+    ``result.best`` looks good internally but is k−1 rooms short per shared leaf
+    under the canonical (sharing-off) scorer — the divergence this bug is about.
+    This:
+
+    1. **Unfolds** every live shared leaf into k distinct sibling rooms
+       (:func:`operators.unfold_shared_leaves`), paying down the materialisation
+       deficit that otherwise leaves the de-shared genome deep in the missing-room
+       fail hole (yaa: naive warm-start without unfold stalls ~60× worse).
+    2. **Polishes** the unfolded genome with a warm-started ``leaf_sharing=False``
+       search (``polish_budget`` evals) so the freshly materialised children get
+       their proportion/width/size cleaned up. yaa proved this unfold-then-polish
+       path catches the direct no-sharing route (harbor-house 4.19e-06).
+
+    With ``polish_budget <= 0`` the polish is skipped: the unfolded genome is just
+    re-optimised once and canonically scored (honest output, no extra search —
+    used on interrupt). Either way the returned result's ``best.fitness`` is the
+    canonical score (leaf_sharing off ⇒ internal == canonical), and eval /
+    topology / history accounting is stitched onto the sharing run.
+    """
+    def _log(msg: str) -> None:
+        if log:
+            log(msg)
+
+    if result.best is None:
+        return result
+
+    unfolded = copy.deepcopy(result.best.root)
+    n_created = operators.unfold_shared_leaves(unfolded)
+    _log(f"[finish] unfold: materialised {n_created} shared-leaf "
+         f"{'copy' if n_created == 1 else 'copies'}")
+
+    if polish_budget > 0:
+        r2 = search(
+            unfolded, programme_dir, budget=polish_budget, pop_size=pop_size,
+            child_budget=child_budget, p_crossover=p_crossover, seed=seed,
+            n_workers=n_workers, bootstrap=False, leaf_sharing=False,
+            superpose=superpose, log=log,
+        )
+    else:
+        # No polish: re-optimise the unfolded genome's ratios once and score it
+        # canonically so the written .dom and reported fitness are honest.
+        ind, used = _evaluate(
+            unfolded, programme_dir, None, x0=None, budget=rescore_budget,
+            inner_kw={}, lineage="unfold", leaf_sharing=False, superpose=superpose)
+        r2 = SearchResult(best=ind, population=[ind], n_evals=used, n_topologies=1)
+        r2.n_distinct_signatures = 1
+        r2.history = [(0, ind.fitness, ind.lineage)]
+
+    # Stitch the polish/rescore onto the sharing run so totals are cumulative and
+    # the history shows the phase change (sharing fitness is not comparable to the
+    # canonical polish fitness, so the two phases are tagged, not merged linearly).
+    r2.history = (
+        [(e, f, f"share:{lin}") for e, f, lin in result.history]
+        + [(e + result.n_evals, f, f"polish:{lin}") for e, f, lin in r2.history]
+    )
+    r2.n_evals += result.n_evals
+    r2.n_topologies += result.n_topologies
+    r2.n_distinct_signatures += result.n_distinct_signatures
+    r2.n_restarts += result.n_restarts
+    r2.interrupted = r2.interrupted or result.interrupted
+    return r2
+
+
 def search_staged(
     seed_root: dom.Node,
     programme_dir: str | Path,

@@ -256,3 +256,61 @@ def test_search_parallel_is_reproducible():
     a = run()
     b = run()
     assert a == b, "parallel search is not reproducible run-to-run"
+
+
+def _shared_best_result() -> driver.SearchResult:
+    """A SearchResult whose best carries a live 3-room shared leaf (share=3),
+    plus a distinct C leaf — the harbor-house pathology in miniature."""
+    root = dom.Node(node=[[0, 0], [12, 0], [12, 8], [0, 8]],
+                    height=2.7, wall_outer=0.25, wall_inner=0.08,
+                    rotation=0, division=[0.5, 0.5])
+    root.left = dom.Node(type="n", share=3, share_type="n")
+    root.right = dom.Node(type="C")
+    dom._link(root)
+    best = driver.Individual(root=root, fitness=1e-5, n_fails=3, ratios={},
+                             lineage="construct/0")
+    r = driver.SearchResult(best=best, population=[best], n_evals=1000,
+                            n_topologies=5, n_distinct_signatures=4, n_restarts=1)
+    r.history = [(80, 1e-6, "construct/0"), (160, 1e-5, "core_divide noop")]
+    return r
+
+
+def test_polish_finish_unfolds_and_stitches_rescore(fake_inner):
+    # homemaker-py-3l6, polish_budget<=0: unfold the shared leaf, rescore once
+    # under leaf_sharing off, and stitch accounting/history onto the sharing run.
+    r0 = _shared_best_result()
+    r = driver.polish_finish(r0, CORPUS, polish_budget=0, rescore_budget=150)
+
+    # the shared leaf is materialised into 3 distinct n rooms, stamps cleared
+    leaves = r.best.root.leaves()
+    assert sum(1 for lf in leaves if lf.type == "n") == 3
+    assert all(lf.share == 1 for lf in leaves)
+    # accounting is cumulative (1000 sharing evals + one 150-eval rescore)
+    assert r.n_evals == 1000 + 150
+    assert r.n_topologies == 5 + 1
+    assert r.n_distinct_signatures == 4 + 1
+    assert r.n_restarts == 1
+    # history keeps both phases, tagged so the objective change is visible
+    assert [lin for *_, lin in r.history[:2]] == [
+        "share:construct/0", "share:core_divide noop"]
+    assert r.history[-1][2].startswith("polish:")
+    # the rescore ran with leaf_sharing off (no sharing override reaches the inner)
+    assert not fake_inner[-1]["kw"].get("conf_overrides")
+
+
+def test_polish_finish_runs_polish_search(fake_inner):
+    # polish_budget>0: a warm-started no-sharing search runs from the unfolded
+    # genome and its evals accrue on top of the sharing run.
+    r0 = _shared_best_result()
+    r = driver.polish_finish(r0, CORPUS, polish_budget=400, pop_size=3,
+                             child_budget=80, seed=1)
+    assert r.n_evals > 1000 + 400 - 80  # sharing 1000 + ~400 polish evals
+    assert r.best.root.leaves()  # a valid materialised genome survived
+    assert sum(1 for lf in r.best.root.leaves() if lf.share > 1) == 0
+    assert r.history[0][2].startswith("share:")
+    assert any(lin.startswith("polish:") for *_, lin in r.history)
+
+
+def test_polish_finish_noop_without_best():
+    empty = driver.SearchResult(best=None, population=[], n_evals=0, n_topologies=0)
+    assert driver.polish_finish(empty, CORPUS, polish_budget=100) is empty

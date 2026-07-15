@@ -17,6 +17,11 @@ Options:
   --child-budget N     per-child budget  (default: $HOMEMAKER_CHILD_BUDGET or 80)
   --workers N          parallel workers  (default: $HOMEMAKER_WORKERS or 1)
   --seed N             RNG seed          (default: $HOMEMAKER_SEED or 0)
+  --polish-budget N    after a leaf-sharing run, unfold the shared leaves and
+                       run N extra no-sharing evals so the written .dom is honest
+                       under the canonical scorer (homemaker-py-3l6). -1 = auto
+                       (budget//2); 0 = unfold + rescore only. Ignored with
+                       --no-leaf-sharing.  (default: $HOMEMAKER_POLISH_BUDGET or -1)
   --output PATH        output .dom path  (default: <seed_stem>_evolved.dom
                                           next to seed; use - for stdout)
 
@@ -90,6 +95,16 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "requirements) form equivalence classes and each candidate "
                         "collapses every superposed leaf to its best in-class usage "
                         "before scoring (default: off)")
+    p.add_argument("--polish-budget", type=int,
+                   default=_env_int("HOMEMAKER_POLISH_BUDGET", -1),
+                   metavar="N",
+                   help="homemaker-py-3l6: after a leaf-sharing run, unfold the "
+                        "shared leaves and run this many extra evals of "
+                        "no-sharing local search to clean up the materialised "
+                        "rooms before write, so the output is honest under the "
+                        "canonical scorer. -1 = auto (budget//2); 0 = unfold + "
+                        "rescore only, no polish. Ignored with --no-leaf-sharing "
+                        "(default: -1)")
     p.add_argument("--output", type=Path, default=None, metavar="PATH",
                    help="output .dom path (- for stdout)")
     return p.parse_args(argv)
@@ -150,6 +165,34 @@ def main(argv=None) -> int:
         superpose=args.superpose,
         log=lambda m: print(m, file=sys.stderr, flush=True),
     )
+
+    # homemaker-py-3l6: a leaf-sharing run's internal best is scored against a
+    # sharing-credited objective (a shared leaf counts as k programme rooms), so
+    # r.best is dishonest under the canonical scorer — it is k-1 rooms short per
+    # shared leaf. Unfold those leaves and warm-start a no-sharing polish so the
+    # written .dom is honest AND its materialised rooms are cleaned up (yaa: the
+    # unfold-then-polish path catches the direct no-sharing route). After this,
+    # r.best.fitness is the canonical score (leaf_sharing off ⇒ internal == canon).
+    if args.leaf_sharing and r.best is not None:
+        polish_budget = args.budget // 2 if args.polish_budget < 0 else args.polish_budget
+        # An interrupted sharing run still needs an honest output, but the user
+        # asked to stop — unfold and rescore only, skip the long polish phase.
+        if r.interrupted:
+            polish_budget = 0
+        print(file=sys.stderr)
+        print(f"--- finishing (homemaker-py-3l6): unfold + polish "
+              f"{polish_budget} evals ---", file=sys.stderr, flush=True)
+        r = driver.polish_finish(
+            r, programme_dir,
+            polish_budget=polish_budget,
+            pop_size=args.pop,
+            child_budget=args.child_budget,
+            p_crossover=0.2,
+            seed=args.seed,
+            n_workers=args.workers,
+            superpose=args.superpose,
+            log=lambda m: print(m, file=sys.stderr, flush=True),
+        )
 
     elapsed = time.perf_counter() - t0
 
