@@ -2188,3 +2188,66 @@ wins (§11.6, §11.7, §12.2, §13.x). best-of-N at the Phase-A budget remains a
 worthwhile habit; a dedicated migration phase is not worth its budget. The residual
 stays geometry/shape-bound. NOT gated on canonical encoding (`9gp` closed); the
 `child_probe` hook is kept default-off for reuse.
+
+## 15. Leaf-sharing output honesty: unfold + polish auto-finish (`homemaker-py-3l6`) — DONE
+
+**Bug.** Leaf-sharing (§13.3/§13.10, default ON) is a *fitness-evaluation* knob: a
+shared leaf of code X with `share=k` is credited as satisfying k programme entries,
+its size Gaussian re-centred on `k*target`. So the evolve inner objective rewards
+genomes that under-materialise the programme (fewer, larger rooms), but the winning
+`.dom` written to disk is that un-materialised genome. Re-scored by the canonical
+`homemaker-fitness` (sharing OFF), the un-materialised copies become *missing
+required space (critical)* fails. Measured on harbor-house (init.dom, 3M budget):
+internal best `1.03e-05` but **canonical `6.73e-29`, 90 fails (15 critical)**. The
+default silently optimised an objective the canonical scorer does not credit and
+wrote a catastrophically worse building than its reported internal fitness implied.
+
+**Investigation (`homemaker-py-yaa`).** Four fixes were scoped (make no-sharing the
+default; re-score-and-warn on write; materialise shared leaves on write; anneal the
+grain to 0 mid-run). yaa characterised the transferability of a sharing-phase
+solution to the honest objective and reached a **conclusive** result:
+- Naive warm-start from a raw sharing seed **stalls** (harbor 8.66e-08, 70 fails) —
+  `place_missing`/`divide` cannot dig out the ~15-room count deficit fast enough.
+- Warm-start **+ unfold** (`operators.unfold_shared_leaves` at the transition)
+  **catches the direct no-sharing route** (4.19e-06, 15 fails, 0 critical),
+  matching the `--no-leaf-sharing` baseline (`nols-2` 4.19e-06). Bruno's key idea
+  confirmed: the sharing phase's transferable value is the **adjacency/topology
+  skeleton**, and the sole blocker to reusing it is the **materialisation (count)
+  deficit** — not the `k*target` sizing mismatch. Unfold pays that deficit down.
+
+**`operators.unfold_shared_leaves(root)`.** Replaces every live shared leaf
+(`share>1`, `share_type==type`) with a balanced binary subtree of k same-code
+leaves splitting its footprint, sizes each for squarest proportion, and clears the
+share stamps. Footprint (plot area) is preserved; the adjacency skeleton is
+otherwise untouched. Returns the number of extra leaves created.
+
+**Fix — auto-finish before write (`driver.polish_finish`).** Rather than unfold on
+write alone (honest room *count* but un-polished proportion/width/size on the fresh
+children), the finish runs yaa's proven unfold-**then-polish** as an automatic
+terminal phase. When a run used `--leaf-sharing`, before write:
+1. deep-copy the best, `unfold_shared_leaves` it (materialise the deficit);
+2. warm-start a `leaf_sharing=False` search (`bootstrap=False`) from the unfolded
+   genome for `--polish-budget` evals — local search under the *honest* objective
+   cleans up the newly materialised rooms.
+
+The returned `best.fitness` is then the canonical score (sharing OFF ⇒ internal ==
+canonical), and eval/topology/history accounting is stitched onto the sharing run
+with the two phases tagged `share:`/`polish:` (the objectives are not comparable, so
+the histories are concatenated, not merged). `--polish-budget` (env
+`HOMEMAKER_POLISH_BUDGET`): `-1` = auto = `budget//2`, `0` = unfold + single rescore
+only (no search). An **interrupt** forces `polish_budget=0` so a stopped run still
+writes an honest output without triggering a long extra phase.
+
+The default stays `--leaf-sharing` ON: its ~35 %-faster topology search (§13.3) is
+retained, and the output is made honest by the finish instead of by disabling the
+lever. Option 1 (no-sharing default) and option 2 (warn-only) from the bug were
+therefore not needed; the annealing option is its own follow-up (Schedule B,
+`homemaker-py-kpu`) — the single-transition finish here is its proven precursor, and
+`unfold_shared_leaves` is the primitive it will reuse at each grain step.
+
+**Verification.** harbor-house, budget 3000 + polish 1500: the reported polish
+fitness `4.79788e-27` **matches the canonical `homemaker-fitness` byte-for-byte**,
+**0 critical fails** (the missing-room criticals are gone — the 15 shared-leaf
+copies are materialised). Small budget so absolute quality is low, but the
+honesty — the point of the bug — is restored. Tests: `driver.polish_finish` ×3
+(unfold+rescore stitching, polish-search accounting, no-best noop); 254 pass.
