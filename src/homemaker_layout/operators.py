@@ -618,7 +618,7 @@ def _size_subtree_equal(node: dom.Node) -> None:
     _rec(node)
 
 
-def unfold_shared_leaves(root: dom.Node) -> int:
+def unfold_shared_leaves(root: dom.Node, above: int = 1) -> int:
     """Materialise every live shared leaf into ``k`` distinct sibling leaves.
 
     homemaker-py-yaa: at the sharing→no-sharing phase change a leaf carrying
@@ -631,14 +631,21 @@ def unfold_shared_leaves(root: dom.Node) -> int:
     leaves of the SAME code, splitting the footprint into k equal-target children,
     then sizes each new subtree for squarest proportions. Share stamps are
     cleared and topology (adjacency skeleton) is otherwise preserved. Returns the
-    number of extra leaves created (materialisation deficit paid down)."""
+    number of extra leaves created (materialisation deficit paid down).
+
+    ``above`` (homemaker-py-kpu, Schedule B grain ramp): unfold only leaves whose
+    ``share`` *exceeds* this grain cap, leaving smaller-share leaves collapsed for
+    the next (lower) grain. ``above=1`` (default) unfolds every shared leaf, the
+    full materialisation the single-transition finish (§15) uses. At grain step
+    ``g``, ``above=g`` materialises exactly the leaves the new evaluator cap
+    (``leaf_share_max=g``) would under-credit, so no fresh missing fail appears."""
     from . import geometry
 
     grown: list[dom.Node] = []
     created = 0
     for lvl in dom.levels(root):
         for leaf in lvl.leaves():
-            if leaf.share > 1 and leaf.share_type == leaf.type and leaf.type:
+            if leaf.share > above and leaf.share_type == leaf.type and leaf.type:
                 created += leaf.share - 1
                 _grow_balanced(leaf, leaf.type, leaf.share)
                 grown.append(leaf)

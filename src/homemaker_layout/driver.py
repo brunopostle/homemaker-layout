@@ -39,19 +39,27 @@ from . import dom, fitness, genome, innerloop, operators, programme
 _CHILD_INNER_KW: dict = {}
 
 
-def _overrides_for(leaf_sharing: bool, superpose: bool) -> dict | None:
-    """Run-level conf overrides for the native evaluator (None when all off)."""
+def _overrides_for(leaf_sharing: bool, superpose: bool,
+                   max_share: int | None = None) -> dict | None:
+    """Run-level conf overrides for the native evaluator (None when all off).
+
+    ``max_share`` (homemaker-py-kpu) overrides the evaluator's ``leaf_share_max``
+    grain cap for the in-run annealing ramp; ``None`` leaves the config default.
+    """
     ov: dict = {}
     if leaf_sharing:
         ov["leaf_sharing"] = True
     if superpose:
         ov["superpose"] = True
+    if max_share is not None:
+        ov["leaf_share_max"] = int(max_share)
     return ov or None
 
 
 @functools.lru_cache(maxsize=None)
 def _fitness_for(programme_dir: str, leaf_sharing: bool = False,
-                 superpose: bool = False) -> "fitness.Fitness":
+                 superpose: bool = False,
+                 max_share: int | None = None) -> "fitness.Fitness":
     """Cached Fitness evaluator per (programme dir, leaf_sharing) (config load is
     the cost).
 
@@ -62,7 +70,7 @@ def _fitness_for(programme_dir: str, leaf_sharing: bool = False,
     inner loop instead of reading the on-disk (sharing-free) patterns.config.
     Cached per process — workers fork their own copy.
     """
-    overrides = _overrides_for(leaf_sharing, superpose)
+    overrides = _overrides_for(leaf_sharing, superpose, max_share)
     conf, cost = fitness.load_config(programme_dir, overrides=overrides)
     return fitness.Fitness(conf, cost)
 
@@ -137,7 +145,8 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
               feasibility_max_shape_fails: int | None = None,
               best_n_fails: int | None = None,
               leaf_sharing: bool = False,
-              superpose: bool = False) -> tuple[Individual, int]:
+              superpose: bool = False,
+              max_share: int | None = None) -> tuple[Individual, int]:
     # §12.3 shape-feasibility pre-filter (homemaker-py-9gp.1): if even the best
     # achievable (proportion-aware) geometry of this topology already has at least
     # as many shape fails as the incumbent's TOTAL fails — and exceeds the tunable
@@ -145,11 +154,11 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     # eval instead of spending the full inner-loop budget. The best_n_fails guard
     # makes the proxy safe: a topology whose shape-fail floor is still below the
     # incumbent is never discarded. Pruned individuals are tagged and never admitted.
-    overrides = _overrides_for(leaf_sharing, superpose)
+    overrides = _overrides_for(leaf_sharing, superpose, max_share)
     if (feasibility_max_shape_fails is not None and best_n_fails is not None):
         pred = operators.predicted_shape_fails(
             root, _reqs_for(str(programme_dir)),
-            _fitness_for(str(programme_dir), leaf_sharing, superpose))
+            _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share))
         if pred > feasibility_max_shape_fails and pred >= best_n_fails:
             ind = Individual(root=root, fitness=0.0, n_fails=pred, ratios={},
                              lineage=f"pruned/{lineage}", grade=0.0,
@@ -164,7 +173,7 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     grade = 0.0
     if want_grade:
         _, _, grade = _fitness_for(
-            str(programme_dir), leaf_sharing, superpose).score_with_grade(
+            str(programme_dir), leaf_sharing, superpose, max_share).score_with_grade(
             copy.deepcopy(root))
     ind = Individual(root=root, fitness=r.fitness, n_fails=r.n_fails,
                      ratios=innerloop.ratio_map(root), lineage=lineage,
@@ -216,6 +225,8 @@ def search(
     depth_balanced: bool = True,
     interior_outside: bool = True,
     outside_divisor: int = 3,
+    max_share: int | None = None,
+    seed_pop: list[dom.Node] | None = None,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -251,6 +262,12 @@ def search(
     (mean 12.3 → 12.7) and harbor (95 → 94), with restarts strictly worse. The
     high-fail plateau is therefore not a population-diversity deficit; the lever
     is the canonical encoding (``homemaker-py-9gp``) and richer operators.
+
+    ``max_share`` (homemaker-py-kpu) overrides the evaluator's ``leaf_share_max``
+    grain cap for this phase; ``None`` uses the config default. ``seed_pop`` (also
+    kpu) supplies an explicit initial population of decoded roots — evaluated
+    under this phase's evaluator instead of bootstrapping or single-seeding — so a
+    grain-anneal ramp can hand a whole population from one phase to the next.
     """
     from .oracle import DEFAULT_URB_ROOT
 
@@ -385,7 +402,7 @@ def search(
         best_nf = result.best.n_fails if result.best is not None else None
         full = [
             (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade,
-             mx, best_nf, leaf_sharing, superpose)
+             mx, best_nf, leaf_sharing, superpose, max_share)
             for root, x0, budget_, kw_, lin in tasks
         ]
         if _pool is not None:
@@ -441,7 +458,15 @@ def search(
 
     interrupted = False
     try:
-        if do_bootstrap:
+        if seed_pop is not None:
+            # homemaker-py-kpu (Schedule B): carry a whole population across a
+            # grain-anneal phase change. Each root is re-optimised and re-scored
+            # under THIS phase's evaluator (leaf_sharing/max_share) as the initial
+            # population, so gross topology/adjacency continuity is preserved while
+            # the effective problem is refined — not restarted from a single best.
+            _run_batch([(copy.deepcopy(r), None, seed_budget, {},
+                         f"anneal-seed/{i}") for i, r in enumerate(seed_pop)])
+        elif do_bootstrap:
             # Bootstrap: diverse initial population from random topologies.
             # Each individual is a cold start, so use the exploratory sigma
             # schedule (inner_kw={} → cma_search defaults: sigmas=(0.05, 0.15)).
@@ -457,7 +482,8 @@ def search(
                                        inner_kw={}, lineage="seed",
                                        want_grade=use_grade,
                                        leaf_sharing=leaf_sharing,
-                                       superpose=superpose)
+                                       superpose=superpose,
+                                       max_share=max_share)
             n_evals += used
             admit(seed_ind, pop)
 
@@ -617,6 +643,154 @@ def polish_finish(
     r2.n_restarts += result.n_restarts
     r2.interrupted = r2.interrupted or result.interrupted
     return r2
+
+
+def search_annealed(
+    seed_root: dom.Node,
+    programme_dir: str | Path,
+    *,
+    budget: int,
+    polish_budget: int,
+    grain_ladder: tuple[int, ...] = (4, 3, 2),
+    pop_size: int = 8,
+    child_budget: int = 80,
+    seed_budget: int = 200,
+    p_crossover: float = 0.2,
+    seed: int = 0,
+    types: list[str] | None = None,
+    inner_kw: dict | None = None,
+    n_workers: int = 1,
+    superpose: bool = False,
+    log=None,
+    **search_kw,
+) -> SearchResult:
+    """homemaker-py-kpu (DESIGN.md §16): in-run leaf-share grain annealing.
+
+    Schedule B from ``homemaker-py-yaa``. Instead of a single hard sharing→off
+    transition (§15's unfold+polish finish), ramp the leaf-share grain **down**
+    across phases within one continuous run — e.g. ``grain_ladder=(4, 3, 2)`` then
+    off — carrying the whole population across each step. This is graduated
+    non-convexity: the coarse early grain fixes gross topology/adjacency on a
+    small effective problem; each step refines it, so no single fitness cliff has
+    to be crossed at once.
+
+    Each grain step lowers the evaluator's ``leaf_share_max`` cap and, *before*
+    resuming, unfolds every population leaf whose ``share`` exceeds the new cap
+    (:func:`operators.unfold_shared_leaves` with ``above=cap``) so the carried
+    population stays materialised — the leaves the lower cap would under-credit
+    become real rooms instead of fresh missing fails. The final phase de-shares
+    entirely (``leaf_sharing=False``, unfold ``above=1``) and polishes under the
+    canonical objective, so the returned ``best.fitness`` is the honest canonical
+    score exactly as §15's finish guarantees.
+
+    ``grain_ladder`` is deduped and sorted descending; entries < 2 are dropped
+    (no-op grain). ``budget`` is split evenly across the sharing phases (remainder
+    to the first); ``polish_budget`` funds the final de-share phase (``<= 0`` or an
+    interrupt ⇒ unfold + single rescore only, no search — honest but unpolished).
+    Extra keyword args forward to :func:`search`.
+    """
+    def _log(msg: str) -> None:
+        if log:
+            log(msg)
+
+    ladder = sorted({int(g) for g in grain_ladder if int(g) >= 2}, reverse=True)
+    if not ladder:
+        # Degenerate ladder (all grains < 2) ⇒ nothing to anneal: a plain
+        # no-sharing search over the full budget, honest by construction.
+        return search(
+            seed_root, programme_dir, budget=budget + max(0, polish_budget),
+            pop_size=pop_size, child_budget=child_budget, seed_budget=seed_budget,
+            p_crossover=p_crossover, seed=seed, types=types, inner_kw=inner_kw,
+            n_workers=n_workers, leaf_sharing=False, superpose=superpose, log=log,
+            **search_kw)
+
+    n_phases = len(ladder)
+    base = budget // n_phases
+    phase_budgets = [base] * n_phases
+    phase_budgets[0] += budget - base * n_phases  # remainder to phase 0
+
+    def _stitch(acc: "SearchResult | None", r: SearchResult, tag: str) -> SearchResult:
+        """Concatenate phase ``r`` onto ``acc`` with cumulative accounting and a
+        tagged history (objectives differ across grains, so histories are tagged
+        and concatenated, never merged linearly — as §15's finish does)."""
+        r.history = [(e, f, f"{tag}:{lin}") for e, f, lin in r.history]
+        r.diversity_history = list(r.diversity_history)
+        if acc is None:
+            return r
+        prev = acc.n_evals
+        r.n_evals += prev
+        r.n_topologies += acc.n_topologies
+        r.n_distinct_signatures += acc.n_distinct_signatures
+        r.n_restarts += acc.n_restarts
+        r.interrupted = r.interrupted or acc.interrupted
+        r.history = acc.history + [(e + prev, f, lin) for e, f, lin in r.history]
+        r.diversity_history = (
+            acc.diversity_history
+            + [(e + prev, d, c) for e, d, c in r.diversity_history])
+        return r
+
+    combined: SearchResult | None = None
+    prev_pop: list[Individual] = []
+
+    for i, cap in enumerate(ladder):
+        if i == 0:
+            _log(f"[anneal] phase 1/{n_phases}: grain {cap}, budget "
+                 f"{phase_budgets[0]} (construct population)")
+            r = search(
+                seed_root, programme_dir, budget=phase_budgets[0], pop_size=pop_size,
+                child_budget=child_budget, seed_budget=seed_budget,
+                p_crossover=p_crossover, seed=seed, types=types, inner_kw=inner_kw,
+                n_workers=n_workers, leaf_sharing=True, leaf_share_factor=cap,
+                max_share=cap, superpose=superpose, log=log, **search_kw)
+        else:
+            roots = [copy.deepcopy(ind.root) for ind in prev_pop]
+            created = sum(operators.unfold_shared_leaves(rt, above=cap) for rt in roots)
+            _log(f"[anneal] phase {i + 1}/{n_phases}: grain {cap}, budget "
+                 f"{phase_budgets[i]} — unfolded {created} leaf-"
+                 f"{'copy' if created == 1 else 'copies'} (share>{cap})")
+            r = search(
+                seed_root, programme_dir, budget=phase_budgets[i], pop_size=pop_size,
+                child_budget=child_budget, seed_budget=seed_budget,
+                p_crossover=p_crossover, seed=seed, types=types, inner_kw=inner_kw,
+                n_workers=n_workers, leaf_sharing=True, leaf_share_factor=cap,
+                max_share=cap, superpose=superpose, log=log, seed_pop=roots,
+                **search_kw)
+        combined = _stitch(combined, r, tag=f"g{cap}")
+        prev_pop = r.population
+        if r.interrupted:
+            break
+
+    if combined is None or combined.best is None:
+        return combined or SearchResult(
+            best=None, population=[], n_evals=0, n_topologies=0)
+
+    # Final honesty phase: de-share entirely. Unfold ALL remaining shared leaves
+    # and polish (or just rescore) under the canonical sharing-off objective, so
+    # the returned best is the honest canonical score (§15's guarantee).
+    if polish_budget > 0 and not combined.interrupted:
+        roots = [copy.deepcopy(ind.root) for ind in prev_pop]
+        created = sum(operators.unfold_shared_leaves(rt, above=1) for rt in roots)
+        _log(f"[anneal] finish: de-share (grain off), polish {polish_budget} "
+             f"evals — unfolded {created} leaf-"
+             f"{'copy' if created == 1 else 'copies'}")
+        r = search(
+            seed_root, programme_dir, budget=polish_budget, pop_size=pop_size,
+            child_budget=child_budget, seed_budget=seed_budget,
+            p_crossover=p_crossover, seed=seed, types=types, inner_kw=inner_kw,
+            n_workers=n_workers, leaf_sharing=False, superpose=superpose, log=log,
+            seed_pop=roots, **search_kw)
+    else:
+        best_root = copy.deepcopy(combined.best.root)
+        created = operators.unfold_shared_leaves(best_root, above=1)
+        _log(f"[anneal] finish: de-share (grain off), rescore only — unfolded "
+             f"{created} leaf-{'copy' if created == 1 else 'copies'}")
+        ind, used = _evaluate(
+            best_root, programme_dir, None, x0=None, budget=seed_budget,
+            inner_kw={}, lineage="unfold", leaf_sharing=False, superpose=superpose)
+        r = SearchResult(best=ind, population=[ind], n_evals=used, n_topologies=1)
+        r.n_distinct_signatures = 1
+        r.history = [(0, ind.fitness, ind.lineage)]
+    return _stitch(combined, r, tag="polish")
 
 
 def search_staged(

@@ -123,6 +123,32 @@ def test_unfold_shared_leaves_materialises_deficit():
     canonical(root)                                            # genome round-trips
 
 
+def test_unfold_shared_leaves_above_grain_cap():
+    # homemaker-py-kpu (Schedule B): ``above=cap`` unfolds only leaves whose
+    # share EXCEEDS the grain cap, leaving smaller-share leaves collapsed for the
+    # next lower grain. A share=4 leaf unfolds under above=3; a share=3 leaf does
+    # not — it stays a single shared leaf.
+    from homemaker_layout import geometry
+
+    root = dom.Node(node=[[0, 0], [12, 0], [12, 8], [0, 8]],
+                    height=2.7, wall_outer=0.25, wall_inner=0.08,
+                    rotation=0, division=[0.5, 0.5])
+    root.left = dom.Node(type="n", share=4, share_type="n")    # exceeds cap 3
+    root.right = dom.Node(type="m", share=3, share_type="m")   # at cap 3, kept
+    dom._link(root)
+    geometry.clear_cache()
+
+    created = operators.unfold_shared_leaves(root, above=3)
+
+    assert created == 3                                        # only the share=4 leaf
+    leaves = root.leaves()
+    assert sum(1 for lf in leaves if lf.type == "n") == 4      # materialised
+    assert all(lf.share == 1 for lf in leaves if lf.type == "n")
+    m = [lf for lf in leaves if lf.type == "m"]
+    assert len(m) == 1 and m[0].share == 3                     # kept collapsed
+    canonical(root)
+
+
 HARBOR = Path(__file__).parent.parent / "examples" / "harbor-house"
 
 

@@ -2251,3 +2251,65 @@ fitness `4.79788e-27` **matches the canonical `homemaker-fitness` byte-for-byte*
 copies are materialised). Small budget so absolute quality is low, but the
 honesty — the point of the bug — is restored. Tests: `driver.polish_finish` ×3
 (unfold+rescore stitching, polish-search accounting, no-best noop); 254 pass.
+
+
+## 16. In-run leaf-share grain annealing — Schedule B (`homemaker-py-kpu`) — IN PROGRESS
+
+**Premise.** §15's finish crosses the sharing→off objective cliff in a *single*
+hard transition (unfold every shared leaf at once, then polish). Schedule B (yaa's
+still-open option) instead **ramps the grain down within one continuous run** —
+e.g. `4 → 3 → 2 → off` — carrying the whole population across each step. Graduated
+non-convexity: the coarse early grain fixes gross topology/adjacency on a small
+effective problem (few, large rooms); each step materialises a little more and
+refines per-room size/proportion/width; no single fitness cliff is crossed at once.
+The question (kpu): **does a graduated ramp beat the single hard unfold transition**
+(yaa's warm-chain 4.19e-06) and the direct no-sharing baseline (5.14e-06)?
+
+**8iv settled the unfold primitive first (NEGATIVE).** kpu originally "wanted" the
+circulation-aware unfold from `homemaker-py-8iv` (route the materialised subtree's
+access through interior children). 8iv built and A/B-tested it and it **lost** to the
+plain balanced-grid `unfold_shared_leaves` (slice 41 fails vs grid 25 at 150k evals,
+grid leading throughout). So Schedule B reuses the **existing grid unfold** at every
+grain step — no slicing reintroduced; access is left to local search on the squarer
+grid seed (which yaa showed reaches 4.19e-06).
+
+**Mechanism (`driver.search_annealed`).** One phase per descending grain in
+`grain_ladder` (default `(4, 3, 2)`), then a de-share polish:
+
+1. **Phase 0** (`grain = ladder[0]`): a normal `search` — constructs the population
+   at `leaf_share_factor = cap` with the evaluator's `leaf_share_max` capped to
+   `cap` (new `max_share` override, threaded through `_overrides_for`/`_fitness_for`/
+   `_evaluate`).
+2. **Each grain step** (`cap` lowered): before resuming, unfold every population leaf
+   whose `share` *exceeds* the new cap — `operators.unfold_shared_leaves(root,
+   above=cap)` — so the leaves the lower cap would under-credit become real rooms
+   instead of fresh missing fails; the rest stay collapsed for the next step. The
+   whole population is then handed to the next `search` via the new `seed_pop`
+   argument (each root re-optimised and re-scored under the lower cap), preserving
+   topology/adjacency continuity rather than restarting from a single best.
+3. **Finish** (`grain off`): unfold all remaining shared leaves (`above=1`) and run a
+   `leaf_sharing=False` search (or a single rescore when `polish_budget <= 0` / on
+   interrupt), so the returned `best.fitness` is the honest canonical score exactly
+   as §15 guarantees (verified: annealed output re-scored by `homemaker-fitness`
+   matches the reported best byte-for-byte).
+
+`budget` is split evenly across the sharing phases; `polish_budget` funds the finish.
+Phases are stitched with cumulative eval/topology accounting and a grain-tagged
+history (`g4:`/`g3:`/`g2:`/`polish:`) — objectives differ across grains so histories
+are concatenated, never merged. CLI: `homemaker-evolve --anneal-grain 4,3,2` (implies
+sharing; self-finishing, so the §15 finish is not applied on top).
+
+**Verification (plumbing).** harbor-house, budget 900 (300/phase) + polish 300,
+4 workers: unfolds 33 → 22 → 9 leaf-copies across the ramp, population carried
+(`anneal-seed/*` lineages), honest share-free output whose reported best
+`3.36672e-29` **matches `homemaker-fitness` byte-for-byte**. (Fails rise at this toy
+budget — 64 leaves materialised with almost no recovery budget — so absolute quality
+is meaningless here; the head-to-head below runs at the baselines' budget.) Tests:
+`unfold_shared_leaves(above=)` grain-cap selectivity; `search(seed_pop=)` population
+seeding; `search_annealed` phase stitching / honest finish / degenerate-ladder
+fallback; 258 pass.
+
+**Head-to-head (RUNNING).** harbor-house, `init.dom`, seed 0, pop 16, child 80, grain
+`4,3,2`, budget 1.5M (500k/phase) + polish 1.5M = **3M total**, matched to the yaa
+baselines. Targets: (a) direct `--no-leaf-sharing` 5.14e-06; (b) manual unfold
+warm-chain 4.19e-06. Verdict pending run completion.

@@ -95,6 +95,17 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "requirements) form equivalence classes and each candidate "
                         "collapses every superposed leaf to its best in-class usage "
                         "before scoring (default: off)")
+    p.add_argument("--anneal-grain", type=str,
+                   default=os.environ.get("HOMEMAKER_ANNEAL_GRAIN"),
+                   metavar="LADDER",
+                   help="homemaker-py-kpu (Schedule B): in-run leaf-share grain "
+                        "annealing. A descending comma-separated grain ladder (e.g. "
+                        "'4,3,2') ramped down across phases within one run, "
+                        "unfolding leaves that exceed each new cap and carrying the "
+                        "population across steps, then a de-share polish. Implies "
+                        "leaf-sharing; --budget is split across the sharing phases "
+                        "and --polish-budget funds the final de-share phase. Unset "
+                        "(default) = the single-transition §15 finish.")
     p.add_argument("--polish-budget", type=int,
                    default=_env_int("HOMEMAKER_POLISH_BUDGET", -1),
                    metavar="N",
@@ -145,26 +156,55 @@ def main(argv=None) -> int:
     print(f"superpose    : {args.superpose}", file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
+    anneal_ladder = None
+    if args.anneal_grain:
+        anneal_ladder = tuple(int(g) for g in args.anneal_grain.split(",")
+                              if g.strip())
+
     seed_root = dom.load(str(seed_file))
     t0 = time.perf_counter()
 
     # SIGTERM → KeyboardInterrupt so the driver's interrupt handler fires.
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
 
-    r = driver.search(
-        seed_root,
-        programme_dir,
-        budget=args.budget,
-        pop_size=args.pop,
-        child_budget=args.child_budget,
-        p_crossover=0.2,
-        seed=args.seed,
-        n_workers=args.workers,
-        leaf_sharing=args.leaf_sharing,
-        leaf_share_factor=args.leaf_share_factor,
-        superpose=args.superpose,
-        log=lambda m: print(m, file=sys.stderr, flush=True),
-    )
+    if anneal_ladder:
+        # homemaker-py-kpu (Schedule B): in-run grain annealing already ends with a
+        # de-share polish, so it is self-finishing — the §15 unfold+polish is not
+        # applied on top.
+        polish_budget = args.budget // 2 if args.polish_budget < 0 else args.polish_budget
+        print(f"anneal grain : {anneal_ladder} → off (polish {polish_budget})",
+              file=sys.stderr, flush=True)
+        r = driver.search_annealed(
+            seed_root,
+            programme_dir,
+            budget=args.budget,
+            polish_budget=polish_budget,
+            grain_ladder=anneal_ladder,
+            pop_size=args.pop,
+            child_budget=args.child_budget,
+            p_crossover=0.2,
+            seed=args.seed,
+            n_workers=args.workers,
+            superpose=args.superpose,
+            log=lambda m: print(m, file=sys.stderr, flush=True),
+        )
+        _finish_sharing = False
+    else:
+        r = driver.search(
+            seed_root,
+            programme_dir,
+            budget=args.budget,
+            pop_size=args.pop,
+            child_budget=args.child_budget,
+            p_crossover=0.2,
+            seed=args.seed,
+            n_workers=args.workers,
+            leaf_sharing=args.leaf_sharing,
+            leaf_share_factor=args.leaf_share_factor,
+            superpose=args.superpose,
+            log=lambda m: print(m, file=sys.stderr, flush=True),
+        )
+        _finish_sharing = args.leaf_sharing
 
     # homemaker-py-3l6: a leaf-sharing run's internal best is scored against a
     # sharing-credited objective (a shared leaf counts as k programme rooms), so
@@ -173,7 +213,7 @@ def main(argv=None) -> int:
     # written .dom is honest AND its materialised rooms are cleaned up (yaa: the
     # unfold-then-polish path catches the direct no-sharing route). After this,
     # r.best.fitness is the canonical score (leaf_sharing off ⇒ internal == canon).
-    if args.leaf_sharing and r.best is not None:
+    if _finish_sharing and r.best is not None:
         polish_budget = args.budget // 2 if args.polish_budget < 0 else args.polish_budget
         # An interrupted sharing run still needs an honest output, but the user
         # asked to stop — unfold and rescore only, skip the long polish phase.

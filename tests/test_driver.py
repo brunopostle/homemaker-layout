@@ -314,3 +314,49 @@ def test_polish_finish_runs_polish_search(fake_inner):
 def test_polish_finish_noop_without_best():
     empty = driver.SearchResult(best=None, population=[], n_evals=0, n_topologies=0)
     assert driver.polish_finish(empty, CORPUS, polish_budget=100) is empty
+
+
+def test_search_seed_pop_evaluates_given_population(fake_inner):
+    # homemaker-py-kpu: seed_pop supplies an explicit initial population; each
+    # given root is evaluated (not bootstrapped/single-seeded) before the loop.
+    pop_roots = [dom.load(str(SEED_FILE)) for _ in range(3)]
+    r = driver.search(dom.load(str(INIT_FILE)), CORPUS, budget=0, pop_size=3,
+                      child_budget=80, seed_budget=100, seed=0, seed_pop=pop_roots)
+    # budget 0 ⇒ only the 3 seed-pop evals run (100 each), no children
+    assert r.n_evals == 300
+    assert r.n_topologies == 3
+    assert all(ind.lineage.startswith("anneal-seed/") for ind in r.population)
+
+
+def test_search_annealed_stitches_phases_and_finishes_honest(fake_inner):
+    # homemaker-py-kpu (Schedule B): the grain ramp runs one phase per ladder
+    # step plus a de-share polish, with cumulative accounting, a grain-tagged
+    # history, and a materialised (share-free) honest best.
+    r = driver.search_annealed(
+        dom.load(str(INIT_FILE)), CORPUS, budget=600, polish_budget=200,
+        grain_ladder=(3, 2), pop_size=3, child_budget=80, seed_budget=80, seed=0)
+
+    assert r.best is not None
+    # honest output: every shared leaf is materialised before the polish phase
+    assert all(lf.share == 1 for lf in r.best.root.leaves())
+    # accounting is cumulative across both sharing phases + polish
+    assert r.n_evals >= 600 + 200 - 80
+    # history is grain-tagged and ordered: first phase g3, then g2, then polish
+    tags = [lin.split(":", 1)[0] for *_, lin in r.history]
+    assert tags[0] == "g3"
+    assert "g2" in tags
+    assert tags[-1] == "polish"
+    # eval offsets are monotone non-decreasing across the stitched phases
+    evs = [e for e, *_ in r.history]
+    assert evs == sorted(evs)
+
+
+def test_search_annealed_degenerate_ladder_falls_back(fake_inner):
+    # A ladder with no grain >= 2 has nothing to anneal: a plain no-sharing search
+    # over the full budget (+ polish), and the best is honest (share-free).
+    r = driver.search_annealed(
+        dom.load(str(INIT_FILE)), CORPUS, budget=300, polish_budget=100,
+        grain_ladder=(1,), pop_size=3, child_budget=80, seed_budget=80, seed=0)
+    assert r.best is not None
+    assert r.n_evals >= 300
+    assert all(lf.share == 1 for lf in r.best.root.leaves())
