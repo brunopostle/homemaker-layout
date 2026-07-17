@@ -2253,7 +2253,7 @@ honesty — the point of the bug — is restored. Tests: `driver.polish_finish` 
 (unfold+rescore stitching, polish-search accounting, no-best noop); 254 pass.
 
 
-## 16. In-run leaf-share grain annealing — Schedule B (`homemaker-py-kpu`) — IN PROGRESS
+## 16. In-run leaf-share grain annealing — Schedule B (`homemaker-py-kpu`) — DONE (negative)
 
 **Premise.** §15's finish crosses the sharing→off objective cliff in a *single*
 hard transition (unfold every shared leaf at once, then polish). Schedule B (yaa's
@@ -2309,7 +2309,33 @@ is meaningless here; the head-to-head below runs at the baselines' budget.) Test
 seeding; `search_annealed` phase stitching / honest finish / degenerate-ladder
 fallback; 258 pass.
 
-**Head-to-head (RUNNING).** harbor-house, `init.dom`, seed 0, pop 16, child 80, grain
-`4,3,2`, budget 1.5M (500k/phase) + polish 1.5M = **3M total**, matched to the yaa
-baselines. Targets: (a) direct `--no-leaf-sharing` 5.14e-06; (b) manual unfold
-warm-chain 4.19e-06. Verdict pending run completion.
+**Head-to-head (DONE — NEGATIVE).** harbor-house, `init.dom`, seed 0, pop 16, child
+80, grain `4,3,2`, budget 1.5M (500k/phase) + polish 1.5M = **3M total** (workers 4,
+~22h), matched to the yaa baselines. Result: **1.26e-08, 23 fails** (canonical
+`homemaker-fitness` byte-for-byte). Both targets **beat it decisively**:
+
+| route | fitness | fails |
+|-------|---------|-------|
+| direct `--no-leaf-sharing` | 5.14e-06 | 15 |
+| yaa warm-chain (single hard unfold) | 4.19e-06 | 15 |
+| **Schedule B (graduated 4→3→2→off)** | **1.26e-08** | **23** |
+
+~400× worse fitness, +8 fails. **Verdict: the graduated grain ramp loses to the
+single hard sharing→off transition (§15).** The trajectory shows why — each grain
+step spikes the fail count as its unfolded leaves acquire independent shape fails
+(phase-end fails 19 → 21 → 27, then the final de-share unfold 27 → 36), and the
+per-phase budget re-polishes a partially-materialised state that the *next* step
+materialises further, so the coarse-grain gains (19 fails at grain 4) do not carry
+forward. Splitting the budget across three intermediate materialisations left the
+polish phase starting from a deeper hole (36 fails) than the warm chain's single
+clean transition, and 1.5M polish evals recovered only to 23 — short of the 15 both
+baselines reach. Graduated non-convexity is **falsified** for this materialisation
+cliff: the transferable value is the sharing-phase topology skeleton (yaa), and it is
+best cashed in **once**, at full grain, not annealed. (Caveat: this run used
+`workers=4` vs the baselines' `workers=1`; the ~400×/+8-fail gap is far larger than
+worker-count trajectory noise, so the direction is robust.)
+
+The machinery is retained (`search_annealed`, `--anneal-grain`, `unfold_shared_leaves(
+above=)`, `search(seed_pop=)`, the `max_share` evaluator override) — it is correct,
+tested, and honest, and the `seed_pop` / grain-cap primitives are reusable — but the
+default finish stays §15's single-transition unfold+polish. Tests: 258 pass.
