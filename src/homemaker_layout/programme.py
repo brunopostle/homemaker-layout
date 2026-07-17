@@ -34,6 +34,12 @@ class SpaceReq:
     # global ``leaf_share_factor`` selector an explicit value overrides the global
     # grain (share:1 opts a code OUT, share:N>=2 sets that code's grain to N).
     share: int = 1
+    # 9o5 §7.5 veto hatch (homemaker-py-b3v): opt a code OUT of interchange-class
+    # derivation. Default True = eligible. Set ``interchange: false`` in
+    # patterns.config to let the architect suppress a harmful auto-derived
+    # grouping (e.g. harbor-house's transitive 8-code chain) without disabling
+    # superposition globally.
+    interchange: bool = True
     # Whether each quality param was explicitly in the config (not a default)
     has_size: bool = False
     has_width: bool = False
@@ -69,6 +75,7 @@ def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
             requires_below=c.get("requires_below"),
             count=int(c.get("count") or 1),
             share=int(c.get("share") or 1),
+            interchange=bool(c.get("interchange", True)),
             has_size="size" in c,
             has_width="width" in c,
             has_proportion="proportion" in c,
@@ -111,6 +118,9 @@ def _ratio(x: float, y: float) -> float:
 def interchangeable(a: SpaceReq, b: SpaceReq) -> bool:
     """True iff codes ``a`` and ``b`` satisfy the S1-S4 interchange relation
     (homemaker-py-9o5 §2). Symmetric."""
+    # S0 — architect veto (homemaker-py-b3v): either code opted out.
+    if not a.interchange or not b.interchange:
+        return False
     # S1 — both sized; generic circulation/outside never participate.
     if not (a.has_size and b.has_size) or a.size <= 0 or b.size <= 0:
         return False
@@ -140,7 +150,8 @@ def derive_interchange_classes(reqs: dict[str, SpaceReq]) -> list[frozenset[str]
     """
     codes = [
         c for c, r in reqs.items()
-        if r.has_size and r.size > 0 and c[0].lower() not in ("c", "o", "s")
+        if r.interchange
+        and r.has_size and r.size > 0 and c[0].lower() not in ("c", "o", "s")
     ]
     edges: dict[str, set[str]] = {c: set() for c in codes}
     for i, a in enumerate(codes):

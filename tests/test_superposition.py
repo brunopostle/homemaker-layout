@@ -92,6 +92,44 @@ def test_generic_codes_never_participate():
     assert derive_interchange_classes(reqs) == []
 
 
+def test_interchange_veto_removes_code():
+    # b3v: a code with interchange=False never joins a class, even if similar.
+    a = _req("den", 9.0)
+    b = _req("guest", 12.0)
+    b.interchange = False
+    reqs = {"den": a, "guest": b}
+    assert derive_interchange_classes(reqs) == []
+    assert not interchangeable(a, b)
+
+
+def test_interchange_veto_breaks_transitive_chain():
+    # b3v motivating case: a middle code bridging two halves of a chain, when
+    # vetoed, splits the component rather than collapsing an 8-code class.
+    reqs = {
+        "left": _req("left", 10.0),
+        "bridge": _req("bridge", 12.0),
+        "right": _req("right", 15.0),
+    }
+    # without veto all three chain together (10-12-15, each step <= R_SIZE)
+    assert derive_interchange_classes(reqs) == [
+        frozenset({"left", "bridge", "right"})]
+    # left and right alone are 1.5x -> still just within R_SIZE, so veto the
+    # bridge and confirm the two ends still group but only as the direct pair
+    reqs["bridge"].interchange = False
+    assert derive_interchange_classes(reqs) == [frozenset({"left", "right"})]
+
+
+def test_interchange_veto_parsed_from_config():
+    conf = {"spaces": {
+        "den": {"size": [9.0, 1.0]},
+        "guest": {"size": [12.0, 1.0], "interchange": False},
+    }}
+    reqs = programme._parse_spaces(conf)
+    assert reqs["den"].interchange is True
+    assert reqs["guest"].interchange is False
+    assert derive_interchange_classes(reqs) == []
+
+
 def test_real_programme_house():
     reqs = programme.load_programme_dir("examples/programme-house")
     classes = {frozenset(c) for c in derive_interchange_classes(reqs)}
