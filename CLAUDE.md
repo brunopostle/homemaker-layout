@@ -72,6 +72,7 @@ Key modules:
 - `solver.py` — bottom-up ratio solve (scipy)
 - `fitness.py` — native Python fitness evaluator (replaces Perl oracle)
 - `fitness_cmd.py` — `homemaker-fitness` CLI entry point
+- `collapse_cmd.py` — `homemaker-collapse` CLI: finish-time global cell→room collapse (94g)
 - `graph.py` — leaf-adjacency graph for programme-driven fitness checks
 - `genome.py` — topology genome: base-floor tree + per-storey deltas
 - `operators.py` — high-locality mutation and subtree crossover

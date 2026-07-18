@@ -34,6 +34,7 @@ search then only explores topology + types + adjacency.
 - `src/homemaker_layout/solver.py` — bottom-up ratio solve (scipy).
 - `src/homemaker_layout/fitness.py` — native Python fitness evaluator.
 - `src/homemaker_layout/fitness_cmd.py` — `homemaker-fitness` CLI (drop-in for `urb-fitness.pl`).
+- `src/homemaker_layout/collapse_cmd.py` — `homemaker-collapse` CLI: finish-time global cell→room relabel of a `.dom`.
 - `src/homemaker_layout/graph.py` — leaf-adjacency graph for programme-driven checks.
 - `src/homemaker_layout/genome.py` — topology genome: base-floor tree + per-storey deltas.
 - `src/homemaker_layout/operators.py` — high-locality mutation and subtree crossover.
