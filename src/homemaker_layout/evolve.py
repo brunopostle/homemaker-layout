@@ -116,6 +116,13 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "canonical scorer. -1 = auto (budget//2); 0 = unfold + "
                         "rescore only, no polish. Ignored with --no-leaf-sharing "
                         "(default: -1)")
+    p.add_argument("--collapse", action=argparse.BooleanOptionalAction,
+                   default=True,
+                   help="homemaker-py-94g: finish-time global cell→room collapse — "
+                        "relabel the best layout's room cells to the programme "
+                        "rooms they fit best (level + adjacency + public-access "
+                        "constrained), kept only if it does not increase the fail "
+                        "count. Labels only, never geometry (default: on)")
     p.add_argument("--output", type=Path, default=None, metavar="PATH",
                    help="output .dom path (- for stdout)")
     return p.parse_args(argv)
@@ -230,6 +237,20 @@ def main(argv=None) -> int:
             p_crossover=0.2,
             seed=args.seed,
             n_workers=args.workers,
+            superpose=args.superpose,
+            log=lambda m: print(m, file=sys.stderr, flush=True),
+        )
+
+    # homemaker-py-94g: finish-time global cell→room collapse. Relabels the best
+    # layout's room cells to the programme rooms they fit best (label search only,
+    # no geometry change), kept only if it does not increase the fail count. Runs
+    # after the sharing polish so it acts on the canonical (materialised) best.
+    if args.collapse and r.best is not None:
+        print(file=sys.stderr)
+        print("--- collapse (homemaker-py-94g): finish-time cell→room relabel ---",
+              file=sys.stderr, flush=True)
+        r = driver.collapse_best(
+            r, programme_dir,
             superpose=args.superpose,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )

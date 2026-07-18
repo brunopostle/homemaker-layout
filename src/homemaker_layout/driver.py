@@ -645,6 +645,50 @@ def polish_finish(
     return r2
 
 
+def collapse_best(
+    result: SearchResult,
+    programme_dir: str | Path,
+    *,
+    leaf_sharing: bool = False,
+    superpose: bool = False,
+    log=None,
+    **collapse_kw,
+) -> SearchResult:
+    """homemaker-py-94g: finish-time global cell→room collapse on the best layout.
+
+    Relabels the best tree's room cells to the programme rooms they fit best via
+    one optimal assignment (hard level constraint, adjacency relaxation, and
+    public-access pinning — see :meth:`fitness.Fitness.collapse_global`), keeping
+    the result only if the fail count does not increase (:meth:`collapse_finish`).
+    A strictly monotone finish-time polish that searches only labels, not
+    geometry, so it cannot touch shape-intrinsic fails (long-thin cells, etc.).
+
+    Updates ``result.best`` in place with the canonically re-scored relabelling
+    when it helps; otherwise leaves the result untouched."""
+    if result.best is None:
+        return result
+
+    fit = _fitness_for(str(programme_dir), leaf_sharing, superpose)
+    tree, base_fails, coll_fails, applied = fit.collapse_finish(
+        result.best.root, **collapse_kw
+    )
+    if log:
+        verb = "applied" if applied else "reverted — no improvement"
+        log(f"[finish] collapse: {base_fails} → {coll_fails} fails ({verb})")
+    if applied:
+        score, fails, grade = fit.score_with_grade(copy.deepcopy(tree))
+        result.best = Individual(
+            root=tree,
+            fitness=score,
+            n_fails=len(fails),
+            ratios=result.best.ratios,
+            lineage=result.best.lineage + "+collapse",
+            grade=grade,
+            sig=result.best.sig,
+        )
+    return result
+
+
 def search_annealed(
     seed_root: dom.Node,
     programme_dir: str | Path,

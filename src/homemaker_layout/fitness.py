@@ -338,6 +338,7 @@ class Fitness:
         root: Node,
         adjacency: bool = True,
         objective: str = "threshold",
+        preserve_public_access: bool = True,
         iters: int = 6,
     ) -> None:
         """Finish-time GLOBAL cell->room collapse (homemaker-py-94g): relabel
@@ -375,7 +376,16 @@ class Fitness:
         same weight (_COLLAPSE_FAIL_W = one avoided fail), so the collapse
         minimises (adjacency + size/width/proportion) fails jointly.
 
+        PRESERVE_PUBLIC_ACCESS pins the room leaf that solely provides the
+        building's street access (an l/k neighbour of a public outside leaf, with
+        no circulation fallback) so the collapse cannot drop the building-level
+        "no outside public access" check — the one recurring regression the
+        per-leaf objective cannot see (it is existential and building-scoped).
+
         One-shot finish-time pass on a committed layout, not a per-eval re-type."""
+        from collections import Counter
+        from . import graph as graph_mod
+
         prog = self._programme or {}
         if not prog:
             return
@@ -383,12 +393,34 @@ class Fitness:
         if not room_codes:
             return
         lvls = dom_mod.levels(root)
-        supply = [lf for lvl in lvls for lf in lvl.leaves() if lf.type in room_codes]
+        graphs = (
+            graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
+            if (adjacency or preserve_public_access)
+            else None
+        )
+
+        pinned = (
+            self._public_access_pins(root, graphs, lvls, room_codes)
+            if (preserve_public_access and graphs is not None)
+            else set()
+        )
+        supply = [
+            lf
+            for lvl in lvls
+            for lf in lvl.leaves()
+            if lf.type in room_codes and id(lf) not in pinned
+        ]
         if not supply:
             return
-        slots: list[str] = []
-        for code in sorted(room_codes):
-            slots.extend([code] * max(0, prog[code].count))
+        # Demand = room-code counts, minus one slot per pinned leaf (its instance
+        # is already met by the pin, so it must not be demanded of another leaf).
+        slot_counts = Counter({c: max(0, prog[c].count) for c in room_codes})
+        if pinned:
+            for lvl in lvls:
+                for lf in lvl.leaves():
+                    if id(lf) in pinned and slot_counts.get(lf.type, 0) > 0:
+                        slot_counts[lf.type] -= 1
+        slots = [c for c in sorted(slot_counts) for _ in range(slot_counts[c])]
         if not slots:
             return
 
@@ -430,12 +462,9 @@ class Fitness:
                     supply[r].type = slots[c]
             return
 
-        # Adjacency relaxation. Build the pre-merge base graph once (fixed
+        # Adjacency relaxation on the pre-merge base graph (built above, fixed
         # geometry). A satisfied adjacency is worth fail_w — one avoided fail,
         # the same unit as a passing factor — so both are minimised jointly.
-        from . import graph as graph_mod
-
-        graphs = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
         code_adj = {code: prog[code].adjacency for code in set(slots)}
 
         prev_labels: list[str | None] = None  # type: ignore[assignment]
@@ -463,6 +492,58 @@ class Fitness:
             if new_labels == prev_labels:
                 break
             prev_labels = new_labels
+
+    def _public_access_pins(
+        self, root: Node, graphs: list, lvls: list, room_codes: set
+    ) -> set[int]:
+        """id()s of room leaves to hold fixed so the building keeps street access
+        across a collapse. If a ground circulation leaf already gives public
+        access it is invariant (circulation is never relabelled) — return empty.
+        Otherwise, for each outside leaf that provides public access solely via an
+        l/k ROOM neighbour (no circulation fallback), pin one such neighbour."""
+        for lvl in lvls:
+            for lf in lvl.leaves():
+                if (
+                    lf.type
+                    and lf.type[0].lower() == "c"
+                    and self._public_access(lf, root) is not None
+                ):
+                    return set()
+        pins: set[int] = set()
+        for li, lvl in enumerate(lvls):
+            G = graphs[li]
+            for lf in lvl.leaves():
+                if not G.has_node(lf):
+                    continue
+                if not self._public_access_outside(lf, G, root):
+                    continue
+                nbs = list(G.neighbors(lf))
+                if any(nb.type and nb.type[0].lower() == "c" for nb in nbs):
+                    continue  # circulation neighbour keeps access invariant
+                for nb in nbs:
+                    if nb.type in room_codes and nb.type[0].lower() in ("l", "k"):
+                        pins.add(id(nb))
+                        break
+        return pins
+
+    def collapse_finish(self, root: Node, **kw) -> tuple[Node, int, int, bool]:
+        """Keep-better finish-time collapse: apply :meth:`collapse_global` to a
+        copy and return it only if it does not INCREASE the fail count, else the
+        original — a strictly monotone polish (safety belt; collapse_global is
+        already monotone on the harbor-house set but not proven so in general).
+
+        Returns ``(tree, base_fails, collapsed_fails, applied)``. Both the input
+        and returned trees are UNMERGED — scoring is done on throwaway deepcopies
+        because ``score_with_fails`` merges the tree in place."""
+        import copy
+
+        base_fails = len(self.score_with_fails(copy.deepcopy(root))[1])
+        cand = copy.deepcopy(root)
+        self.collapse_global(cand, **kw)
+        cand_fails = len(self.score_with_fails(copy.deepcopy(cand))[1])
+        if cand_fails <= base_fails:
+            return cand, base_fails, cand_fails, True
+        return copy.deepcopy(root), base_fails, cand_fails, False
 
     def conf(self, key: str):
         v = self._conf.get(key)

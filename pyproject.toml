@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 homemaker-evolve = "homemaker_layout.evolve:main"
 homemaker-fitness = "homemaker_layout.fitness_cmd:main"
+homemaker-collapse = "homemaker_layout.collapse_cmd:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.5"]
