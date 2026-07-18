@@ -327,9 +327,18 @@ class Fitness:
     # finite (Hungarian cannot take -inf) yet far below any real value, so the
     # optimal matching never uses a level-mismatched pair unless it is forced.
     _COLLAPSE_FORBID = -1e12
+    # Weight of one avoided fail (a satisfied adjacency or a passing
+    # size/width/proportion factor) in the collapse objective — far above the
+    # continuous quality span (~max area) so fail count dominates and raw
+    # quality only breaks ties; far below the forbid penalty so level holds.
+    _COLLAPSE_FAIL_W = 1e6
 
     def collapse_global(
-        self, root: Node, adjacency: bool = True, iters: int = 6
+        self,
+        root: Node,
+        adjacency: bool = True,
+        objective: str = "threshold",
+        iters: int = 6,
     ) -> None:
         """Finish-time GLOBAL cell->room collapse (homemaker-py-94g): relabel
         every inside-room leaf across the whole building to the required room it
@@ -354,8 +363,17 @@ class Fitness:
         a labelling relaxation: warm-started from the evolved labels, each pass is
         a linear assignment over quality + adjacency-bonus computed from the
         previous pass, iterated to a fixpoint (Jacobi/WFC-style). Maximising
-        satisfied adjacencies minimises adjacency fails. The base per-leaf value
-        is the separable sum(usage_quality * area) collapse_superposition uses.
+        satisfied adjacencies minimises adjacency fails.
+
+        OBJECTIVE selects the per-leaf base value: ``"quality"`` maximises the
+        separable continuous fit sum(usage_quality * area) collapse_superposition
+        uses; ``"threshold"`` maximises the COUNT of size/width/proportion factors
+        that PASS (>= FAIL_THRESHOLD), with continuous fit only as a tiebreak.
+        Continuous quality can trade one leaf just over threshold for another just
+        under (a fail SHUFFLE); the threshold objective optimises the fail count
+        directly. Under both, a satisfied adjacency and a passing factor carry the
+        same weight (_COLLAPSE_FAIL_W = one avoided fail), so the collapse
+        minimises (adjacency + size/width/proportion) fails jointly.
 
         One-shot finish-time pass on a committed layout, not a per-eval re-type."""
         prog = self._programme or {}
@@ -375,18 +393,35 @@ class Fitness:
             return
 
         forbid = self._COLLAPSE_FORBID
+        fail_w = self._COLLAPSE_FAIL_W
         levels_of = [dom_mod.level_of(lf) for lf in supply]
         areas = [geometry.area(lf) for lf in supply]
-        # Base (separable) quality: usage fit x area, or forbid on level mismatch.
+        # Base per-cell value: forbid on level mismatch, else the separable fit.
+        # In "threshold" mode add fail_w per passing size/width/proportion factor
+        # so the matching maximises passes first, continuous fit only as tiebreak.
         base: list[list[float]] = []
         for i, lf in enumerate(supply):
+            orig = lf.type
             row = []
             for code in slots:
                 req = prog[code]
                 if req.level is not None and req.level != levels_of[i]:
                     row.append(forbid)
-                else:
-                    row.append(self._usage_quality(lf, code) * areas[i])
+                    continue
+                lf.type = code
+                qs = self.quality_size(lf)
+                qw = self.quality_width(lf)
+                qp = self.quality_proportion(lf)
+                val = qs * qw * qp * areas[i]
+                if objective == "threshold":
+                    passes = (
+                        (qs >= FAIL_THRESHOLD)
+                        + (qw >= FAIL_THRESHOLD)
+                        + (qp >= FAIL_THRESHOLD)
+                    )
+                    val += fail_w * passes
+                row.append(val)
+            lf.type = orig
             base.append(row)
 
         if not adjacency:
@@ -396,13 +431,11 @@ class Fitness:
             return
 
         # Adjacency relaxation. Build the pre-merge base graph once (fixed
-        # geometry) and weight a satisfied adjacency above any quality span so
-        # avoiding an adjacency fail always outranks a size/width/proportion gain.
+        # geometry). A satisfied adjacency is worth fail_w — one avoided fail,
+        # the same unit as a passing factor — so both are minimised jointly.
         from . import graph as graph_mod
 
         graphs = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
-        adj_w = (max(areas) if areas else 1.0) + 1.0
-        # Distinct codes among the slots, with their required adjacency lists.
         code_adj = {code: prog[code].adjacency for code in set(slots)}
 
         prev_labels: list[str | None] = None  # type: ignore[assignment]
@@ -418,7 +451,7 @@ class Fitness:
                         for ac in code_adj[code]
                         if graph_mod.has_adjacency(lf, ac, G)
                     )
-                    quality[i][j] += adj_w * sat
+                    quality[i][j] += fail_w * sat
             assign = self._best_assignment(quality)
             new_labels: list[str | None] = [lf.type for lf in supply]
             for r, c in assign:
