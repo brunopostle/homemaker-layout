@@ -188,6 +188,32 @@ def _connected_outside_inplace(G: nx.Graph) -> None:
     G.remove_nodes_from(to_remove)
 
 
+def circulation_connectivity(G: nx.Graph) -> float:
+    """Fraction of circulation cells in the largest connected circulation
+    component — a continuous [0,1] proximity to a single connected circulation
+    spine (1.0 = fully connected, lower = more fragmented, 0.0 = no circulation).
+
+    Companion graded signal for the binary ``level N not connected`` fail
+    (``connected_circulation``, homemaker-py-qi6). That fail fires identically
+    whether a level's circulation is split into 2 components or 7, so it is FLAT
+    across fragmentation and gives the outer search no gradient to climb toward
+    connectivity. This proxy restores the gradient: among equally-failing
+    layouts, the one whose circulation is closer to a single component scores
+    higher. Measured on the same circ subgraph the fail uses (all non-circulation
+    vertices removed), so the two agree at the connected endpoint (proxy == 1.0
+    iff ``connected_circulation`` is True on a non-empty circ set).
+    """
+    gc = G.copy()
+    gc.remove_nodes_from(
+        [v for v in list(gc.nodes()) if not dom.is_circulation(v)]
+    )
+    n = gc.number_of_nodes()
+    if n == 0:
+        return 0.0
+    largest = max((len(c) for c in nx.connected_components(gc)), default=0)
+    return largest / n
+
+
 def connected_circulation(G: nx.Graph) -> bool:
     """True iff circulation nodes are non-empty and connected; mirrors
     ``Urb::Dom::Connected_Circulation`` (Storey.pm:106).

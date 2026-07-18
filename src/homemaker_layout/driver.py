@@ -40,11 +40,14 @@ _CHILD_INNER_KW: dict = {}
 
 
 def _overrides_for(leaf_sharing: bool, superpose: bool,
-                   max_share: int | None = None) -> dict | None:
+                   max_share: int | None = None,
+                   conn_grade: bool = False) -> dict | None:
     """Run-level conf overrides for the native evaluator (None when all off).
 
     ``max_share`` (homemaker-py-kpu) overrides the evaluator's ``leaf_share_max``
     grain cap for the in-run annealing ramp; ``None`` leaves the config default.
+    ``conn_grade`` (homemaker-py-qi6) turns the graded proximity scalar into the
+    circulation-connectivity signal (§18).
     """
     ov: dict = {}
     if leaf_sharing:
@@ -53,13 +56,16 @@ def _overrides_for(leaf_sharing: bool, superpose: bool,
         ov["superpose"] = True
     if max_share is not None:
         ov["leaf_share_max"] = int(max_share)
+    if conn_grade:
+        ov["conn_grade"] = True
     return ov or None
 
 
 @functools.lru_cache(maxsize=None)
 def _fitness_for(programme_dir: str, leaf_sharing: bool = False,
                  superpose: bool = False,
-                 max_share: int | None = None) -> "fitness.Fitness":
+                 max_share: int | None = None,
+                 conn_grade: bool = False) -> "fitness.Fitness":
     """Cached Fitness evaluator per (programme dir, leaf_sharing) (config load is
     the cost).
 
@@ -70,7 +76,7 @@ def _fitness_for(programme_dir: str, leaf_sharing: bool = False,
     inner loop instead of reading the on-disk (sharing-free) patterns.config.
     Cached per process — workers fork their own copy.
     """
-    overrides = _overrides_for(leaf_sharing, superpose, max_share)
+    overrides = _overrides_for(leaf_sharing, superpose, max_share, conn_grade)
     conf, cost = fitness.load_config(programme_dir, overrides=overrides)
     return fitness.Fitness(conf, cost)
 
@@ -146,7 +152,8 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
               best_n_fails: int | None = None,
               leaf_sharing: bool = False,
               superpose: bool = False,
-              max_share: int | None = None) -> tuple[Individual, int]:
+              max_share: int | None = None,
+              conn_grade: bool = False) -> tuple[Individual, int]:
     # §12.3 shape-feasibility pre-filter (homemaker-py-9gp.1): if even the best
     # achievable (proportion-aware) geometry of this topology already has at least
     # as many shape fails as the incumbent's TOTAL fails — and exceeds the tunable
@@ -154,11 +161,12 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     # eval instead of spending the full inner-loop budget. The best_n_fails guard
     # makes the proxy safe: a topology whose shape-fail floor is still below the
     # incumbent is never discarded. Pruned individuals are tagged and never admitted.
-    overrides = _overrides_for(leaf_sharing, superpose, max_share)
+    overrides = _overrides_for(leaf_sharing, superpose, max_share, conn_grade)
     if (feasibility_max_shape_fails is not None and best_n_fails is not None):
         pred = operators.predicted_shape_fails(
             root, _reqs_for(str(programme_dir)),
-            _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share))
+            _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
+                         conn_grade))
         if pred > feasibility_max_shape_fails and pred >= best_n_fails:
             ind = Individual(root=root, fitness=0.0, n_fails=pred, ratios={},
                              lineage=f"pruned/{lineage}", grade=0.0,
@@ -173,7 +181,8 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     grade = 0.0
     if want_grade:
         _, _, grade = _fitness_for(
-            str(programme_dir), leaf_sharing, superpose, max_share).score_with_grade(
+            str(programme_dir), leaf_sharing, superpose, max_share,
+            conn_grade).score_with_grade(
             copy.deepcopy(root))
     ind = Individual(root=root, fitness=r.fitness, n_fails=r.n_fails,
                      ratios=innerloop.ratio_map(root), lineage=lineage,
@@ -209,6 +218,7 @@ def search(
     base_p: float = 1.0,
     child_probe=None,
     use_grade: bool = False,
+    conn_grade: bool = False,
     tournament_k: int = 2,
     niche_by_signature: bool = False,
     restart_patience: int | None = None,
@@ -300,6 +310,9 @@ def search(
     # Kept default-off for reproducibility. Strictly beneath -n_fails ⇒ the
     # missing-space hierarchy (§6) is preserved and the inner-loop cliff (§5.4)
     # is untouched.
+    # homemaker-py-qi6 §18: the connectivity signal rides the same grade channel,
+    # so enabling it enables the grade secondary key.
+    use_grade = use_grade or conn_grade
     if use_lex and use_grade:
         _key = lambda ind: (-ind.n_fails, ind.grade, _rank_fitness(ind))
     elif use_lex:
@@ -402,7 +415,7 @@ def search(
         best_nf = result.best.n_fails if result.best is not None else None
         full = [
             (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade,
-             mx, best_nf, leaf_sharing, superpose, max_share)
+             mx, best_nf, leaf_sharing, superpose, max_share, conn_grade)
             for root, x0, budget_, kw_, lin in tasks
         ]
         if _pool is not None:
@@ -483,7 +496,8 @@ def search(
                                        want_grade=use_grade,
                                        leaf_sharing=leaf_sharing,
                                        superpose=superpose,
-                                       max_share=max_share)
+                                       max_share=max_share,
+                                       conn_grade=conn_grade)
             n_evals += used
             admit(seed_ind, pop)
 

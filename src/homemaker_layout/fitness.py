@@ -214,6 +214,13 @@ class Fitness:
         # leaf to its best in-class usage before scoring, so search optimises the
         # condensed objective directly and the relaxation gap is removed.
         self._superpose = bool(self.conf("superpose"))
+        # homemaker-py-qi6 graded circulation-connectivity signal (DESIGN.md §18):
+        # default OFF. When on, the graded proximity scalar (want_grade) is the
+        # per-level largest-circ-component fraction instead of the §11.4 leaf
+        # quality-proximity — a secondary comparator key giving the outer search
+        # a gradient the binary "level N not connected" fail lacks. Leaves the
+        # scalar fitness and fail count untouched, exactly like §11.4.
+        self._conn_grade = bool(self.conf("conn_grade"))
         from .programme import CLASS_CAP as _CLASS_CAP
         self._class_cap = int(self.conf("superpose_class_cap") or _CLASS_CAP)
         self._interchange_classes: list | None = None  # lazily derived
@@ -1453,9 +1460,17 @@ class Fitness:
             )
             cost += se.cost
             value += se.value
-            if want_grade:  # §11.4 outer-comparator signal only; off by default
+            if want_grade and not self._conn_grade:  # §11.4 signal; off by default
                 for le in se.leaves:
                     grade += _leaf_grade(le.factors)
+
+        # §18 (homemaker-py-qi6): repurpose the grade channel for the graded
+        # circulation-connectivity signal — sum of per-level largest-circ-component
+        # fractions, higher when circulation is closer to a single connected spine.
+        # Secondary comparator key only; score and fail count are untouched.
+        if want_grade and self._conn_grade:
+            for gc in graph_circ:
+                grade += graph_mod.circulation_connectivity(gc)
 
         building_factor = self.evaluate_building(root, tracking)
         value *= building_factor

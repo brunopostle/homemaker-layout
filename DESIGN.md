@@ -2414,3 +2414,54 @@ the collapse *inside* search per-eval (rather than finish-time) is `homemaker-py
 gated on the 9o5 landscape-flattening risk (§13 / `homemaker-py-xi7`) and its own A/B.
 Tests: `tests/test_collapse_global.py` ×6 (demand-set relabel, level hard constraint, c/o/s
 exclusion, no-op safety, keep-better/unmerged); 267 pass.
+
+## 18. Graded circulation-connectivity signal (`homemaker-py-qi6`) — in progress
+
+**Motivation — the binary fail is flat.** After the §17 collapse, the residual fails on the
+harbor-house set are dominated by `level N not connected` (2 of the best layout's 12; also on
+5 of the 6 sweep layouts). That fail comes from `connected_circulation` (`graph.py`): remove
+every non-circulation vertex from a storey's adjacency graph and require the remaining
+circulation cells (`C` stairs plus the `cr`/`st` room-codes that collide with the c/s prefix)
+to form ONE connected component. On the evolved layouts they instead fragment into **4–7
+components per storey**.
+
+**Why finish-time repair fails (measured, negative).** The obvious §17-style companion — a
+finish-time pass that re-types boundary cells to circulation to bridge the components, kept
+only if the fail count does not rise — was prototyped (Steiner-MST bridge set per disconnected
+storey, keep-better guard) and measured on the 6 layouts: **195 → 560 fails (+365)**. The
+`not connected` fail is *binary* (one fail per storey regardless of fragmentation), but each
+storey needs 3–7 bridge cells, and every needed-room→circulation conversion triggers a
+missing-room fail cascade (2–5 fails) that dwarfs the single connectivity fail it clears.
+Keep-better reverts every one → no-op. **Conclusion: connectivity cannot be bought at finish
+time when every cell is a needed room; it must come from the outer search allocating connected
+circulation topology.** But the binary fail gives the search *zero gradient* — a 7-component
+storey scores identically (both in fail count and in the `0.5^n` scalar) to a 2-component one —
+so the search cannot tell it is making progress.
+
+**Mechanism — a graded proximity on the same channel §11.4 built.** `graph.circulation_connectivity(G)`
+returns the fraction of circulation cells in the largest connected circulation component ∈
+[0,1] (1.0 = a single connected spine, lower = more fragmented, 0.0 = no circulation), measured
+on the same circ subgraph the fail uses so the two agree at the connected endpoint. Summed over
+storeys it is the graded proximity scalar `Fitness.score_with_grade` already carries for the
+outer comparator, gated by the `conn_grade` conf flag: when on it *replaces* the §11.4 leaf
+quality-proximity on that channel (a distinct, better-motivated use — §11.4 was rejected because
+within a fail-tier the `0.5^n` scalar is NOT flat there and grade merely displaced a working
+signal; connectivity is the opposite case, genuinely flat under the binary fail). Like §11.4 it
+leaves the scalar fitness and fail count **byte-identical** (verified) — it is only the secondary
+key `(-n_fails, grade, fitness)` (driver `use_lex and use_grade`), strictly beneath fail-count so
+the §6 missing-space hierarchy and the §5.4 inner-loop cliff are untouched. Among equally-failing
+neighbours the search now prefers the one whose circulation is closer to one component, restoring
+the gradient toward connected topologies.
+
+**Wiring.** `conn_grade` threads through `_overrides_for`/`_fitness_for`/`_evaluate` and the
+`search` signature; enabling it implies the grade key. `evolve.py` exposes `--conn-grade`
+(env `HOMEMAKER_CONN_GRADE`, default OFF); the grade is read off the optimised tree, one extra
+native eval per child.
+
+**Status / next.** Signal, fitness wiring, CLI, and 9 tests landed (`tests/test_conn_grade.py`:
+pure-graph fraction contract, non-circ cells ignored, monotone under (dis)connection, and the
+score/fail-count-invariance of the flag). The A/B — does the gradient actually pull evolve runs
+toward connected circulation and clear `not connected` fails — needs full-budget runs and is
+pending (short 60-eval smoke run confirms the plumbing only). If the graded key alone is
+insufficient, the follow-on is an insert/relocate-circulation mutation operator (mechanism (a),
+still `homemaker-py-qi6`) that now has a gradient to climb. 276 tests pass.

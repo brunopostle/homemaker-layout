@@ -95,6 +95,16 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "requirements) form equivalence classes and each candidate "
                         "collapses every superposed leaf to its best in-class usage "
                         "before scoring (default: off)")
+    p.add_argument("--conn-grade", dest="conn_grade",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_CONN_GRADE", False),
+                   help="homemaker-py-qi6 (§18): graded circulation-connectivity "
+                        "signal. Adds a secondary comparator key (beneath fail "
+                        "count, above fitness) = per-level largest-circ-component "
+                        "fraction, giving the search a gradient toward connected "
+                        "circulation that the binary 'not connected' fail lacks. "
+                        "Does not change the scalar fitness or fail count "
+                        "(default: off)")
     p.add_argument("--anneal-grain", type=str,
                    default=os.environ.get("HOMEMAKER_ANNEAL_GRAIN"),
                    metavar="LADDER",
@@ -161,6 +171,7 @@ def main(argv=None) -> int:
     print(f"leaf sharing : {args.leaf_sharing} (factor={args.leaf_share_factor})",
           file=sys.stderr)
     print(f"superpose    : {args.superpose}", file=sys.stderr)
+    print(f"conn grade   : {args.conn_grade}", file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
     anneal_ladder = None
@@ -209,6 +220,7 @@ def main(argv=None) -> int:
             leaf_sharing=args.leaf_sharing,
             leaf_share_factor=args.leaf_share_factor,
             superpose=args.superpose,
+            conn_grade=args.conn_grade,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
         _finish_sharing = args.leaf_sharing
