@@ -323,6 +323,114 @@ class Fitness:
             for r, c in self._best_assignment(quality):
                 supply[r].type = slots[c]
 
+    # Forbidden-pairing penalty for the global collapse cost matrix: large and
+    # finite (Hungarian cannot take -inf) yet far below any real value, so the
+    # optimal matching never uses a level-mismatched pair unless it is forced.
+    _COLLAPSE_FORBID = -1e12
+
+    def collapse_global(
+        self, root: Node, adjacency: bool = True, iters: int = 6
+    ) -> None:
+        """Finish-time GLOBAL cell->room collapse (homemaker-py-94g): relabel
+        every inside-room leaf across the whole building to the required room it
+        fits best, via one optimal assignment over the full leaf set — the 9o5
+        per-class collapse generalised to N inside leaves <-> M required rooms.
+
+        SUPPLY = leaves whose type is an assignable programme room code; DEMAND =
+        every such code expanded by its required count, tagged with its required
+        level. Assignable codes EXCLUDE any starting c/o/s: check_space_counts
+        (graph.py) skips those as circulation/outside/sahn — including room codes
+        that collide with the convention (cr1, st1, st2) — so those leaves form
+        the circulation/structure skeleton and must not be relabelled. Surplus
+        leaves keep their type (genuine over-supply); unmet demand stays absent
+        (genuine missing room).
+
+        HARD LEVEL constraint: a leaf may only take a room whose required level
+        matches its storey (a -1e12 forbid penalty), so the collapse never adds a
+        wrong-level fail. ADJACENCY (when ``adjacency``): the objective adds a
+        bonus for each of a code's required adjacencies satisfied at a leaf given
+        the CURRENT labelling. Because geometry is fixed at finish time, each
+        leaf's graph neighbours are fixed and only labels move, so the problem is
+        a labelling relaxation: warm-started from the evolved labels, each pass is
+        a linear assignment over quality + adjacency-bonus computed from the
+        previous pass, iterated to a fixpoint (Jacobi/WFC-style). Maximising
+        satisfied adjacencies minimises adjacency fails. The base per-leaf value
+        is the separable sum(usage_quality * area) collapse_superposition uses.
+
+        One-shot finish-time pass on a committed layout, not a per-eval re-type."""
+        prog = self._programme or {}
+        if not prog:
+            return
+        room_codes = {c for c in prog if c[0].lower() not in ("c", "o", "s")}
+        if not room_codes:
+            return
+        lvls = dom_mod.levels(root)
+        supply = [lf for lvl in lvls for lf in lvl.leaves() if lf.type in room_codes]
+        if not supply:
+            return
+        slots: list[str] = []
+        for code in sorted(room_codes):
+            slots.extend([code] * max(0, prog[code].count))
+        if not slots:
+            return
+
+        forbid = self._COLLAPSE_FORBID
+        levels_of = [dom_mod.level_of(lf) for lf in supply]
+        areas = [geometry.area(lf) for lf in supply]
+        # Base (separable) quality: usage fit x area, or forbid on level mismatch.
+        base: list[list[float]] = []
+        for i, lf in enumerate(supply):
+            row = []
+            for code in slots:
+                req = prog[code]
+                if req.level is not None and req.level != levels_of[i]:
+                    row.append(forbid)
+                else:
+                    row.append(self._usage_quality(lf, code) * areas[i])
+            base.append(row)
+
+        if not adjacency:
+            for r, c in self._best_assignment(base):
+                if base[r][c] > forbid:
+                    supply[r].type = slots[c]
+            return
+
+        # Adjacency relaxation. Build the pre-merge base graph once (fixed
+        # geometry) and weight a satisfied adjacency above any quality span so
+        # avoiding an adjacency fail always outranks a size/width/proportion gain.
+        from . import graph as graph_mod
+
+        graphs = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
+        adj_w = (max(areas) if areas else 1.0) + 1.0
+        # Distinct codes among the slots, with their required adjacency lists.
+        code_adj = {code: prog[code].adjacency for code in set(slots)}
+
+        prev_labels: list[str | None] = None  # type: ignore[assignment]
+        for _ in range(max(1, iters)):
+            quality = [list(row) for row in base]
+            for i, lf in enumerate(supply):
+                G = graphs[levels_of[i]]
+                for j, code in enumerate(slots):
+                    if quality[i][j] <= forbid:
+                        continue
+                    sat = sum(
+                        1
+                        for ac in code_adj[code]
+                        if graph_mod.has_adjacency(lf, ac, G)
+                    )
+                    quality[i][j] += adj_w * sat
+            assign = self._best_assignment(quality)
+            new_labels: list[str | None] = [lf.type for lf in supply]
+            for r, c in assign:
+                if quality[r][c] > forbid:
+                    new_labels[r] = slots[c]
+            # Apply synchronously so the next pass reads the updated neighbours.
+            for lf, lab in zip(supply, new_labels):
+                lf.type = lab
+            if new_labels == prev_labels:
+                break
+            prev_labels = new_labels
+
     def conf(self, key: str):
         v = self._conf.get(key)
         if v is not None:
