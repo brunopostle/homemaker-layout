@@ -2339,3 +2339,78 @@ The machinery is retained (`search_annealed`, `--anneal-grain`, `unfold_shared_l
 above=)`, `search(seed_pop=)`, the `max_share` evaluator override) — it is correct,
 tested, and honest, and the `seed_pop` / grain-cap primitives are reusable — but the
 default finish stays §15's single-transition unfold+polish. Tests: 258 pass.
+
+
+## 17. Finish-time global cell→room collapse (`homemaker-py-94g`) — DONE (positive)
+
+**Motivation — label-relative fails.** A layout's leaf carries a room *type*, and
+many of a good layout's residual fails are **label-relative**: a cell fails `size` /
+`width` / `proportion` only because the room *assigned* to it wants dimensions it
+lacks — relabel that cell to a room it fits and the fail vanishes; a `wrong-level`
+fail is likewise a labelling error. On the harbor-house best layout (`evolved-3M-nols-3`,
+15 fails) ~11 of 15 are label-relative. This is separable from the **geometry-intrinsic**
+fails §13 chased at the shape floor — long-thin useless cells (`width`/`proportion`/
+`crinkliness`) and `not-connected` — which *no* relabelling can fix because the cell's
+geometry, not its label, is wrong. The collapse targets only the former.
+
+**Mechanism (`Fitness.collapse_global`).** A one-shot, finish-time pass that relabels
+the whole building's room cells in one optimal assignment — the 9o5 per-class collapse
+(interchange superposition) generalised from one equivalence class to a **global**
+N inside-leaves ↔ M required-rooms matching (`_best_assignment`: brute-force under the
+class cap, else Hungarian). SUPPLY = leaves whose type is an assignable room code;
+DEMAND = every such code expanded by its required count. Constraints, each landed after
+an empirical correction (below):
+- **c/o/s partition.** Assignable codes exclude any starting `c`/`o`/`s`. `check_space_counts`
+  (graph.py) skips those as circulation/outside/sahn — *including room codes that collide
+  with the convention* (`cr1` Common Room, `st1`/`st2` Storage). Those leaves are the
+  circulation/structure skeleton and must never be relabelled; the collapse uses the
+  same partition the scorer counts against.
+- **Hard level.** A leaf may take a room only if its storey matches the room's required
+  level (a −1e12 forbid penalty), so the collapse never *adds* a wrong-level fail.
+- **Adjacency relaxation.** Geometry is fixed at finish time, so each leaf's graph
+  neighbours are fixed and only labels move. Required adjacencies become a labelling
+  relaxation: warm-started from the evolved labels, each pass is a linear assignment over
+  the base value plus a bonus for each of a code's adjacencies satisfied by the *current*
+  neighbour labels, iterated to a fixpoint (Jacobi/WFC-style). Only room↔room adjacencies
+  can break — adjacencies to `c`/`o` are invariant since those leaves are never relabelled.
+- **Threshold objective.** The base per-cell value is either continuous fit
+  (`sum(usage_quality*area)`, as 9o5) or — the default — the **count** of `size`/`width`/
+  `proportion` factors that pass (≥ `FAIL_THRESHOLD`), with continuous fit only as a
+  tiebreak. A satisfied adjacency and a passing factor carry the same unit weight
+  (`_COLLAPSE_FAIL_W`), so the collapse minimises (adjacency + size/width/proportion)
+  fails *jointly*.
+- **Public-access pin.** The building-level "no outside public access" check is
+  existential (∃ a public street-edge outside leaf with an l/c/k neighbour) — invisible to
+  the per-leaf objective. When the sole provider is an l/k *room* neighbour (no circulation
+  fallback), that leaf is pinned (kept, its demand slot decremented) so the collapse cannot
+  drop the check.
+
+**Two corrections found by measurement.** A naive first cut (level-only, per-leaf,
+continuous fit) went **15→46 fails**. Diagnosis killed two hypotheses: (1) the count
+explosion was *not* a merge effect (`merge_divided` merges only outside/sahn siblings,
+never rooms) but the c/o/s partition bug above — pulling `cr1`/`st1`/`st2` into the
+assignment shredded the circulation skeleton; fixing the partition took +31→+1. (2) The
+residual +1 was the continuous objective *shuffling* a `size` fail from one leaf to
+another (pushing one just over the 0.1 threshold and another just under); the threshold
+objective optimises the fail count directly and removes it.
+
+**Keep-better + wiring.** `Fitness.collapse_finish` scores baseline and collapsed on
+throwaway copies (scoring merges in place) and keeps the collapse only if the fail count
+does not increase — a strictly monotone safety belt. `driver.collapse_best` applies it to
+a `SearchResult`'s best, canonically re-scoring and tagging lineage `+collapse`.
+`evolve.py` runs it after the §15 sharing finish behind `--collapse`/`--no-collapse`
+(**default ON**). Standalone `homemaker-collapse <file.dom>` (`collapse_cmd.py`) applies it
+to an existing layout, writing `<stem>.collapsed.dom`.
+
+**Verification.** Sweep over 6 harbor-house evolved layouts (total fails, base 195):
+`adj_off/quality` 192, `adj_on/quality` 185, `adj_off/threshold` 181, `adj_on/threshold`
+**171**. The default (`adjacency=True, objective="threshold"`, public-access pin) is
+**monotone across all 6** (never worse than baseline; keep-better guard is a belt, not
+needed here) — best layout 15→12, and e.g. 32→26, 90→82. The residual on the best layout
+is geometry-/building-bound, not label slack: the collapse searches **labels only, never
+geometry**, so it cannot touch long-thin cells or `not-connected` — those are spun out to
+`homemaker-py-7fm` (shape reshape) and `homemaker-py-qi6` (circulation placement). Running
+the collapse *inside* search per-eval (rather than finish-time) is `homemaker-py-qpk`,
+gated on the 9o5 landscape-flattening risk (§13 / `homemaker-py-xi7`) and its own A/B.
+Tests: `tests/test_collapse_global.py` ×6 (demand-set relabel, level hard constraint, c/o/s
+exclusion, no-op safety, keep-better/unmerged); 267 pass.
