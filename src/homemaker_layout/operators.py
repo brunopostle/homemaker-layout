@@ -373,6 +373,94 @@ def mutate_place_missing(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"place_missing {code} -> {host_id}"
 
 
+def _shape_failing(leaf: dom.Node, fit) -> bool:
+    """A named-room leaf whose width or proportion factor actually fails
+    (``< fitness.FAIL_THRESHOLD``) under ``fit``, the same Gaussian quality
+    functions the scorer uses (``Fitness.quality_width``/``quality_proportion``)
+    — not a geometric proxy, which over-flags leaves the gaussian tail still
+    passes. Generic circulation/outside/sahn leaves are never candidates —
+    they absorb slack by design (solver.py ``min_width_generic``), not a
+    repair target."""
+    if not leaf.type or leaf.type[0].lower() in "cos":
+        return False
+    from . import fitness as _fit_mod
+
+    return (fit.quality_width(leaf) < _fit_mod.FAIL_THRESHOLD
+            or fit.quality_proportion(leaf) < _fit_mod.FAIL_THRESHOLD)
+
+
+def mutate_shape_rotate(root: dom.Node, rng: np.random.Generator,
+                        types: list[str], fit=None) -> tuple[dom.Node, str]:
+    """Repair operator (homemaker-py-7fm): re-orient the cut that produced a
+    shape-failing (long-thin) leaf.
+
+    Diagnosis (bd memory, 7fm): re-running the full-fitness ratio inner loop
+    with a large budget does not clear these fails — they are not local optima
+    of the ratio, because the offending leaf is the *thin* side of a cut whose
+    orientation runs parallel to its parent rectangle's long axis, so any ratio
+    value on that axis yields a thin sliver. Rotating the defining (live) cut
+    changes which axis the ratio divides; the inner loop then re-tunes the
+    ratio on the new axis. Targets only the cut that actually produced a
+    failing leaf, unlike the untargeted ``mutate_rotate``. Requires ``fit``
+    (a ``fitness.Fitness``) to identify genuinely failing leaves.
+    """
+    if fit is None:
+        return _finalise(copy.deepcopy(root)), "shape_rotate noop"
+    child = copy.deepcopy(root)
+    cands: list[tuple[int, dom.Node, dom.Node]] = []
+    for li, n in _owned_branches(child):
+        if n.below is not None:
+            continue
+        for side in ("l", "r"):
+            leaf = n.left if side == "l" else n.right
+            if not leaf.divided and _shape_failing(leaf, fit):
+                cands.append((li, n, leaf))
+    if not cands:
+        return _finalise(child), "shape_rotate noop"
+    li, n, leaf = _pick(rng, cands)
+    n.rotation = (n.rotation + int(rng.integers(1, 4))) % 4
+    return _finalise(child), f"shape_rotate {li}/{n.id or 'root'} (fixing {leaf.id})"
+
+
+def mutate_deslim(root: dom.Node, rng: np.random.Generator,
+                  types: list[str], fit=None) -> tuple[dom.Node, str]:
+    """Repair operator (homemaker-py-7fm): merge a shape-failing (long-thin)
+    leaf into its sibling, undoing the division that starved it.
+
+    Unlike ``mutate_shape_rotate`` this addresses cuts whose *area* share is
+    wrong (an upstream branch several levels up gave the whole subtree too
+    little area to satisfy every leaf inside it — no ratio or rotation on the
+    local cut can fix that, bd memory 7fm), not just its orientation. The
+    displaced room becomes a missing-space fail that ``mutate_place_missing``
+    (already in ``MUTATIONS``) re-inserts elsewhere on a later step. Requires
+    ``fit`` (a ``fitness.Fitness``) to identify genuinely failing leaves.
+    """
+    if fit is None:
+        return _finalise(copy.deepcopy(root)), "deslim noop"
+    from . import geometry as _geo
+
+    child = copy.deepcopy(root)
+    cands = [
+        (li, n) for li, n in _owned_branches(child)
+        if not n.left.divided and not n.right.divided
+        and (_shape_failing(n.left, fit) or _shape_failing(n.right, fit))
+    ]
+    if not cands:
+        return _finalise(child), "deslim noop"
+    li, n = _pick(rng, cands)
+    l_fail, r_fail = _shape_failing(n.left, fit), _shape_failing(n.right, fit)
+    if l_fail and not r_fail:
+        survivor = n.right
+    elif r_fail and not l_fail:
+        survivor = n.left
+    else:
+        survivor = max((n.left, n.right), key=_geo.area)
+    n.type = survivor.type if survivor.type and survivor.type[0].lower() not in "cos" else "C"
+    n.division = None
+    n.left = n.right = None
+    return _finalise(child), f"deslim {li}/{n.id or 'root'} (kept {n.type})"
+
+
 def _leaves_with_depth(n: dom.Node, d: int = 0) -> list[tuple[dom.Node, int]]:
     """Every leaf under ``n`` paired with its depth below ``n``."""
     if not n.divided:
@@ -1239,6 +1327,8 @@ MUTATIONS = {
     "level_retype": mutate_level_retype,
     "level_add": mutate_level_add,
     "level_delete": mutate_level_delete,
+    "shape_rotate": mutate_shape_rotate,
+    "deslim": mutate_deslim,
 }
 
 
@@ -1251,20 +1341,27 @@ _BASE_P_OPS = ("divide", "undivide", "retype", "swap", "rotate")
 
 def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
            weights: dict[str, float] | None = None,
-           reqs=None, base_p: float = 1.0) -> tuple[dom.Node, str]:
+           reqs=None, base_p: float = 1.0, fit=None) -> tuple[dom.Node, str]:
     """Apply one random mutation drawn from MUTATIONS."""
     names = sorted(MUTATIONS)
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
     # these operators need programme reqs; disable them when not available
     reqs_ops = ("level_fix", "level_compound_fix", "place_missing")
+    # these need a Fitness instance to identify genuinely shape-failing leaves
+    fit_ops = ("shape_rotate", "deslim")
     if reqs is None:
         for op in reqs_ops:
+            p[names.index(op)] = 0.0
+    if fit is None:
+        for op in fit_ops:
             p[names.index(op)] = 0.0
     if p.sum() == 0:
         p[:] = 1.0
     name = str(rng.choice(names, p=p / p.sum()))
     if name in reqs_ops:
         return MUTATIONS[name](root, rng, types, reqs=reqs)
+    if name in fit_ops:
+        return MUTATIONS[name](root, rng, types, fit=fit)
     if name in _BASE_P_OPS:
         return MUTATIONS[name](root, rng, types, base_p=base_p)
     return MUTATIONS[name](root, rng, types)

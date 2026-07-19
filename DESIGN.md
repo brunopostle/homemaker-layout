@@ -2465,3 +2465,73 @@ toward connected circulation and clear `not connected` fails — needs full-budg
 pending (short 60-eval smoke run confirms the plumbing only). If the graded key alone is
 insufficient, the follow-on is an insert/relocate-circulation mutation operator (mechanism (a),
 still `homemaker-py-qi6`) that now has a gradient to climb. 276 tests pass.
+
+## 19. Geometry/topology repair for shape-intrinsic fails (`homemaker-py-7fm`) — DONE (negative)
+
+**Motivation.** §17 established that ~12 of the harbor-house best layout's 15 residual fails
+survive the label-only collapse — long-thin cells (`width`/`proportion`/`crinkliness`) whose
+geometry, not room assignment, is wrong. `bd memory collapse-global-94g-and-any-label-usage-
+optimisation` spun this out as its own problem: a mechanism that moves *geometry*, evaluated for
+net fail-count effect on the same 6-layout sweep §17 used.
+
+**Diagnosis (rules out mechanism (a)).** Re-ran the full-fitness ratio inner loop
+(`innerloop.optimise`, Nelder-Mead, 1500 evals, warm-started from the evolved ratios — far above
+the ~80-200/child budget search actually spends) on the 12-fail collapsed best layout: **zero
+change**, byte-identical fail lines. These are not local optima of the ratio search reachable
+with more budget. Tracing two representative fails back through the tree found two distinct
+structural causes, neither fixable by re-solving ratios on the existing cuts: (1) **area
+starvation** — a leaf's *defining branch* (several levels up) was allocated too little total
+area for what it has to share with its siblings (a storage leaf wanting 18m² sat in a 6.4m²
+branch whose sibling got 52.8m² of outside space); (2) **orientation mismatch** — a leaf is the
+correctly-area-sized-but-thin remainder of a cut whose *rotation* runs parallel to its parent
+rectangle's long axis, so no ratio value on that axis avoids a sliver.
+
+**Mechanism (`operators.mutate_shape_rotate`, `operators.mutate_deslim`).** Two targeted repair
+operators addressing each cause, in the `mutate_level_fix` style (structural, not blind-random):
+`_shape_failing(leaf, fit)` identifies a named-room leaf whose width or proportion factor
+actually fails (`< FAIL_THRESHOLD` under `Fitness.quality_width`/`quality_proportion` — not a
+geometric proxy, which over-flags leaves the Gaussian tail still passes). `mutate_shape_rotate`
+re-orients the live cut that produced a failing leaf (targets cause 2); `mutate_deslim` merges a
+failing leaf into its sibling, undoing the division that starved it (targets cause 1), leaving
+the displaced room for `mutate_place_missing` (already in `MUTATIONS`) to re-insert elsewhere.
+Both are registered in `MUTATIONS`/`mutate()`, gated on a `fit` argument (a new `fit_ops` class
+alongside the existing `reqs_ops`) so they no-op — and are excluded from the outer search's
+`weights` — wherever a `Fitness` instance isn't threaded through, exactly as `place_missing` etc.
+gate on `reqs`. `driver.search`/`evolve.py` do **not** yet pass `fit` through (see Status below),
+so the operators exist but are currently unreachable from the GA — they were evaluated instead
+as a finish-time greedy hill-climb (below).
+
+**Verification (measured, negative).** A finish-time hill-climb applied both operators
+exhaustively — for every live cut driving a shape fail, all 3 alternate rotations were tried
+(not just `mutate_shape_rotate`'s single random draw) alongside a `deslim` + `place_missing` +
+ratio-resolve, keeping the best only if it did not increase the fail count — on the same 6
+harbor-house evolved layouts as §17 (total fails 187): **0 improving moves found on any layout,
+on any candidate cut, under any of the 4 tried variants.** Manually inspecting the rejected
+candidates for the representative case (harbor-house evolved-3M-nols-3, leaf `0/rlrlr` "la1",
+the proportion fail traced above) shows why: every one of the 3 rotations and the deslim+
+reinsert produced a **worse** layout — new `no outside public access`, `not adjacent to c`,
+`access`, or `edge too long` fails, in every trial. This is §4.2's core lesson (proxy/partial-
+objective repair of a co-evolved local optimum "is structurally unable to win" — every cut
+position is *simultaneously* a size/shape knob **and** an adjacency/access/circulation knob) now
+confirmed for structural topology repair, not just ratio-solving: on a tightly co-evolved
+layout, the cut that makes a leaf thin is *also* the cut providing some other leaf's public-
+access or adjacency, so straightening it elsewhere is not free. The residual geometry-intrinsic
+fails on the harbor-house best layout appear to be close to a genuine Pareto floor for this
+topology, not a repairable inefficiency — consistent with §17's own framing ("geometry-/
+building-bound").
+
+**Status / next.** `mutate_shape_rotate`/`mutate_deslim` land in `operators.py`, default-excluded
+from `mutate()` (no `fit` threaded through the outer search yet), with dedicated tests
+(`tests/test_operators.py`: fail detection, noop-without-`fit`, targeted-cut selection, merge +
+`place_missing` repairability) plus automatic coverage via the existing
+`test_mutations_yield_canonical_genomes` parametrisation. 282 tests pass. The finish-time
+hill-climb script is **not** productionised (unlike §17's `collapse_cmd.py`) because it never
+found an improving move to apply — there is nothing to wire up. Not tested: whether these
+operators help as *in-search* GA moves (mechanism (c)) — a full multi-generation run gives
+selection pressure and population diversity a chance to accept a locally-worse move that a later
+step or recombination completes, a fundamentally different regime from single-step greedy
+hill-climbing on an already-finished layout. That A/B (thread `fit` through `driver.search`,
+gate with an `enable_shape_repair`-style flag as §12.3 did for `reassociate`, run full-budget
+with/without) is the remaining open question and would need to be its own measured experiment
+before further code changes — this session's finding is that the *finish-time* half of the
+issue's candidate mechanisms is a dead end, not that geometry repair is impossible in general.

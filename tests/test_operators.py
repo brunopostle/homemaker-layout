@@ -1,5 +1,6 @@
 """Operator tests (oracle-free): every child is a valid, canonical genome."""
 
+import copy
 from pathlib import Path
 
 import numpy as np
@@ -512,3 +513,97 @@ def test_predicted_shape_fails_is_nonneg_and_pure():
     assert sum(len(lvl.leaves()) for lvl in dom.levels(root)) == n_leaves
     # deterministic
     assert operators.predicted_shape_fails(root, reqs, fit) == pred
+
+
+# --------------------------------------------------------------------------- #
+# 7fm — targeted shape repair (shape_rotate / deslim)
+# --------------------------------------------------------------------------- #
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_shape_failing_flags_known_fail_only():
+    from homemaker_layout import fitness, programme
+
+    conf, cost = fitness.load_config(str(HARBOR))
+    fit = fitness.Fitness(conf, cost)
+    root = dom.load(str(HARBOR / "generated.dom"))
+    lvl0 = dom.levels(root)[0]
+
+    # generated.dom/0/rr (type "r") has a real proportion fail (fixture,
+    # verified via homemaker-fitness); an outside leaf is never a candidate
+    # regardless of its geometry.
+    assert operators._shape_failing(lvl0.by_id("rr"), fit)
+    assert not operators._shape_failing(lvl0.by_id("lllrl"), fit)  # type O
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_mutate_shape_rotate_noop_without_fit():
+    root = dom.load(str(HARBOR / "generated.dom"))
+    child, desc = operators.mutate_shape_rotate(root, np.random.default_rng(0), TYPES)
+    assert "noop" in desc
+    canonical(child)
+
+
+def _with_forced_slim_leaf(root: dom.Node, code: str = "r") -> tuple[dom.Node, str]:
+    """Force a real, deterministic shape fail: divide the largest outside leaf
+    95/5 into (``code``, "C"). The 5% side is narrow/high-aspect on any real
+    plot, and both sides are fresh leaves (a valid deslim candidate too),
+    unlike the fixture's organic fails which may not have a mergeable sibling."""
+    from homemaker_layout import geometry
+
+    child = copy.deepcopy(root)
+    lvl0 = dom.levels(child)[0]
+    host = max((lf for lf in lvl0.leaves() if lf.type == "O"), key=geometry.area)
+    host_id = host.id
+    host.division = [0.05, 0.05]
+    host.rotation = 0
+    host.left = dom.Node(type=code)
+    host.right = dom.Node(type="C")
+    host.type = None
+    child = operators._finalise(child)
+    leaf_id = (host_id + "l") if host_id else "l"
+    return child, leaf_id
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_mutate_shape_rotate_targets_a_failing_cut():
+    from homemaker_layout import fitness, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    conf, cost = fitness.load_config(str(HARBOR))
+    fit = fitness.Fitness(conf, cost)
+    root, leaf_id = _with_forced_slim_leaf(dom.load(str(HARBOR / "generated.dom")))
+    assert operators._shape_failing(dom.levels(root)[0].by_id(leaf_id), fit)
+
+    child, desc = operators.mutate_shape_rotate(root, np.random.default_rng(0), types, fit=fit)
+    assert "noop" not in desc
+    canonical(child)
+    # only the rotation of the targeted cut changes; leaf multiset preserved
+    assert _leaf_types(child) == _leaf_types(root)
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_mutate_deslim_merges_failing_leaf_and_is_repairable():
+    from homemaker_layout import fitness, graph, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    conf, cost = fitness.load_config(str(HARBOR))
+    fit = fitness.Fitness(conf, cost)
+    root, _leaf_id = _with_forced_slim_leaf(dom.load(str(HARBOR / "generated.dom")))
+    n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(root))
+
+    child, desc = operators.mutate_deslim(root, np.random.default_rng(0), types, fit=fit)
+    assert "noop" not in desc
+    canonical(child)
+    # a merge strictly reduces the leaf count...
+    assert sum(len(lvl.leaves()) for lvl in dom.levels(child)) == n_leaves - 1
+    # ...and the displaced room is repairable by the existing place_missing op
+    _, missing = graph.check_space_counts(child, reqs)
+    assert missing
+    rng = np.random.default_rng(0)
+    for _ in range(len(missing) + 5):
+        child, _ = operators.mutate_place_missing(child, rng, types, reqs=reqs)
+        _, missing = graph.check_space_counts(child, reqs)
+        if not missing:
+            break
+    assert missing == []
