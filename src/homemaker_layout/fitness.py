@@ -224,6 +224,20 @@ class Fitness:
         from .programme import CLASS_CAP as _CLASS_CAP
         self._class_cap = int(self.conf("superpose_class_cap") or _CLASS_CAP)
         self._interchange_classes: list | None = None  # lazily derived
+        # homemaker-py-qpk: IN-SEARCH global collapse. Default OFF. When on,
+        # collapse_global (the 94g finish-time cell<->room relabel) runs INSIDE
+        # _evaluate_full every eval instead of once at the end, so search
+        # optimises the collapsed objective directly (mirrors the 9o5 per-eval
+        # collapse above, at GLOBAL scope). Carries the 9o5/xi7 landscape-
+        # flattening risk amplified to the whole building; gated behind its own
+        # A/B (DESIGN.md §17 follow-on, homemaker-py-qpk) — do not default on
+        # without a positive result.
+        self._collapse_insearch = bool(self.conf("collapse_insearch"))
+        adj = self.conf("collapse_insearch_adjacency")
+        self._collapse_insearch_adjacency = True if adj is None else bool(adj)
+        # Fewer Jacobi passes than the finish-time default (6): a per-eval cost,
+        # not a one-shot polish — profile before raising.
+        self._collapse_insearch_iters = int(self.conf("collapse_insearch_iters") or 3)
 
     # ------------------------------------------------------------------ #
     # Type superposition + collapse (homemaker-py-9o5)
@@ -1419,6 +1433,20 @@ class Fitness:
         # before any check (no-op unless superposition is on and a class exists).
         if self._superpose:
             self.collapse_superposition(root)
+
+        # homemaker-py-qpk: IN-SEARCH global collapse (DESIGN.md §17 follow-on).
+        # Runs before any check, same as collapse_superposition above, so counts/
+        # adjacency/quality downstream see the collapsed (relabelled) types. Uses
+        # its own graph build (fixed geometry, only labels move) — safe to call
+        # on the unmerged tree, exactly as collapse_global's finish-time use does.
+        if self._collapse_insearch:
+            self.collapse_global(
+                root,
+                adjacency=self._collapse_insearch_adjacency,
+                objective="threshold",
+                preserve_public_access=True,
+                iters=self._collapse_insearch_iters,
+            )
 
         # --- Phase 1: UNMERGED tree checks ---
         check_fails, missing = graph_mod.check_space_counts(

@@ -41,13 +41,16 @@ _CHILD_INNER_KW: dict = {}
 
 def _overrides_for(leaf_sharing: bool, superpose: bool,
                    max_share: int | None = None,
-                   conn_grade: bool = False) -> dict | None:
+                   conn_grade: bool = False,
+                   collapse_insearch: bool = False) -> dict | None:
     """Run-level conf overrides for the native evaluator (None when all off).
 
     ``max_share`` (homemaker-py-kpu) overrides the evaluator's ``leaf_share_max``
     grain cap for the in-run annealing ramp; ``None`` leaves the config default.
     ``conn_grade`` (homemaker-py-qi6) turns the graded proximity scalar into the
-    circulation-connectivity signal (§18).
+    circulation-connectivity signal (§18). ``collapse_insearch`` (homemaker-py-
+    qpk) runs the 94g global cell<->room collapse inside every fitness eval
+    instead of once at finish time.
     """
     ov: dict = {}
     if leaf_sharing:
@@ -58,6 +61,8 @@ def _overrides_for(leaf_sharing: bool, superpose: bool,
         ov["leaf_share_max"] = int(max_share)
     if conn_grade:
         ov["conn_grade"] = True
+    if collapse_insearch:
+        ov["collapse_insearch"] = True
     return ov or None
 
 
@@ -65,7 +70,8 @@ def _overrides_for(leaf_sharing: bool, superpose: bool,
 def _fitness_for(programme_dir: str, leaf_sharing: bool = False,
                  superpose: bool = False,
                  max_share: int | None = None,
-                 conn_grade: bool = False) -> "fitness.Fitness":
+                 conn_grade: bool = False,
+                 collapse_insearch: bool = False) -> "fitness.Fitness":
     """Cached Fitness evaluator per (programme dir, leaf_sharing) (config load is
     the cost).
 
@@ -76,7 +82,8 @@ def _fitness_for(programme_dir: str, leaf_sharing: bool = False,
     inner loop instead of reading the on-disk (sharing-free) patterns.config.
     Cached per process — workers fork their own copy.
     """
-    overrides = _overrides_for(leaf_sharing, superpose, max_share, conn_grade)
+    overrides = _overrides_for(leaf_sharing, superpose, max_share, conn_grade,
+                               collapse_insearch)
     conf, cost = fitness.load_config(programme_dir, overrides=overrides)
     return fitness.Fitness(conf, cost)
 
@@ -153,7 +160,8 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
               leaf_sharing: bool = False,
               superpose: bool = False,
               max_share: int | None = None,
-              conn_grade: bool = False) -> tuple[Individual, int]:
+              conn_grade: bool = False,
+              collapse_insearch: bool = False) -> tuple[Individual, int]:
     # §12.3 shape-feasibility pre-filter (homemaker-py-9gp.1): if even the best
     # achievable (proportion-aware) geometry of this topology already has at least
     # as many shape fails as the incumbent's TOTAL fails — and exceeds the tunable
@@ -161,12 +169,13 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     # eval instead of spending the full inner-loop budget. The best_n_fails guard
     # makes the proxy safe: a topology whose shape-fail floor is still below the
     # incumbent is never discarded. Pruned individuals are tagged and never admitted.
-    overrides = _overrides_for(leaf_sharing, superpose, max_share, conn_grade)
+    overrides = _overrides_for(leaf_sharing, superpose, max_share, conn_grade,
+                               collapse_insearch)
     if (feasibility_max_shape_fails is not None and best_n_fails is not None):
         pred = operators.predicted_shape_fails(
             root, _reqs_for(str(programme_dir)),
             _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
-                         conn_grade))
+                         conn_grade, collapse_insearch))
         if pred > feasibility_max_shape_fails and pred >= best_n_fails:
             ind = Individual(root=root, fitness=0.0, n_fails=pred, ratios={},
                              lineage=f"pruned/{lineage}", grade=0.0,
@@ -182,7 +191,7 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     if want_grade:
         _, _, grade = _fitness_for(
             str(programme_dir), leaf_sharing, superpose, max_share,
-            conn_grade).score_with_grade(
+            conn_grade, collapse_insearch).score_with_grade(
             copy.deepcopy(root))
     ind = Individual(root=root, fitness=r.fitness, n_fails=r.n_fails,
                      ratios=innerloop.ratio_map(root), lineage=lineage,
@@ -237,6 +246,7 @@ def search(
     outside_divisor: int = 3,
     max_share: int | None = None,
     seed_pop: list[dom.Node] | None = None,
+    collapse_insearch: bool = False,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -278,6 +288,12 @@ def search(
     kpu) supplies an explicit initial population of decoded roots — evaluated
     under this phase's evaluator instead of bootstrapping or single-seeding — so a
     grain-anneal ramp can hand a whole population from one phase to the next.
+
+    ``collapse_insearch`` (homemaker-py-qpk, EXPERIMENTAL, default off) runs the
+    94g global cell<->room collapse inside every fitness eval instead of once at
+    finish time, so search optimises the collapsed objective directly. Carries
+    the 9o5/xi7 landscape-flattening risk at global scope — do not flip default
+    on without a positive A/B (DESIGN.md §17 follow-on).
     """
     from .oracle import DEFAULT_URB_ROOT
 
@@ -415,7 +431,8 @@ def search(
         best_nf = result.best.n_fails if result.best is not None else None
         full = [
             (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade,
-             mx, best_nf, leaf_sharing, superpose, max_share, conn_grade)
+             mx, best_nf, leaf_sharing, superpose, max_share, conn_grade,
+             collapse_insearch)
             for root, x0, budget_, kw_, lin in tasks
         ]
         if _pool is not None:
@@ -497,7 +514,8 @@ def search(
                                        leaf_sharing=leaf_sharing,
                                        superpose=superpose,
                                        max_share=max_share,
-                                       conn_grade=conn_grade)
+                                       conn_grade=conn_grade,
+                                       collapse_insearch=collapse_insearch)
             n_evals += used
             admit(seed_ind, pop)
 
@@ -588,6 +606,7 @@ def polish_finish(
     seed: int = 0,
     n_workers: int = 1,
     superpose: bool = False,
+    collapse_insearch: bool = False,
     rescore_budget: int = 200,
     log=None,
 ) -> SearchResult:
@@ -632,14 +651,15 @@ def polish_finish(
             unfolded, programme_dir, budget=polish_budget, pop_size=pop_size,
             child_budget=child_budget, p_crossover=p_crossover, seed=seed,
             n_workers=n_workers, bootstrap=False, leaf_sharing=False,
-            superpose=superpose, log=log,
+            superpose=superpose, collapse_insearch=collapse_insearch, log=log,
         )
     else:
         # No polish: re-optimise the unfolded genome's ratios once and score it
         # canonically so the written .dom and reported fitness are honest.
         ind, used = _evaluate(
             unfolded, programme_dir, None, x0=None, budget=rescore_budget,
-            inner_kw={}, lineage="unfold", leaf_sharing=False, superpose=superpose)
+            inner_kw={}, lineage="unfold", leaf_sharing=False, superpose=superpose,
+            collapse_insearch=collapse_insearch)
         r2 = SearchResult(best=ind, population=[ind], n_evals=used, n_topologies=1)
         r2.n_distinct_signatures = 1
         r2.history = [(0, ind.fitness, ind.lineage)]

@@ -105,6 +105,15 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "circulation that the binary 'not connected' fail lacks. "
                         "Does not change the scalar fitness or fail count "
                         "(default: off)")
+    p.add_argument("--collapse-insearch", dest="collapse_insearch",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_COLLAPSE_INSEARCH", False),
+                   help="homemaker-py-qpk (EXPERIMENTAL, §17 follow-on): run the "
+                        "94g global cell→room collapse inside every fitness eval "
+                        "instead of once at finish time, so search optimises the "
+                        "collapsed objective directly. Carries the 9o5/xi7 "
+                        "landscape-flattening risk at global scope — validate "
+                        "with an A/B before relying on it (default: off)")
     p.add_argument("--anneal-grain", type=str,
                    default=os.environ.get("HOMEMAKER_ANNEAL_GRAIN"),
                    metavar="LADDER",
@@ -172,6 +181,7 @@ def main(argv=None) -> int:
           file=sys.stderr)
     print(f"superpose    : {args.superpose}", file=sys.stderr)
     print(f"conn grade   : {args.conn_grade}", file=sys.stderr)
+    print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
     anneal_ladder = None
@@ -221,6 +231,7 @@ def main(argv=None) -> int:
             leaf_share_factor=args.leaf_share_factor,
             superpose=args.superpose,
             conn_grade=args.conn_grade,
+            collapse_insearch=args.collapse_insearch,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
         _finish_sharing = args.leaf_sharing
@@ -250,6 +261,7 @@ def main(argv=None) -> int:
             seed=args.seed,
             n_workers=args.workers,
             superpose=args.superpose,
+            collapse_insearch=args.collapse_insearch,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
 

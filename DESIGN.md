@@ -2535,3 +2535,74 @@ gate with an `enable_shape_repair`-style flag as §12.3 did for `reassociate`, r
 with/without) is the remaining open question and would need to be its own measured experiment
 before further code changes — this session's finding is that the *finish-time* half of the
 issue's candidate mechanisms is a dead end, not that geometry repair is impossible in general.
+
+## 20. In-search global collapse (`homemaker-py-qpk`) — DONE (positive, size-dependent)
+
+**Motivation.** §17 (`94g`) landed the FINISH-TIME global cell↔room collapse — a one-shot label
+search over the already-searched geometry, applied once to the best layout at the end (harbor-house
+best 15→12). The original 94g thrust was the PER-EVAL version: run the same collapse inside every
+fitness eval during search, so the outer GA optimises the collapsed (relabelled) objective directly
+instead of discovering it only at the end. Deferred behind its own A/B because 9o5 (§13/`xi7`) found
+the analogous per-class collapse-as-relaxation NULL/NEGATIVE (OFF beat ON on both example
+programmes) — the risk carried forward here, AMPLIFIED to global scope, is that `max`-over-labellings
+flattens the fitness landscape (many topologies collapse to similar scores) and removes the gradient
+the outer search climbs.
+
+**Mechanism (build).** `Fitness.collapse_global` (§17) is called inside `_evaluate_full`, gated by a
+new `collapse_insearch` conf flag (default OFF, bit-identical when off — same contract as `superpose`/
+`conn_grade`), at the same point `collapse_superposition` (9o5) already runs: before any Phase-1
+check, on the unmerged tree, so `check_space_counts`/adjacency/quality downstream see the collapsed
+labels. Two knobs, both conf-driven: `collapse_insearch_adjacency` (default True — the fixpoint
+Jacobi relaxation §17 describes) and `collapse_insearch_iters` (default 3, vs finish-time's 6 — a
+per-eval cost, not a one-shot polish; lower until profiling says otherwise). `preserve_public_access`
+is always on (never safe to drop silently mid-search). Plumbed through the same minimal path as
+`conn_grade` (`driver._overrides_for`/`_fitness_for`/`_evaluate`/`search`, `evolve.py
+--collapse-insearch` / `HOMEMAKER_COLLAPSE_INSEARCH`) — not threaded into `search_staged`/
+`search_annealed`/`polish_finish`, matching `conn_grade`'s existing footprint.
+
+**Verified (build-time).** On `evolved-3M-nols-3.dom` (harbor-house, the §17 15→12 fixture),
+`collapse_insearch` reaches the byte-identical 12-fail collapsed state as the finish-time pass —
+expected, since it is the same `collapse_global` call moved earlier in the same pipeline on a fixed
+geometry. Flag off reproduces baseline score/fails exactly. `tests/test_collapse_insearch.py` (8):
+defaults, conf knobs, `_evaluate_full` wiring (mocked call-site assertion: fires with the right
+kwargs when on, never when off), and the end-to-end 15→12 cross-check. 290 tests pass. A 60-eval CLI
+smoke run (`--collapse-insearch`, programme-house) confirms the plumbing only, no crash — not a
+result (mirrors qi6's smoke-only checkpoint).
+
+**Cost (measured, `evolved-3M-nols-3.dom`, 20-eval average).** Baseline eval 106 ms; with
+`collapse_insearch` + adjacency 205 ms (**1.9×**); adjacency off 157 ms (1.5×). Per-eval cost is
+therefore real but not prohibitive at this building size — no incremental/cached variant was needed
+to make the experiment affordable, contrary to the issue's worst-case worry. A full-budget run will
+cost roughly 2× the wall-clock of an equal-budget baseline run.
+
+**A/B verdict (measured, 2026-07-19, xi7 protocol) — POSITIVE, and the OPPOSITE of the 9o5/xi7
+prior.** Equal-budget `collapse_insearch` ON vs OFF, both arms finished with the standard
+finish-time `--collapse` (94g) so the comparison is apples-to-apples on the final COLLAPSED score,
+4 workers:
+
+- **harbor-house** (`init.dom`, budget 2500, seeds 1–3): **ON wins 3/3**, mean fails 80.3 → 72.0
+  (s1 85→74, s2 76→65, s3 80→77) — a consistent ~10% fail reduction, no losses.
+- **programme-house** (`init.dom`, budget 3000, seeds 1–5): ON wins 3/5, mean fails 8.4 → 7.8
+  (s1 8→5, s2 8→7, s4 10→9 win; s3 8→9, s5 8→9 loss by one fail) — a weaker, noisier signal on
+  this much smaller building, already closer to its geometry floor (§13/§19).
+- **Combined head-to-head: ON 6, OFF 2.**
+
+Unlike 9o5 (a per-CLASS relaxation over interchangeable-but-not-identical codes, where `max`-over-
+labellings blurred which topology was actually good), the global WFC-style matching here is the
+*same* mechanism §17 already proved monotone/positive at finish time — running it every eval just
+lets the outer search see the condensed objective instead of discovering it only once, and evidently
+that gradient is real, not flattening, at least at the scale tested. The effect scales WITH building
+size (more leaves → more relabelling headroom per eval), the opposite of what the 9o5 fear predicted.
+
+**Cost (wall-clock, matches the profiled 1.5–1.9× per-eval figure above).** harbor-house mean
+102.6s (OFF) → 177.8s (ON), ~1.73×. programme-house mean 39.0s (OFF) → 43.7s (ON), ~1.12× (smaller
+building → collapse is a smaller fraction of total eval cost).
+
+**Status / next.** Kept **default OFF** — the programme-house result is too mixed (2 losses in 5
+seeds) to flip the default on a small sample, and 9o5/xi7 is a fresh enough scar to want a second,
+larger-budget confirmation before doing so. But this is a genuine, working, opt-in improvement for
+larger buildings: `--collapse-insearch` is documented and ready to use on harbor-house-scale (or
+bigger) programmes today. A natural follow-up (not filed, low priority) would be a larger-N seed
+sweep on programme-house alone to see whether the mixed result is just small-sample noise around a
+true small positive, or a genuine size threshold below which in-search collapse doesn't pay for its
+~1.1–1.9× cost.
