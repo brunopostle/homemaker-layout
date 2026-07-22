@@ -200,6 +200,36 @@ def test_feasibility_filter_off_matches_baseline(fake_inner):
     assert off.n_evals == base.n_evals
 
 
+def test_enable_shape_repair_threads_fit_into_mutate(fake_inner, monkeypatch):
+    """homemaker-py-161: shape_rotate/deslim need a live ``fitness.Fitness`` to
+    identify failing leaves; ``search`` must only build and pass one when
+    ``enable_shape_repair=True`` — off by default, so ``operators.mutate`` sees
+    ``fit=None`` and (per its own gating) never selects those two operators."""
+    from homemaker_layout import fitness, operators
+
+    seen_fit = []
+    real_mutate = operators.mutate
+
+    def spy_mutate(root, rng, types, **kw):
+        seen_fit.append(kw.get("fit"))
+        return real_mutate(root, rng, types, **kw)
+
+    monkeypatch.setattr(operators, "mutate", spy_mutate)
+    init_root = dom.load(str(INIT_FILE))
+
+    off = driver.search(init_root, CORPUS, budget=400, pop_size=4,
+                        child_budget=60, seed_budget=100, seed=5)
+    assert seen_fit and all(f is None for f in seen_fit)
+
+    seen_fit.clear()
+    on = driver.search(init_root, CORPUS, budget=400, pop_size=4,
+                       child_budget=60, seed_budget=100, seed=5,
+                       enable_shape_repair=True)
+    assert seen_fit and all(isinstance(f, fitness.Fitness) for f in seen_fit)
+    # Gating only, not behaviour: same trajectory as the off-by-default run.
+    assert on.best.sig == off.best.sig
+
+
 def test_feasibility_filter_prunes_cheaply(fake_inner, monkeypatch):
     """§12.3 (homemaker-py-9gp.1): a pruned topology costs one feasibility eval
     instead of the full child_budget, so the filter explores far more topologies

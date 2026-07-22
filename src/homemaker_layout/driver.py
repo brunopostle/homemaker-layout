@@ -235,6 +235,7 @@ def search(
     seed_adjacency_aware: bool = True,
     seed_proportion_aware: bool = True,
     enable_reassociate: bool = False,
+    enable_shape_repair: bool = False,
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
@@ -294,6 +295,16 @@ def search(
     finish time, so search optimises the collapsed objective directly. Carries
     the 9o5/xi7 landscape-flattening risk at global scope — do not flip default
     on without a positive A/B (DESIGN.md §17 follow-on).
+
+    ``enable_shape_repair`` (homemaker-py-161, EXPERIMENTAL, default off) threads
+    a ``fitness.Fitness`` instance into ``operators.mutate`` so the ``shape_rotate``
+    and ``deslim`` repair operators (homemaker-py-7fm) can fire during the GA
+    instead of no-opping. 7fm's finish-time hill-climb found these operators never
+    improve an already-co-evolved layout (every candidate move traded one fail for
+    another); this flag tests whether in-search selection pressure lets a
+    locally-worse move survive to be completed by a later step or crossover — a
+    different regime. Mirrors ``enable_reassociate``'s clean-toggle A/B pattern
+    (§12.3, 9gp.2): default off reproduces prior runs byte-for-byte.
     """
     from .oracle import DEFAULT_URB_ROOT
 
@@ -306,6 +317,13 @@ def search(
     mutation_weights = dict(_MUTATION_WEIGHTS)
     if not enable_reassociate:
         mutation_weights["reassociate"] = 0.0
+    # homemaker-py-161: shape_rotate/deslim are gated by operators.mutate itself
+    # (fit_ops go to zero probability when fit=None) — only build the Fitness
+    # instance, and thus only let them fire, when explicitly enabled.
+    shape_repair_fit = (
+        _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
+                     conn_grade, collapse_insearch)
+        if enable_shape_repair else None)
     # Optional ranking bonus (DESIGN.md §11.3 Stage 1): bias selection toward
     # individuals with high substrate-readiness via a multiplicative factor
     # (1 + W·bonus) on fitness. The reported fitness/history stay the TRUE
@@ -562,7 +580,8 @@ def search(
                     parent = _tournament(pop, rng, _key, k=tournament_k)
                     child_root, desc = operators.mutate(parent.root, rng, types,
                                                         weights=mutation_weights,
-                                                        reqs=reqs, base_p=base_p)
+                                                        reqs=reqs, base_p=base_p,
+                                                        fit=shape_repair_fit)
                     # Carry operator-specified ratios for nodes that are genuinely
                     # newly divided (existed as leaves in the parent, are now
                     # divided in the child).  Structural mutations (e.g. swap) can
@@ -895,6 +914,7 @@ def search_staged(
     seed_adjacency_aware: bool = True,
     seed_proportion_aware: bool = True,
     enable_reassociate: bool = False,
+    enable_shape_repair: bool = False,
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
@@ -950,6 +970,7 @@ def search_staged(
                       seed_adjacency_aware=seed_adjacency_aware,
                       seed_proportion_aware=seed_proportion_aware,
                       enable_reassociate=enable_reassociate,
+                      enable_shape_repair=enable_shape_repair,
                       feasibility_filter=feasibility_filter,
                       feasibility_max_shape_fails=feasibility_max_shape_fails,
                       circ_divisor=circ_divisor,
@@ -986,6 +1007,7 @@ def search_staged(
             seed_adjacency_aware=seed_adjacency_aware,
             seed_proportion_aware=seed_proportion_aware,
             enable_reassociate=enable_reassociate,
+            enable_shape_repair=enable_shape_repair,
             feasibility_filter=feasibility_filter,
             feasibility_max_shape_fails=feasibility_max_shape_fails,
             circ_divisor=circ_divisor,
@@ -1031,6 +1053,7 @@ def search_staged(
         niche_by_signature=niche_by_signature,
         restart_patience=restart_patience, restart_elite=restart_elite,
         enable_reassociate=enable_reassociate,
+        enable_shape_repair=enable_shape_repair,
         feasibility_filter=feasibility_filter,
         feasibility_max_shape_fails=feasibility_max_shape_fails,
         circ_divisor=circ_divisor,
