@@ -2415,7 +2415,7 @@ gated on the 9o5 landscape-flattening risk (§13 / `homemaker-py-xi7`) and its o
 Tests: `tests/test_collapse_global.py` ×6 (demand-set relabel, level hard constraint, c/o/s
 exclusion, no-op safety, keep-better/unmerged); 267 pass.
 
-## 18. Graded circulation-connectivity signal (`homemaker-py-qi6`) — in progress
+## 18. Graded circulation-connectivity signal (`homemaker-py-qi6`) — DONE (negative)
 
 **Motivation — the binary fail is flat.** After the §17 collapse, the residual fails on the
 harbor-house set are dominated by `level N not connected` (2 of the best layout's 12; also on
@@ -2458,13 +2458,39 @@ the gradient toward connected topologies.
 (env `HOMEMAKER_CONN_GRADE`, default OFF); the grade is read off the optimised tree, one extra
 native eval per child.
 
-**Status / next.** Signal, fitness wiring, CLI, and 9 tests landed (`tests/test_conn_grade.py`:
-pure-graph fraction contract, non-circ cells ignored, monotone under (dis)connection, and the
-score/fail-count-invariance of the flag). The A/B — does the gradient actually pull evolve runs
-toward connected circulation and clear `not connected` fails — needs full-budget runs and is
-pending (short 60-eval smoke run confirms the plumbing only). If the graded key alone is
-insufficient, the follow-on is an insert/relocate-circulation mutation operator (mechanism (a),
-still `homemaker-py-qi6`) that now has a gradient to climb. 276 tests pass.
+**Build.** Signal, fitness wiring, CLI, and 9 tests landed (`tests/test_conn_grade.py`: pure-graph
+fraction contract, non-circ cells ignored, monotone under (dis)connection, and the score/fail-
+count-invariance of the flag). 276 tests pass.
+
+**A/B verdict (measured, 2026-07-22, qpk protocol, `experiments/run_qi6_ab.sh`) — NEGATIVE.**
+Equal-budget `conn_grade` ON vs OFF, both arms finished with the standard finish-time `--collapse`
+(94g), 4 workers, canonical `homemaker-fitness` re-score for the `.fails` breakdown:
+
+- **harbor-house** (`init.dom`, budget 2500, seeds 1–3): **byte-identical output** in every seed
+  (dom, fail list, fitness all diff-clean ON vs OFF) — the secondary comparator key never fired,
+  i.e. the search trajectory never actually hit a tie at fail-count that the grade could break.
+  This is the programme §18 was motivated on (2 of 15 fails on the best layout are `not
+  connected`), and the signal moved nothing.
+- **programme-house** (`init.dom`, budget 3000, seeds 1–5): 3/5 seeds tie exactly (byte-identical
+  `.fails`); seeds 1 and 2 diverge to a **different topology** with one fewer total fail (8→7
+  each) — but the diff is entirely adjacency/crinkliness/width/access/size fails, not
+  connectivity. In all 4 seed-arms across both programmes where a `not connected` fail was
+  actually present (harbor 1&3, programme 3&4), the fail is **unchanged** in both arms — zero
+  cases of the grade clearing one.
+- **Conclusion: the grade does not do what §18 designed it to do.** It occasionally perturbs
+  tie-breaking among equal-fail-count neighbours (programme-house seeds 1/2), which can
+  incidentally shift the total fail count, but that perturbation never targets circulation
+  connectivity specifically — consistent with a comparator key that is either too weak relative
+  to the primary `(-n_fails, fitness)` keys to steer topology choice, or whose grade values are
+  rarely distinct enough between the actual neighbours the search compares to break a tie in the
+  intended direction.
+
+**Status / next.** Kept default OFF (already was). Mechanism (b) (graded proximity as a tertiary
+key) is falsified by this A/B, not just unconfirmed — do not re-attempt without a different
+mechanism. The remaining candidate from the original issue is mechanism (a): an explicit
+insert/relocate-circulation mutation/repair operator, which does not depend on the search
+stumbling onto a fail-count tie to act. Not started; low priority per DISCOVERED-FROM epic
+`homemaker-py-94g`'s framing (fitness fidelity, not search capability).
 
 ## 19. Geometry/topology repair for shape-intrinsic fails (`homemaker-py-7fm`) — DONE (negative)
 
