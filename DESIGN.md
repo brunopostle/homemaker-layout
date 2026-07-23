@@ -2562,6 +2562,21 @@ with/without) is the remaining open question and would need to be its own measur
 before further code changes — this session's finding is that the *finish-time* half of the
 issue's candidate mechanisms is a dead end, not that geometry repair is impossible in general.
 
+**In-search follow-up (measured, 2026-07-22, `homemaker-py-161`) — also negative.**
+`driver.search`/`search_staged` gained `enable_shape_repair: bool = False`, threading a cached
+`Fitness` instance into `operators.mutate()` only when set (mirrors `enable_reassociate`'s clean-
+toggle pattern; default off reproduces prior runs byte-for-byte). Full A/B on harbor-house
+`init.dom` cold-start, budget=1,000,000, pop=16, child_budget=80, workers=4, seeds 0–3: fails
+`[14,15,12,17]` mean 14.50 (off) vs `[17,14,16,12]` mean 14.75 (on) — no improvement, and the 0.25
+delta is far inside the 12–17 seed-to-seed spread in both arms. A smaller pilot (budget=20000, 3
+seeds) matched: off mean 31.33, on mean 32.00. In-search selection pressure and population
+diversity do **not** rescue `shape_rotate`/`deslim` on harbor-house-scale programmes either — the
+residual fails look like a genuine floor for this representation on this programme, not an
+inefficiency reachable by richer local operators, in either regime. Code kept (not reverted) for
+reuse/reproducibility per the `enable_reassociate` precedent; test
+`test_enable_shape_repair_threads_fit_into_mutate` in `tests/test_driver.py`. Both halves of §19's
+candidate mechanism space (finish-time and in-search) are now closed negative.
+
 ## 20. In-search global collapse (`homemaker-py-qpk`) — DONE (positive, size-dependent)
 
 **Motivation.** §17 (`94g`) landed the FINISH-TIME global cell↔room collapse — a one-shot label
