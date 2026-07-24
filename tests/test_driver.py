@@ -226,8 +226,14 @@ def test_enable_shape_repair_threads_fit_into_mutate(fake_inner, monkeypatch):
                        child_budget=60, seed_budget=100, seed=5,
                        enable_shape_repair=True)
     assert seen_fit and all(isinstance(f, fitness.Fitness) for f in seen_fit)
-    # Gating only, not behaviour: same trajectory as the off-by-default run.
-    assert on.best.sig == off.best.sig
+    # NOTE: no bit-identical-trajectory assertion here. Passing a live `fit`
+    # gives shape_rotate/deslim nonzero weight in operators.mutate's op-choice
+    # draw, which shifts the RNG mapping for every draw (not just those two
+    # ops') — same-seed off/on trajectories only coincided by chance for one
+    # fixed MUTATIONS size, and that coincidence breaks on any addition to
+    # MUTATIONS (e.g. homemaker-py-8sh's bridge_circulation). The gating
+    # itself (seen_fit above) is the actual contract under test.
+    assert off.best.sig and on.best.sig
 
 
 def test_feasibility_filter_prunes_cheaply(fake_inner, monkeypatch):

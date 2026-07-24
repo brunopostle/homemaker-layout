@@ -105,6 +105,15 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "circulation that the binary 'not connected' fail lacks. "
                         "Does not change the scalar fitness or fail count "
                         "(default: off)")
+    p.add_argument("--bridge-circulation", dest="bridge_circulation",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_BRIDGE_CIRCULATION", False),
+                   help="homemaker-py-8sh (qi6 mechanism (a) follow-on): "
+                        "explicit repair mutation that retypes the cheapest "
+                        "path between two disconnected circulation components "
+                        "to circulation, directly clearing a 'level N not "
+                        "connected' fail instead of relying on the qi6 graded "
+                        "comparator key (measured negative, §18) (default: off)")
     p.add_argument("--collapse-insearch", dest="collapse_insearch",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_COLLAPSE_INSEARCH", True),
@@ -182,6 +191,7 @@ def main(argv=None) -> int:
           file=sys.stderr)
     print(f"superpose    : {args.superpose}", file=sys.stderr)
     print(f"conn grade   : {args.conn_grade}", file=sys.stderr)
+    print(f"bridge circulation : {args.bridge_circulation}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
@@ -232,6 +242,7 @@ def main(argv=None) -> int:
             leaf_share_factor=args.leaf_share_factor,
             superpose=args.superpose,
             conn_grade=args.conn_grade,
+            enable_bridge_circulation=args.bridge_circulation,
             collapse_insearch=args.collapse_insearch,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )

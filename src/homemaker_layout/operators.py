@@ -373,6 +373,94 @@ def mutate_place_missing(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"place_missing {code} -> {host_id}"
 
 
+def mutate_bridge_circulation(root: dom.Node, rng: np.random.Generator,
+                              types: list[str], reqs=None) -> tuple[dom.Node, str]:
+    """Repair operator (homemaker-py-8sh): retype the leaves on the cheapest
+    path between two circulation components to circulation, directly clearing
+    a ``level N not connected`` fail (``graph.connected_circulation``).
+
+    Follow-on to homemaker-py-qi6 mechanism (a). Mechanism (b)/(c) — a graded
+    circulation-connectivity comparator key (DESIGN.md §18) — measured
+    NEGATIVE: it never fired on harbor-house and never cleared a genuine
+    not-connected fail on programme-house, because the outer search rarely
+    hits the fail-count tie the grade needs to break. This operator does not
+    depend on a tie: for each storey it finds the two circulation components
+    (``graph.build_graphs``' per-leaf adjacency, restricted to
+    ``dom.is_circulation`` leaves) joined by the shortest, least-disruptive
+    path and retypes the intermediate leaves to ``C``. Path cost prefers
+    generic outside (``O``) leaves (free — nothing displaced, same rationale
+    as ``mutate_place_missing``'s host ranking), then other non-required
+    leaves, and only crosses a required programme room (from ``reqs``) if no
+    other route exists. A displaced required room becomes a missing-space
+    fail for ``mutate_place_missing`` to re-insert elsewhere on a later step,
+    the same division of labour ``mutate_deslim`` uses.
+    """
+    import networkx as nx
+
+    from . import geometry as _geo, graph as _graph
+
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+
+    def _cost(n: dom.Node) -> int:
+        if dom.is_circulation(n):
+            return 0
+        if not n.type:
+            return 1
+        if n.type[0].lower() == "o":
+            return 0
+        if reqs and n.type in reqs:
+            return 5
+        return 1
+
+    per_level: list[tuple[int, list[dom.Node]]] = []
+    for li, lvl in enumerate(lvls):
+        G = _geo.leaf_graph(lvl, _graph.DOOR_WIDTH)
+        circ = [n for n in G.nodes() if dom.is_circulation(n)]
+        if not circ:
+            continue
+        comps = list(nx.connected_components(G.subgraph(circ)))
+        if len(comps) <= 1:
+            continue
+        # Node cost split across its edges (average of endpoint costs) so a
+        # weighted shortest path sums to (approximately) total intermediate-
+        # leaf conversion cost — a plain hop-count shortest path would pick an
+        # arbitrary same-length route and could cross a required room even
+        # when an equal-length free ('O') route exists.
+        weighted = G.copy()
+        for u, v, data in weighted.edges(data=True):
+            data["bridge_weight"] = (_cost(u) + _cost(v)) / 2.0
+        best_path: list[dom.Node] | None = None
+        best_weight = None
+        for i in range(len(comps)):
+            for j in range(i + 1, len(comps)):
+                tmp = weighted.copy()
+                tmp.add_node("SRC")
+                tmp.add_node("DST")
+                tmp.add_edges_from(("SRC", n, {"bridge_weight": 0.0}) for n in comps[i])
+                tmp.add_edges_from(("DST", n, {"bridge_weight": 0.0}) for n in comps[j])
+                try:
+                    weight, path = nx.single_source_dijkstra(
+                        tmp, "SRC", "DST", weight="bridge_weight")
+                except nx.NetworkXNoPath:
+                    continue
+                if best_weight is None or weight < best_weight:
+                    between = [n for n in path[1:-1]
+                               if n not in comps[i] and n not in comps[j]]
+                    best_weight, best_path = weight, between
+        if best_path:
+            per_level.append((li, best_path))
+
+    if not per_level:
+        return _finalise(child), "bridge_circulation noop"
+
+    li, path = _pick(rng, per_level)
+    for leaf in path:
+        leaf.type = "C"
+    names = ",".join(leaf.id or "root" for leaf in path)
+    return _finalise(child), f"bridge_circulation lvl{li}: {names} -> C"
+
+
 def _shape_failing(leaf: dom.Node, fit) -> bool:
     """A named-room leaf whose width or proportion factor actually fails
     (``< fitness.FAIL_THRESHOLD``) under ``fit``, the same Gaussian quality
@@ -1324,6 +1412,7 @@ MUTATIONS = {
     "level_fix": mutate_level_fix,
     "level_compound_fix": mutate_level_compound_fix,
     "place_missing": mutate_place_missing,
+    "bridge_circulation": mutate_bridge_circulation,
     "level_retype": mutate_level_retype,
     "level_add": mutate_level_add,
     "level_delete": mutate_level_delete,
@@ -1347,6 +1436,9 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
     # these operators need programme reqs; disable them when not available
     reqs_ops = ("level_fix", "level_compound_fix", "place_missing")
+    # also takes reqs (to avoid displacing a required room) but works without
+    # it — never zero-weighted, unlike reqs_ops above
+    reqs_optional_ops = ("bridge_circulation",)
     # these need a Fitness instance to identify genuinely shape-failing leaves
     fit_ops = ("shape_rotate", "deslim")
     if reqs is None:
@@ -1358,7 +1450,7 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     if p.sum() == 0:
         p[:] = 1.0
     name = str(rng.choice(names, p=p / p.sum()))
-    if name in reqs_ops:
+    if name in reqs_ops or name in reqs_optional_ops:
         return MUTATIONS[name](root, rng, types, reqs=reqs)
     if name in fit_ops:
         return MUTATIONS[name](root, rng, types, fit=fit)

@@ -2670,3 +2670,77 @@ Confirms the qpk verdict holds at both example scales tested. `collapse_insearch
 needs the cheaper finish-time-only path. `fitness.Fitness` itself is unchanged (still defaults off
 when `collapse_insearch` is absent from conf — the default lives in the driver/CLI override layer,
 same contract as `leaf_sharing`).
+
+## 21. Insert/relocate-circulation repair operator (`homemaker-py-8sh`) — DONE (mixed, kept off)
+
+**Motivation.** qi6's remaining candidate (§18): mechanism (a), an explicit search-time
+mutation/repair operator that inserts or relocates a circulation cell to bridge a disconnected
+circulation component directly, rather than relying on the outer GA to discover connectivity via a
+comparator-key gradient (mechanism (b)/(c), measured NEGATIVE — the grade never fired on
+harbor-house and never cleared a genuine `not connected` fail on programme-house).
+
+**Mechanism (build).** `operators.mutate_bridge_circulation`: for each storey, builds the leaf
+adjacency graph (`geometry.leaf_graph`) and the circulation sub-components (`dom.is_circulation`
+nodes only, mirroring `graph.connected_circulation`'s subgraph). When a storey has more than one
+component, finds the cheapest path between any pair via a weighted Dijkstra search — edge weight is
+the average of its endpoints' conversion cost (`0` for an already-circulation node or a generic
+outside `O` leaf — nothing displaced, same rationale as `place_missing`'s host ranking; `1` for any
+other non-required leaf; `5` for a leaf typed as a required programme room, crossed only if no
+cheaper route exists) — and retypes every intermediate leaf on the cheapest cross-component path to
+`C`. A displaced required room becomes a missing-space fail for the existing `place_missing`
+operator to re-insert elsewhere on a later step, the same division of labour `mutate_deslim` (§19)
+uses. Registered in `operators.MUTATIONS` as a "`reqs`-optional" op — unlike `level_fix`/
+`place_missing` it is never zero-weighted for lacking `reqs` (it needs only the tree's own adjacency
+graph), so gating is done the `reassociate` way instead: `driver.search`'s new
+`enable_bridge_circulation` flag (default OFF) zeroes its `mutation_weights` entry rather than
+relying on an argument being `None`. Threaded through `search_staged` and exposed as
+`evolve.py --bridge-circulation` / `HOMEMAKER_BRIDGE_CIRCULATION`. 6 unit tests
+(`tests/test_operators.py`): noop when already connected, bridges a synthetic 3-leaf fragmented
+fixture via the free leaf, falls back to bridging through a required room when it is the only route,
+and prefers a free `O` leaf over a required room when both routes tie in hop length. 296 tests pass.
+
+**A/B verdict (measured, 2026-07-24, qi6/qpk protocol,
+`experiments/run_8sh_ab.sh`).** Equal-budget `enable_bridge_circulation` ON vs OFF, both arms
+finished with the standard finish-time `--collapse` (94g), 4 workers, canonical `homemaker-fitness`
+re-score for the `.fails` breakdown — harbor-house (`init.dom`, budget 2500, seeds 1–3),
+programme-house (`init.dom`, budget 3000, seeds 1–5):
+
+| programme | seed | fails OFF→ON | not-connected OFF→ON |
+|---|---|---|---|
+| harbor-house | 1 | 74→67 | 0→**2** |
+| harbor-house | 2 | 65→65 (byte-identical) | 1→1 |
+| harbor-house | 3 | 77→77 (byte-identical) | 1→1 |
+| programme-house | 1 | 5→5 (tie, fitness differs) | 0→0 |
+| programme-house | 2 | 7→7 (tie, fitness differs) | 0→0 |
+| programme-house | 3 | 9→7 | 1→1 |
+| programme-house | 4 | 9→8 | 1→**0** |
+| programme-house | 5 | 9→7 | 1→**0** |
+
+Total fails: harbor-house mean 72.0→69.7, programme-house mean 7.8→6.8 — **never worse** on any
+seed (4 wins, 4 ties, 0 losses on total fail count across both programmes). Of the 5 seed-arms
+whose OFF baseline actually had a `not connected` fail, **2/5 cleared it** (programme-house seeds
+4 and 5) — a genuine improvement over qi6 mechanism (b)'s 0/4. But harbor-house seed 1 shows the
+flip side: its OFF baseline had *no* `not connected` fail (0), and ON introduces **two** — while
+simultaneously landing the sweep's single largest fail-count win (74→67, fitness 3.2e-26→5.0e-24,
+almost two orders of magnitude apart) via a visibly different topology, not a locally-adjusted one.
+`mutate_bridge_circulation` only ever converts a leaf *to* circulation, never away from it, so it
+cannot mechanically increase fragmentation itself — the regression is trajectory-divergence noise
+(adding any nonzero-weight entry to `operators.mutate`'s weighted draw perturbs the RNG mapping for
+*every* subsequent draw, not just the ones that select the new operator, exactly as observed for
+`enable_reassociate`/`enable_shape_repair`/homemaker-py-161 — the same-seed off/on comparison is
+two genuinely different searches from the same seed, not a controlled single-variable diff). Two of
+the three harbor-house seeds never diverged at all (byte-identical fitness to 6 significant figures)
+— at `_MUTATION_WEIGHTS`' default uniform weighting the operator is drawn roughly 1-in-17 times a
+mutation fires, and evidently often never lands on a fragmented storey within a 2500-budget run.
+
+**Status.** Directionally positive and clearly better-targeted than qi6's graded signal (which
+cleared zero `not connected` fails in its own measured protocol), but the N=3/N=5 sample is too
+small and too trajectory-noisy to separate a true small positive from chance, per the same caution
+`collapse_insearch` was held to before its `homemaker-py-1ph` larger-N confirmation. Kept **default
+OFF** (`enable_bridge_circulation=False` in `driver.search`/`search_staged`,
+`--no-bridge-circulation` in `evolve.py`). Candidate follow-ups, not yet filed: (a) a larger-N seed
+sweep (the `1ph` protocol) to resolve whether the mean improvement is real; (b) raising
+`bridge_circulation`'s `_MUTATION_WEIGHTS` entry above the uniform default (mirroring
+`place_missing`'s `2.0`) so it fires more often per budget, since a `not connected` fail is exactly
+as fatal to fitness as a missing space and the operator is currently drawn no more eagerly than
+cosmetic ops like `rotate`.

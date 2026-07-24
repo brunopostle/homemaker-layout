@@ -607,3 +607,104 @@ def test_mutate_deslim_merges_failing_leaf_and_is_repairable():
         if not missing:
             break
     assert missing == []
+
+
+# --------------------------------------------------------------------------- #
+# 8sh — insert/relocate-circulation repair (mechanism (a) follow-on to qi6)
+# --------------------------------------------------------------------------- #
+def _row_of_three(mid_type: str) -> dom.Node:
+    """Three same-height leaves in a row: ``C | [mid_type | C]``. The two ``C``
+    leaves each share a full-height edge with the middle leaf but not with
+    each other, so their circulation components are disconnected — a 2-fail
+    ``level 0 not connected`` fixture for a single ``mid_type`` leaf bridge."""
+    root = dom.Node(rotation=0, division=[1 / 3, 1 / 3],
+                    node=[[0, 0], [12, 0], [12, 4], [0, 4]],
+                    height=2.7, wall_outer=0.25, wall_inner=0.08)
+    root.left = dom.Node(type="C")
+    root.right = dom.Node(rotation=0, division=[0.5, 0.5])
+    root.right.left = dom.Node(type=mid_type)
+    root.right.right = dom.Node(type="C")
+    dom._link(root)
+    return root
+
+
+def _diamond(top_right_type: str) -> dom.Node:
+    """2x2 grid: ``C``/``O`` on the left column, ``top_right_type``/``C`` on
+    the right, so the two ``C`` corners have two equal-length bridge routes —
+    one through the free ``O`` leaf, one through ``top_right_type``."""
+    root = dom.Node(rotation=0, division=[0.5, 0.5],
+                    node=[[0, 0], [8, 0], [8, 8], [0, 8]],
+                    height=2.7, wall_outer=0.25, wall_inner=0.08)
+    root.left = dom.Node(rotation=1, division=[0.5, 0.5])
+    root.left.left = dom.Node(type="C")
+    root.left.right = dom.Node(type="O")
+    root.right = dom.Node(rotation=1, division=[0.5, 0.5])
+    root.right.left = dom.Node(type=top_right_type)
+    root.right.right = dom.Node(type="C")
+    dom._link(root)
+    return root
+
+
+def _n_circ_components(root: dom.Node) -> int:
+    import networkx as nx
+
+    G = _geo_leaf_graph(root)
+    circ = [n for n in G.nodes() if dom.is_circulation(n)]
+    return len(list(nx.connected_components(G.subgraph(circ))))
+
+
+def _geo_leaf_graph(lvl: dom.Node):
+    from homemaker_layout import geometry, graph as _graph
+    return geometry.leaf_graph(lvl, _graph.DOOR_WIDTH)
+
+
+def test_mutate_bridge_circulation_noop_when_already_connected():
+    root = _row_of_three("C")  # all three already circulation → one component
+    assert _n_circ_components(root) == 1
+    _, desc = operators.mutate_bridge_circulation(root, np.random.default_rng(0), TYPES)
+    assert desc == "bridge_circulation noop"
+
+
+def test_mutate_bridge_circulation_bridges_fragmented_level():
+    root = _row_of_three("O")
+    assert _n_circ_components(root) == 2
+    child, desc = operators.mutate_bridge_circulation(root, np.random.default_rng(0), TYPES)
+    assert "noop" not in desc
+    assert desc.startswith("bridge_circulation")
+    canonical(child)
+    assert _n_circ_components(child) == 1
+    # the free 'O' leaf was converted; the two original 'C' leaves untouched
+    mid = dom.levels(child)[0].by_id("rl")
+    assert mid.type == "C"
+    # parent left untouched
+    assert dom.levels(root)[0].by_id("rl").type == "O"
+
+
+def test_mutate_bridge_circulation_falls_back_to_required_room_if_only_route():
+    from homemaker_layout import programme
+
+    root = _row_of_three("b1")
+    reqs = {"b1": programme.SpaceReq(code="b1")}
+    assert _n_circ_components(root) == 2
+    child, desc = operators.mutate_bridge_circulation(
+        root, np.random.default_rng(0), TYPES + ["b1"], reqs=reqs)
+    assert "noop" not in desc
+    assert _n_circ_components(child) == 1
+    assert dom.levels(child)[0].by_id("rl").type == "C"
+
+
+def test_mutate_bridge_circulation_prefers_free_leaf_over_required_room():
+    from homemaker_layout import programme
+
+    root = _diamond("b1")
+    reqs = {"b1": programme.SpaceReq(code="b1")}
+    assert _n_circ_components(root) == 2
+    child, desc = operators.mutate_bridge_circulation(
+        root, np.random.default_rng(0), TYPES + ["b1"], reqs=reqs)
+    assert "noop" not in desc
+    canonical(child)
+    assert _n_circ_components(child) == 1
+    # bridges via the free 'O' leaf ('lr'), not the required 'b1' ('rl')
+    lvl0 = dom.levels(child)[0]
+    assert lvl0.by_id("lr").type == "C"
+    assert lvl0.by_id("rl").type == "b1"

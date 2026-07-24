@@ -236,6 +236,7 @@ def search(
     seed_proportion_aware: bool = True,
     enable_reassociate: bool = False,
     enable_shape_repair: bool = False,
+    enable_bridge_circulation: bool = False,
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
@@ -306,6 +307,18 @@ def search(
     locally-worse move survive to be completed by a later step or crossover — a
     different regime. Mirrors ``enable_reassociate``'s clean-toggle A/B pattern
     (§12.3, 9gp.2): default off reproduces prior runs byte-for-byte.
+
+    ``enable_bridge_circulation`` (homemaker-py-8sh, EXPERIMENTAL, default off)
+    un-mutes the ``bridge_circulation`` repair operator (homemaker-py-qi6
+    mechanism (a)): it retypes leaves on the cheapest path between two
+    disconnected circulation components to clear a ``level N not connected``
+    fail directly, instead of relying on the outer search to discover
+    connectivity via a comparator-key gradient (qi6 mechanism (b)/(c), measured
+    NEGATIVE — DESIGN.md §18). Gated the same way as ``reassociate`` (zero
+    mutation weight unless enabled) rather than ``shape_repair``'s style,
+    because it needs no ``fitness.Fitness`` instance — only the tree's own
+    adjacency graph — so it is otherwise unconditionally live once landed in
+    ``operators.MUTATIONS``.
     """
     from .oracle import DEFAULT_URB_ROOT
 
@@ -318,6 +331,8 @@ def search(
     mutation_weights = dict(_MUTATION_WEIGHTS)
     if not enable_reassociate:
         mutation_weights["reassociate"] = 0.0
+    if not enable_bridge_circulation:
+        mutation_weights["bridge_circulation"] = 0.0
     # homemaker-py-161: shape_rotate/deslim are gated by operators.mutate itself
     # (fit_ops go to zero probability when fit=None) — only build the Fitness
     # instance, and thus only let them fire, when explicitly enabled.
@@ -916,6 +931,7 @@ def search_staged(
     seed_proportion_aware: bool = True,
     enable_reassociate: bool = False,
     enable_shape_repair: bool = False,
+    enable_bridge_circulation: bool = False,
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
@@ -972,6 +988,7 @@ def search_staged(
                       seed_proportion_aware=seed_proportion_aware,
                       enable_reassociate=enable_reassociate,
                       enable_shape_repair=enable_shape_repair,
+                      enable_bridge_circulation=enable_bridge_circulation,
                       feasibility_filter=feasibility_filter,
                       feasibility_max_shape_fails=feasibility_max_shape_fails,
                       circ_divisor=circ_divisor,
@@ -1009,6 +1026,7 @@ def search_staged(
             seed_proportion_aware=seed_proportion_aware,
             enable_reassociate=enable_reassociate,
             enable_shape_repair=enable_shape_repair,
+            enable_bridge_circulation=enable_bridge_circulation,
             feasibility_filter=feasibility_filter,
             feasibility_max_shape_fails=feasibility_max_shape_fails,
             circ_divisor=circ_divisor,
@@ -1055,6 +1073,7 @@ def search_staged(
         restart_patience=restart_patience, restart_elite=restart_elite,
         enable_reassociate=enable_reassociate,
         enable_shape_repair=enable_shape_repair,
+        enable_bridge_circulation=enable_bridge_circulation,
         feasibility_filter=feasibility_filter,
         feasibility_max_shape_fails=feasibility_max_shape_fails,
         circ_divisor=circ_divisor,
