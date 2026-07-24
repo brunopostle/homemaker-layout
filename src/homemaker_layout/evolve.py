@@ -107,13 +107,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "(default: off)")
     p.add_argument("--collapse-insearch", dest="collapse_insearch",
                    action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_COLLAPSE_INSEARCH", False),
-                   help="homemaker-py-qpk (EXPERIMENTAL, §17 follow-on): run the "
-                        "94g global cell→room collapse inside every fitness eval "
-                        "instead of once at finish time, so search optimises the "
-                        "collapsed objective directly. Carries the 9o5/xi7 "
-                        "landscape-flattening risk at global scope — validate "
-                        "with an A/B before relying on it (default: off)")
+                   default=_env_bool("HOMEMAKER_COLLAPSE_INSEARCH", True),
+                   help="homemaker-py-qpk (§17 follow-on): run the 94g global "
+                        "cell→room collapse inside every fitness eval instead of "
+                        "once at finish time, so search optimises the collapsed "
+                        "objective directly. A/B-validated positive on both "
+                        "harbor-house (3/3, mean fails 80.3→72.0) and, after the "
+                        "homemaker-py-1ph larger-N sweep, programme-house (11/17 "
+                        "non-tied wins, mean fails 7.95→7.10) (default: on)")
     p.add_argument("--anneal-grain", type=str,
                    default=os.environ.get("HOMEMAKER_ANNEAL_GRAIN"),
                    metavar="LADDER",

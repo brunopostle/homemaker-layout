@@ -2639,11 +2639,34 @@ size (more leaves → more relabelling headroom per eval), the opposite of what 
 102.6s (OFF) → 177.8s (ON), ~1.73×. programme-house mean 39.0s (OFF) → 43.7s (ON), ~1.12× (smaller
 building → collapse is a smaller fraction of total eval cost).
 
-**Status / next.** Kept **default OFF** — the programme-house result is too mixed (2 losses in 5
-seeds) to flip the default on a small sample, and 9o5/xi7 is a fresh enough scar to want a second,
+**Status (2026-07-19).** Kept **default OFF** — the programme-house result is too mixed (2 losses in
+5 seeds) to flip the default on a small sample, and 9o5/xi7 is a fresh enough scar to want a second,
 larger-budget confirmation before doing so. But this is a genuine, working, opt-in improvement for
 larger buildings: `--collapse-insearch` is documented and ready to use on harbor-house-scale (or
 bigger) programmes today. A natural follow-up (not filed, low priority) would be a larger-N seed
 sweep on programme-house alone to see whether the mixed result is just small-sample noise around a
 true small positive, or a genuine size threshold below which in-search collapse doesn't pay for its
 ~1.1–1.9× cost.
+
+**Larger-N confirmation (`homemaker-py-1ph`, 2026-07-24) — DEFAULT FLIPPED TO ON.** Re-ran the
+programme-house arm alone at 4× the sample: same protocol (`init.dom`, budget=3000, 4 workers, both
+arms finished with the standard finish-time `--collapse`), 20 fresh seeds (1–20) instead of 5, on
+the current codebase (post-qpk commits through `161`, none of which touch the default-off code
+path):
+
+- Mean fails: **7.95 (OFF) → 7.10 (ON)**, a ~10.7% reduction — consistent in direction and
+  magnitude with the original 5-seed sample (8.4 → 7.8) and with harbor-house.
+- Head-to-head (excluding 3 ties): **11 wins / 6 losses** for ON (was 3/2 at N=5).
+- Paired t-test on the 20 per-seed diffs: mean diff 0.85 fails, t=2.38, df=19, two-tailed
+  **p ≈ 0.028** — the mixed 3/5 result was small-sample noise around a true small positive, not a
+  genuine programme-house-scale exception.
+- Cost: ON still ~1.2–1.3× OFF wall-clock at this size (20.9s mean OFF → 26.4s mean ON), same order
+  as the original measurement.
+
+Confirms the qpk verdict holds at both example scales tested. `collapse_insearch` default flipped
+**OFF → ON** in `evolve.py` (`--collapse-insearch`/`--no-collapse-insearch`,
+`HOMEMAKER_COLLAPSE_INSEARCH`) and `driver.py` (`_overrides_for`, `_fitness_for`, `_evaluate`,
+`search`, `polish_finish`) — opt out per-run with `--no-collapse-insearch` if a specific programme
+needs the cheaper finish-time-only path. `fitness.Fitness` itself is unchanged (still defaults off
+when `collapse_insearch` is absent from conf — the default lives in the driver/CLI override layer,
+same contract as `leaf_sharing`).

@@ -42,7 +42,7 @@ _CHILD_INNER_KW: dict = {}
 def _overrides_for(leaf_sharing: bool, superpose: bool,
                    max_share: int | None = None,
                    conn_grade: bool = False,
-                   collapse_insearch: bool = False) -> dict | None:
+                   collapse_insearch: bool = True) -> dict | None:
     """Run-level conf overrides for the native evaluator (None when all off).
 
     ``max_share`` (homemaker-py-kpu) overrides the evaluator's ``leaf_share_max``
@@ -71,7 +71,7 @@ def _fitness_for(programme_dir: str, leaf_sharing: bool = False,
                  superpose: bool = False,
                  max_share: int | None = None,
                  conn_grade: bool = False,
-                 collapse_insearch: bool = False) -> "fitness.Fitness":
+                 collapse_insearch: bool = True) -> "fitness.Fitness":
     """Cached Fitness evaluator per (programme dir, leaf_sharing) (config load is
     the cost).
 
@@ -161,7 +161,7 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
               superpose: bool = False,
               max_share: int | None = None,
               conn_grade: bool = False,
-              collapse_insearch: bool = False) -> tuple[Individual, int]:
+              collapse_insearch: bool = True) -> tuple[Individual, int]:
     # §12.3 shape-feasibility pre-filter (homemaker-py-9gp.1): if even the best
     # achievable (proportion-aware) geometry of this topology already has at least
     # as many shape fails as the incumbent's TOTAL fails — and exceeds the tunable
@@ -247,7 +247,7 @@ def search(
     outside_divisor: int = 3,
     max_share: int | None = None,
     seed_pop: list[dom.Node] | None = None,
-    collapse_insearch: bool = False,
+    collapse_insearch: bool = True,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -290,11 +290,12 @@ def search(
     under this phase's evaluator instead of bootstrapping or single-seeding — so a
     grain-anneal ramp can hand a whole population from one phase to the next.
 
-    ``collapse_insearch`` (homemaker-py-qpk, EXPERIMENTAL, default off) runs the
-    94g global cell<->room collapse inside every fitness eval instead of once at
-    finish time, so search optimises the collapsed objective directly. Carries
-    the 9o5/xi7 landscape-flattening risk at global scope — do not flip default
-    on without a positive A/B (DESIGN.md §17 follow-on).
+    ``collapse_insearch`` (homemaker-py-qpk, default on) runs the 94g global
+    cell<->room collapse inside every fitness eval instead of once at finish
+    time, so search optimises the collapsed objective directly. A/B-validated
+    positive on harbor-house (3/3, mean fails 80.3->72.0) and, after the
+    homemaker-py-1ph larger-N seed sweep, on programme-house too (11/17
+    non-tied wins, mean fails 7.95->7.10) — DESIGN.md §17/§20.
 
     ``enable_shape_repair`` (homemaker-py-161, EXPERIMENTAL, default off) threads
     a ``fitness.Fitness`` instance into ``operators.mutate`` so the ``shape_rotate``
@@ -625,7 +626,7 @@ def polish_finish(
     seed: int = 0,
     n_workers: int = 1,
     superpose: bool = False,
-    collapse_insearch: bool = False,
+    collapse_insearch: bool = True,
     rescore_budget: int = 200,
     log=None,
 ) -> SearchResult:

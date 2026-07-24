@@ -324,8 +324,10 @@ def test_polish_finish_unfolds_and_stitches_rescore(fake_inner):
     assert [lin for *_, lin in r.history[:2]] == [
         "share:construct/0", "share:core_divide noop"]
     assert r.history[-1][2].startswith("polish:")
-    # the rescore ran with leaf_sharing off (no sharing override reaches the inner)
-    assert not fake_inner[-1]["kw"].get("conf_overrides")
+    # the rescore ran with leaf_sharing off (no sharing override reaches the
+    # inner) but collapse_insearch defaults on (homemaker-py-1ph), so that's
+    # the only override present
+    assert fake_inner[-1]["kw"].get("conf_overrides") == {"collapse_insearch": True}
 
 
 def test_polish_finish_runs_polish_search(fake_inner):
