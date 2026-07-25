@@ -98,7 +98,11 @@ def _reqs_for(programme_dir: str) -> dict:
 # deleted storey stacks missing-space failures) — sample them rarely.
 # place_missing is the high-leverage §11.2 repair: it noops cheaply once the
 # required set is complete, so over-sampling it costs little and directly
-# attacks the dominant missing-space failure mode.
+# attacks the dominant missing-space failure mode. bridge_circulation was
+# tried at the same 2.0 weight (homemaker-py-lj3) but a larger-N A/B
+# (homemaker-py-qjg, DESIGN.md §22) found no total-fail benefit and MORE
+# trajectory-divergence-induced new not-connected fails than at the
+# uniform default weight -- reverted, left at implicit uniform weight.
 _MUTATION_WEIGHTS = {"level_add": 0.2, "level_delete": 0.2, "place_missing": 2.0}
 
 

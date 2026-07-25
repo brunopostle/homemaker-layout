@@ -2743,4 +2743,61 @@ sweep (the `1ph` protocol) to resolve whether the mean improvement is real; (b) 
 `bridge_circulation`'s `_MUTATION_WEIGHTS` entry above the uniform default (mirroring
 `place_missing`'s `2.0`) so it fires more often per budget, since a `not connected` fail is exactly
 as fatal to fitness as a missing space and the operator is currently drawn no more eagerly than
-cosmetic ops like `rotate`.
+cosmetic ops like `rotate`. See §22 for the larger-N confirmation of both follow-ups — **result:
+null, weight change reverted, default stays OFF.**
+
+## 22. bridge_circulation larger-N + weight confirmation (`homemaker-py-lj3`/`homemaker-py-qjg`) — DONE (null)
+
+**Motivation.** §21's two identified follow-ups — (a) a `1ph`-style larger-N seed sweep to resolve
+whether 8sh's small positive mean-fail improvement was real or small-sample noise, and (b) raising
+`bridge_circulation`'s `_MUTATION_WEIGHTS` entry to `2.0` (matching `place_missing`) so it fires
+more often — were filed as separate beads (`lj3` for the weight, `qjg` for the sample size) but
+`lj3`'s own description flagged them as confounded if tested separately: weight and sample-size are
+different variables, and a real effect from raising the weight could get masked or amplified by the
+same small-N noise that made §21 inconclusive in the first place. Tested together in one sweep
+instead of two.
+
+**Protocol.** `driver._MUTATION_WEIGHTS["bridge_circulation"] = 2.0` (matching `place_missing`,
+still zeroed via `mutation_weights` unless `enable_bridge_circulation` is set — no behaviour change
+for the default-off path). Same qpk/1ph protocol as §20/§21: equal-budget ON vs OFF, both arms
+finished with the standard finish-time `--collapse` (94g), 4 workers, canonical `homemaker-fitness`
+re-score for the `.fails` breakdown, `experiments/run_lj3_qjg_ab.sh`. Matching 1ph's own 4× scale-up:
+programme-house (`init.dom`, budget 3000) 20 seeds (1–20, vs §21's 5), harbor-house (`init.dom`,
+budget 2500) 12 seeds (1–12, vs §21's 3).
+
+**A/B verdict (measured, 2026-07-25) — NULL, opposite of §21's directional signal.**
+
+- **programme-house (N=20):** mean fails 7.10 (OFF) → 6.95 (ON), mean per-seed diff 0.15 fails.
+  6 wins / 5 losses / 9 ties for ON. Paired t-test on the 20 diffs: t=0.38, df=19,
+  two-tailed **p≈0.71** — indistinguishable from zero.
+- **harbor-house (N=12):** mean fails 71.8 (OFF) → 72.3 (ON), mean per-seed diff **−0.5** fails (ON
+  slightly worse on average). 4 wins / 4 losses / 4 ties. Paired t-test: t=−0.41, df=11,
+  two-tailed **p≈0.69** — also indistinguishable from zero.
+- **Connectivity-specific effect, and the concerning part:** of the 10 programme-house seeds whose
+  OFF baseline had a genuine `not connected` fail, 4 cleared it on ON (seeds 3, 4, 5, 6) — but 3
+  *new* `not connected` fails appeared on seeds whose OFF baseline had none (seeds 1, 9, 13), a
+  higher new-fail rate than §21's original uniform-weight sweep saw (0/5 programme-house seeds
+  introduced a new not-connected fail at N=5; here 3/20 = 15% did at the raised weight). harbor-house
+  cleared 1/10 and introduced 0 new, but its total-fail mean still went the wrong way.
+  `mutate_bridge_circulation` still only ever converts a leaf *to* circulation, never away — the new
+  fails are §21's trajectory-divergence mechanism (a nonzero-weight operator entry perturbs the RNG
+  draw sequence for every subsequent mutation, not just its own draws), and raising the weight
+  increases how often that perturbation-inducing draw happens, which plausibly explains why the
+  new-fail rate went up rather than down.
+- **Cost:** essentially unchanged from §21 — programme-house 28.1s (OFF) → 28.1s (ON, 1.00×),
+  harbor-house 130.0s (OFF) → 132.6s (ON, 1.02×).
+
+**Interpretation.** §21's 4-win/4-tie/0-loss, 2/5-not-connected-cleared result at N=3/N=5 was small-
+sample noise around a true near-zero effect, not a genuine small positive — the same question 1ph
+asked of `collapse_insearch` (§20), but here the larger-N answer goes the other way: not confirmed.
+Raising the mutation weight did not help and, if anything, correlates with a worse trajectory-noise
+profile (more new not-connected fails per seed) than leaving it at the uniform default, consistent
+with the weight bump increasing how often the RNG-perturbing draw fires.
+
+**Status.** `_MUTATION_WEIGHTS["bridge_circulation"] = 2.0` **reverted** — back to the implicit
+uniform weight (not present in `_MUTATION_WEIGHTS`), matching pre-`lj3` behaviour exactly.
+`enable_bridge_circulation` stays **default OFF**. No further weight/sample-size follow-up planned;
+`operators.mutate_bridge_circulation` remains available opt-in
+(`--bridge-circulation`/`HOMEMAKER_BRIDGE_CIRCULATION`) for anyone who wants the connectivity-
+targeting behaviour despite the neutral aggregate measurement, but is not a candidate for a default
+flip on the current evidence.
