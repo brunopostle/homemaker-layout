@@ -354,6 +354,124 @@ class Fitness:
     # quality only breaks ties; far below the forbid penalty so level holds.
     _COLLAPSE_FAIL_W = 1e6
 
+    def _collapse_value(
+        self,
+        lf: Node,
+        code: str,
+        lvl: int,
+        prog: dict,
+        objective: str,
+        forbid: float,
+        fail_w: float,
+    ) -> float:
+        """Base (non-adjacency) collapse value of relabelling ``lf`` (on storey
+        ``lvl``) to ``code``: the ``_COLLAPSE_FORBID`` penalty on a level
+        mismatch, else quality_size*width*proportion*area, plus ``fail_w`` per
+        passing factor under the ``"threshold"`` objective. Shared by the
+        collapse_global assignment matrix and the 2-opt polish below so both
+        score a (leaf, code) pair identically."""
+        req = prog[code]
+        if req.level is not None and req.level != lvl:
+            return forbid
+        orig = lf.type
+        lf.type = code
+        try:
+            qs = self.quality_size(lf)
+            qw = self.quality_width(lf)
+            qp = self.quality_proportion(lf)
+        finally:
+            lf.type = orig
+        val = qs * qw * qp * geometry.area(lf)
+        if objective == "threshold":
+            passes = (
+                (qs >= FAIL_THRESHOLD) + (qw >= FAIL_THRESHOLD) + (qp >= FAIL_THRESHOLD)
+            )
+            val += fail_w * passes
+        return val
+
+    def _two_opt_adjacency_polish(
+        self,
+        supply: list[Node],
+        levels_of: list[int],
+        graphs: list,
+        code_adj: dict[str, list[str]],
+        prog: dict,
+        objective: str,
+        forbid: float,
+        fail_w: float,
+        max_passes: int = 20,
+    ) -> None:
+        """homemaker-py-9wi: a local-search pass beyond collapse_global's Jacobi
+        adjacency relaxation. Jacobi re-solves a LINEAR assignment each round
+        holding neighbours' labels fixed from the previous round -- exact per
+        round, but the true objective is quadratic (a satisfied adjacency
+        depends on a PAIR of labels), so synchronous Jacobi can plateau short
+        of the joint optimum. This adds 2-opt: for every same-level pair of
+        supply leaves, try swapping their CURRENT labels and keep the swap
+        only if it strictly increases the total reward (own quality/threshold
+        value + fail_w per satisfied adjacency) summed over the two leaves and
+        every leaf adjacent to either -- the only cells a label swap between
+        i and j can change. Repeats to a fixpoint (or ``max_passes``).
+
+        Same-level-only pairing keeps the hard level constraint for free: both
+        codes already matched their own leaf's level before the swap, and the
+        two leaves share a level, so the swap is valid on both sides. A swap
+        is applied only when it is a STRICT improvement, so this can only
+        reduce, never increase, the fail count -- monotone by construction,
+        like the Hungarian solve it refines."""
+        from . import graph as graph_mod
+
+        idx_of_leaf = {id(lf): i for i, lf in enumerate(supply)}
+
+        def reward(idx: int) -> float:
+            lf = supply[idx]
+            code = lf.type
+            val = self._collapse_value(
+                lf, code, levels_of[idx], prog, objective, forbid, fail_w
+            )
+            if val <= forbid:
+                return val
+            G = graphs[levels_of[idx]]
+            sat = sum(1 for ac in code_adj.get(code, ()) if graph_mod.has_adjacency(lf, ac, G))
+            return val + fail_w * sat
+
+        def affected(i: int, j: int) -> set[int]:
+            aff = {i, j}
+            for k in (i, j):
+                lf = supply[k]
+                G = graphs[levels_of[k]]
+                if G.has_node(lf):
+                    for nb in G.neighbors(lf):
+                        nidx = idx_of_leaf.get(id(nb))
+                        if nidx is not None:
+                            aff.add(nidx)
+            return aff
+
+        by_level: dict[int, list[int]] = {}
+        for idx, lvl in enumerate(levels_of):
+            by_level.setdefault(lvl, []).append(idx)
+
+        changed = True
+        passes = 0
+        while changed and passes < max_passes:
+            changed = False
+            passes += 1
+            for idxs in by_level.values():
+                for a in range(len(idxs)):
+                    for b in range(a + 1, len(idxs)):
+                        i, j = idxs[a], idxs[b]
+                        ci, cj = supply[i].type, supply[j].type
+                        if ci == cj:
+                            continue
+                        aff = affected(i, j)
+                        before = sum(reward(k) for k in aff)
+                        supply[i].type, supply[j].type = cj, ci
+                        after = sum(reward(k) for k in aff)
+                        if after > before + 1e-9:
+                            changed = True
+                        else:
+                            supply[i].type, supply[j].type = ci, cj
+
     def collapse_global(
         self,
         root: Node,
@@ -361,6 +479,8 @@ class Fitness:
         objective: str = "threshold",
         preserve_public_access: bool = True,
         iters: int = 6,
+        local_search: bool = False,
+        local_search_passes: int = 20,
     ) -> None:
         """Finish-time GLOBAL cell->room collapse (homemaker-py-94g): relabel
         every inside-room leaf across the whole building to the required room it
@@ -396,6 +516,18 @@ class Fitness:
         directly. Under both, a satisfied adjacency and a passing factor carry the
         same weight (_COLLAPSE_FAIL_W = one avoided fail), so the collapse
         minimises (adjacency + size/width/proportion) fails jointly.
+
+        LOCAL_SEARCH (homemaker-py-9wi, default off): after the Jacobi loop
+        above reaches its fixpoint, run a 2-opt polish (_two_opt_adjacency_polish)
+        that tries swapping the labels of every same-level pair of supply leaves
+        and keeps a swap only if it strictly improves the total reward. Jacobi
+        re-solves a LINEAR assignment each round holding neighbours' labels fixed
+        from the previous round, so it can plateau short of the true quadratic-
+        assignment optimum (a satisfied adjacency depends on a PAIR of labels,
+        not one); 2-opt reaches past that plateau. Monotone by construction (only
+        strictly-improving swaps are kept), so it is safe to try whenever
+        ``adjacency`` is on — enable per-run and A/B against the Jacobi-only
+        result before defaulting it on.
 
         PRESERVE_PUBLIC_ACCESS pins the room leaf that solely provides the
         building's street access (an l/k neighbour of a public outside leaf, with
@@ -448,34 +580,16 @@ class Fitness:
         forbid = self._COLLAPSE_FORBID
         fail_w = self._COLLAPSE_FAIL_W
         levels_of = [dom_mod.level_of(lf) for lf in supply]
-        areas = [geometry.area(lf) for lf in supply]
         # Base per-cell value: forbid on level mismatch, else the separable fit.
         # In "threshold" mode add fail_w per passing size/width/proportion factor
         # so the matching maximises passes first, continuous fit only as tiebreak.
-        base: list[list[float]] = []
-        for i, lf in enumerate(supply):
-            orig = lf.type
-            row = []
-            for code in slots:
-                req = prog[code]
-                if req.level is not None and req.level != levels_of[i]:
-                    row.append(forbid)
-                    continue
-                lf.type = code
-                qs = self.quality_size(lf)
-                qw = self.quality_width(lf)
-                qp = self.quality_proportion(lf)
-                val = qs * qw * qp * areas[i]
-                if objective == "threshold":
-                    passes = (
-                        (qs >= FAIL_THRESHOLD)
-                        + (qw >= FAIL_THRESHOLD)
-                        + (qp >= FAIL_THRESHOLD)
-                    )
-                    val += fail_w * passes
-                row.append(val)
-            lf.type = orig
-            base.append(row)
+        base: list[list[float]] = [
+            [
+                self._collapse_value(lf, code, levels_of[i], prog, objective, forbid, fail_w)
+                for code in slots
+            ]
+            for i, lf in enumerate(supply)
+        ]
 
         if not adjacency:
             for r, c in self._best_assignment(base):
@@ -513,6 +627,19 @@ class Fitness:
             if new_labels == prev_labels:
                 break
             prev_labels = new_labels
+
+        if local_search:
+            self._two_opt_adjacency_polish(
+                supply,
+                levels_of,
+                graphs,
+                code_adj,
+                prog,
+                objective,
+                forbid,
+                fail_w,
+                max_passes=local_search_passes,
+            )
 
     def _public_access_pins(
         self, root: Node, graphs: list, lvls: list, room_codes: set

@@ -105,6 +105,69 @@ def test_single_code_is_noop():
     assert [lf.type for lf in root.leaves()] == ["b1", "b1"]
 
 
+# --------------------------------------------------------------------------- #
+# 2-opt local search beyond the Jacobi plateau (homemaker-py-9wi)
+# --------------------------------------------------------------------------- #
+
+def _four_leaf_chain(t1: str, t2: str, t3: str, t4: str, width: float = 1.0, height: float = 2.0):
+    # A 1x4 strip of equal cells split twice at 0.5: the leaf-adjacency graph
+    # is a chain (1-2, 2-3, 3-4) with no 1-3/2-4 edges -- see build_graphs.
+    geometry.clear_cache()
+    left = Node(rotation=0, division=[0.5, 0.5], left=Node(type=t1), right=Node(type=t2))
+    right = Node(rotation=0, division=[0.5, 0.5], left=Node(type=t3), right=Node(type=t4))
+    root = Node(
+        node=[[0, 0], [4 * width, 0], [4 * width, height], [0, height]],
+        rotation=0, division=[0.5, 0.5],
+        left=left, right=right,
+    )
+    _link_subtree(root, None, "")
+    return root
+
+
+def test_two_opt_polish_escapes_jacobi_plateau():
+    # Two adjacency pairs (p1<->p2, q1<->q2) on a 4-cell chain p1-q1-p2-q2.
+    # Every code shares identical size/width/proportion targets (all four
+    # cells are geometrically identical), so the ONLY thing that can prefer
+    # one labelling over another is adjacency -- isolating the effect.
+    #
+    # Starting interleaved (p1,q1,p2,q2), the true optimum interleaves the
+    # OTHER way (p1,p2 adjacent + q1,q2 adjacent, 4 satisfied requirements),
+    # but the Jacobi relaxation (adjacency bonus computed from the PREVIOUS
+    # round's neighbour labels, re-solved synchronously) 2-cycles between two
+    # states that each satisfy 0 requirements and never reaches it -- a
+    # textbook case of the quadratic-assignment plateau the issue describes.
+    # 2-opt, tried after the Jacobi fixpoint, finds the escaping swap.
+    spec = {
+        "size": [2.0, 1.0], "width": [1.0, 1.0], "proportion": [2.0, 1.0], "count": 1,
+    }
+    conf = _conf({
+        "p1": {**spec, "adjacency": ["p2"]},
+        "p2": {**spec, "adjacency": ["p1"]},
+        "q1": {**spec, "adjacency": ["q2"]},
+        "q2": {**spec, "adjacency": ["q1"]},
+    })
+    fit = Fitness(conf=conf)
+
+    def satisfied(root):
+        from homemaker_layout import graph as graph_mod
+        G = graph_mod.build_graphs(root, 1.2)[0]
+        prog = fit._programme
+        return sum(
+            1
+            for lf in root.leaves()
+            for ac in prog[lf.type].adjacency
+            if graph_mod.has_adjacency(lf, ac, G)
+        )
+
+    root_jacobi = _four_leaf_chain("p1", "q1", "p2", "q2")
+    fit.collapse_global(root_jacobi, adjacency=True, local_search=False)
+    assert satisfied(root_jacobi) == 0  # the Jacobi-only plateau
+
+    root_polished = _four_leaf_chain("p1", "q1", "p2", "q2")
+    fit.collapse_global(root_polished, adjacency=True, local_search=True)
+    assert satisfied(root_polished) == 4  # 2-opt reaches the true optimum
+
+
 def test_collapse_finish_is_keep_better_and_unmerged():
     # collapse_finish returns (tree, base, collapsed, applied); the tree it hands
     # back is unmerged (leaves still carry their divisions), and collapsed<=base.

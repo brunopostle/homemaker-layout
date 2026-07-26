@@ -48,6 +48,10 @@ def _parse_args(argv):
                    action=argparse.BooleanOptionalAction, default=True,
                    help="revert if the collapse increases the fail count "
                         "(default: on)")
+    p.add_argument("--local-search", dest="local_search",
+                   action=argparse.BooleanOptionalAction, default=False,
+                   help="2-opt polish past the Jacobi adjacency relaxation "
+                        "(homemaker-py-9wi, default: off)")
     return p.parse_args(argv)
 
 
@@ -63,6 +67,7 @@ def main(argv=None) -> int:
         adjacency=args.adjacency,
         objective=args.objective,
         preserve_public_access=args.public_access,
+        local_search=args.local_search,
     )
 
     rc = 0
