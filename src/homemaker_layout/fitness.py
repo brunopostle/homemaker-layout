@@ -517,17 +517,25 @@ class Fitness:
         same weight (_COLLAPSE_FAIL_W = one avoided fail), so the collapse
         minimises (adjacency + size/width/proportion) fails jointly.
 
-        LOCAL_SEARCH (homemaker-py-9wi, default off): after the Jacobi loop
-        above reaches its fixpoint, run a 2-opt polish (_two_opt_adjacency_polish)
-        that tries swapping the labels of every same-level pair of supply leaves
-        and keeps a swap only if it strictly improves the total reward. Jacobi
-        re-solves a LINEAR assignment each round holding neighbours' labels fixed
-        from the previous round, so it can plateau short of the true quadratic-
-        assignment optimum (a satisfied adjacency depends on a PAIR of labels,
-        not one); 2-opt reaches past that plateau. Monotone by construction (only
-        strictly-improving swaps are kept), so it is safe to try whenever
-        ``adjacency`` is on — enable per-run and A/B against the Jacobi-only
-        result before defaulting it on.
+        LOCAL_SEARCH (homemaker-py-9wi, default False HERE): after the Jacobi
+        loop above reaches its fixpoint, run a 2-opt polish
+        (_two_opt_adjacency_polish) that tries swapping the labels of every
+        same-level pair of supply leaves and keeps a swap only if it strictly
+        improves the total reward. Jacobi re-solves a LINEAR assignment each
+        round holding neighbours' labels fixed from the previous round, so it
+        can plateau short of the true quadratic-assignment optimum (a satisfied
+        adjacency depends on a PAIR of labels, not one); 2-opt reaches past that
+        plateau. Monotone by construction (only strictly-improving swaps are
+        kept) and cheap (<1s on the largest file) as a ONE-SHOT finish-time
+        polish — but this method is also called on the UNMERGED tree every
+        fitness eval when collapse_insearch (qpk) is on, so the method-level
+        default stays False to keep that hot path cheap. A 46-file A/B sweep
+        across harbor-house (12) and programme-house (34) found 0 regressions
+        and 2 improvements (evolved-anneal-3M.dom 21->19, a82f07068e4408fdd0d5e
+        3dc469a8dee.dom 3->2 fails) for the finish-time, one-shot use, so
+        homemaker-py-cdl turned it on by default there: homemaker-collapse
+        --local-search and homemaker-evolve --collapse-local-search both
+        default True and pass it through explicitly.
 
         PRESERVE_PUBLIC_ACCESS pins the room leaf that solely provides the
         building's street access (an l/k neighbour of a public outside leaf, with

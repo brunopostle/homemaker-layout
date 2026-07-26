@@ -162,6 +162,13 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "rooms they fit best (level + adjacency + public-access "
                         "constrained), kept only if it does not increase the fail "
                         "count. Labels only, never geometry (default: on)")
+    p.add_argument("--collapse-local-search", dest="collapse_local_search",
+                   action=argparse.BooleanOptionalAction, default=True,
+                   help="homemaker-py-9wi/cdl: run the 2-opt adjacency polish "
+                        "past collapse_global's Jacobi fixpoint as part of "
+                        "--collapse. A 46-file A/B sweep (harbor-house + "
+                        "programme-house) found 0 regressions, 2 improvements "
+                        "(default: on). Ignored if --no-collapse")
     p.add_argument("--output", type=Path, default=None, metavar="PATH",
                    help="output .dom path (- for stdout)")
     return p.parse_args(argv)
@@ -300,6 +307,7 @@ def main(argv=None) -> int:
         r = driver.collapse_best(
             r, programme_dir,
             superpose=args.superpose,
+            local_search=args.collapse_local_search,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
 

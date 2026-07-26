@@ -49,9 +49,9 @@ def _parse_args(argv):
                    help="revert if the collapse increases the fail count "
                         "(default: on)")
     p.add_argument("--local-search", dest="local_search",
-                   action=argparse.BooleanOptionalAction, default=False,
+                   action=argparse.BooleanOptionalAction, default=True,
                    help="2-opt polish past the Jacobi adjacency relaxation "
-                        "(homemaker-py-9wi, default: off)")
+                        "(homemaker-py-9wi, default: on since homemaker-py-cdl)")
     return p.parse_args(argv)
 
 
