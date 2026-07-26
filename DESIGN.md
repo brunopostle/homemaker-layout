@@ -2895,3 +2895,60 @@ documented and ready to use today on programme-house-scale (smaller/simpler) pro
 follow-up (not filed, low priority) would be a third or fourth example programme at a size between
 the two tested here, to locate the size threshold this result implies rather than inferring it from
 just two data points.
+
+## 24. Ruin-and-recreate size-threshold sweep (`homemaker-py-y51`) — INCONCLUSIVE, no clean threshold
+
+**Motivation.** §23's follow-up: locate the room-count threshold where `ruin_recreate` (weight=3.0)
+stops helping, rather than inferring it from programme-house (6 rooms, win) vs harbor-house (37 room
+instances, null/slight-negative) alone.
+
+**No natural third example exists.** `programme-house2` is the same 6-room size as programme-house
+(a geometry-fix variant, not a size variant); `maple-court` (26 space *types*, many with `count`,
+~more room instances than harbor-house) is bigger than harbor-house, not between the two. So this
+used option (b) from §23: a synthetic room-count sweep on programme-house's own `patterns.config`,
+scaling the `b1`/`t1`/`b2`/`t2` bedroom+ensuite module count by an integer factor (k=2..5 → 10/14/18/22
+room instances), holding room-type mix, storey limits, ratios and adjacency constant, with the
+footprint (`init.dom`) scaled in area to match (`examples/y51-sweep-{10,14,18,22}`). budget=3000
+calibrated so every size leaves nontrivial residual fails at seed 1 (14/29/27/43), not saturated to 0.
+
+**Measured (2026-07-26, `experiments/run_y51_sweep.sh` + `run_y51_sweep_ln.sh`)** — paired seeds,
+`--ruin-recreate` (weight=3.0) ON vs OFF, both arms finish with the default `--collapse` (94g), 4
+workers. Initial pass: 5 seeds at every size. Larger-N confirmation: 5 more seeds (N=10 total) at the
+two sizes whose initial 5-seed read was most striking (n=14, the only size that initially *lost*;
+n=18, the strongest initial win) — mirroring this log's own larger-N-confirmation pattern.
+
+| n_rooms | N  | W/L/T   | mean fails OFF→ON | Δ%    | Wilcoxon p |
+|---------|----|---------|--------------------|-------|-----------|
+| 10      | 5  | 3W/1L/1T | 17.80 → 16.40     | +7.9%  | 0.625 |
+| 14      | 10 | 3W/5L/2T | 28.90 → 28.70     | +0.7%  | 0.945 |
+| 18      | 10 | 7W/2L/1T | 36.50 → 33.10     | +9.3%  | 0.098 |
+| 22      | 5  | 2W/3L/0T | 41.20 → 40.80     | +1.0%  | 0.875 |
+
+**Interpretation.** This does **not** reproduce a clean monotonic decay of the effect as room count
+rises from programme-house's 6 to harbor-house's 37. n=14 came back a clean null after larger-N
+confirmation (the initial 5-seed 0W/4L read did not hold — noise, exactly the pattern this log
+repeatedly warns about). n=18 shows the strongest trend of the four synthetic sizes (a plausible-but-
+not-quite-significant ~9% mean improvement, p≈0.10) despite sitting *between* two much weaker/null
+sizes (14 and 22) — a non-monotonic bounce inconsistent with a simple "smaller wing-rebuild-to-floor
+ratio → bigger effect" threshold as a function of room count alone.
+
+Two readings, not mutually exclusive:
+1. **Still underpowered.** §23's own programme-house confirmation needed N=15 seeds to reach p=0.041
+   for a similar-magnitude effect (~15% reduction); N=5/N=10 here is likely too little to resolve an
+   effect this size cleanly at any of these sizes, so the bounce may just be sampling noise on top of
+   a real but weak trend across 10-22 rooms.
+2. **Methodological caveat: this sweep is not a clean proxy for "room count."** It scales room count
+   by *duplicating already-anonymous, already-interchangeable* room codes (`count:` on b1/t1/b2/t2) —
+   the same mechanism harbor-house itself uses "to reduce complexity" (its own patterns.config
+   comment). Duplicating interchangeable codes may make placement systematically *easier* for
+   `_assign_adjacency_aware` than harbor-house's mix of many genuinely distinct room types at the same
+   instance count would be, so this sweep's room-count axis may not isolate the same "topology
+   fraction sampled per wing move" variable that §23 hypothesised drives the effect.
+
+**Status (2026-07-26).** `enable_ruin_recreate` stays default OFF; no per-size default flip is
+supported by this evidence — the sweep did not locate a clean threshold. §23's practical guidance
+(safe to opt in on programme-house-scale, ~6-room programmes; not validated at harbor-house scale)
+stands unchanged. A real follow-up, if pursued, needs either (a) much larger N (~15+ seeds) at a
+smaller set of sizes to resolve whether the n=18 trend is real, or (b) a genuinely distinct third
+example programme (real room-type diversity at an intermediate room count, not a duplicated-code
+sweep on programme-house) to avoid the interchangeable-room confound above.
