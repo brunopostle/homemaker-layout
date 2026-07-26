@@ -103,7 +103,8 @@ def _reqs_for(programme_dir: str) -> dict:
 # (homemaker-py-qjg, DESIGN.md §22) found no total-fail benefit and MORE
 # trajectory-divergence-induced new not-connected fails than at the
 # uniform default weight -- reverted, left at implicit uniform weight.
-_MUTATION_WEIGHTS = {"level_add": 0.2, "level_delete": 0.2, "place_missing": 2.0}
+_MUTATION_WEIGHTS = {"level_add": 0.2, "level_delete": 0.2, "place_missing": 2.0,
+                     "ruin_recreate": 3.0}
 
 
 def _worker_init() -> None:
@@ -241,6 +242,7 @@ def search(
     enable_reassociate: bool = False,
     enable_shape_repair: bool = False,
     enable_bridge_circulation: bool = False,
+    enable_ruin_recreate: bool = False,
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
@@ -323,6 +325,16 @@ def search(
     because it needs no ``fitness.Fitness`` instance — only the tree's own
     adjacency graph — so it is otherwise unconditionally live once landed in
     ``operators.MUTATIONS``.
+
+    ``enable_ruin_recreate`` (homemaker-py-f1d, EXPERIMENTAL, default off) un-
+    mutes ``operators.mutate_ruin_recreate``: a large-neighbourhood-search move
+    that un-divides one wing of a storey and rebuilds it with the same
+    adjacency-aware constructor the seeders use (``operators.
+    _assign_adjacency_aware``, seeded from the surviving circulation bordering
+    the wing), instead of relying only on the small local mutation operators to
+    discover an improving rearrangement. Gated like ``reassociate`` (zero
+    mutation weight unless enabled) — it needs only ``reqs``, no
+    ``fitness.Fitness`` instance.
     """
     from .oracle import DEFAULT_URB_ROOT
 
@@ -337,6 +349,8 @@ def search(
         mutation_weights["reassociate"] = 0.0
     if not enable_bridge_circulation:
         mutation_weights["bridge_circulation"] = 0.0
+    if not enable_ruin_recreate:
+        mutation_weights["ruin_recreate"] = 0.0
     # homemaker-py-161: shape_rotate/deslim are gated by operators.mutate itself
     # (fit_ops go to zero probability when fit=None) — only build the Fitness
     # instance, and thus only let them fire, when explicitly enabled.
@@ -936,6 +950,7 @@ def search_staged(
     enable_reassociate: bool = False,
     enable_shape_repair: bool = False,
     enable_bridge_circulation: bool = False,
+    enable_ruin_recreate: bool = False,
     feasibility_filter: bool = False,
     feasibility_max_shape_fails: int | None = None,
     circ_divisor: int = 3,
@@ -993,6 +1008,7 @@ def search_staged(
                       enable_reassociate=enable_reassociate,
                       enable_shape_repair=enable_shape_repair,
                       enable_bridge_circulation=enable_bridge_circulation,
+                      enable_ruin_recreate=enable_ruin_recreate,
                       feasibility_filter=feasibility_filter,
                       feasibility_max_shape_fails=feasibility_max_shape_fails,
                       circ_divisor=circ_divisor,
@@ -1031,6 +1047,7 @@ def search_staged(
             enable_reassociate=enable_reassociate,
             enable_shape_repair=enable_shape_repair,
             enable_bridge_circulation=enable_bridge_circulation,
+            enable_ruin_recreate=enable_ruin_recreate,
             feasibility_filter=feasibility_filter,
             feasibility_max_shape_fails=feasibility_max_shape_fails,
             circ_divisor=circ_divisor,
@@ -1078,6 +1095,7 @@ def search_staged(
         enable_reassociate=enable_reassociate,
         enable_shape_repair=enable_shape_repair,
         enable_bridge_circulation=enable_bridge_circulation,
+        enable_ruin_recreate=enable_ruin_recreate,
         feasibility_filter=feasibility_filter,
         feasibility_max_shape_fails=feasibility_max_shape_fails,
         circ_divisor=circ_divisor,

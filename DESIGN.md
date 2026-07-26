@@ -2801,3 +2801,97 @@ uniform weight (not present in `_MUTATION_WEIGHTS`), matching pre-`lj3` behaviou
 (`--bridge-circulation`/`HOMEMAKER_BRIDGE_CIRCULATION`) for anyone who wants the connectivity-
 targeting behaviour despite the neutral aggregate measurement, but is not a candidate for a default
 flip on the current evidence.
+
+## 23. Ruin-and-recreate LNS: rebuild a wing with the adjacency-aware constructor (`homemaker-py-f1d`) — DONE (positive, size-dependent)
+
+**Motivation.** DESIGN.md's own experiment log by this point is one-sided: every "search machinery"
+change tried (§11.5 niching+restarts, §11.4 graded objective, §12.3 Wong-Liu reassociation +
+shape-feasibility, §12.4 granularity, §14 island model, §16 grain annealing, §18 graded
+connectivity, §19 shape repair, §21/§22 circulation-repair ops) has come back null-to-negative,
+while construction/seeding QUALITY (§11.6/§11.7 adjacency-aware seeding, §12.2 proportion-aware
+seeding) is the only lever that has ever moved the fail count. `operators._assign_adjacency_aware`
+— the constructor behind both `constructive_topology` and `lift_base_to_storeys` — currently only
+ever runs once, at seeding. The proposal: reuse it repeatedly DURING search as a large-neighbourhood-
+search (LNS) ruin-and-recreate move, betting that the one technique with a real track record
+generalises better than another new comparator-key or population-management idea.
+
+**Mechanism (build).** `operators.mutate_ruin_recreate`: pick a divided, live-cut subtree ("wing")
+of one storey holding a genuine partial neighbourhood of that storey's leaves (>=2, <= half — not a
+single-leaf relabel already covered by `retype`/`swap`, not a whole-floor rebuild already covered by
+the initial seed), un-divide it back to one leaf, then regrow and retype it with
+`_assign_adjacency_aware`, seeded (`fixed_circ`) from whichever already-typed circulation leaves
+border the wing — the same mechanism `lift_base_to_storeys` uses to grow an upper storey off an
+inherited core (§11.7), so the rebuilt interior spine reconnects to the surviving one instead of
+growing a disconnected island. The wing's required-space room-code budget is preserved exactly
+(same multiset); only its internal circulation/outside counts and split are rebuilt, at the same
+circ_divisor=3/outside_divisor=3 ratio the constructive seeders default to (not threaded from the
+run config — kept parameter-light, like `bridge_circulation`).
+
+`_assign_adjacency_aware` gained a new `scope` parameter (leaves eligible for retyping; `fixed_circ`
+may then name border leaves OUTSIDE `scope` as dominating-set seeds only, never retyped) so the wing
+rebuild can share the exact constructor code without touching the rest of the storey. `scope=None`
+(every existing caller) reproduces the prior unrestricted behaviour exactly — verified no other
+caller's output changed. Gated like `reassociate`/`bridge_circulation`: zero mutation weight unless
+`enable_ruin_recreate=True` (`driver.search`/`search_staged`, `evolve.py
+--ruin-recreate`/`HOMEMAKER_RUIN_RECREATE`, default off).
+
+**Verified (build-time).** 200 applications of `mutate_ruin_recreate` chained onto fresh
+`constructive_topology` harbor-house seeds (40 seeds × 5 steps): zero missing-space regressions
+(`graph.check_space_counts`), every child a canonical genome (`encode(decode(encode(x))) == encode(x)`).
+297 existing tests pass unchanged (the new op is exercised by the existing
+`test_mutations_yield_canonical_genomes` parametrization, which calls it with `reqs=None` and gets
+the documented noop). A `child_probe`-instrumented `driver.search` run confirmed the operator is
+actually selected by `mutate()` at its configured weight (not dead code).
+
+**Initial A/B (measured, 2026-07-25/26, qpk protocol) — NULL, but underpowered.** Equal-budget
+`enable_ruin_recreate` ON (implicit uniform mutation weight, ~7.5% draw probability among ~13 active
+ops) vs OFF, both arms finished with the standard finish-time `--collapse` (94g), 4 workers:
+
+- **harbor-house** (budget 2500, seeds 1–3): 1 loss (74→81), 2 ties.
+- **programme-house** (budget 3000, seeds 1–5): 4 ties, 1 win (9→8).
+- **Combined: 1 win / 1 loss / 6 ties out of 8**, mean fails 31.9 (OFF) → 32.6 (ON) — indistinguishable
+  from zero, in the same direction as most of this log's other null results.
+- A direct `child_probe` instrumentation of one of the tied harbor-house runs found
+  `ruin_recreate` fired **once in 32 children** — the initial sample is dominated by trajectories
+  where the operator simply never got a turn, not by turns it lost. Six of the eight exact ties
+  (fitness scalar identical to 6 significant figures, not just fail count) are consistent with
+  this: the op's rare draws mostly didn't survive tournament selection into the recorded lineage.
+
+**Weight follow-up (measured, 2026-07-26) — reran the ON arm only** with
+`_MUTATION_WEIGHTS["ruin_recreate"] = 3.0` (matching `place_missing`, mirroring the `lj3` weight-bump
+precedent) at the same seeds/budgets, directly comparable to the existing OFF baseline:
+
+- **programme-house** (seeds 1–5): **4 wins, 1 tie, 0 losses** — 7→1, 9→7, 9→8, 9→7, 5→5. A striking,
+  one-sided result, including one seed dropping from 7 fails to 1 (verified deterministic on rerun).
+- **harbor-house** (seeds 1–3): 1 win (77→73), 1 loss (74→82), 1 tie — still mixed.
+
+**Larger-N confirmation (measured, 2026-07-26)** — extended both arms to 10 fresh programme-house
+seeds (6–15) and 5 fresh harbor-house seeds (4–8) at the same weight=3.0, same protocol:
+
+- **programme-house, all 15 seeds combined: 8 wins / 1 loss / 6 ties.** Mean fails **7.07 (OFF) →
+  6.00 (ON)**, a ~15% reduction. Wilcoxon signed-rank p≈0.041; sign-test p≈0.020 (one-sided) — holds
+  up at conventional significance, not small-sample noise around zero (the 8sh/1ph/qi6/lj3 pattern
+  this log warns about).
+- **harbor-house, all 8 seeds combined: 3 wins / 2 losses / 3 ties.** Mean fails **73.0 (OFF) → 74.5
+  (ON)** — no consistent effect, if anything a very slight negative lean, echoing §20's
+  (`collapse_insearch`) opposite-direction size split but with the SMALLER building this time as
+  the one that benefits.
+
+**Interpretation.** A rare case in this log where a search-machinery idea shows a real,
+statistically-supported effect — but only on the smaller/simpler example programme. Plausible
+reading: programme-house's smaller room count means a wing rebuild samples a much larger fraction of
+the whole floor's topology per move (higher effective locality-vs-scope ratio), so the constructor's
+proven adjacency-aware placement quality dominates; harbor-house's much larger room count means the
+same wing size is a small, noisier perturbation relative to the whole building, and correlates with
+the ~2× per-op cost of `_assign_adjacency_aware` (leaf-graph rebuild + dominating-set search) not
+translating into more useful search steps within the same eval budget on that scale.
+
+**Status (2026-07-26).** `enable_ruin_recreate` stays **default OFF** — harbor-house shows no
+benefit and the two example programmes disagree on direction, so flipping the global default is not
+supported by this evidence (same conservative bar §20 applied before its own larger-N confirmation).
+`_MUTATION_WEIGHTS["ruin_recreate"] = 3.0` is kept in the source (only takes effect when the flag is
+on) since it is the validated-effective setting. `--ruin-recreate`/`HOMEMAKER_RUIN_RECREATE` is
+documented and ready to use today on programme-house-scale (smaller/simpler) programmes; a natural
+follow-up (not filed, low priority) would be a third or fourth example programme at a size between
+the two tested here, to locate the size threshold this result implies rather than inferring it from
+just two data points.

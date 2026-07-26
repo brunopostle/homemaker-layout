@@ -849,7 +849,8 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
                             rng: np.random.Generator, door_width: float = 1.2,
                             fixed_circ: "list[dom.Node] | None" = None,
                             interior_outside: bool = False,
-                            n_outside: int = 1) -> None:
+                            n_outside: int = 1,
+                            scope: "set[dom.Node] | None" = None) -> None:
     """Assign leaf types so rooms cluster around a connected circulation spine.
 
     s44 (DESIGN.md §11.2 follow-up): random type assignment leaves rooms stranded
@@ -870,13 +871,23 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     ``lvl`` already has the right number of leaves grown; their types are
     (re)written in place. Stochastic where it is free (room order, tie-breaks) so
     a bootstrap batch stays diverse.
+
+    ``scope`` (homemaker-py-f1d): restrict retyping to this subset of ``lvl``'s
+    leaves — used by the ruin-and-recreate LNS move to rebuild one wing of an
+    already-typed storey in place. ``fixed_circ`` may then name leaves OUTSIDE
+    ``scope`` (the surviving circulation bordering the wing) purely as
+    dominating-set seeds; they anchor the spine but are never retyped, and the
+    dominating-set growth and room/outside placement only ever touch ``scope``.
+    ``None`` (default) reproduces the unrestricted whole-``lvl`` behaviour
+    exactly — every existing caller is unaffected.
     """
     from . import geometry
 
     reqs = reqs or {}
     leaves = lvl.leaves()
-    n = len(leaves)
     idx = {leaf: i for i, leaf in enumerate(leaves)}
+    assignable = scope if scope is not None else set(leaves)
+    n = len(assignable)
     R = len(room_codes)
     n_circ = max(1, n - (R + max(1, n_outside)))  # leftover after rooms + outside
     seeds = [c for c in (fixed_circ or []) if c in idx]
@@ -893,16 +904,19 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
 
     # Greedy connected dominating set of size n_circ: seed from the fixed core (or
     # the most central leaf), then repeatedly add the frontier leaf that newly
-    # dominates the most leaves (keeping the set connected).
-    circ = set(seeds) if seeds else {max(leaves, key=lambda L: (deg.get(L, 0), -idx[L]))}
+    # dominates the most leaves (keeping the set connected). Growth is confined to
+    # ``assignable`` so a scoped call never annexes a leaf outside the wing.
+    circ = (set(seeds) if seeds
+            else {max(assignable, key=lambda L: (deg.get(L, 0), -idx[L]))})
     dominated = set().union(*( _nbrs(s) | {s} for s in circ))
     while len(circ) < n_circ:
-        frontier = (set().union(*(_nbrs(s) for s in circ)) - circ) if circ else set()
+        frontier = ((set().union(*(_nbrs(s) for s in circ)) - circ) & assignable
+                    if circ else set())
         if frontier:
             pick = max(frontier, key=lambda L: (len(_nbrs(L) - dominated),
                                                 deg.get(L, 0), -idx[L]))
         else:  # disconnected remainder — seed a new component by degree
-            rest = [L for L in leaves if L not in circ]
+            rest = [L for L in assignable if L not in circ]
             if not rest:
                 break
             pick = max(rest, key=lambda L: (deg.get(L, 0), -idx[L]))
@@ -910,9 +924,10 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
         dominated |= _nbrs(pick) | {pick}
 
     for s in circ:
-        s.type = "C"
+        if s in assignable:  # never retype a fixed_circ seed outside scope
+            s.type = "C"
 
-    noncirc = [L for L in leaves if L not in circ]
+    noncirc = [L for L in assignable if L not in circ]
     if interior_outside:
         # ld2 (§13.6): seed ``O`` as INTERIOR light wells instead of one
         # peripheral leaf. A landlocked room (no plot facade, no uncovered-O
@@ -1196,6 +1211,78 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
     return _finalise(child)
 
 
+def mutate_ruin_recreate(root: dom.Node, rng: np.random.Generator,
+                         types: list[str], reqs=None) -> tuple[dom.Node, str]:
+    """LNS ruin-and-recreate: rebuild one wing of a storey with the constructor.
+
+    homemaker-py-f1d (DESIGN.md's experiment log): every "search machinery"
+    change tried so far (niching+restarts, graded objective, Wong-Liu
+    reassociation, granularity, island model, grain annealing, circulation-
+    repair ops) has come back null-to-negative, while construction/seeding
+    quality (adjacency-aware seeding, proportion-aware seeding) is the only
+    lever that has ever moved the fail count. ``_assign_adjacency_aware``
+    currently only runs once, at seeding. This move reuses it repeatedly
+    during search: pick a divided, live-cut subtree ("wing") of one storey
+    holding a genuine partial neighbourhood of that storey's leaves (at least
+    2, at most half), un-divide it back to a single leaf, then regrow and
+    retype it with the same adjacency-aware constructor the seeders use —
+    seeded (``fixed_circ``) from whichever already-typed circulation leaves
+    border the wing, exactly the mechanism ``lift_base_to_storeys`` uses to
+    grow an upper storey off an inherited core (ld5, §11.7), so the rebuilt
+    interior spine reconnects to the surviving one instead of growing a
+    disconnected island.
+
+    The wing's programme room-code budget (the multiset of required-space
+    types already inside it) is preserved exactly; only its internal
+    circulation/outside counts and split are rebuilt, at the same
+    circ_divisor=3/outside_divisor=3 ratio the constructive seeders default
+    to (not threaded from the run config — an experimental repair op, like
+    ``bridge_circulation``, kept parameter-light).
+    """
+    if not reqs:
+        return _finalise(copy.deepcopy(root)), "ruin_recreate noop"
+    from . import geometry
+
+    child = copy.deepcopy(root)
+    _finalise(child)
+    lvls = dom.levels(child)
+    totals = {li: len(lvl.leaves()) for li, lvl in enumerate(lvls)}
+    cands = [(li, n) for li, n in _owned_branches(child)
+             if totals[li] >= 4 and 2 <= len(n.leaves()) <= max(2, totals[li] // 2)]
+    if not cands:
+        return _finalise(child), "ruin_recreate noop"
+    li, wing = _pick(rng, cands)
+    lvl = lvls[li]
+
+    G = geometry.leaf_graph(lvl)
+    wing_leaves = set(wing.leaves())
+    border_circ = sorted(
+        {nb for lf in wing_leaves for nb in G.neighbors(lf)
+         if nb not in wing_leaves and nb.type and nb.type[0].lower() == "c"},
+        key=lambda n: n.id or "")
+
+    rooms = [lf.type for lf in wing.leaves() if lf.type in reqs]
+    n_circ_total = max(1, -(-len(rooms) // 3))  # circ_divisor=3
+    n_o = max(1, round(len(rooms) / 3))  # outside_divisor=3
+    n_new = len(rooms) + n_o + max(0, n_circ_total - len(border_circ))
+
+    wing.left = wing.right = None
+    wing.division = None
+    wing.type = None
+    _grow_leaves(wing, max(1, n_new), rng, balance=True)
+    dom._link(child)
+
+    _assign_adjacency_aware(
+        lvl, rooms, reqs, rng, fixed_circ=border_circ or None,
+        interior_outside=True, n_outside=n_o, scope=set(wing.leaves()))
+    dom._link(child)
+    _size_divisions_from_targets(wing, reqs)
+
+    return _finalise(child), (
+        f"ruin_recreate {li}/{wing.id or 'root'} "
+        f"({len(rooms)} rooms, {len(border_circ)} anchors)")
+
+
 def mutate_reassociate(root: dom.Node, rng: np.random.Generator,
                        types: list[str]) -> tuple[dom.Node, str]:
     """Wong-Liu M3 associativity move: ``(a|b)|c <-> a|(b|c)`` on parallel cuts.
@@ -1418,6 +1505,7 @@ MUTATIONS = {
     "level_delete": mutate_level_delete,
     "shape_rotate": mutate_shape_rotate,
     "deslim": mutate_deslim,
+    "ruin_recreate": mutate_ruin_recreate,
 }
 
 
@@ -1435,7 +1523,7 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     names = sorted(MUTATIONS)
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
     # these operators need programme reqs; disable them when not available
-    reqs_ops = ("level_fix", "level_compound_fix", "place_missing")
+    reqs_ops = ("level_fix", "level_compound_fix", "place_missing", "ruin_recreate")
     # also takes reqs (to avoid displacing a required room) but works without
     # it — never zero-weighted, unlike reqs_ops above
     reqs_optional_ops = ("bridge_circulation",)
