@@ -80,6 +80,7 @@ Key modules:
 - `driver.py` — memetic search outer loop
 - `evolve.py` — `homemaker-evolve` CLI entry point
 - `oracle.py` — legacy Perl shim, kept for validation only; do not use in new code
+- `bubble.py` — 3D bubble-diagram adjacency fitness-signal prototype (DESIGN.md §27, `mi7`); validated NULL, not wired into `fitness.py` — reference only, do not build on without a new formulation
 
 ## Conventions & Patterns
 

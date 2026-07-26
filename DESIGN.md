@@ -3000,3 +3000,138 @@ left off pending a broader sweep and the `evolve.py` wiring above (`homemaker-py
 standalone today via `homemaker-collapse --local-search` given the keep-better guard. Tests:
 `tests/test_collapse_global.py` gains `test_two_opt_polish_escapes_jacobi_plateau` (7 total in that file);
 298/298 pass project-wide.
+
+## 26. Multi-use leaves / type superposition (`homemaker-py-9o5`/`xi7`/`b3v`) — DONE (negative), backfilled
+
+*Closed 2026-06-30 (`9o5`, `xi7`) / 2026-07-17 (`b3v`); written up retroactively — this section was
+missing when §17/§20 above were written, even though both reference its verdict directly ("mirrors
+9o5", "the opposite of the 9o5/xi7 verdict"). Numbered at the end of the log rather than renumbering
+§14-§25 to preserve every existing cross-reference.*
+
+**Motivation.** A leaf that legitimately serves several DIFFERENT compatible programme codes at once
+(study+guest bedroom, kitchen+dining — Stewart Brand's "loose-fit" long-life rooms), distinct from
+§13.3 leaf-sharing which aggregates *k* instances of the *same* code. Two readings were scoped: (a)
+superposition as a SEARCH RELAXATION — carry an uncommitted set of candidate types per leaf during
+search, collapse (argmax re-type) to specific usages only at scoring time, for a smoother landscape;
+(b) multi-use as the permanent DESIGN GOAL, surviving into the output with no collapse. Path (a) was
+built and validated (below); path (b) was never started.
+
+**Mechanism (path a, built).** `programme.derive_interchange_classes`: codes form an equivalence class
+(connected component, size ≥ 2) under a symmetric `interchangeable()` relation — S1 both sized and
+non-generic (no `c`/`o`/`s`), S2 size/width/proportion targets within LOCKED ratio bounds (`R_SIZE=1.5`,
+`R_WIDTH=1.3`, `R_PROP=1.5`), S3 compatible level and service stack, S4 no direct required-adjacency
+edge between the two codes (adjacency pairs are coexisting rooms, not one substitutable leaf). Pure
+function of the parsed programme — classes are auto-derived, no hand-authored list needed on the happy
+path. `Fitness.collapse_superposition` re-types every superposed leaf to its best in-class usage each
+eval, before any check: per class, an optimal supply (leaves currently in the class) → demand (class
+codes × required count) matching, area-weighted usage quality as the objective (brute-force ≤`CLASS_CAP`
+= 4! permutations, else scipy Hungarian — the same `_best_assignment` §17/§25 later reuse at global
+scope). Runs on the UNMERGED tree, so counts/adjacency/quality downstream see the condensed types with
+**no changes needed** to `graph.py`/`dom.py`/`operators.py` — the key design realisation was that
+because collapse re-types at eval time, `Node` never needs a persisted class/serves field and no
+mutation operator needs a "retype within class" move; the genome can carry *any* in-class type and
+collapse fixes it. Gated behind `superpose` (default OFF, bit-identical when off — verified against
+233 pre-existing tests). `tests/test_superposition.py` (20): derivation (service/adjacency/level
+guards, the real programme-house programme), assignment (brute force + Hungarian + surplus supply/demand),
+end-to-end collapse re-typing, veto-hatch behaviour.
+
+**A/B verdict (`xi7`, measured 2026-06-30) — NULL/NEGATIVE.** Equal-budget `--superpose` ON vs OFF,
+measuring the COLLAPSED (final) score:
+- **programme-house** (`init.dom`, budget 3000, 4 workers, seeds 1–5): OFF wins 4/5 (s1 8f>10f, s2
+  11f>12f, s3 10f>12f, s4 10f>10f-tied-fitness — all OFF strictly better or equal fails), ON wins only
+  s5 (10f→8f).
+- **harbor-house** (`init.dom`, budget 2500, seeds 1–3): OFF wins 2/3 (s2 33f<38f, s3 43f<48f); ON
+  wins s1 alone (50f<51f).
+- Superposition does **not** reach better layouts; in most seeds ON has ≥ OFF fails — the per-eval
+  collapse re-typing perturbs counts/adjacency rather than smoothing the search, the same failure
+  mode later sections would call "landscape flattening."
+
+**Relaxation-gap instrumentation (`xi7` §7.4) — ruled OUT as the cause.** Logged relaxed (unconstrained
+best-case usage-quality) vs collapsed value on the same matched leaves across the 5 programme-house ON
+runs: total `gap_ratio` 1.01–1.23 (per-class peaks up to 1.52) — small-to-moderate, not the large gap
+the original risk note feared. Because collapse is *per-eval*, there is no separate relaxed phase to
+diverge from — search already optimises the collapsed objective by construction. **Conclusion: path
+(a) underperforms not from a relaxation gap but because the geometry floor (§11–§13) dominates** — type
+labels are not the binding constraint on these programmes, so easing them buys nothing while the
+re-typing adds feasibility noise. This is the diagnosis §20 (`qpk`) later cites when arguing its own
+in-search collapse is a *different* mechanism (a hard-constraint-respecting global relabel, not a
+per-class relaxation over interchangeable-but-not-identical codes) and so isn't pre-falsified by this
+verdict.
+
+**Veto hatch (`b3v`, closed 2026-07-17) — the one real false-positive found.** Harbor-house's programme
+auto-derives a **transitive 8-code chain** `{da1,ef1,k1,la1,m,me1,n,ws1}` spanning a 6× size range
+(Meeting 10 m² .. Dining/Neighbourhood 60 m²) — semantically nonsensical (Meeting↔Dining↔Kitchen↔
+Mechanical are not interchangeable) but sanctioned by the S1–S4 relation as written (each adjacent pair
+in the chain individually satisfies the ratio bounds; connectivity is transitive). `xi7`'s harbor-house
+losses show ON *adding* fails in both loss seeds (38→33 became 38 vs 33; 48→43 became 48 vs 43) —
+consistent with this misgroup actively hurting. Fix: `SpaceReq.interchange` (default `True`), settable
+`interchange: false` per code in `patterns.config`, honoured by `interchangeable()`'s S0 check — an
+architect veto for one code without disabling superposition globally. `superpose` itself stays default
+OFF regardless (the `xi7` verdict was null/negative overall), so the hatch only matters if/when
+superposition is deliberately enabled on a real config.
+
+**Status.** `--superpose` stays default OFF; path (a) is not recommended without a fundamentally
+different mechanism (the geometry floor, not the labelling relaxation, is what needs to move — the
+same conclusion §11–§13's construction-quality work and §19's negative geometry-repair result both
+reach from other directions). Path (b) (multi-use as a permanent design goal, no collapse) was never
+attempted — remains open if revisited, but low priority given (a)'s outcome and the project's broader
+0-for-several record on search-machinery/fitness-shaping bets vs construction-quality bets (see `mi7`,
+§27, for the same pattern one experiment later).
+
+## 27. 3D bubble-diagram adjacency fitness signal (`homemaker-py-mi7`) — DONE (negative)
+
+*Closed 2026-07-25, the session immediately before §25's `9wi`. `bubble.py` was left in the repo
+**uncommitted** as a documented reference per the original close note; committed alongside this
+write-up so the reference this section makes to it is actually resolvable.*
+
+**Motivation.** `graph.py`'s adjacency checks are binary (is X adjacent to Y, yes/no) and, like §18's
+connectivity fail, give the search no gradient toward a better overall spatial *arrangement* — only
+toward satisfying each declared pair. Idea: build the programme's required-space adjacency as a graph,
+relax it into a 3D "bubble diagram" (a spring/repulsion physics simulation, architecture's traditional
+adjacency-diagramming technique), then score a candidate layout by how well its real room-to-room
+distances correlate with a relaxed target's distances — an additional graded fitness term / search-
+guidance signal, in the spirit of §18's graded connectivity but for general spatial layout rather than
+circulation topology specifically.
+
+**Mechanism (`bubble.py`, prototype only, never wired into `fitness.py`).**
+`requirement_graph`: one node per required room instance (`code`, or `code#i` for `count>1`), generic
+`c`/`o`/`s` adjacency targets collapsed to one shared hub node per code (per whole building, not per
+storey — a known simplification), edges to a multi-count code fan out to all its instances at reduced
+weight (satisfying adjacency needs only *one* matching neighbour). `generate_targets`: relax the
+requirement graph from `n_restarts` random 3D starts with a spring force (ideal edge length = sum of
+target-area-equivalent circle radii) plus overlap-only repulsion plus a level-height pull on the z axis;
+because relaxation is non-convex and multi-modal (different starts settle on e.g. opposite-handed but
+equally valid arrangements), keep up to `keep` distinct low-energy solutions (pairwise-distance-vector
+correlation ≥ `dedup_corr` = duplicate) rather than one canonical target. `similarity`: weighted Pearson
+correlation between an actual Dom layout's real weighted shortest-path distances and a target bubble's
+Euclidean distances, over matched non-generic room instances, weighted `1/hop_distance` in the
+requirement graph so the many hub-mediated "just wants to be near circulation" pairs (weak positional
+evidence) don't drown out the few directly-declared adjacencies (strong evidence). `best_similarity`
+takes the max across the kept alternative targets. `matched_leaves` maps anonymous multi-count codes to
+actual leaves by a fixed centroid-order rule — flagged in the module docstring as a known simplification,
+not a real assignment solver. `topological_similarity` is a cheaper no-embedding alternative: hop-distance
+correlation directly on graph topology (real multi-cell circulation network on both sides), skipping the
+physics simulation and multi-restart dedup entirely.
+
+**Validation (measured 2026-07-25) — NULL on both formulations, both programmes.** Correlated each
+similarity metric against real evolved trajectories (not static examples) via `driver.search`:
+- **programme-house** (n=100 recorded individuals): `embedding` ρ≈0.05, `topological` ρ≈−0.06 — flat.
+  This is the cleanest data point: programme-house has **zero** multi-count anonymous codes, so
+  `matched_leaves`' fixed centroid-order heuristic cannot be confounding the result, and it's still flat.
+- **harbor-house** (budget 6000, n=75, fitness 3e-28→3.9e-17, fails 83→51 over the trajectory):
+  `similarity()` (embedding) spearman=0.164, p=0.16 (n.s.); `topological_similarity()` spearman=−0.160,
+  p=0.17 (n.s.) — noisier than programme-house (heavy anonymous-count codes: `n`×5, `m`×3, `t`×6, `r`×10,
+  `of`×2, a real uncontrolled confound for the centroid-order matching there) but tells the same story.
+- **No statistically significant correlation anywhere**, across 2 independent formulations (spatial
+  embedding vs pure topology) × 2 programmes, with real search trajectories rather than canned batches.
+
+**Status.** Do not pursue graph-relaxation-derived or pure-topological adjacency-matching as a fitness
+signal for this project without a fundamentally different formulation. If revisited, the harbor-house
+anonymous-code confound would need a real assignment solver (Hungarian/brute-force, mirroring `9o5`'s
+`CLASS_CAP` pattern) before drawing any programme-specific conclusion there — but programme-house's
+clean, confound-free null already argues against the core idea regardless. `bubble.py` stays in the repo
+as a working, documented reference, not wired into `fitness.py`. Consistent with the project's broader
+pattern (§11.4/11.5, §12.3/12.4, §14, §16, §21, §22, §26 above): search-machinery / fitness-shaping
+changes have been null-to-negative essentially every time they've been tried; only construction/seeding
+quality and representation-relaxation changes (leaf-sharing §13.3, global collapse §17/§25) have moved
+the needle. This is another data point for that pattern, not an exception.
