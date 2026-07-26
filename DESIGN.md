@@ -2952,3 +2952,51 @@ stands unchanged. A real follow-up, if pursued, needs either (a) much larger N (
 smaller set of sizes to resolve whether the n=18 trend is real, or (b) a genuinely distinct third
 example programme (real room-type diversity at an intermediate room count, not a duplicated-code
 sweep on programme-house) to avoid the interchangeable-room confound above.
+
+## 25. 2-opt local search past the collapse_global Jacobi plateau (`homemaker-py-9wi`) — DONE (positive, opt-in)
+
+**Motivation.** §17's `collapse_global` adjacency relaxation is a Jacobi/WFC-style loop: each round
+re-solves a *linear* assignment (`_best_assignment`) using an adjacency bonus computed from the
+*previous* round's neighbour labels. That is exact per round, but the true objective is quadratic — a
+satisfied adjacency depends on a **pair** of labels, not one — so synchronous Jacobi can plateau short
+of the joint optimum. Worked example (`test_two_opt_polish_escapes_jacobi_plateau`): a 4-cell chain
+`p1─q1─p2─q2` with two disjoint adjacency requirements (`p1<->p2`, `q1<->q2`) has a fully-satisfying
+relabelling (`p1─p2─q1─q2` or similar), but starting from the interleaved layout the Jacobi loop
+**2-cycles** between two labellings that each satisfy **zero** of the four requirements, and never
+escapes within `iters`.
+
+**Mechanism (`Fitness._two_opt_adjacency_polish`).** Runs once, after the Jacobi loop reaches its
+fixpoint (or exhausts `iters`). For every **same-level** pair of supply leaves, try swapping their
+current labels; keep the swap only if it **strictly** increases the total reward (own quality/threshold
+value + `fail_w` per satisfied adjacency) summed over the two leaves and every leaf adjacent to either
+— the only cells a label swap between `i` and `j` can change. Repeats to a fixpoint (or
+`local_search_passes`, default 20). Same-level-only pairing keeps the hard level constraint for free
+(both codes already matched their own leaf's level pre-swap, and the two leaves share a level, so the
+swap is valid on both sides). A swap is applied only on strict improvement, so this is **monotone by
+construction** — it can only reduce, never increase, the objective's implied fail count, same guarantee
+as the Hungarian solve it refines. `Fitness._collapse_value` factors the shared (leaf, code) → base-value
+computation out of the `collapse_global` assignment-matrix build so both the matrix and the polish score
+a pair identically.
+
+**Why 2-opt over CP-SAT/OR-Tools.** The issue proposed either a 2-opt local search or a CP-SAT (OR-Tools)
+encoding of the labelling QAP. Went with 2-opt: no new dependency (the project has no `ortools`), and it
+extends the existing Jacobi machinery directly rather than replacing it with a separate solver. QAP is
+NP-hard in general, so this is a local search, not an exact solve — but it strictly dominates the
+Jacobi-only result by construction, and `collapse_finish`'s keep-better wrapper is an additional safety
+net regardless.
+
+**Wiring.** `collapse_global(local_search=False, local_search_passes=20)` — opt-in, only meaningful when
+`adjacency=True` (with `adjacency=False` the Hungarian solve on the separable objective is already exact,
+so no pairwise swap can improve it). `homemaker-collapse --local-search`/`--no-local-search` (default off)
+exposes it on the standalone CLI. Not yet wired into `evolve.py`'s `--collapse` flag or `driver.collapse_best`
+beyond the existing `**collapse_kw` passthrough — spun out as `homemaker-py-cdl`.
+
+**Verification.** Swept all 11 harbor-house `evolved-*`/`3m`/`materialised-3M` `.dom` files, comparing
+`collapse_global(local_search=False)` against `local_search=True`: 10/11 matched exactly (Jacobi was
+already at the 2-opt-local optimum on those layouts), **0 regressed**, 1 improved
+(`evolved-anneal-3M.dom` 21→19 fails — resolved a genuine mutual `da1<->k1` adjacency miss the Jacobi
+loop couldn't reach). Runtime <1s even on the largest file (`evolved-3M.dom`, 90 base fails). Default
+left off pending a broader sweep and the `evolve.py` wiring above (`homemaker-py-cdl`); safe to use
+standalone today via `homemaker-collapse --local-search` given the keep-better guard. Tests:
+`tests/test_collapse_global.py` gains `test_two_opt_polish_escapes_jacobi_plateau` (7 total in that file);
+298/298 pass project-wide.
