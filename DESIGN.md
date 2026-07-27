@@ -2985,19 +2985,18 @@ NP-hard in general, so this is a local search, not an exact solve — but it str
 Jacobi-only result by construction, and `collapse_finish`'s keep-better wrapper is an additional safety
 net regardless.
 
-**Wiring.** `collapse_global(local_search=False, local_search_passes=20)` — opt-in, only meaningful when
-`adjacency=True` (with `adjacency=False` the Hungarian solve on the separable objective is already exact,
-so no pairwise swap can improve it). `homemaker-collapse --local-search`/`--no-local-search` (default off)
-exposes it on the standalone CLI. Not yet wired into `evolve.py`'s `--collapse` flag or `driver.collapse_best`
-beyond the existing `**collapse_kw` passthrough — spun out as `homemaker-py-cdl`.
+**Wiring.** `collapse_global(local_search=False, local_search_passes=20)` — the method-level default
+stays off (see §28: it's also called every fitness eval via `collapse_insearch`/`qpk`, a hot path this
+polish was never measured against). `homemaker-collapse --local-search`/`--no-local-search` and
+`evolve.py`'s `--collapse` now default it **on** at the one-shot finish-time call sites — see §28
+(`homemaker-py-cdl`) for the broader sweep and wiring that flipped those defaults.
 
 **Verification.** Swept all 11 harbor-house `evolved-*`/`3m`/`materialised-3M` `.dom` files, comparing
 `collapse_global(local_search=False)` against `local_search=True`: 10/11 matched exactly (Jacobi was
 already at the 2-opt-local optimum on those layouts), **0 regressed**, 1 improved
 (`evolved-anneal-3M.dom` 21→19 fails — resolved a genuine mutual `da1<->k1` adjacency miss the Jacobi
-loop couldn't reach). Runtime <1s even on the largest file (`evolved-3M.dom`, 90 base fails). Default
-left off pending a broader sweep and the `evolve.py` wiring above (`homemaker-py-cdl`); safe to use
-standalone today via `homemaker-collapse --local-search` given the keep-better guard. Tests:
+loop couldn't reach). Runtime <1s even on the largest file (`evolved-3M.dom`, 90 base fails). §28 extends
+this to a 46-file sweep and turns the finish-time default on. Tests:
 `tests/test_collapse_global.py` gains `test_two_opt_polish_escapes_jacobi_plateau` (7 total in that file);
 298/298 pass project-wide.
 
@@ -3135,3 +3134,40 @@ pattern (§11.4/11.5, §12.3/12.4, §14, §16, §21, §22, §26 above): search-m
 changes have been null-to-negative essentially every time they've been tried; only construction/seeding
 quality and representation-relaxation changes (leaf-sharing §13.3, global collapse §17/§25) have moved
 the needle. This is another data point for that pattern, not an exception.
+
+## 28. Default the `9wi` 2-opt polish on for finish-time collapse (`homemaker-py-cdl`) — DONE (positive)
+
+**Motivation.** §25 (`homemaker-py-9wi`) validated the 2-opt adjacency polish on harbor-house alone (11
+files, 1 improvement, 0 regressions) and left it opt-in pending a broader, non-synthetic sweep and the
+`evolve.py`/`driver.collapse_best` wiring to expose it outside the standalone `homemaker-collapse` CLI.
+This closes that follow-up.
+
+**Broader sweep.** Extended the harbor-house comparison to programme-house's 34 `.dom` files (real
+evolved candidates, not synthetic), 46 files total across both example sets. Compared
+`collapse_finish(local_search=False)` against `local_search=True` (both keep-better against the
+uncollapsed base, per §17): **0 regressions**, 2 improvements — the known harbor-house
+`evolved-anneal-3M.dom` (21→19 fails) plus a new one on programme-house,
+`a82f07068e4408fdd0d5e3dc469a8dee.dom` (3→2 fails); every other file matched exactly. Confirms the
+finding generalises past the single synthetic dataset §25 was validated on.
+
+**Where the default did NOT change.** `collapse_global`'s own `local_search=False` default (§25) was
+left untouched. `collapse_global` runs twice in this codebase: once as a one-shot finish-time pass
+(`collapse_finish`, `homemaker-collapse`, `driver.collapse_best`) and once **per fitness eval** inside
+`_evaluate_full` when `collapse_insearch`/`qpk` (§20) is on — the latter is the hot path of the entire
+evolutionary search, run thousands of times per run, and the 46-file sweep only measured the one-shot
+cost (<1s even on the largest file). Flipping the method-level default would have silently turned the
+2-opt pass on inside that hot loop too, an untested and likely-costly change out of scope for this
+issue. So the default stays `False` at the method level, and each one-shot call site turns it on
+explicitly instead.
+
+**Wiring.** `homemaker-collapse --local-search`/`--no-local-search` (`collapse_cmd.py`) now defaults
+`True` (was `False`). Added `homemaker-evolve --collapse-local-search`/`--no-collapse-local-search`
+(`evolve.py`), default `True`, passed through to `driver.collapse_best(..., local_search=...)` — which
+already forwarded arbitrary `**collapse_kw` to `fit.collapse_finish`, so no signature change was needed
+there. The new flag is a no-op under `--no-collapse` (nothing to polish if the finish-time collapse
+itself is skipped).
+
+**Verification.** 298/298 tests pass (no test changes needed — `test_collapse_global.py`'s explicit
+`local_search=True`/`False` cases already covered both method-level defaults). Re-ran
+`homemaker-collapse` standalone on `evolved-anneal-3M.dom` with no flags to confirm the new CLI default
+reproduces the 19-fail result end-to-end.
