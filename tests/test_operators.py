@@ -400,6 +400,101 @@ def test_adjacency_aware_lift_cuts_adjacency_access_fails():
 
 
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_construction_beam_width_default_matches_greedy():
+    # homemaker-py-c94: beam_width=1 (the default, both explicit and implicit)
+    # must reproduce the prior one-shot greedy room placement byte-for-byte.
+    from homemaker_layout import programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+    for trial in range(3):
+        plain = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(trial), types)
+        explicit = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(trial), types,
+            construction_beam_width=1)
+        assert genome.encode(plain) == genome.encode(explicit)
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_construction_beam_width_yields_valid_seed():
+    # A beam_width>1 seed must still satisfy the same construction invariants
+    # as the greedy path: every required space present, canonical genome.
+    from homemaker_layout import graph, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+    for trial in range(5):
+        root = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(trial), types,
+            construction_beam_width=4)
+        _, missing = graph.check_space_counts(root, reqs)
+        assert missing == [], f"trial {trial} left {missing}"
+        canonical(root)
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_construction_beam_width_lift_yields_valid_seed():
+    # Each upper storey's placed room multiset must match its requested
+    # bucket exactly (the invariant lift_base_to_storeys/_assign_adjacency_
+    # aware owns) and the whole tree must stay canonical. Unlike
+    # constructive_topology, a base built from the FULL reqs (as in
+    # test_adjacency_aware_lift_cuts_adjacency_access_fails above) need not
+    # sum with an independently-drawn upper bucket split to the whole-building
+    # total, so this checks the per-storey bucket invariant instead of
+    # graph.check_space_counts.
+    from collections import Counter
+
+    from homemaker_layout import programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    n_st = programme.n_storeys_required(reqs)
+    seed = dom.load(str(HARBOR / "init.dom"))
+    for trial in range(3):
+        rng = np.random.default_rng(trial)
+        buckets = programme.partition_rooms_by_storey(reqs, n_st, rng)
+        base = operators.constructive_topology(seed, reqs, rng, types)
+        base0 = dom.levels(base)[0]
+        base0.above = None
+        lifted = operators.lift_base_to_storeys(
+            base0, buckets[1:], rng, types, reqs=reqs,
+            construction_beam_width=4)
+        lvls = dom.levels(lifted)
+        for bucket, lvl in zip(buckets[1:], lvls[1:]):
+            placed = Counter(lf.type for lf in lvl.leaves() if lf.type in bucket)
+            assert placed == Counter(bucket), f"trial {trial}: {placed} != {bucket}"
+        canonical(lifted)
+
+
+def test_beam_place_rooms_is_deterministic_given_inputs():
+    # _beam_place_rooms takes no rng — same inputs must give the same
+    # placement every call (only the caller's code-order shuffle is
+    # stochastic, already exercised via constructive_topology above).
+    class Req:
+        def __init__(self, adjacency):
+            self.adjacency = adjacency
+
+    reqs = {"a": Req([("c",)]), "b": Req([("a",)]), "c": Req([])}
+    slots = [dom.Node(type=None) for _ in range(3)]
+    idx = {L: i for i, L in enumerate(slots)}
+    deg = {L: 1 for L in slots}
+    dominated = set(slots)
+
+    def _nbrs(L):
+        return set(slots) - {L}
+
+    codes = ["a", "b"]
+    r1 = operators._beam_place_rooms(codes, slots, dominated, deg, idx,
+                                     _nbrs, reqs, beam_width=2)
+    r2 = operators._beam_place_rooms(codes, slots, dominated, deg, idx,
+                                     _nbrs, reqs, beam_width=2)
+    assert r1 == r2
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
 def test_place_missing_repairs_deficient_tree():
     # §11.2 repair: iterating mutate_place_missing drives a deficient design's
     # missing-space count to zero, then noops once the required set is complete.

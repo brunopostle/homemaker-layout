@@ -252,6 +252,7 @@ def search(
     depth_balanced: bool = True,
     interior_outside: bool = True,
     outside_divisor: int = 3,
+    construction_beam_width: int = 1,
     max_share: int | None = None,
     seed_pop: list[dom.Node] | None = None,
     collapse_insearch: bool = True,
@@ -335,6 +336,13 @@ def search(
     discover an improving rearrangement. Gated like ``reassociate`` (zero
     mutation weight unless enabled) — it needs only ``reqs``, no
     ``fitness.Fitness`` instance.
+
+    ``construction_beam_width`` (homemaker-py-c94, EXPERIMENTAL, default 1)
+    forwarded to ``operators.constructive_topology``/``lift_base_to_storeys``'s
+    same-named parameter, in turn ``_assign_adjacency_aware``'s ``beam_width``:
+    a width-K beam search over which leaf a room lands on during construction,
+    instead of one irrevocable greedy pass. ``1`` (default) reproduces the
+    prior greedy seeding exactly.
     """
     from .oracle import DEFAULT_URB_ROOT
 
@@ -532,7 +540,8 @@ def search(
                 circ_divisor=circ_divisor,
                 leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor,
                 depth_balanced=depth_balanced,
-                interior_outside=interior_outside, outside_divisor=outside_divisor)
+                interior_outside=interior_outside, outside_divisor=outside_divisor,
+                construction_beam_width=construction_beam_width)
             return (topo, None, child_budget, {}, f"construct/{tag}")
         n = int(rng.integers(max(1, n_target - 1), n_target + 2))
         return (random_topology(seed_root, n, rng, types), None, child_budget,
@@ -960,6 +969,7 @@ def search_staged(
     depth_balanced: bool = True,
     interior_outside: bool = True,
     outside_divisor: int = 3,
+    construction_beam_width: int = 1,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -1017,7 +1027,8 @@ def search_staged(
                       superpose=superpose,
                       depth_balanced=depth_balanced,
                       interior_outside=interior_outside,
-                      outside_divisor=outside_divisor)
+                      outside_divisor=outside_divisor,
+                      construction_beam_width=construction_beam_width)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -1057,6 +1068,7 @@ def search_staged(
             depth_balanced=depth_balanced,
             interior_outside=interior_outside,
             outside_divisor=outside_divisor,
+            construction_beam_width=construction_beam_width,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -1077,7 +1089,8 @@ def search_staged(
             circ_divisor=circ_divisor,
             leaf_sharing=leaf_sharing, leaf_share_factor=leaf_share_factor,
             depth_balanced=depth_balanced,
-            interior_outside=interior_outside, outside_divisor=outside_divisor)
+            interior_outside=interior_outside, outside_divisor=outside_divisor,
+            construction_beam_width=construction_beam_width)
 
     _log(f"[staged] stage 2: upper floors as deltas, budget {b2}, base_p {base_p}")
     r2 = search(
@@ -1105,6 +1118,7 @@ def search_staged(
         depth_balanced=depth_balanced,
         interior_outside=interior_outside,
         outside_divisor=outside_divisor,
+        construction_beam_width=construction_beam_width,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

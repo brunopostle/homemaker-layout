@@ -3171,3 +3171,79 @@ itself is skipped).
 `local_search=True`/`False` cases already covered both method-level defaults). Re-ran
 `homemaker-collapse` standalone on `evolved-anneal-3M.dom` with no flags to confirm the new CLI default
 reproduces the 19-fail result end-to-end.
+
+## 29. Beam/best-first search over adjacency-aware room placement (`homemaker-py-c94`) — DONE (null, no headroom on either example programme)
+
+**Motivation.** Construction/seeding quality is the one lever with a consistent positive track record
+(§11.6/§11.7 adjacency-aware seeding, §12.2 proportion-aware seeding, §23 `f1d`'s reuse of the same
+constructor mid-search). `operators._assign_adjacency_aware` places rooms onto the circulation-dominated
+leaf set with a single greedy pass: hardest-constrained code first, each dropped onto whichever open
+slot currently satisfies the most of its declared secondary adjacency (beyond `c`) against
+*already-placed* neighbours. Because the pass never revisits a placement, an early code with no
+already-typed neighbours to match against (every mutual pair's first-placed half, e.g. harbor-house's
+`k1`↔`da1`) picks blind — any open slot scores identically at that step — and an unlucky tie-break could
+strand it from a partner that would only be placed several steps later. The proposal: explore the same
+per-room slot decisions with a width-K beam/best-first search instead of one irrevocable pass, scored by
+a cheap proxy (no geometry/fitness calls), and measure whether it ever finds a genuinely better seed
+before considering investing further (e.g. wiring it into the outer search config).
+
+**Mechanism (build).** `_assign_adjacency_aware` gained a `beam_width: int = 1` parameter (`operators.py`);
+`beam_width<=1` (default) is byte-identical to the prior greedy code path — verified by
+`test_construction_beam_width_default_matches_greedy` and by the full 298-test suite passing unchanged
+before any beam-specific test was added (302/302 after adding four new beam-specific tests). `beam_width>1` instead routes room placement through the new
+`_beam_place_rooms`: keeps up to `beam_width` partial placements alive, each step branching every
+surviving state into its top-`beam_width` candidate slots for the current code (same ranking greedy
+uses), scored by the running total of secondary-adjacency matches satisfied so far. This is genuinely
+cheap — no geometry or fitness calls, since circulation/outside are already fixed before room placement
+starts and the leaf-adjacency graph (`_nbrs`, `deg`, `idx`, `dominated`) is shared read-only across every
+branch — then prunes back to `beam_width` states before the next code, returning the highest-scoring
+complete placement. Threaded through as `construction_beam_width` in `constructive_topology`,
+`lift_base_to_storeys`, `driver.search`, and `driver.search_staged` (all default `1`, matching the
+project's existing knob-threading convention for `circ_divisor`/`depth_balanced`/etc. — no CLI flag added,
+consistent with those other construction-only knobs). Not threaded into `mutate_ruin_recreate` (kept
+parameter-light, like `bridge_circulation`/`ruin_recreate`'s own circ/outside ratios, §23).
+
+**Verified functioning (synthetic, not a no-op).** A hand-built adversarial 4-slot graph (two disjoint
+adjacent pairs, codes `a`↔`b` mutually required plus a filler `x` placed between them) confirms the
+mechanism is real: `beam_width=1` places `a` by an arbitrary tie-break, `x` then greedily grabs `a`'s only
+neighbour before `b` gets a turn, stranding the pair (`a-b adjacent=False`); `beam_width>=2` recovers the
+correct joint placement (`a-b adjacent=True`) by keeping `a`'s alternate slot choice alive long enough for
+`b`'s later score to reward it. This is exactly the "no lookahead" failure mode `_assign_adjacency_aware`'s
+one-shot pass is structurally prone to, and confirms the beam can and does out-score greedy when the
+graph offers a genuine trade-off.
+
+**Measured (2026-07-27) — NULL on both example programmes, at every width tested.** Raw-seed comparison
+(no search, no fitness call beyond one `score_with_fails` per seed): `constructive_topology` at
+`beam_width` 1/4/8, 15 rng trials each, on programme-house and harbor-house — **fail counts and
+adjacency/access fail counts identical to the last digit across all three widths, every trial** (e.g.
+harbor-house trial 6: 182/182/182 fails; programme-house trial 10: 28/28/28). Extended to the
+`lift_base_to_storeys` path (base + upper storeys, the Stage-2 seeder) at widths 1/4/8/20, 10 trials:
+**again byte-identical fail counts at every width**, including `beam_width=20` — essentially exhaustive
+for the ~15-17 room codes per storey these programmes carry. A step-by-step trace of a real harbor-house
+construction (`da1`→`k1`→`ws1`, the mutual/near-mutual adjacency chain) confirmed the beam *does* explore
+physically distinct slot choices per branch (four different candidate leaves for `da1`) but every branch
+reaches the *same* cumulative score at every step — harbor-house's circulation-spine geometry offers
+several equally-good neighbouring slots for most codes, so there is rarely a genuine trade-off for a beam
+to discover, unlike the sparse synthetic adversarial graph above. Because the resulting seed trees are
+bit-identical (and `_beam_place_rooms` consumes no RNG, so downstream RNG state is unaffected too), an
+end-to-end evolutionary A/B was not run: with the same bootstrap population and the same RNG stream, the
+full `driver.search` trajectory would necessarily reproduce byte-for-byte regardless of budget or seed
+count, by the same determinism this project's parallel-admission-order fix (`homemaker-py-xcy`) already
+relies on elsewhere.
+
+**Interpretation.** The mechanism works — verified on a graph shaped to need it — but the two example
+programmes' circulation-spine construction (s44/ld5) already gives most rooms multiple interchangeable
+neighbour options once dominated by the spine, so the single greedy pass already lands on a score-optimal
+placement under this proxy; there's no slack left for a beam to find. This is a different flavour of null
+than most of this log's search-machinery negatives (§14/§18/§19/§21/§22/§26/§27): those changed *what* is
+optimised or *when*; this one changed *how thoroughly* an already near-optimal local decision is searched,
+and found the decision has no headroom on real programme geometry, not that the technique doesn't work.
+
+**Status.** `construction_beam_width` stays default `1` (exact prior behaviour) — no evidence supports
+turning it on anywhere, and no CLI flag was added. The code and tests stay in the tree as a working,
+documented, verified-functioning building block (`operators._beam_place_rooms`), consistent with this
+project's convention of keeping validated-but-inconclusive mechanisms available rather than reverting
+them (cf. `bubble.py`, §27). A genuinely different real programme with a sparser/more constrained
+adjacency graph (few circulation leaves relative to rooms, more mutual-pair secondary requirements) is
+the natural condition under which this could still pay off, but neither example programme in this repo
+currently offers that shape — not filed as a follow-up (low priority, no concrete candidate programme).

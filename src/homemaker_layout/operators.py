@@ -850,7 +850,8 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
                             fixed_circ: "list[dom.Node] | None" = None,
                             interior_outside: bool = False,
                             n_outside: int = 1,
-                            scope: "set[dom.Node] | None" = None) -> None:
+                            scope: "set[dom.Node] | None" = None,
+                            beam_width: int = 1) -> None:
     """Assign leaf types so rooms cluster around a connected circulation spine.
 
     s44 (DESIGN.md §11.2 follow-up): random type assignment leaves rooms stranded
@@ -880,6 +881,18 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     dominating-set growth and room/outside placement only ever touch ``scope``.
     ``None`` (default) reproduces the unrestricted whole-``lvl`` behaviour
     exactly — every existing caller is unaffected.
+
+    ``beam_width`` (homemaker-py-c94, EXPERIMENTAL, default 1): the circulation
+    spine and outside leaves are always placed by the single greedy pass above
+    (unchanged, no beam). ``beam_width=1`` also keeps the *room* placement pass
+    below exactly the prior one-shot greedy walk (byte-identical output for
+    every existing caller). ``beam_width>1`` instead explores the same
+    room-to-slot decisions with :func:`_beam_place_rooms`: several partial
+    placements are kept alive and ranked by a cheap proxy (running total
+    secondary-adjacency satisfaction — no extra geometry or fitness calls,
+    since circulation/outside are already fixed and shared across every beam
+    branch), so a room whose best slot is later needed by a harder-to-place
+    room is no longer locked in by one irrevocable greedy step.
     """
     from . import geometry
 
@@ -967,9 +980,6 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     # rooms placed so far) — clustering k1↔da1, da1↔o, etc. Ties broken randomly.
     o_set = set(o_leaves)
     room_slots = [L for L in noncirc if L not in o_set]
-    open_slots = sorted(room_slots,
-                        key=lambda L: (L in dominated, deg.get(L, 0), -idx[L]),
-                        reverse=True)
     codes = [room_codes[i] for i in rng.permutation(len(room_codes))]
 
     def _n_secondary(code: str) -> int:
@@ -977,22 +987,86 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
         return len([a for a in (r.adjacency if r else []) if a and a[0].lower() != "c"])
 
     codes.sort(key=_n_secondary, reverse=True)
-    for code in codes:
-        if not open_slots:
-            break
-        req_adj = [a[0].lower() for a in (reqs.get(code).adjacency if reqs.get(code) else [])]
-        secondary = [a for a in req_adj if a != "c"]
 
-        def _sat(slot, secondary=secondary) -> int:
-            nb_types = {(nb.type or "")[:1].lower() for nb in _nbrs(slot) if nb.type}
-            return sum(1 for a in secondary if a in nb_types)
+    if beam_width <= 1:
+        open_slots = sorted(room_slots,
+                            key=lambda L: (L in dominated, deg.get(L, 0), -idx[L]),
+                            reverse=True)
+        for code in codes:
+            if not open_slots:
+                break
+            req_adj = [a[0].lower() for a in (reqs.get(code).adjacency if reqs.get(code) else [])]
+            secondary = [a for a in req_adj if a != "c"]
 
-        best = max(open_slots, key=lambda L: (_sat(L), L in dominated,
-                                              deg.get(L, 0), -idx[L]))
-        best.type = code
-        open_slots.remove(best)
-    for leaf in open_slots:  # any leftover slot (count mismatch) → outside
+            def _sat(slot, secondary=secondary) -> int:
+                nb_types = {(nb.type or "")[:1].lower() for nb in _nbrs(slot) if nb.type}
+                return sum(1 for a in secondary if a in nb_types)
+
+            best = max(open_slots, key=lambda L: (_sat(L), L in dominated,
+                                                  deg.get(L, 0), -idx[L]))
+            best.type = code
+            open_slots.remove(best)
+        placed, leftover = None, open_slots
+    else:
+        placed = _beam_place_rooms(codes, room_slots, dominated, deg, idx, _nbrs,
+                                   reqs, beam_width)
+        for leaf, code in placed.items():
+            leaf.type = code
+        leftover = [L for L in room_slots if L not in placed]
+    for leaf in leftover:  # any leftover slot (count mismatch) → outside
         leaf.type = "O"
+
+
+def _beam_place_rooms(codes: list[str], slots: list, dominated: set,
+                      deg: dict, idx: dict, _nbrs, reqs,
+                      beam_width: int) -> dict:
+    """Beam/best-first search over room-to-slot placement (homemaker-py-c94).
+
+    Same decision ``_assign_adjacency_aware`` makes greedily (which open slot a
+    room lands on, hardest-constrained code first) but keeps up to
+    ``beam_width`` partial placements alive per step instead of committing to
+    one. Each step branches every surviving state into its top ``beam_width``
+    candidate slots for the current code (by the same ``_sat``/dominated/
+    degree ranking the greedy pass uses), scores each branch by the running
+    total of secondary-adjacency matches satisfied so far — cheap: no
+    geometry or fitness calls, since circulation/outside are already fixed and
+    the leaf graph is shared read-only across every branch — then prunes back
+    to the ``beam_width`` best-scoring states before the next code. Returns
+    the highest-scoring complete placement as ``{leaf: code}``.
+    """
+    def secondary_of(code: str) -> list[str]:
+        r = reqs.get(code)
+        return [a[0].lower() for a in (r.adjacency if r else []) if a and a[0].lower() != "c"]
+
+    def sat(slot, assign: dict, secondary: list[str]) -> int:
+        nb_types = set()
+        for nb in _nbrs(slot):
+            t = assign.get(nb, nb.type)
+            if t:
+                nb_types.add(t[:1].lower())
+        return sum(1 for a in secondary if a in nb_types)
+
+    beam: list[tuple[int, dict]] = [(0, {})]
+    for code in codes:
+        secondary = secondary_of(code)
+        candidates = []
+        for score, assign in beam:
+            open_slots = [L for L in slots if L not in assign]
+            if not open_slots:
+                candidates.append((score, assign))
+                continue
+            ranked = sorted(
+                open_slots,
+                key=lambda L: (sat(L, assign, secondary), L in dominated,
+                               deg.get(L, 0), -idx[L]),
+                reverse=True)
+            for slot in ranked[:beam_width]:
+                new_assign = dict(assign)
+                new_assign[slot] = code
+                candidates.append((score + sat(slot, assign, secondary), new_assign))
+        candidates.sort(key=lambda c: c[0], reverse=True)
+        beam = candidates[:beam_width]
+    return max(beam, key=lambda c: c[0])[1] if beam else {}
 
 
 def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
@@ -1004,7 +1078,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           leaf_share_factor: int = 2,
                           depth_balanced: bool = False,
                           interior_outside: bool = True,
-                          outside_divisor: int = 3) -> dom.Node:
+                          outside_divisor: int = 3,
+                          construction_beam_width: int = 1) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -1015,6 +1090,10 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
     outside ``O`` per storey, then assigns the types.  Stochastic (random split
     ratios/rotations and a shuffled type assignment) so a bootstrap batch is
     still a diverse population.
+
+    ``construction_beam_width`` (homemaker-py-c94, EXPERIMENTAL, default 1):
+    forwarded to ``_assign_adjacency_aware``'s ``beam_width`` — see there.
+    ``1`` reproduces the prior greedy room placement exactly.
 
     Returns a finalised deep copy; ``seed_root`` is unchanged.
     """
@@ -1071,7 +1150,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             _grow_leaves(lvl, len(rooms) + n_o + n_circ, rng, balance=depth_balanced)
             dom._link(child)
             _assign_adjacency_aware(lvl, rooms, reqs, rng,
-                                    interior_outside=interior_outside, n_outside=n_o)
+                                    interior_outside=interior_outside, n_outside=n_o,
+                                    beam_width=construction_beam_width)
         else:
             assign = rooms + ["C", "O"]  # +core circulation, +outside
             _grow_leaves(lvl, len(assign), rng, balance=depth_balanced)
@@ -1102,7 +1182,8 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
                          leaf_share_factor: int = 2,
                          depth_balanced: bool = False,
                          interior_outside: bool = True,
-                         outside_divisor: int = 3) -> dom.Node:
+                         outside_divisor: int = 3,
+                         construction_beam_width: int = 1) -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
     Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
@@ -1170,7 +1251,8 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             _assign_adjacency_aware(
                 dup, rooms, reqs, rng,
                 fixed_circ=[core_node] if core_node is not None else None,
-                interior_outside=interior_outside, n_outside=n_o)
+                interior_outside=interior_outside, n_outside=n_o,
+                beam_width=construction_beam_width)
         else:
             assign = rooms + ["O"]  # courtyard / outside on the upper floor
             if core_node is None:
