@@ -3172,7 +3172,7 @@ itself is skipped).
 `homemaker-collapse` standalone on `evolved-anneal-3M.dom` with no flags to confirm the new CLI default
 reproduces the 19-fail result end-to-end.
 
-## 29. Beam/best-first search over adjacency-aware room placement (`homemaker-py-c94`) — DONE (null, no headroom on either example programme)
+## 29. Beam/best-first search over adjacency-aware room placement (`homemaker-py-c94`) — DONE (inconclusive, mixed on harbor-house, null on programme-house)
 
 **Motivation.** Construction/seeding quality is the one lever with a consistent positive track record
 (§11.6/§11.7 adjacency-aware seeding, §12.2 proportion-aware seeding, §23 `f1d`'s reuse of the same
@@ -3212,38 +3212,58 @@ correct joint placement (`a-b adjacent=True`) by keeping `a`'s alternate slot ch
 one-shot pass is structurally prone to, and confirms the beam can and does out-score greedy when the
 graph offers a genuine trade-off.
 
-**Measured (2026-07-27) — NULL on both example programmes, at every width tested.** Raw-seed comparison
-(no search, no fitness call beyond one `score_with_fails` per seed): `constructive_topology` at
-`beam_width` 1/4/8, 15 rng trials each, on programme-house and harbor-house — **fail counts and
-adjacency/access fail counts identical to the last digit across all three widths, every trial** (e.g.
-harbor-house trial 6: 182/182/182 fails; programme-house trial 10: 28/28/28). Extended to the
-`lift_base_to_storeys` path (base + upper storeys, the Stage-2 seeder) at widths 1/4/8/20, 10 trials:
-**again byte-identical fail counts at every width**, including `beam_width=20` — essentially exhaustive
-for the ~15-17 room codes per storey these programmes carry. A step-by-step trace of a real harbor-house
-construction (`da1`→`k1`→`ws1`, the mutual/near-mutual adjacency chain) confirmed the beam *does* explore
-physically distinct slot choices per branch (four different candidate leaves for `da1`) but every branch
-reaches the *same* cumulative score at every step — harbor-house's circulation-spine geometry offers
-several equally-good neighbouring slots for most codes, so there is rarely a genuine trade-off for a beam
-to discover, unlike the sparse synthetic adversarial graph above. Because the resulting seed trees are
-bit-identical (and `_beam_place_rooms` consumes no RNG, so downstream RNG state is unaffected too), an
-end-to-end evolutionary A/B was not run: with the same bootstrap population and the same RNG stream, the
-full `driver.search` trajectory would necessarily reproduce byte-for-byte regardless of budget or seed
-count, by the same determinism this project's parallel-admission-order fix (`homemaker-py-xcy`) already
-relies on elsewhere.
+**Raw-seed check (2026-07-27) — misleadingly byte-identical, later shown insufficient.** Before running
+any search, a cheap diagnostic scored `constructive_topology`'s raw output directly (no GA, one
+`score_with_fails` call per seed): `beam_width` 1/4/8, 15 rng trials each, on programme-house and
+harbor-house — fail counts and adjacency/access fail counts identical to the last digit across all three
+widths, every trial. Extended to `lift_base_to_storeys` (the Stage-2 seeder) at widths 1/4/8/20, 10
+trials: again byte-identical at every width, including `beam_width=20` (near-exhaustive for the ~15-17
+codes per storey these programmes carry). A step-by-step trace of a real harbor-house construction
+(`da1`→`k1`→`ws1`) confirmed the beam *does* explore physically distinct slot branches, but every branch
+reached the same cumulative score every time — harbor-house's circulation-spine geometry usually offers
+several equally-good neighbours per code, so a lone raw-seed sample rarely hits a real trade-off. **This
+was wrongly taken as proof an end-to-end run would also be byte-identical** (a single root's construction
+never diverging was treated as sufficient to conclude the full bootstrap population never would either) —
+see the correction below.
 
-**Interpretation.** The mechanism works — verified on a graph shaped to need it — but the two example
-programmes' circulation-spine construction (s44/ld5) already gives most rooms multiple interchangeable
-neighbour options once dominated by the spine, so the single greedy pass already lands on a score-optimal
-placement under this proxy; there's no slack left for a beam to find. This is a different flavour of null
-than most of this log's search-machinery negatives (§14/§18/§19/§21/§22/§26/§27): those changed *what* is
-optimised or *when*; this one changed *how thoroughly* an already near-optimal local decision is searched,
-and found the decision has no headroom on real programme geometry, not that the technique doesn't work.
+**End-to-end correction (2026-07-28, prompted by user question "should the default be 1? can we find out
+by running the two example programmes from a clean start?") — the raw-seed argument was wrong.** Ran
+`driver.search` from a clean bootstrap (`init.dom`, `n_workers=1` for reproducibility, budget 1500) at
+`construction_beam_width` 1 vs 4, same seed both arms, 5 seeds each programme:
 
-**Status.** `construction_beam_width` stays default `1` (exact prior behaviour) — no evidence supports
-turning it on anywhere, and no CLI flag was added. The code and tests stay in the tree as a working,
-documented, verified-functioning building block (`operators._beam_place_rooms`), consistent with this
-project's convention of keeping validated-but-inconclusive mechanisms available rather than reverting
-them (cf. `bubble.py`, §27). A genuinely different real programme with a sparser/more constrained
-adjacency graph (few circulation leaves relative to rooms, more mutual-pair secondary requirements) is
-the natural condition under which this could still pay off, but neither example programme in this repo
-currently offers that shape — not filed as a follow-up (low priority, no concrete candidate programme).
+| programme | seed | bw=1 fails | bw=4 fails | result |
+|---|---|---|---|---|
+| harbor-house | 1 | 60 | 58 | bw4 win |
+| harbor-house | 2 | 67 | 52 | bw4 win (large) |
+| harbor-house | 3 | 53 | 53 | tie |
+| harbor-house | 4 | 52 | 52 | tie |
+| harbor-house | 5 | 52 | 62 | bw4 **loss** |
+| programme-house | 1–5 | (9,6,11,11,9) | identical | tie, all 5 |
+
+harbor-house: **2 wins / 1 loss / 2 ties**, mean fails 56.8 (bw1) → 55.4 (bw4) — a small mean improvement
+pulled mostly by seed 2's outlier, with a real loss on seed 5. programme-house: 5/5 ties, matching the
+raw-seed prediction exactly. The harbor-house divergence itself confirms the raw-seed reasoning's flaw:
+`driver.search`'s bootstrap builds `pop_size` individuals, each consuming a different slice of the RNG
+stream (unlike the single-root raw-seed check), and once even one population member's construction hits a
+genuine beam-vs-greedy tie-break divergence, the GA's subsequent *structure*-dependent choices (which
+subtree a mutation targets, crossover points) cascade into a different trajectory from there — even
+though the raw RNG numbers drawn are bit-identical between arms. "The one seed I checked never diverged"
+does not imply "no seed in a population of many ever will."
+
+**Interpretation.** The mechanism works (§ above, verified on a synthetic graph built to need it), and
+does occasionally get real traction on harbor-house's larger, more room-dense programme — but the 5-seed
+result is the same small-N, mixed-direction shape this log has repeatedly warned produces false signal
+(§23 `f1d`'s initial 8-run sweep, explicitly flagged there as "the 8sh/1ph/qi6/lj3 pattern"): a genuine
+loss (seed 5) sits alongside the two wins, and N=5 is far short of what `f1d`'s own larger-N confirmation
+needed (N=15/8) to separate a real effect from noise. programme-house shows no effect at any N tested,
+consistent with both the raw-seed check and its smaller, simpler room graph.
+
+**Status.** `construction_beam_width` stays default `1` — the *direct answer* to "should the default be
+1": yes, current evidence does not clear this project's bar for flipping a default (cf. §20/§23's own
+"only after larger-N confirmation" standard), though harbor-house's mixed result (unlike programme-house's
+clean tie) means this is genuinely unresolved rather than a confident null. The code and tests stay in the
+tree as a working, verified-functioning building block (`operators._beam_place_rooms`), consistent with
+keeping validated-but-inconclusive mechanisms available rather than reverting them (cf. `bubble.py`, §27).
+A natural follow-up — not filed, low priority, matching `f1d`'s own unfiled size-threshold follow-up
+(§23/§24) — would be a larger-N harbor-house-only sweep (N=15+, matching `f1d`'s and `y51`'s bar) to
+determine whether the mean-improvement lean is real or an artefact of seed 2's outlier.
