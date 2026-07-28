@@ -3267,3 +3267,52 @@ keeping validated-but-inconclusive mechanisms available rather than reverting th
 A natural follow-up — not filed, low priority, matching `f1d`'s own unfiled size-threshold follow-up
 (§23/§24) — would be a larger-N harbor-house-only sweep (N=15+, matching `f1d`'s and `y51`'s bar) to
 determine whether the mean-improvement lean is real or an artefact of seed 2's outlier.
+
+## 30. `c94` beam-width larger-N confirmation (`homemaker-py-e01`) — DONE (confirmed null)
+
+**Motivation.** §29's own filed follow-up: the 5-seed harbor-house end-to-end result (2W/1L/2T, mean
+fails 56.8→55.4) was flagged as the same small-N, mixed-direction shape that has repeatedly produced
+false signal in this log (`8sh`/`1ph`/`qi6`/`lj3`, §23's initial `f1d` sweep) — the mean was pulled
+mostly by seed 2's outlier (67→52), and N=5 falls well short of the N=15/8 bar `f1d`'s own larger-N
+confirmation needed to separate a real effect from noise.
+
+**Measured (2026-07-29, `experiments/run_e01_sweep.py`)** — identical protocol to §29: `driver.search`
+from a clean bootstrap (`init.dom`), `n_workers=1`, `budget=1500`, same seed both arms,
+`construction_beam_width` 1 vs 4, harbor-house only (programme-house showed zero effect at any N in
+§29 and was not re-checked). Extended seeds 1-5 (reproduced byte-identical to the §29 table, confirming
+the protocol) up to N=15:
+
+| seed | bw=1 fails | bw=4 fails | result |
+|---|---|---|---|
+| 1 | 60 | 58 | win |
+| 2 | 67 | 52 | win (large, the outlier) |
+| 3 | 53 | 53 | tie |
+| 4 | 52 | 52 | tie |
+| 5 | 52 | 62 | loss |
+| 6 | 65 | 65 | tie |
+| 7 | 50 | 50 | tie |
+| 8 | 68 | 64 | win |
+| 9 | 49 | 55 | loss |
+| 10 | 63 | 59 | win |
+| 11 | 63 | 62 | win |
+| 12 | 61 | 61 | tie |
+| 13 | 52 | 53 | loss |
+| 14 | 47 | 45 | win |
+| 15 | 53 | 58 | loss |
+
+N=15: 6 wins / 4 losses / 5 ties, mean fails 57.0 (bw=1) → 56.6 (bw=4), Wilcoxon signed-rank p=0.84 —
+no signal by any conventional threshold. Confirming the §29 suspicion directly: excluding seed 2's
+outlier, the mean *flips slightly negative* (56.3 → 56.9, bw=4 marginally worse), i.e. the entire
+5-seed "mean improvement" that motivated this follow-up was that one outlier — the other 14 seeds
+average to a null-to-negative effect.
+
+**Interpretation.** The beam mechanism remains verified-functioning on its adversarial synthetic case
+(§29) but confirmed to find no reliable real-world traction on either example programme at any N tested.
+This resolves §29's "genuinely unresolved" status to a clean null, matching programme-house's result and
+consistent with `y51`'s own experience (§24) that small-N mixed-direction results in this codebase are
+usually noise rather than an early real signal.
+
+**Status.** `construction_beam_width` stays default `1`, now on confirmed (not just precautionary)
+grounds. Code and tests stay in the tree as a working, verified-functioning building block
+(`operators._beam_place_rooms`), consistent with keeping validated-but-null mechanisms available rather
+than reverting them (cf. `bubble.py` §27, `mi7`).
