@@ -3316,3 +3316,59 @@ usually noise rather than an early real signal.
 grounds. Code and tests stay in the tree as a working, verified-functioning building block
 (`operators._beam_place_rooms`), consistent with keeping validated-but-null mechanisms available rather
 than reverting them (cf. `bubble.py` §27, `mi7`).
+
+## 31. `y51` n=18 larger-N confirmation (`homemaker-py-xyu`) — INCONCLUSIVE, weak but not evaporated
+
+**Motivation.** §24's own filed follow-up (a): of `y51`'s four synthetic room-count sizes (10/14/18/22),
+n=18 showed the strongest trend at N=10 (7W/2L/1T, +9.3% mean fails, Wilcoxon p=0.098) despite sitting
+non-monotonically between two much weaker sizes — consistent either with a real-but-weak effect that
+N=10 underpowered, or with n=18 simply being the noisiest extremum of four small-N estimates. Extends
+only this one size to N=15, matching the sample size that resolved a similar-magnitude effect for `f1d`'s
+own programme-house confirmation (§23, p=0.041 at N=15).
+
+**Measured (2026-07-29, `experiments/run_xyu_sweep.sh`)** — 5 fresh seeds (11-15) appended to `y51`'s
+existing n=18 seeds 1-10, same protocol (`--ruin-recreate` weight=3.0 ON vs OFF, budget=3000, 4 workers,
+finish-time `--collapse`):
+
+| seed | OFF fails | ON fails | diff (OFF-ON) |
+|---|---|---|---|
+| 1 | 27 | 25 | +2 |
+| 2 | 33 | 29 | +4 |
+| 3 | 28 | 26 | +2 |
+| 4 | 30 | 30 | 0 |
+| 5 | 34 | 28 | +6 |
+| 6 | 45 | 35 | +10 |
+| 7 | 33 | 34 | -1 |
+| 8 | 46 | 42 | +4 |
+| 9 | 52 | 37 | +15 |
+| 10 | 37 | 45 | -8 |
+| 11 | 36 | 35 | +1 |
+| 12 | 29 | 28 | +1 |
+| 13 | 40 | 40 | 0 |
+| 14 | 44 | 44 | 0 |
+| 15 | 35 | 36 | -1 |
+
+N=15 combined: **9W/3L/3T**, mean fails **36.60 (OFF) → 34.27 (ON)**, Δ≈**6.4%** (down from N=10's 9.3%).
+Wilcoxon signed-rank two-sided **p≈0.059** (just misses conventional significance), one-sided (directional,
+matching the effect's own sign) **p≈0.029**; sign test on the 12 non-tied seeds is weaker, one-sided
+**p≈0.073**. The 5 new seeds alone were 2W/1L/2T — same direction as the original 10, weaker than them,
+but not reversed.
+
+**Interpretation.** Extending N=10→15 at the size that was *itself selected* for follow-up because it had
+the strongest of four initial signals is a scenario primed for regression to the mean, and that partly
+happened — the effect size shrank from 9.3% to 6.4% and the two-sided p moved from 0.098 to 0.059, i.e.
+still on the "not quite" side of both conventional thresholds. But the trend did not evaporate or flip
+the way §22's `lj3` weight bump or §24's own n=14 size did on their larger-N passes — it stayed
+directionally consistent across all 15 seeds' aggregate and crossed p<0.05 on the one-sided directional
+test. This is a genuinely ambiguous middle case: not the clean confirmation `f1d` got at the same N, not
+the clean reversal-to-null `lj3`/n=14 got either.
+
+**Status.** `enable_ruin_recreate` stays default **OFF** — this result alone does not clear the bar for a
+default flip even at n≈18-room scale, and harbor-house (37 room instances) remains null-to-negative
+(§23). §24's methodological caveat (the synthetic sweep scales room count by duplicating
+already-interchangeable codes, the same mechanism harbor-house itself uses, so it may not isolate the
+same "topology fraction sampled per wing move" variable the `f1d` hypothesis needs) is **not** addressed
+by this larger-N pass — only option (a) of §24's two follow-ups was run here. Option (b), a genuinely
+distinct third example programme (real room-type diversity at an intermediate room count, not a
+duplicated-code scale-up), remains the more likely route to a clean answer and is refiled as a fresh
+follow-up rather than closed out by this inconclusive N=15 read.
