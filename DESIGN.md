@@ -3372,3 +3372,70 @@ by this larger-N pass — only option (a) of §24's two follow-ups was run here.
 distinct third example programme (real room-type diversity at an intermediate room count, not a
 duplicated-code scale-up), remains the more likely route to a clean answer and is refiled as a fresh
 follow-up rather than closed out by this inconclusive N=15 read.
+
+## 32. `health-centre` non-synthetic third example (`homemaker-py-9yx`) — CLEAN NULL
+
+**Motivation.** §31's own filed follow-up (option b): `y51`'s n=10/14/18/22 sweep scales room count by
+duplicating already-interchangeable `programme-house` codes (`b1`/`t1`/`b2`/`t2`/`l1`) via `count:` — the
+same mechanism `harbor-house` itself uses "to reduce complexity". `harbor-house` has real room-type
+diversity (16 distinct codes) but sits out of the tested range at 37 room instances, and its own result
+was already null-to-negative (§23) — so it cannot distinguish "the effect needs more real rooms than
+harbor-house has" from "the effect never existed outside the duplicated-code mechanism". A genuinely
+distinct programme at an intermediate, non-duplicated room count was needed to isolate room count as the
+variable.
+
+**Programme.** `examples/health-centre`: a small primary-care health centre, a building type unlike either
+`programme-house` (a house) or `harbor-house`/`maple-court` (dormitory-style co-housing). 19 distinct,
+individually-sized room codes, n=20 room instances (matching `xyu`'s own n=18 test point closely, without
+leaning on `count:` as the scaling knob — the only duplication is a realistic pair of public WCs).
+
+A first draft's room sizes formed a single transitive interchange class spanning all 19 codes — `9o5`'s
+auto-derived interchange relation chains through any sequence of pairwise-close-enough neighbours, so a
+smooth size gradient from a 3 m² WC up to a 28 m² waiting room reconnects the whole building into one
+class regardless of the individual rooms being genuinely different types. This would have silently
+reintroduced the exact confound the issue exists to eliminate. Fixed by deliberately tiering room widths
+with >1.3x gaps at three boundaries (micro/utility, office/support, large clinical/public), which resolves
+to three bounded classes (sizes 6, 9, 4) instead of one whole-building chain — the same shape of result
+`harbor-house` itself gets from a real programme, and consistent with `9o5`/`b3v`'s own experience that
+this needs active management rather than resolving itself.
+
+**Measured (2026-07-30, `experiments/run_9yx_sweep.sh`)** — 15 fresh seeds (1-15), same protocol as `xyu`
+(`--ruin-recreate` weight=3.0 ON vs OFF, budget=3000, 4 workers, finish-time `--collapse` default):
+
+| seed | OFF fails | ON fails | diff (OFF-ON) |
+|---|---|---|---|
+| 1 | 42 | 42 | 0 |
+| 2 | 44 | 40 | +4 |
+| 3 | 53 | 46 | +7 |
+| 4 | 47 | 46 | +1 |
+| 5 | 46 | 43 | +3 |
+| 6 | 43 | 47 | -4 |
+| 7 | 41 | 47 | -6 |
+| 8 | 51 | 43 | +8 |
+| 9 | 44 | 48 | -4 |
+| 10 | 50 | 54 | -4 |
+| 11 | 45 | 43 | +2 |
+| 12 | 44 | 44 | 0 |
+| 13 | 47 | 42 | +5 |
+| 14 | 45 | 39 | +6 |
+| 15 | 50 | 53 | -3 |
+
+N=15: **8W/5L/2T**, mean fails **46.13 (OFF) → 45.13 (ON)**, Δ≈**2.2%** — well below `xyu`'s already-weak
+6.4% at the same scale. Wilcoxon signed-rank two-sided **p≈0.40**, one-sided (directional) **p≈0.20**;
+sign test on the 13 non-tied seeds one-sided **p≈0.29**. Nowhere near any conventional threshold, in either
+direction.
+
+**Interpretation.** At a real, diverse ~20-room programme, `ruin_recreate`'s effect is indistinguishable
+from noise — much weaker than even `xyu`'s own inconclusive N=15 reading (6.4%, p≈0.059) at essentially
+the same room count. This is the cleanest evidence yet that the `y51`/`xyu` signal was substantially (if
+not entirely) an artifact of the duplicated-interchangeable-code scaling mechanism itself — repeatedly
+placing several copies of the *same* small room set — rather than a genuine effect of room count/topology
+scale that would transfer to a building with that many *different* rooms. It converges with `harbor-house`
+(37 real instances, null-to-negative, §23) rather than with `y51`'s own synthetic n=18 reading, closing the
+gap that made §31 ambiguous.
+
+**Status.** `enable_ruin_recreate` stays default **OFF**, now on a broader evidence base: null-to-negative
+on every real (non-duplicated-code) programme tested at any scale from 6 rooms (`programme-house`) to 37
+(`harbor-house`), and only ever weakly positive on the synthetic duplicated-code sweep that this result
+suggests was measuring the wrong thing. No further follow-up is filed — the room-count hypothesis from
+`f1d` (§23) is now addressed on the diversity axis `xyu` (§31) could not reach.
