@@ -666,8 +666,70 @@ def _leaf_mult_from_plan(lvl: dom.Node, plan: dict[str, list[int]]) -> dict:
     return leaf_mult
 
 
+def _colocate_rooms(rooms: list[str], colocate_pairs,
+                    rng: np.random.Generator) -> tuple[list[str], dict[str, list[str]]]:
+    """Fuse single instances of DIFFERENT compatible codes onto one leaf
+    (homemaker-py-1s3, §26 path b) — the same structural lever as
+    ``_share_rooms`` (fewer, larger leaves), extended from *same*-code
+    multiplicity to *different*-but-compatible codes.
+
+    For each valid declared pair (``programme.derive_colocate_pairs``, order
+    shuffled via ``rng``), pair up ``n = min(available a, available b)``
+    instances: one code is chosen (via ``rng``, once per pair — NOT
+    re-rolled per instance, which would let a code flip between primary and
+    secondary roles across iterations and over-pair beyond what's actually
+    available) as the "secondary" and fully removed (``n`` instances), the
+    other (the "primary") keeps its slot in ``rooms`` unchanged and gets ``n``
+    entries in ``plan``. A primary code may accumulate several secondaries
+    from different declared pairs; ``_leaf_colocate_from_plan`` matches each
+    to a distinct physical leaf. Codes with no available partner are
+    untouched.
+    """
+    from collections import Counter
+
+    counts = Counter(rooms)
+    plan: dict[str, list[str]] = {}
+    pairs = list(colocate_pairs)
+    order = [pairs[i] for i in rng.permutation(len(pairs))] if pairs else []
+    for pair in order:
+        a, b = sorted(pair)
+        n = min(counts[a], counts[b])
+        if n <= 0:
+            continue
+        primary, secondary = (a, b) if rng.integers(2) == 0 else (b, a)
+        counts[secondary] -= n
+        plan.setdefault(primary, []).extend([secondary] * n)
+
+    reduced: list[str] = []
+    for code, c in counts.items():
+        reduced.extend([code] * c)
+    return reduced, plan
+
+
+def _leaf_colocate_from_plan(lvl: dom.Node, plan: dict[str, list[str]], reqs) -> dict:
+    """Stamp each plan's secondary codes onto that primary code's typed
+    leaves (mirrors ``_leaf_mult_from_plan``) and return a leaf→co_type map
+    for sizing. Secondaries are matched biggest-target-first to biggest-area
+    leaves first, same descending-to-descending heuristic as leaf-sharing."""
+    from . import geometry
+    by_code: dict[str, list[dom.Node]] = {}
+    for lf in lvl.leaves():
+        if lf.type:
+            by_code.setdefault(lf.type, []).append(lf)
+    leaf_co: dict = {}
+    for code, secondaries in plan.items():
+        leaves = sorted(by_code.get(code, []), key=geometry.area, reverse=True)
+        secs = sorted(secondaries, key=lambda c: reqs[c].size if c in reqs else 0.0,
+                      reverse=True)
+        for lf, co in zip(leaves, secs):
+            lf.co_type = co
+            leaf_co[lf] = co
+    return leaf_co
+
+
 def _size_divisions_from_targets(lvl: dom.Node, reqs, fmin: float = 0.04,
-                                 fmax: float = 0.96, leaf_mult: dict | None = None) -> None:
+                                 fmax: float = 0.96, leaf_mult: dict | None = None,
+                                 leaf_extra: dict | None = None) -> None:
     """Resize each divided node's split ratio from its leaves' TARGET areas.
 
     leu.2 (DESIGN.md §12.2, follow-up to §11.6/§11.7): the constructive seeders
@@ -701,8 +763,9 @@ def _size_divisions_from_targets(lvl: dom.Node, reqs, fmin: float = 0.04,
         return
 
     leaf_mult = leaf_mult or {}
-    sized = {lf: reqs[lf.type].size * leaf_mult.get(lf, 1) for lf in leaves
-             if lf.type in reqs and reqs[lf.type].size > 0}
+    leaf_extra = leaf_extra or {}
+    sized = {lf: reqs[lf.type].size * leaf_mult.get(lf, 1) + leaf_extra.get(lf, 0.0)
+             for lf in leaves if lf.type in reqs and reqs[lf.type].size > 0}
     mean_sized = (sum(sized.values()) / len(sized)) if sized else 1.0
     n_generic = len(leaves) - len(sized)
     slack = geometry.area(lvl) - sum(sized.values())
@@ -1079,7 +1142,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           depth_balanced: bool = False,
                           interior_outside: bool = True,
                           outside_divisor: int = 3,
-                          construction_beam_width: int = 1) -> dom.Node:
+                          construction_beam_width: int = 1,
+                          multi_use: bool = False) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -1098,11 +1162,13 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
     Returns a finalised deep copy; ``seed_root`` is unchanged.
     """
     from . import genome as _g
+    from . import programme as _prog
 
     child = copy.deepcopy(seed_root)
     prog = _programme_codes(reqs)
     levels_needed = [r.level for r in prog.values() if r.level is not None]
     n_storeys = max((max(levels_needed) + 1) if levels_needed else 1, min_storeys)
+    colocate_pairs = _prog.derive_colocate_pairs(reqs) if multi_use else []
 
     # grow storeys from the bare base by duplicating the top storey (cf.
     # mutate_level_add / genome._copy_storey), inheriting floor height.
@@ -1134,6 +1200,12 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
         # leaves (each paying the ~1.8 shape-fail tax once, §13.1). The fitness
         # recovers each leaf's multiplicity from area; here we only reduce the
         # code list and remember the plan to size shared leaves to k×target.
+        # 1s3 §26 path b: fuse different-but-compatible codes onto one leaf
+        # BEFORE leaf-sharing, so leaf-sharing still groups whichever code
+        # was kept as primary with its remaining same-code siblings.
+        colocate_plan: dict[str, list[str]] = {}
+        if multi_use:
+            rooms, colocate_plan = _colocate_rooms(rooms, colocate_pairs, rng)
         share_plan: dict[str, list[int]] = {}
         if leaf_sharing:
             rooms, share_plan = _share_rooms(rooms, reqs, leaf_share_factor)
@@ -1167,8 +1239,12 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             # first so upper-storey roots resolve geometry (the else branch above
             # does not link, unlike the adjacency-aware branch).
             dom._link(child)
+            leaf_co = _leaf_colocate_from_plan(lvl, colocate_plan, reqs) if multi_use else {}
+            leaf_extra = {lf: reqs[co].size for lf, co in leaf_co.items()
+                          if co in reqs and reqs[co].size > 0}
             _size_divisions_from_targets(
-                lvl, reqs, leaf_mult=_leaf_mult_from_plan(lvl, share_plan))
+                lvl, reqs, leaf_mult=_leaf_mult_from_plan(lvl, share_plan),
+                leaf_extra=leaf_extra)
 
     return _finalise(child)
 
@@ -1183,7 +1259,8 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
                          depth_balanced: bool = False,
                          interior_outside: bool = True,
                          outside_divisor: int = 3,
-                         construction_beam_width: int = 1) -> dom.Node:
+                         construction_beam_width: int = 1,
+                         multi_use: bool = False) -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
     Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
@@ -1198,6 +1275,7 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
     Returns a finalised deep copy; ``base_root`` is unchanged.
     """
     from . import genome as _g, geometry as _geo
+    from . import programme as _prog
 
     child = copy.deepcopy(base_root)
     base = dom.levels(child)[0]
@@ -1206,6 +1284,7 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
     base_cs = [lf for lf in base.leaves()
                if lf.type and lf.type[0].lower() == "c"]
     core_path = max(base_cs, key=_geo.area).id if base_cs else None
+    colocate_pairs = _prog.derive_colocate_pairs(reqs) if multi_use and reqs else []
 
     prev = base
     for bucket in upper_buckets:
@@ -1214,6 +1293,11 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
         core_node = dup.by_id(core_path) if core_path is not None else None
 
         rooms = [code for code, cnt in bucket.items() for _ in range(cnt)]
+        # 1s3: fuse different-but-compatible codes onto one leaf on this storey
+        # too, before leaf-sharing (same ordering as constructive_topology).
+        colocate_plan: dict[str, list[str]] = {}
+        if multi_use:
+            rooms, colocate_plan = _colocate_rooms(rooms, colocate_pairs, rng)
         # erc.3: collapse same-code rooms into fewer shared leaves on this storey
         # too (§13.3), so upper floors get the same per-leaf-tax saving.
         share_plan: dict[str, list[int]] = {}
@@ -1285,8 +1369,12 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             # the base via below-links are no-ops here — their geometry is fixed
             # below — so this best-effort sizes the floor's own new divisions.)
             dom._link(child)
+            leaf_co = _leaf_colocate_from_plan(dup, colocate_plan, reqs) if multi_use else {}
+            leaf_extra = {lf: reqs[co].size for lf, co in leaf_co.items()
+                          if co in reqs and reqs[co].size > 0}
             _size_divisions_from_targets(
-                dup, reqs, leaf_mult=_leaf_mult_from_plan(dup, share_plan))
+                dup, reqs, leaf_mult=_leaf_mult_from_plan(dup, share_plan),
+                leaf_extra=leaf_extra)
 
         prev = dup
 

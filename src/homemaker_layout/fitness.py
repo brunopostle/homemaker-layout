@@ -238,6 +238,13 @@ class Fitness:
         # Fewer Jacobi passes than the finish-time default (6): a per-eval cost,
         # not a one-shot polish — profile before raising.
         self._collapse_insearch_iters = int(self.conf("collapse_insearch_iters") or 3)
+        # homemaker-py-1s3 §26 path b: multi-use leaves as a PERMANENT design
+        # goal (no per-eval collapse, unlike superpose above). Default OFF.
+        # When on, a leaf carrying a live, valid co_type counts toward BOTH
+        # codes' requirements simultaneously (graph.leaf_codes), and its size
+        # target combines both codes' area (quality_size).
+        self._multi_use = bool(self.conf("multi_use"))
+        self._colocate_pairs: list | None = None  # lazily derived
 
     # ------------------------------------------------------------------ #
     # Type superposition + collapse (homemaker-py-9o5)
@@ -254,6 +261,30 @@ class Fitness:
                 _pr.derive_interchange_classes(reqs) if reqs else []
             )
         return self._interchange_classes
+
+    # ------------------------------------------------------------------ #
+    # Multi-use leaves (homemaker-py-1s3, §26 path b)
+    # ------------------------------------------------------------------ #
+
+    def colocate_pairs(self) -> list:
+        """Valid co-location pairs, derived once from the programme and
+        cached. Empty list when nothing is declared, in which case
+        ``multi_use`` is a no-op and scoring matches baseline."""
+        if self._colocate_pairs is None:
+            from . import programme as _pr
+            reqs = self._programme or {}
+            self._colocate_pairs = (
+                _pr.derive_colocate_pairs(reqs) if reqs else []
+            )
+        return self._colocate_pairs
+
+    def _leaf_co_type(self, leaf: Node) -> "str | None":
+        """The leaf's live, valid co_type under ``multi_use``, else ``None``."""
+        if not self._multi_use or not leaf.co_type or not leaf.type:
+            return None
+        if frozenset((leaf.type, leaf.co_type)) in self.colocate_pairs():
+            return leaf.co_type
+        return None
 
     def _usage_quality(self, leaf: Node, usage: str) -> float:
         """The usage-DEPENDENT part of a leaf's quality (size x width x
@@ -776,6 +807,13 @@ class Fitness:
             params = self.conf("proportion_circulation")
         else:
             params = self.get_space_params(leaf.type, "proportion")
+            co_type = self._leaf_co_type(leaf)
+            if co_type:
+                # 1s3: a fused leaf must satisfy the STRICTER of its two
+                # codes' proportion targets (max target, min tolerance) —
+                # unlike quality_size, shape doesn't add across two uses.
+                co_params = self.get_space_params(co_type, "proportion")
+                params = [max(params[0], co_params[0]), min(params[1], co_params[1])]
         aspect = geometry.aspect(leaf)
         if aspect < params[0]:
             return 1.0
@@ -790,16 +828,28 @@ class Fitness:
         else:
             params = self.get_space_params(leaf.type, "size")
         target, sigma = params[0], params[1]
-        if self._leaf_sharing and t0 != "c" and target > 0:
-            # erc.3: a shared leaf holds k same-code rooms; centre the Gaussian on
-            # k×target (k = leaf's explicit, type-guarded share) and scale sigma by
-            # k so the *fractional* size tolerance is preserved. An undersize
-            # shared leaf now lands a (light) size fail here instead of a (heavy)
-            # missing fail in the count check — the §13.3 leak fix.
-            from . import graph as _graph
-            k = _graph.leaf_share(leaf, self._max_share)
+        if t0 != "c" and target > 0:
+            k = 1
+            if self._leaf_sharing:
+                # erc.3: a shared leaf holds k same-code rooms; centre the
+                # Gaussian on k×target (k = leaf's explicit, type-guarded
+                # share) and scale sigma by k so the *fractional* size
+                # tolerance is preserved. An undersize shared leaf now lands
+                # a (light) size fail here instead of a (heavy) missing fail
+                # in the count check — the §13.3 leak fix.
+                from . import graph as _graph
+                k = _graph.leaf_share(leaf, self._max_share)
+            co_type = None if k > 1 else self._leaf_co_type(leaf)
             if k > 1:
                 target, sigma = target * k, sigma * k
+            elif co_type:
+                # 1s3 §26 path b: a fused leaf's floor area serves BOTH codes'
+                # requirements at once — additive, the same operation as
+                # leaf-sharing's k×target sum (k identical terms), here with
+                # 2 different terms. A leaf never carries both a live share>1
+                # and a live co_type (construction never stamps both).
+                co_params = self.get_space_params(co_type, "size")
+                target, sigma = target + co_params[0], sigma + co_params[1]
         return gaussian(geometry.area(leaf), 1.0, target, sigma)
 
     def quality_width(self, leaf: Node) -> float:
@@ -817,6 +867,12 @@ class Fitness:
             params = self.conf("width_circulation")
         else:
             params = self.get_space_params(leaf.type, "width")
+            co_type = self._leaf_co_type(leaf)
+            if co_type:
+                # 1s3: stricter of the two codes' width targets, same reasoning
+                # as quality_proportion above.
+                co_params = self.get_space_params(co_type, "width")
+                params = [max(params[0], co_params[0]), min(params[1], co_params[1])]
         width = geometry.length_narrowest(leaf)
         if width > params[0]:
             return 1.0
@@ -1585,7 +1641,8 @@ class Fitness:
 
         # --- Phase 1: UNMERGED tree checks ---
         check_fails, missing = graph_mod.check_space_counts(
-            root, programme, self._leaf_sharing, self._max_share)
+            root, programme, self._leaf_sharing, self._max_share,
+            self._multi_use, self.colocate_pairs())
         failures.extend(check_fails)
 
         self.preprocess_building(root)
@@ -1595,9 +1652,13 @@ class Fitness:
 
         graph_base_pre = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
 
-        failures.extend(graph_mod.check_adjacency(root, programme, graph_base_pre, missing))
-        failures.extend(graph_mod.check_level_constraints(root, programme, missing))
-        failures.extend(graph_mod.check_vertical_connectivity(root, programme, missing))
+        failures.extend(graph_mod.check_adjacency(
+            root, programme, graph_base_pre, missing,
+            self._multi_use, self.colocate_pairs()))
+        failures.extend(graph_mod.check_level_constraints(
+            root, programme, missing, self._multi_use, self.colocate_pairs()))
+        failures.extend(graph_mod.check_vertical_connectivity(
+            root, programme, missing, self._multi_use, self.colocate_pairs()))
 
         # --- Phase 2: MERGED tree ---
         dom_mod.merge_divided(root)
@@ -1676,6 +1737,7 @@ class Fitness:
                 level=c.get("level"),
                 requires_below=c.get("requires_below"),
                 count=int(c.get("count") or 1),
+                co_locate=list(c.get("co_locate") or []),
                 has_size="size" in c,
                 has_width="width" in c,
                 has_proportion="proportion" in c,

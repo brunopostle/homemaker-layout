@@ -409,13 +409,20 @@ def _level_index(n: Node, lvls: list[Node]) -> int:
 # Adjacency helpers
 # --------------------------------------------------------------------------- #
 
-def has_adjacency(leaf: Node, target_code: str, G: nx.Graph) -> bool:
+def _codes_match_prefix(codes: list[str], tc: str) -> bool:
+    return any(c.lower().startswith(tc) for c in codes)
+
+
+def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
+                  colocate_pairs=(), multi_use: bool = False) -> bool:
     """True if ``leaf`` (or its nearest graphed ancestor) has a neighbour whose
     type matches ``^target_code`` (case-insensitive prefix); mirrors
     ``ProgrammeDriven.pm::has_adjacency``.
 
     Walking up to the nearest graphed ancestor handles merged nodes that no
-    longer appear as individual vertices in a post-merge graph.
+    longer appear as individual vertices in a post-merge graph. Under
+    ``multi_use`` a neighbour's ``leaf_codes()`` (both type and any live
+    co_type) are checked, not just its scalar ``type``.
     """
     node: Node | None = leaf
     while node is not None and not G.has_node(node):
@@ -424,16 +431,17 @@ def has_adjacency(leaf: Node, target_code: str, G: nx.Graph) -> bool:
         return False
     tc = target_code.lower()
     for nb in G.neighbors(node):
-        if nb.type and nb.type.lower().startswith(tc):
+        if _codes_match_prefix(leaf_codes(nb, colocate_pairs, multi_use), tc):
             return True
         # neighbour might be a merged branch — check its leaves
         for nl in (nb.leaves() if nb.divided else []):
-            if nl.type and nl.type.lower().startswith(tc):
+            if _codes_match_prefix(leaf_codes(nl, colocate_pairs, multi_use), tc):
                 return True
     return False
 
 
-def has_vertical_connection(leaf: Node, target_code: str, lvls: list[Node]) -> bool:
+def has_vertical_connection(leaf: Node, target_code: str, lvls: list[Node],
+                            colocate_pairs=(), multi_use: bool = False) -> bool:
     """True if any leaf on the level directly below has type matching
     ``^target_code`` (case-insensitive); mirrors
     ``ProgrammeDriven.pm::has_vertical_connection``.
@@ -446,7 +454,8 @@ def has_vertical_connection(leaf: Node, target_code: str, lvls: list[Node]) -> b
         return False
     below_root = lvls[li - 1]
     tc = target_code.lower()
-    return any(bl.type and bl.type.lower().startswith(tc) for bl in below_root.leaves())
+    return any(_codes_match_prefix(leaf_codes(bl, colocate_pairs, multi_use), tc)
+               for bl in below_root.leaves())
 
 
 # --------------------------------------------------------------------------- #
@@ -467,11 +476,30 @@ def leaf_share(leaf: Node, max_share: int) -> int:
     return 1
 
 
+def leaf_codes(leaf: Node, colocate_pairs=(), multi_use: bool = False) -> list[str]:
+    """Codes ``leaf`` counts as (homemaker-py-1s3, §26 path b).
+
+    Normally just ``[leaf.type]``. Under ``multi_use``, a leaf carrying a
+    ``co_type`` counts as BOTH codes simultaneously — but only while
+    ``{type, co_type}`` is still a valid declared co-location pair
+    (``colocate_pairs``, from ``programme.derive_colocate_pairs``); a generic
+    retype mutation that changes ``leaf.type`` out from under a stale
+    ``co_type`` silently drops it, mirroring ``leaf_share``'s type-guard.
+    """
+    if not leaf.type:
+        return []
+    if multi_use and leaf.co_type and frozenset((leaf.type, leaf.co_type)) in colocate_pairs:
+        return [leaf.type, leaf.co_type]
+    return [leaf.type]
+
+
 def check_space_counts(
     root: Node,
     targets: dict[str, SpaceReq],
     leaf_sharing: bool = False,
     max_share: int = 4,
+    multi_use: bool = False,
+    colocate_pairs=(),
 ) -> tuple[list[str], list[str]]:
     """Check design has exactly the required spaces; mirrors
     ``check_space_counts`` in ``ProgrammeDriven.pm:156-215``.
@@ -492,8 +520,8 @@ def check_space_counts(
     count: dict[str, list[Node]] = {}
     for lvl in levels(root):
         for leaf in lvl.leaves():
-            if leaf.type:
-                count.setdefault(leaf.type, []).append(leaf)
+            for code in leaf_codes(leaf, colocate_pairs, multi_use):
+                count.setdefault(code, []).append(leaf)
 
     failures: list[str] = []
     missing: list[str] = []
@@ -543,6 +571,8 @@ def check_adjacency(
     targets: dict[str, SpaceReq],
     graph_base: list[nx.Graph],
     missing: list[str],
+    multi_use: bool = False,
+    colocate_pairs=(),
 ) -> list[str]:
     """Adjacency check failures; mirrors
     ``check_adjacency_requirements`` in ``ProgrammeDriven.pm:218-278``.
@@ -566,7 +596,7 @@ def check_adjacency(
         for lvl in lvls:
             li = lvls.index(lvl)
             for leaf in lvl.leaves():
-                if leaf.type != code:
+                if code not in leaf_codes(leaf, colocate_pairs, multi_use):
                     continue
                 G = graph_base[li]
                 for adj_code in req.adjacency:
@@ -574,7 +604,7 @@ def check_adjacency(
                     if key in seen:
                         continue
                     seen.add(key)
-                    if not has_adjacency(leaf, adj_code, G):
+                    if not has_adjacency(leaf, adj_code, G, colocate_pairs, multi_use):
                         failures.append(
                             f"{li}/{leaf.id} ({code}) not adjacent to {adj_code}"
                         )
@@ -585,6 +615,8 @@ def check_level_constraints(
     root: Node,
     targets: dict[str, SpaceReq],
     missing: list[str],
+    multi_use: bool = False,
+    colocate_pairs=(),
 ) -> list[str]:
     """Level constraint failures; mirrors
     ``check_level_constraints`` in ``ProgrammeDriven.pm:319-358``.
@@ -604,7 +636,7 @@ def check_level_constraints(
         for lvl in lvls:
             li = lvls.index(lvl)
             for leaf in lvl.leaves():
-                if leaf.type != code:
+                if code not in leaf_codes(leaf, colocate_pairs, multi_use):
                     continue
                 if li != req.level:
                     failures.append(
@@ -617,6 +649,8 @@ def check_vertical_connectivity(
     root: Node,
     targets: dict[str, SpaceReq],
     missing: list[str],
+    multi_use: bool = False,
+    colocate_pairs=(),
 ) -> list[str]:
     """Vertical connectivity failures; mirrors
     ``check_vertical_connectivity_requirements`` in ``ProgrammeDriven.pm:360-397``.
@@ -639,9 +673,10 @@ def check_vertical_connectivity(
 
         for lvl in lvls:
             for leaf in lvl.leaves():
-                if leaf.type != code:
+                if code not in leaf_codes(leaf, colocate_pairs, multi_use):
                     continue
-                if not has_vertical_connection(leaf, req.requires_below, lvls):
+                if not has_vertical_connection(leaf, req.requires_below, lvls,
+                                               colocate_pairs, multi_use):
                     failures.append(
                         f"{code} not connected to {req.requires_below} below"
                     )

@@ -69,27 +69,32 @@ def main() -> int:
     depth_bal = os.environ.get("DEPTHBAL", "0") == "1"  # erc.4 depth-balanced grow A/B
     interior_o = os.environ.get("INTERIORO", "0") == "1"  # ld2 interior light-well A/B
     out_div = int(os.environ.get("ODIV", "6"))  # ld2 outside-leaf-per-room divisor
+    multi_use = os.environ.get("MULTIUSE", "0") == "1"  # 1s3 §26 path b multi-use A/B
+    workers = int(os.environ.get("WORKERS", "1"))  # parallel child evaluation
 
-    if leaf_share:
-        # erc.3 §13.3: the inner-loop and final-score fitness are built from the
-        # dir's patterns.config (which has no leaf_sharing key); inject it here so
-        # the WHOLE pipeline scores under the same relaxed objective the
-        # constructed shared leaves target. Keeps both A/B arms on one dir.
+    if leaf_share or multi_use:
+        # erc.3 §13.3 / 1s3 §26: the FINAL re-score below (`_native_score`) loads
+        # patterns.config fresh with no overrides, so it must see the same flags
+        # the driver optimised against or the sanity MISMATCH check (and the
+        # reported "re-scored (native)" fail count this script's A/B harness
+        # greps) would be wrong. driver.search_staged already threads its own
+        # overrides into the inner loop; this patches the dir-level default too.
         _orig_load = fitness.load_config
 
-        def _load_with_sharing(directory, overrides=None):
-            # x3b: driver/innerloop now pass overrides={"leaf_sharing": True}; honour
-            # the kwarg, then pin the experiment's extra A/B knob on top.
+        def _load_with_flags(directory, overrides=None):
             conf, cost = _orig_load(directory, overrides=overrides)
             conf = dict(conf)
-            conf["leaf_sharing"] = True
-            # hph §13.8: share-aware edge-too-long cap now defaults ON under
-            # leaf_sharing, so pin both A/B arms explicitly (SHAREEDGE=0 keeps
-            # the pre-flip control reproducible).
-            conf["share_edge_cap"] = share_edge
+            if leaf_share:
+                conf["leaf_sharing"] = True
+                # hph §13.8: share-aware edge-too-long cap now defaults ON under
+                # leaf_sharing, so pin both A/B arms explicitly (SHAREEDGE=0 keeps
+                # the pre-flip control reproducible).
+                conf["share_edge_cap"] = share_edge
+            if multi_use:
+                conf["multi_use"] = True
             return conf, cost
 
-        fitness.load_config = _load_with_sharing
+        fitness.load_config = _load_with_flags
 
     print(f"programme : {programme_dir.name}")
     print(f"seed      : {seed_file.name}")
@@ -107,6 +112,8 @@ def main() -> int:
     print(f"leaf_share: {leaf_share} (factor={leaf_share_fac})")
     print(f"share_edge: {share_edge}")
     print(f"interior_o: {interior_o} (odiv={out_div})")
+    print(f"multi_use : {multi_use}")
+    print(f"workers   : {workers}")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -123,6 +130,7 @@ def main() -> int:
         base_p=0.15,
         p_crossover=0.2,
         seed=rng_seed,
+        n_workers=workers,
         log=lambda m: print(m, flush=True),
         use_grade=use_grade,
         tournament_k=tournament_k,
@@ -139,6 +147,7 @@ def main() -> int:
         depth_balanced=depth_bal,
         interior_outside=interior_o,
         outside_divisor=out_div,
+        multi_use=multi_use,
     )
 
     elapsed = time.perf_counter() - t0

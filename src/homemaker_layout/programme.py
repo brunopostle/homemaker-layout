@@ -40,6 +40,11 @@ class SpaceReq:
     # grouping (e.g. harbor-house's transitive 8-code chain) without disabling
     # superposition globally.
     interchange: bool = True
+    # 1s3 §26 path b: codes this one may permanently co-locate on (fuse onto)
+    # one leaf with. Explicit, architect-declared (unlike the auto-derived
+    # interchange classes above) — a pair is only ever honoured if it *also*
+    # passes interchangeable()'s S1-S4 bounds (see derive_colocate_pairs).
+    co_locate: list[str] = field(default_factory=list)
     # Whether each quality param was explicitly in the config (not a default)
     has_size: bool = False
     has_width: bool = False
@@ -76,6 +81,7 @@ def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
             count=int(c.get("count") or 1),
             share=int(c.get("share") or 1),
             interchange=bool(c.get("interchange", True)),
+            co_locate=list(c.get("co_locate") or []),
             has_size="size" in c,
             has_width="width" in c,
             has_proportion="proportion" in c,
@@ -177,6 +183,43 @@ def derive_interchange_classes(reqs: dict[str, SpaceReq]) -> list[frozenset[str]
         if len(comp) >= 2:
             classes.append(frozenset(comp))
     return classes
+
+
+# --------------------------------------------------------------------------- #
+# Co-location pairs (homemaker-py-1s3, §26 path b: permanent multi-use leaves)
+# --------------------------------------------------------------------------- #
+#
+# Unlike interchange classes (auto-derived, soft substitution), fusing two
+# codes onto one permanent leaf is architect-declared per-code (``co_locate``)
+# — but a declared pair is only ever honoured if it ALSO passes the existing
+# interchangeable() S1-S4 relation. This reuses the already-validated bounds
+# (size/width/proportion similarity, compatible level/service stack, no direct
+# adjacency edge) instead of inventing a second relation, and — because pairs
+# are kept individually rather than folded into connected components — sidesteps
+# the b3v transitive-chain failure mode (a nonsensical A-C fusion can never be
+# smuggled in via a declared A-B, B-C chain the way interchange classes could).
+
+def derive_colocate_pairs(reqs: dict[str, SpaceReq]) -> list[frozenset[str]]:
+    """Valid co-location pairs: architect-declared AND interchangeable().
+
+    A code may declare ``co_locate: [other_code, ...]``; declaration is
+    symmetric (either side declaring is sufficient). Returns one frozenset per
+    valid pair (size always 2); an entry with no interchangeable() partner is
+    silently dropped, never merged into a larger group.
+    """
+    pairs: list[frozenset[str]] = []
+    seen: set[frozenset[str]] = set()
+    for code, req in reqs.items():
+        for other in req.co_locate:
+            if other not in reqs or other == code:
+                continue
+            key = frozenset((code, other))
+            if key in seen:
+                continue
+            seen.add(key)
+            if interchangeable(reqs[code], reqs[other]):
+                pairs.append(key)
+    return pairs
 
 
 def n_storeys_required(reqs: dict[str, SpaceReq]) -> int:

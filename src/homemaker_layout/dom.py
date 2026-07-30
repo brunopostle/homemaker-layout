@@ -39,6 +39,13 @@ class Node:
     share: int = 1
     share_type: "str | None" = None
 
+    # 1s3 §26 path b (multi-use leaves): a second code this leaf permanently
+    # serves alongside ``type``. Construction-time only (no mutation operator
+    # sets it); the fitness honours it only while the pair is still a valid
+    # declared co-location (``graph.leaf_codes``), so a retyped leaf silently
+    # drops a stale ``co_type`` the same way a stale ``share`` is dropped.
+    co_type: "str | None" = None
+
     # level-root only
     node: list[list[float]] | None = None  # working corners (wall-inset)
     node_file: list[list[float]] | None = None  # raw outer corners as read from disk
@@ -95,6 +102,8 @@ def _parse(d: dict) -> Node:
         # type still matches), so on read the assigned-for type is this leaf's.
         n.share = int(d["share"])
         n.share_type = n.type
+    if d.get("co_type") is not None:
+        n.co_type = str(d["co_type"])
     if d.get("node") is not None:
         n.node = [[float(p[0]), float(p[1])] for p in d["node"]]
     if d.get("perimeter") is not None:
@@ -192,6 +201,8 @@ def _emit(n: Node, is_level_root: bool) -> dict:
         d["type"] = n.type
         if n.share > 1 and n.share_type == n.type:  # erc.3: live leaf-share only
             d["share"] = n.share
+        if n.co_type:  # 1s3: permanent second-code declaration
+            d["co_type"] = n.co_type
     d["rotation"] = n.rotation
     if n.divided:
         d["division"] = list(n.division)

@@ -95,6 +95,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "requirements) form equivalence classes and each candidate "
                         "collapses every superposed leaf to its best in-class usage "
                         "before scoring (default: off)")
+    p.add_argument("--multi-use", action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_MULTI_USE", False),
+                   help="homemaker-py-1s3 (§26 path b): multi-use leaves as a "
+                        "PERMANENT design goal. Codes declaring a mutual "
+                        "'co_locate' (and passing interchangeable()'s S1-S4 "
+                        "bounds) may be fused onto one leaf at construction time, "
+                        "surviving unchanged into the output (unlike --superpose's "
+                        "per-eval collapse to a single usage) (default: off)")
     p.add_argument("--conn-grade", dest="conn_grade",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_CONN_GRADE", False),
@@ -207,6 +215,7 @@ def main(argv=None) -> int:
     print(f"leaf sharing : {args.leaf_sharing} (factor={args.leaf_share_factor})",
           file=sys.stderr)
     print(f"superpose    : {args.superpose}", file=sys.stderr)
+    print(f"multi_use    : {args.multi_use}", file=sys.stderr)
     print(f"conn grade   : {args.conn_grade}", file=sys.stderr)
     print(f"bridge circulation : {args.bridge_circulation}", file=sys.stderr)
     print(f"ruin recreate      : {args.ruin_recreate}", file=sys.stderr)
@@ -243,6 +252,7 @@ def main(argv=None) -> int:
             seed=args.seed,
             n_workers=args.workers,
             superpose=args.superpose,
+            multi_use=args.multi_use,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
         _finish_sharing = False
@@ -259,6 +269,7 @@ def main(argv=None) -> int:
             leaf_sharing=args.leaf_sharing,
             leaf_share_factor=args.leaf_share_factor,
             superpose=args.superpose,
+            multi_use=args.multi_use,
             conn_grade=args.conn_grade,
             enable_bridge_circulation=args.bridge_circulation,
             enable_ruin_recreate=args.ruin_recreate,
@@ -292,6 +303,7 @@ def main(argv=None) -> int:
             seed=args.seed,
             n_workers=args.workers,
             superpose=args.superpose,
+            multi_use=args.multi_use,
             collapse_insearch=args.collapse_insearch,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
@@ -307,6 +319,7 @@ def main(argv=None) -> int:
         r = driver.collapse_best(
             r, programme_dir,
             superpose=args.superpose,
+            multi_use=args.multi_use,
             local_search=args.collapse_local_search,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
