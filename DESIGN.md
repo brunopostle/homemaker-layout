@@ -1533,6 +1533,25 @@ pays **end-to-end**.
   determinism fix (to even see sub-±3 effects) or a representational change beyond
   the slicing tree — not another seed/search tweak at this scale.
 
+- *§12.3 re-run at fixed worker count — CONFIRMED, no new run needed
+  (`homemaker-py-h10`, 2026-07-30).* §12.4's own writeup flagged the §12.3
+  reassoc/feas negatives (+3.3/+4.0) as sub-±3-adjacent and asked for a re-run
+  "at a single fixed worker count" post-fix, since they predate the
+  completion-order determinism fix above. Checked before re-running the full
+  8.3-hour sweep: `experiments/run_9gp_ab.sh` invokes `run_staged_search.py`,
+  which never threads a worker count through to `driver.search_staged` —
+  every §12.3 arm therefore already ran at `n_workers=1` (serial), the one
+  mode §12.4 itself already proved "was already byte-for-byte reproducible"
+  even *before* the fix (the bug was in `ProcessPoolExecutor`
+  `as_completed` ordering, parallel-only; serial has no futures to reorder).
+  Confirmed empirically too: re-running one arm (harbor-house seed 0,
+  baseline config, budget 300) twice back-to-back reproduced identical fail
+  counts at every logged checkpoint. So the §12.3 table was already measured
+  at a fixed (and the most reproducible available) worker count — the
+  determinism fix changes nothing for it. **Verdict stands as CONFIRMED-NULL**
+  without re-spending the ~8 core-hours a full re-run would cost; upgrades
+  §12.3's negative from "should be re-run" to "already valid as measured."
+
 ## 13. Phase 8 — lowering the geometry/shape floor (`homemaker-py-erc`)
 
 Phase 8 runs DIAGNOSTICS FIRST to decide *which* floor-lowering lever to invest
