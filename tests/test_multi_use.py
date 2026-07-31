@@ -265,17 +265,47 @@ def test_quality_size_combines_both_codes_area_additively():
     assert fit.quality_size(leaf) == pytest.approx(gaussian(16.0, 1.0, 17.0, 3.0))
 
 
-def test_quality_width_and_proportion_take_stricter_of_both_targets():
+def test_gaussian_product_is_intermediate_and_narrower():
+    from homemaker_layout.fitness import _gaussian_product
+
+    # equal sigmas -> target is the plain average, sigma shrinks by sqrt(2)
+    t, s = _gaussian_product(3.0, 0.5, 4.0, 0.5)
+    assert t == pytest.approx(3.5)
+    assert s == pytest.approx(0.5 / (2 ** 0.5))
+    assert s < 0.5
+
+    # unequal sigmas -> target is pulled toward the more confident (smaller
+    # sigma) side, and stays strictly between the two targets (never the max)
+    t2, s2 = _gaussian_product(3.0, 0.5, 3.8, 0.2)
+    assert 3.0 < t2 < 3.8
+    assert t2 > 3.4  # pulled toward the tighter-sigma target (3.8)
+    assert s2 < min(0.5, 0.2)
+
+
+def test_clipped_gaussian_flat_past_target_and_decays_short_of_it():
+    from homemaker_layout.fitness import _clipped_gaussian
+
+    assert _clipped_gaussian(5.0, 3.0, 0.5, "above") == 1.0
+    assert _clipped_gaussian(3.0, 3.0, 0.5, "above") == pytest.approx(
+        gaussian(3.0, 1.0, 3.0, 0.5))
+    assert _clipped_gaussian(1.0, 3.0, 0.5, "below") == 1.0
+    assert _clipped_gaussian(5.0, 3.0, 0.5, "below") == pytest.approx(
+        gaussian(5.0, 1.0, 3.0, 0.5))
+
+
+def test_quality_width_and_proportion_use_precision_weighted_combination():
+    from homemaker_layout.fitness import _gaussian_product
+
     fit = Fitness(conf=_multi_use_conf())
     # elongated rectangle so neither the width nor proportion "already fine"
-    # early-return short-circuits before the gaussian combination runs
+    # early-return short-circuits before the combination runs
     leaf = _rect_leaf("x", width=2.0, length=10.0, co_type="y")
-    # width target max(3.0,3.8)=3.8, sigma min(0.5,0.2)=0.2
+    wt, ws = _gaussian_product(3.0, 0.5, 3.8, 0.2)
     assert fit.quality_width(leaf) == pytest.approx(
-        gaussian(geometry.length_narrowest(leaf), 1.0, 3.8, 0.2))
-    # proportion target max(1.2,1.5)=1.5, sigma min(0.5,0.1)=0.1
+        gaussian(geometry.length_narrowest(leaf), 1.0, wt, ws))
+    pt, ps = _gaussian_product(1.2, 0.5, 1.5, 0.1)
     assert fit.quality_proportion(leaf) == pytest.approx(
-        gaussian(geometry.aspect(leaf), 1.0, 1.5, 0.1))
+        gaussian(geometry.aspect(leaf), 1.0, pt, ps))
 
 
 def test_quality_size_ignores_co_type_when_pair_not_declared():

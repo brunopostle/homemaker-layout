@@ -3459,7 +3459,7 @@ on every real (non-duplicated-code) programme tested at any scale from 6 rooms (
 suggests was measuring the wrong thing. No further follow-up is filed — the room-count hypothesis from
 `f1d` (§23) is now addressed on the diversity axis `xyu` (§31) could not reach.
 
-## 33. Multi-use leaves as a permanent design goal (`homemaker-py-1s3`, §26 path b) — DONE (mixed, net negative)
+## 33. Multi-use leaves as a permanent design goal (`homemaker-py-1s3`, §26 path b) — DONE (promising, not a clean win)
 
 **Motivation.** §26 scoped two readings of "multi-use leaves" — a leaf legitimately serving several
 DIFFERENT compatible programme codes at once (study+guest bedroom, kitchen+dining, Stewart Brand's
@@ -3485,14 +3485,32 @@ comparing `leaf.type` directly — returning `[type, co_type]` only while `multi
 still a currently-valid declared co-location (a retype silently drops a stale `co_type`, the same
 self-healing type-guard `leaf_share` uses). `fitness.quality_size` combines a fused leaf's two codes
 **additively** (target and sigma both sum — the same operation as leaf-sharing's k×target, generalised
-from k identical terms to 2 different ones); `quality_width`/`quality_proportion` take the **stricter** of
-the two codes' targets (max target, min sigma) since shape, unlike floor area, does not add across two
-uses. Construction-time only (no mutation operator): `operators._colocate_rooms` greedily fuses available
-same-storey instances of a declared pair (before `_share_rooms`, so same-code sharing still groups
-whichever code is kept primary), `_leaf_colocate_from_plan` stamps the winning leaves, and
-`_size_divisions_from_targets` grows the fused leaf to the combined target. Gated behind `multi_use`
-(default OFF, bit-identical when off — 333/333 tests pass including 31 new ones in `tests/test_multi_use.py`).
-Threaded end-to-end through `driver.py`/`evolve.py --multi-use`, mirroring `superpose`'s existing wiring.
+from k identical terms to 2 different ones — area genuinely sums across two uses). Construction-time only
+(no mutation operator): `operators._colocate_rooms` greedily fuses available same-storey instances of a
+declared pair (before `_share_rooms`, so same-code sharing still groups whichever code is kept primary),
+`_leaf_colocate_from_plan` stamps the winning leaves, and `_size_divisions_from_targets` grows the fused
+leaf to the combined target. Gated behind `multi_use` (default OFF, bit-identical when off — 335/335 tests
+pass including 33 in `tests/test_multi_use.py`). Threaded end-to-end through `driver.py`/`evolve.py
+--multi-use`, mirroring `superpose`'s existing wiring.
+
+**Shape-combination sub-experiment — `quality_width`/`quality_proportion`.** Unlike area, a leaf's width and
+aspect are the SAME physical measurement serving two potentially-different codes' targets at once, so
+"additive" makes no sense — three combination strategies were tried, in this order, each triggered by
+review of the previous:
+
+1. **Naive max-target/min-sigma ("stricter of both").** The first cut: pick whichever code's target is
+   harder to satisfy. Simple, but ad hoc — it does not correspond to any principled combination of the two
+   codes' evidence.
+2. **Precision-weighted product (`fitness._gaussian_product`).** The product of two Gaussian curves
+   evaluated at the same point is itself proportional to a Gaussian: precisions (`1/sigma^2`) ADD, and the
+   combined target is the precision-weighted average — an INTERMEDIATE target (never simply the stricter
+   one) with a NARROWER spread than either input. The standard way to combine two pieces of independent
+   evidence about the same quantity.
+3. **Mixture (`fitness._clipped_gaussian` + `max()`).** A different philosophy: the leaf need not compromise
+   between the two codes' targets at all — score it against whichever target the realised geometry ends up
+   closer to (a wide, bimodal tolerance), echoing this project's own per-leaf usage collapse (§26 path a)
+   but applied within one leaf's shape terms instead of across its whole type. Appealing in principle (no
+   forced compromise) but, per the A/B below, empirically the worst of the three.
 
 **Declared pairs.** Architect-authored in each programme's `patterns.config`, hand-picked from the pool of
 `interchangeable()`-eligible candidates on semantic grounds (not every eligible pair is a sensible fusion —
@@ -3501,44 +3519,41 @@ left undeclared): `harbor-house` — foyer/meeting-room (`ef1`/`m`), laundry/pla
 `health-centre` — admin/manager's office (`ao1`/`mo1`), admin/staff-room (`ao1`/`br1`), dental/minor-surgery
 (`de1`/`ms1`), storage/records (`dp1`/`re1`).
 
-**End-to-end A/B** (`experiments/run_multiuse_ab.sh`, staged search, 20 000 native evals, seeds 0/1/2,
-4 workers, final native re-score, mirrors §13.3's harness):
+**End-to-end A/B, all three shape-combination strategies** (`experiments/run_multiuse_ab.sh`, staged search,
+20 000 native evals, seeds 0/1/2, 4 workers, final native re-score, mirrors §13.3's harness; each run
+verified single-process before launch — an early attempt let two runs overlap and contaminate the results,
+discarded entirely, see the bead's history):
 
-| programme     | baseline (s0/1/2) | mean  | multi_use (s0/1/2) | mean  | Δ         |
-|---------------|--------------------|------:|---------------------|------:|----------:|
-| harbor-house  | 95 / 101 / 103     | 99.7  | 92 / 101 / 94        | 95.7  | **−4.0%** |
-| health-centre | 63 / 82 / 71        | 72.0  | 81 / 111 / 77         | 89.7  | **+24.5%**|
+| combination | harbor-house (s0/1/2) | mean | Δ | health-centre (s0/1/2) | mean | Δ |
+|---|---|---:|---:|---|---:|---:|
+| baseline (no multi_use) | 95/101/103 | 99.7 | — | 63/82/71 | 72.0 | — |
+| 1. stricter-of-both | 92/101/94 | 95.7 | **−4.0%** | 81/111/77 | 89.7 | **+24.5%** |
+| baseline (re-measured) | 95/101/90 | 95.3 | — | 63/82/71 | 72.0 | — |
+| 2. precision-weighted | 82/117/83 | 94.0 | **−1.4%** | 65/78/43 | 62.0 | **−13.9%** |
+| baseline (re-measured) | 95/102/97 | 98.0 | — | 63/82/71 | 72.0 | — |
+| 3. mixture | 81/110/81 | 90.7 | **−7.5%** | 91/92/77 | 86.7 | **+20.4%** |
 
-harbor-house: multi_use wins 2/3 seeds, ties 1, loses 0. health-centre: multi_use **loses 3/3 seeds**, every
-seed strictly worse. Net across both programmes: 2 wins / 1 tie / 3 losses, and the health-centre loss
-(+24.5%) is nearly 6x the magnitude of harbor-house's gain (−4.0%) — a net-negative result, not a wash.
+(Baseline drifts slightly run-to-run — the staged search's own within-seed run-to-run noise at this
+budget/worker-count, not a bug; each combination's Δ is against its own paired baseline row.)
 
-**Diagnosis — why this lever behaves differently from leaf-sharing despite the structural similarity.**
-Leaf-sharing's k×target scaling never changes the SHAPE constraint: k identical rooms share one identical
-width/proportion target, so a shared leaf is exactly as easy or hard to satisfy geometrically as any single
-instance of that code, just bigger — the only thing that changes is the count check and the size Gaussian's
-centre. Multi-use fusion is different: combining two potentially-DIFFERENT codes' width/proportion targets
-via the stricter-of-both rule (necessary — a fused room must serve both uses) can impose a **tighter joint
-shape constraint than either original code required alone**, on top of a **larger combined area target**
-that competes for the same limited plot area as every other room. On `harbor-house` (fewer, larger rooms,
-more slack per leaf) this cost is absorbed and the leaf-count saving wins narrowly. On `health-centre` (19
-distinct codes packed into a small footprint, the exact stress case §32 was built to probe) the tighter
-combined constraint and the larger area demand appear to cost more than the leaf-count reduction saves —
-consistent with §13.1/§13.2's finding that the geometry floor, not room count in isolation, is what
-dominates on tightly-packed diverse programmes. This was not instrumented further (the effect is large and
-directionally consistent across all 3 health-centre seeds, not a borderline case needing a relaxation-gap
-probe the way §26's `xi7` needed one).
+**Diagnosis.** Leaf-sharing's k×target scaling never changes the SHAPE constraint: k identical rooms share
+one identical width/proportion target, so a shared leaf is exactly as easy or hard to satisfy geometrically
+as any single instance of that code, just bigger. Multi-use fusion is different — combining two
+potentially-DIFFERENT codes' shape targets is a real modelling choice, and it matters a lot: the naive
+stricter-of-both hack over-penalises (health-centre +24.5%), the mixture under-constrains (`max()` lets a
+leaf score 1.0 by satisfying only the WEAKER of the two codes' targets, health-centre +20.4%), and only the
+precision-weighted single-compromise-peak model improved BOTH programmes. `harbor-house` (fewer, larger
+rooms, more slack per leaf) tolerates all three combinations reasonably; `health-centre` (19 distinct codes
+packed into a small footprint, the exact stress case §32 was built to probe) is where the combination choice
+swings the result by ~38 points of relative fail count (+24.5% to −13.9%) — the shape-combination model is
+not a minor implementation detail here, it is close to the whole story.
 
-**Status.** `multi_use` stays default **OFF**. Not recommended for a default flip: the result is mixed at
-best and net negative when weighted across both example programmes, the opposite of leaf-sharing's total
-separation (§13.3: "*every* share run beats *every* baseline run"). This is the qualitative distinction the
-project's own vocabulary already has a name for: leaf-sharing is a pure count-relaxation (§13.3's "floor
-mover" that "the search cannot erode", §13.4/13.5), while different-code fusion is *also* a shape-tightening
-constraint that construction cannot always pay for — closer in spirit to the search-machinery/fitness-shaping
-levers that have gone null-to-negative throughout this log (§11.4/11.5, §14, §16, §21, §22, §26, §27, §30,
-§31) than to the small set of construction/seed-quality wins that actually moved the floor (§13.3, §17/§25).
-If revisited: a per-pair opt-in (declare `co_locate` only where the architect has verified the combined
-target is a good match, rather than accepting anything `interchangeable()`-eligible) or a softer shape
-combination (e.g. averaging width/proportion targets instead of stricter-of-both) might recover the
-harbor-house-style win without health-centre's penalty — but this was not tested and is not filed as a
-follow-up bead given the project's 0-for-several record on this class of lever.
+**Status.** Landed with the precision-weighted combination (best of the three tried); `_clipped_gaussian` and
+the mixture pattern are kept in `fitness.py`, documented and unit-tested, as a recorded negative alternative.
+`multi_use` stays default **OFF**: the precision-weighted result is genuinely promising — both programmes
+improve on average (−1.4% / −13.9%) — but it is not the clean sweep §13.3's default-flip bar set (leaf-sharing:
+*every* share run beat *every* baseline run). Here harbor-house loses on 1 of 3 seeds (101→117) and only 3
+seeds per arm were run, so this is a real but statistically thin signal, closer to §31's "weak but not
+evaporated" than to §13.3's "total separation". Not filed as an immediate follow-up bead given the compute
+cost of another A/B (~2h per combination tried), but a promising candidate for a larger-N confirmation
+(mirroring `xyu`/`9yx`'s N=15 pattern) if revisited — the mechanism itself is complete, tested, and ready.

@@ -122,6 +122,48 @@ def gaussian(x: float, a: float, b: float, c: float) -> float:
     return a * (_E ** (0 - ((x - b) ** 2 / (2 * c * c))))
 
 
+def _gaussian_product(target_a: float, sigma_a: float,
+                      target_b: float, sigma_b: float) -> tuple[float, float]:
+    """Precision-weighted combination of two Gaussian (target, sigma) pairs
+    (homemaker-py-1s3): the product of two Gaussian curves evaluated at the
+    same point is itself proportional to a Gaussian with precisions (1/sigma^2)
+    ADDING and target the precision-weighted average — always an INTERMEDIATE
+    target (never simply the stricter of the two) with a NARROWER spread than
+    either input, unlike a naive max-target/min-sigma combination.
+
+    Used by ``quality_width``/``quality_proportion`` to combine a co-located
+    leaf's two codes' shape targets. A/B-measured (DESIGN.md §33) as the best
+    of three tried: beats both the naive max-target/min-sigma hack (health-
+    centre +24.5% worse) and the max-of-two MIXTURE combination below
+    (health-centre +20.4% worse) — this precision-weighted single compromise
+    peak was the only one to improve both example programmes."""
+    prec_a, prec_b = 1.0 / (sigma_a * sigma_a), 1.0 / (sigma_b * sigma_b)
+    prec_c = prec_a + prec_b
+    target_c = (target_a * prec_a + target_b * prec_b) / prec_c
+    return target_c, (1.0 / prec_c) ** 0.5
+
+
+def _clipped_gaussian(x: float, target: float, sigma: float, good_side: str) -> float:
+    """The 'flat 1.0 once the target is met, gaussian decay short of it' shape
+    both ``quality_width`` (wider than target is good) and
+    ``quality_proportion`` (squarer/lower aspect than target is good) use.
+
+    Also the building block of a MIXTURE alternative to ``_gaussian_product``
+    that was tried and measured worse (homemaker-py-1s3, DESIGN.md §33):
+    evaluate this once per served code and combine with ``max()`` instead of
+    computing one combined (target, sigma) — the leaf scores well if the
+    realised geometry ends up close to EITHER code's target rather than one
+    narrow compromise peak, echoing the per-leaf usage collapse §26 path (a)
+    uses at the whole-leaf-type level. Appealing in principle (no forced
+    compromise) but empirically worse on the tightly-packed health-centre
+    programme (+20.4%, vs -13.9% for the precision-weighted product currently
+    used) — plausibly because ``max()`` lets a leaf score 1.0 by satisfying
+    only the WEAKER of two codes' targets, under-constraining the search."""
+    if (good_side == "above" and x > target) or (good_side == "below" and x < target):
+        return 1.0
+    return gaussian(x, 1.0, target, sigma)
+
+
 def load_config(directory: str | Path,
                 overrides: dict | None = None) -> tuple[dict, dict]:
     """Load (patterns, costs) config for a corpus directory, mirroring
@@ -809,15 +851,18 @@ class Fitness:
             params = self.get_space_params(leaf.type, "proportion")
             co_type = self._leaf_co_type(leaf)
             if co_type:
-                # 1s3: a fused leaf must satisfy the STRICTER of its two
-                # codes' proportion targets (max target, min tolerance) —
-                # unlike quality_size, shape doesn't add across two uses.
+                # 1s3: A/B-measured (DESIGN.md §33) — the precision-weighted
+                # combination (one intermediate, narrower target) beat both
+                # the naive max/min hack AND the max-of-two mixture on the
+                # health-centre programme; the mixture's permissiveness (any
+                # width/aspect satisfying the WEAKER of the two codes scores
+                # 1.0) under-constrains the search on tightly-packed
+                # programmes even though it is the more appealing model.
                 co_params = self.get_space_params(co_type, "proportion")
-                params = [max(params[0], co_params[0]), min(params[1], co_params[1])]
+                params = _gaussian_product(params[0], params[1],
+                                           co_params[0], co_params[1])
         aspect = geometry.aspect(leaf)
-        if aspect < params[0]:
-            return 1.0
-        return gaussian(aspect, 1.0, params[0], params[1])
+        return _clipped_gaussian(aspect, params[0], params[1], "below")
 
     def quality_size(self, leaf: Node) -> float:
         t0 = _t0(leaf)
@@ -869,14 +914,13 @@ class Fitness:
             params = self.get_space_params(leaf.type, "width")
             co_type = self._leaf_co_type(leaf)
             if co_type:
-                # 1s3: stricter of the two codes' width targets, same reasoning
-                # as quality_proportion above.
+                # 1s3: precision-weighted, same reasoning as quality_proportion
+                # above.
                 co_params = self.get_space_params(co_type, "width")
-                params = [max(params[0], co_params[0]), min(params[1], co_params[1])]
+                params = _gaussian_product(params[0], params[1],
+                                           co_params[0], co_params[1])
         width = geometry.length_narrowest(leaf)
-        if width > params[0]:
-            return 1.0
-        return gaussian(width, 1.0, params[0], params[1])
+        return _clipped_gaussian(width, params[0], params[1], "above")
 
     # --- simple crinkliness (URB_NO_OCCLUSION: illumination factor = 1) --- #
 
