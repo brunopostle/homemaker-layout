@@ -23,8 +23,20 @@ search then only explores topology + types + adjacency.
 1. ~~Solver experiment: port Urb's geometry, re-solve ratios from programme
    targets, score the result against the original via the Perl oracle.~~ ✓
 2. ~~Native Python fitness (retire the Perl oracle).~~ ✓
-3. **Memetic search** (current): canonical slicing genome + high-locality
-   operators + Nelder-Mead inner loop.
+3. ~~Memetic search: canonical slicing genome + high-locality operators +
+   Nelder-Mead inner loop.~~ ✓
+4. ~~Penalty reshaping: lexicographic `(-n_fails, fitness)` outer-search
+   comparison.~~ ✓
+5. ~~Representation upgrade: canonical slicing encoding + bottom-up shape
+   feasibility, scaled to larger programmes.~~ ✓
+6. **Search-quality experiments** (current): a long running series of
+   opt-in levers tried against the `harbor-house`, `health-centre`, and
+   `programme-house` example corpora — leaf-sharing, finish-time cell→room
+   collapse, ruin-and-recreate LNS, 2-opt polish, multi-use/co-located
+   leaves, adjacency-graph and bubble-diagram fitness signals, and more.
+   Most of these are negative/null results kept as opt-in flags or reference
+   code rather than defaults. See `DESIGN.md` §11 onward for the full,
+   numbered experiment log with methodology and results for each.
 
 ## Layout
 
@@ -42,3 +54,6 @@ search then only explores topology + types + adjacency.
 - `src/homemaker_layout/driver.py` — memetic search outer loop.
 - `src/homemaker_layout/evolve.py` — `homemaker-evolve` CLI entry point.
 - `src/homemaker_layout/oracle.py` — legacy Perl shim, kept for cross-validation only.
+- `src/homemaker_layout/bubble.py` — 3D bubble-diagram adjacency fitness-signal
+  prototype (DESIGN.md §27); validated null, not wired into `fitness.py` —
+  reference only.
