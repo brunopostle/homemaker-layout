@@ -3459,7 +3459,7 @@ on every real (non-duplicated-code) programme tested at any scale from 6 rooms (
 suggests was measuring the wrong thing. No further follow-up is filed — the room-count hypothesis from
 `f1d` (§23) is now addressed on the diversity axis `xyu` (§31) could not reach.
 
-## 33. Multi-use leaves as a permanent design goal (`homemaker-py-1s3`, §26 path b) — DONE (promising, not a clean win)
+## 33. Multi-use leaves as a permanent design goal (`homemaker-py-1s3`, §26 path b) — DONE (NULL, N=3 signal did not replicate)
 
 **Motivation.** §26 scoped two readings of "multi-use leaves" — a leaf legitimately serving several
 DIFFERENT compatible programme codes at once (study+guest bedroom, kitchen+dining, Stewart Brand's
@@ -3536,24 +3536,50 @@ discarded entirely, see the bead's history):
 (Baseline drifts slightly run-to-run — the staged search's own within-seed run-to-run noise at this
 budget/worker-count, not a bug; each combination's Δ is against its own paired baseline row.)
 
+Among the three, the precision-weighted single-compromise-peak model was the only one to improve BOTH
+programmes at N=3, so it is the one landed in the shipped code (`_clipped_gaussian`/mixture kept in
+`fitness.py`, documented and unit-tested, as a recorded negative alternative). But per the confirmations
+below, this N=3 comparison — used to pick a combination strategy — turned out to be too small a sample to
+trust for the multi_use verdict itself.
+
+**Larger-N confirmation — the N=3 signal did not replicate.** N=3 is a thin sample (§31/§32's own standard
+is N=15), so the precision-weighted result was checked two ways before considering any default-flip
+recommendation:
+
+| test | conditions | harbor-house Δ | health-centre Δ |
+|---|---|---:|---:|
+| original | N=3, staged search, budget 20 000 | **−1.4%** (2W/1L) | **−13.9%** (2W/1L) |
+| confirm #1 | N=15, plain search, budget 3 000 (mirrors `xyu`/`9yx`'s own protocol exactly) | +6.1% worse (5W/10L, p=0.30) | +6.6% worse (3W/11L/1T, Wilcoxon p=**0.044**) |
+| confirm #2 | N=15, staged search, budget 20 000 (**same conditions as the original**, more seeds) | +6.6% worse (4W/11L, p=0.15) | +4.7% worse (6W/9L, p=0.48) |
+
+Confirm #1 uses a cheaper protocol (budget 3000, and for the multi-storey `harbor-house`, plain search
+rather than staged — `search_staged` only falls through to plain search on single-storey programmes) so it
+answers a related but distinct question. Confirm #2 is the true same-conditions replication — identical to
+the original A/B except 15 seeds instead of 3 — and it **also trends negative on both programmes**, though
+neither reaches significance at this N. Two of the three measurements, including the one that actually
+matches the original protocol, disagree with the original finding's *direction*. The honest read: the N=3
+positive result was very likely sampling noise from an unlucky (or lucky) three-seed draw, not a real
+effect — `harbor-house`'s original 2W/1L was already a coin-flip-sized sample, and `health-centre`'s dramatic
+−13.9% at N=3 (driven substantially by one seed swinging from 71→43 fails) did not hold up at N=15 (mean
+Δ flipped to +4.7%, p=0.48 — indistinguishable from no effect).
+
 **Diagnosis.** Leaf-sharing's k×target scaling never changes the SHAPE constraint: k identical rooms share
 one identical width/proportion target, so a shared leaf is exactly as easy or hard to satisfy geometrically
-as any single instance of that code, just bigger. Multi-use fusion is different — combining two
-potentially-DIFFERENT codes' shape targets is a real modelling choice, and it matters a lot: the naive
-stricter-of-both hack over-penalises (health-centre +24.5%), the mixture under-constrains (`max()` lets a
-leaf score 1.0 by satisfying only the WEAKER of the two codes' targets, health-centre +20.4%), and only the
-precision-weighted single-compromise-peak model improved BOTH programmes. `harbor-house` (fewer, larger
-rooms, more slack per leaf) tolerates all three combinations reasonably; `health-centre` (19 distinct codes
-packed into a small footprint, the exact stress case §32 was built to probe) is where the combination choice
-swings the result by ~38 points of relative fail count (+24.5% to −13.9%) — the shape-combination model is
-not a minor implementation detail here, it is close to the whole story.
+as any single instance of that code, just bigger. Multi-use fusion is different — the combined leaf's
+larger area target competes with every other room for the same limited plot area, and (whichever shape
+combination is used) the fused leaf's shape constraint is at best as forgiving as either code alone, never
+more so. The mechanism does not appear to reliably pay for this cost the way leaf-sharing's pure count
+relaxation does — consistent with the broader pattern in this log (§11.4/11.5, §14, §16, §21, §22, §26,
+§27, §30) that search-machinery/fitness-shaping-adjacent levers rarely move the needle, and that small-N
+results in this problem class need real confirmation before being trusted (the same lesson `y51`/`xyu`/`9yx`,
+§31/§32, already taught once).
 
-**Status.** Landed with the precision-weighted combination (best of the three tried); `_clipped_gaussian` and
-the mixture pattern are kept in `fitness.py`, documented and unit-tested, as a recorded negative alternative.
-`multi_use` stays default **OFF**: the precision-weighted result is genuinely promising — both programmes
-improve on average (−1.4% / −13.9%) — but it is not the clean sweep §13.3's default-flip bar set (leaf-sharing:
-*every* share run beat *every* baseline run). Here harbor-house loses on 1 of 3 seeds (101→117) and only 3
-seeds per arm were run, so this is a real but statistically thin signal, closer to §31's "weak but not
-evaporated" than to §13.3's "total separation". Not filed as an immediate follow-up bead given the compute
-cost of another A/B (~2h per combination tried), but a promising candidate for a larger-N confirmation
-(mirroring `xyu`/`9yx`'s N=15 pattern) if revisited — the mechanism itself is complete, tested, and ready.
+**Status.** `multi_use` stays default **OFF** and is not recommended even as a promising candidate — the
+larger-N evidence points toward NULL-to-mildly-negative rather than positive. The mechanism itself (declared
+`co_locate` pairs, `graph.leaf_codes()` resolver, precision-weighted shape combination, construction-time
+fusion) is complete, fully tested (335/335 passing, `tests/test_multi_use.py`), gated OFF by default and
+bit-identical when off, so it remains available if a future architect wants to opt a specific programme into
+it manually despite the null aggregate result — but no further investment (default flip, additional
+combination strategies, or a larger sweep) is planned. This closes out `homemaker-py-1s3` and, with it, both
+halves of §26's original multi-use-leaves question: path (a) (search relaxation) was NULL/NEGATIVE, path (b)
+(permanent fusion) is NULL after replication.
