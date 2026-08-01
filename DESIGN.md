@@ -3583,3 +3583,61 @@ it manually despite the null aggregate result — but no further investment (def
 combination strategies, or a larger sweep) is planned. This closes out `homemaker-py-1s3` and, with it, both
 halves of §26's original multi-use-leaves question: path (a) (search relaxation) was NULL/NEGATIVE, path (b)
 (permanent fusion) is NULL after replication.
+
+## 34. Spike: autodiff/gradient-based inner-loop ratio optimisation (`homemaker-py-2ax`) — DONE (negative, wall-clock)
+
+**Motivation.** `innerloop.py`'s default inner-loop optimiser (`nm_search`, multi-start Nelder-Mead) is
+derivative-free — a legacy of the Perl-subprocess oracle era when fitness was not differentiable. Fitness is
+now a native Python port (`fitness.py`) built from ordinary arithmetic (Heron's-formula areas, Gaussian
+quality terms), plausibly differentiable. Nobody had tried gradient-based optimisation since the port. Real
+risk flagged going in: the deliberately-preserved `0.5^n` failure-count penalty cliff (§4.5) is a sharp
+discontinuity by design, which could make raw gradients unreliable near failure boundaries.
+
+**What was actually built.** The full fitness pipeline (`_evaluate_full`, 1700+ lines) is not literally
+differentiable end-to-end regardless of the geometry — staircase fit truncates to integers
+(`_risers_number`/`_ideal_going`/`_*_turn`), physical adjacency is a `door_width` threshold on wall overlap,
+`access` is a categorical neighbour-type test, and `check_space_counts`/`check_adjacency`/etc. are graph
+algorithms over discrete labels. Porting all of that to an autodiff framework was out of scope for a spike
+and would still bottom out in the same non-smooth primitives. Built instead: `experiments/autodiff_spike.py`,
+a torch mirror of `geometry.py`'s coordinate recursion (`coordinate`/`coord_a`/`coord_b`/`area`/
+`edge_length`/`angle`/`aspect`, exact port, tensors instead of floats) driving the 5 per-leaf quality factors
+that vary continuously with the ratios (perpendicular, proportion, size, width, crinkliness) plus the
+cost/value accumulation (leaf cost, edge cost, outside-edge cost). Every *structural* fact that doesn't vary
+continuously for a frozen topology — which leaves are adjacent, boundary ids, leaf types/params, which fails
+are structural (missing/adjacency/level/vertical/access/staircase/storey/edge-too-long) — is snapshotted
+ONCE from a real `fitness.py` evaluation at the start ratios (`TorchTopology._snapshot`) and held frozen;
+`building_factor` (programme area-ratio Gaussians, staircase volume, storey/public-access checks) is folded
+into one calibration constant rather than ported. The `0.5^n` cliff itself is relaxed to a steep sigmoid
+(`soft_fail`, steepness 60) on each continuous factor's `FAIL_THRESHOLD` test, so the proxy is smooth
+everywhere — this directly probes the flagged risk rather than assuming it away. `torch.optim.Adam` ascends
+the proxy; the true fitness (`NativeEvaluator`-equivalent) is re-checked and the topology re-snapshotted
+periodically, a trust-region-style refresh since the frozen adjacency set can in principle drift as ratios
+move.
+
+**Measured, two frozen topologies (CPU, no GPU in this environment):**
+
+| topology | DOF | nm_search (200 evals) | torch: 1 fwd+bwd step | ratio |
+|---|---:|---|---|---:|
+| `programme-house/candidate-002.dom` | 6 | 200 evals / **3.0 s**, fitness 0.0142 (2 fails) | 200 Adam steps (10 resnaps) / **106 s**, fitness 0.0041 (3 fails) — worse on both axes | **~35×** slower, worse result |
+| `harbor-house/3m.dom` | 36 | 200 evals / **14.6 s** | 1 step ≈ **2.1 s** (200 steps ⇒ ~420 s projected, before resnapshot overhead) | **~29×** slower per unit of search progress |
+
+The slowdown is per-op tensor dispatch overhead (each leaf/edge is a handful of scalar torch ops, no
+batching across leaves — nothing here is a large matmul torch is built to accelerate) plus the snapshot/
+re-snapshot cost (a real `fitness.py` evaluation on a deep copy, same cost class as one `nm_search` eval, but
+paid on top of the gradient step rather than instead of it). A small-step gradient test (`lr` 0.01/0.03/0.1
+from the same `x0`) confirmed the flagged cliff risk concretely: 0.03 improved true fitness, but 0.01 and 0.1
+from the *same descent direction* both crossed into a new failure and scored worse than the start —
+gradient *direction* carries real local signal, but step size right next to the cliff is as fragile as the
+issue predicted, and nothing about autodiff removes that fragility (it only makes the direction cheaper to
+compute, and the wall-clock numbers show it isn't even cheaper here).
+
+**Verdict.** NULL/NEGATIVE — not recommended. Even setting aside the failure-cliff sensitivity, the
+autodiff path is decisively slower per unit of progress than `nm_search` at both scales tested, and does
+not reach a better fitness in the equal-"budget" comparison at the small scale. The theoretical case for
+autodiff (avoid the ~DOF-proportional cost of finite-difference-style multi-start search) does not survive
+contact with this problem's actual shape: very few, cheap-to-evaluate scalar dimensions per leaf, no
+batching opportunity, and a real per-step evaluation cost (snapshot refresh) comparable to a full oracle
+call anyway. `experiments/autodiff_spike.py` is kept as a reference/starting point (not wired into
+`innerloop.py`) should a future architect want to revisit this at a very different scale (e.g. thousands of
+DOF, where nm_search's `O(DOF)` per-iteration cost would start to dominate) — not worth further investment
+at current programme/topology sizes (6-40 DOF).
