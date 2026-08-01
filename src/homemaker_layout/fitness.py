@@ -334,7 +334,18 @@ class Fitness:
         (perpendicular, crinkliness, access) and value rate are usage-invariant
         within a class, so this is the separable per-leaf collapse objective."""
         orig = leaf.type
+        orig_share_type = leaf.share_type
         leaf.type = usage
+        if usage != orig:
+            # homemaker-py-iio: a stale share (share>1, share_type left over
+            # from a code this leaf no longer holds) must not spuriously
+            # reactivate just because THIS hypothetical usage probe happens to
+            # match the old share_type -- graph.leaf_share reads leaf.type,
+            # which we have just overridden, so it would otherwise compare the
+            # stale share_type against the candidate usage instead of the
+            # leaf's real committed type. Only the leaf's OWN current type
+            # (usage == orig) may legitimately carry a live share.
+            leaf.share_type = None
         try:
             return (
                 self.quality_size(leaf)
@@ -343,6 +354,7 @@ class Fitness:
             )
         finally:
             leaf.type = orig
+            leaf.share_type = orig_share_type
 
     def _best_assignment(self, quality: list[list[float]]) -> list[tuple[int, int]]:
         """Maximum-total-quality matching of ``min(rows, cols)`` leaf->slot
@@ -447,13 +459,23 @@ class Fitness:
         if req.level is not None and req.level != lvl:
             return forbid
         orig = lf.type
+        orig_share_type = lf.share_type
         lf.type = code
+        if code != orig:
+            # homemaker-py-iio: see _usage_quality -- a stale share/share_type
+            # left over from a code this leaf no longer holds must not
+            # spuriously reactivate just because this hypothetical candidate
+            # code happens to match it (graph.leaf_share reads leaf.type,
+            # which is overridden to the candidate here). Only the leaf's own
+            # current type (code == orig) may legitimately carry a live share.
+            lf.share_type = None
         try:
             qs = self.quality_size(lf)
             qw = self.quality_width(lf)
             qp = self.quality_proportion(lf)
         finally:
             lf.type = orig
+            lf.share_type = orig_share_type
         val = qs * qw * qp * geometry.area(lf)
         if objective == "threshold":
             passes = (

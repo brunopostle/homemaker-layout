@@ -168,6 +168,87 @@ def test_two_opt_polish_escapes_jacobi_plateau():
     assert satisfied(root_polished) == 4  # 2-opt reaches the true optimum
 
 
+# --------------------------------------------------------------------------- #
+# Stale leaf-share must not leak into a hypothetical candidate (homemaker-py-iio)
+# --------------------------------------------------------------------------- #
+
+def test_collapse_value_ignores_stale_share_for_hypothetical_code():
+    # A leaf that once held a live share (share>1, share_type==its type at the
+    # time) but was since retyped away carries stale share/share_type
+    # metadata -- graph.leaf_share's docstring: any retype silently
+    # invalidates a stale share, guarded everywhere by share_type==type. But
+    # _collapse_value probes a hypothetical candidate by temporarily
+    # overwriting leaf.type, and graph.leaf_share reads that overwritten
+    # type -- so a stale share_type that happens to equal the CANDIDATE code
+    # must not spuriously reactivate; only the leaf's own real current type
+    # may legitimately carry a live share.
+    conf = _conf({"b1": {"size": [16.0, 4.0], "width": [4.0, 1.0], "proportion": [1.5, 0.5]}},
+                 leaf_sharing=True)
+    fit = Fitness(conf=conf)
+    prog = fit._programme
+    forbid, fail_w = fit._COLLAPSE_FORBID, fit._COLLAPSE_FAIL_W
+
+    stale_leaf, _ = _two_leaf_root("other", "other").leaves()
+    stale_leaf.type = "other"
+    stale_leaf.share = 3
+    stale_leaf.share_type = "b1"  # stale: leaf is not currently typed "b1"
+    val_stale = fit._collapse_value(stale_leaf, "b1", 0, prog, "quality", forbid, fail_w)
+
+    clean_leaf, _ = _two_leaf_root("other", "other").leaves()
+    clean_leaf.type = "other"  # share stays at the default 1 / share_type None
+    val_clean = fit._collapse_value(clean_leaf, "b1", 0, prog, "quality", forbid, fail_w)
+
+    assert val_stale == val_clean
+
+    # But the leaf's OWN current type still legitimately carries a live share.
+    live_leaf, _ = _two_leaf_root("b1", "b1").leaves()
+    live_leaf.type = "b1"
+    live_leaf.share = 3
+    live_leaf.share_type = "b1"
+    val_live_self = fit._collapse_value(live_leaf, "b1", 0, prog, "quality", forbid, fail_w)
+    assert val_live_self != val_clean
+
+
+def test_collapse_global_dump_reload_agree_with_stale_share(tmp_path):
+    # End-to-end regression for the bug: a stale share/share_type surviving
+    # in-memory but dropped by dom.dump/dom.load (dom._emit only serialises
+    # share while share_type==type) must not change collapse_global's
+    # relabelling -- before the fix it did, because the stale metadata leaked
+    # into the Hungarian assignment's candidate valuation and swayed it to
+    # relabel the WRONG leaf (right, physically a poor fit for "b2") instead
+    # of the size-appropriate one, purely because right's stale share_type
+    # happened to equal that candidate code.
+    from homemaker_layout import dom
+
+    conf = _conf({
+        "b1": {"size": [16.0, 4.0], "width": [4.0, 1.0], "proportion": [1.5, 0.5]},
+        "b2": {"size": [10.8, 2.0], "width": [3.5, 0.8], "proportion": [1.5, 0.5]},
+    }, leaf_sharing=True)
+
+    def _make_root():
+        root = _two_leaf_root("b1", "b1")
+        _left, right = root.leaves()
+        right.share = 2
+        right.share_type = "b2"  # stale: right is currently typed "b1", not "b2"
+        return root
+
+    live = _make_root()
+    Fitness(conf=conf).collapse_global(live)
+
+    path = tmp_path / "stale_share.dom"
+    dumped = _make_root()
+    dom.dump(dumped, str(path))
+    reloaded = dom.load(str(path))
+    Fitness(conf=conf).collapse_global(reloaded)
+
+    live_types = [lf.type for lf in live.leaves()]
+    reloaded_types = [lf.type for lf in reloaded.leaves()]
+    assert live_types == reloaded_types
+    # And it's the size-consistent labelling in both cases (left, the smaller
+    # leaf, takes the smaller-target b2; not the stale-share-swayed choice).
+    assert live_types == ["b2", "b1"]
+
+
 def test_collapse_finish_is_keep_better_and_unmerged():
     # collapse_finish returns (tree, base, collapsed, applied); the tree it hands
     # back is unmerged (leaves still carry their divisions), and collapsed<=base.
