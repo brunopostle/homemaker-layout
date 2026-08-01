@@ -2140,6 +2140,87 @@ Default-OFF parity holds: `overrides=None` leaves `load_config` byte-identical a
 `_share_rooms` is never reached. Smoke-checked end-to-end on harbor-house (sharing
 on 37 fails vs `--no-leaf-sharing` 95 at budget 160). 233 tests pass.
 
+### 13.11 Residual diagnostic on the current full default construction stack (`homemaker-py-91f`) — DONE
+
+The §13.1/§13.2 (`erc.1`/`erc.2`) per-leaf diagnostics predate the depth-balanced
++ leaf-sharing synergy flip (`erc.7`) and the share-aware edge cap flip (`rq2`/
+`x3b`) — the current §13.9 floor (harbor 31.0, maple 74.0) had never been
+decomposed by fail category. Unlike `erc.1` (which scores a single constructed
+seed at target geometry, a cheap proxy), this reads the actual best individual
+from a REAL `driver.search_staged` run — budget 20000, seeds 0/1/2, harbor-house
+and maple-court, the full default stack (`leaf_sharing`/`leaf_share_factor=3`,
+`depth_balanced`, `interior_outside`/`outside_divisor=3`, `share_edge_cap`
+default-on under sharing) — the actual reported floor, not a proxy.
+
+**Methodology note — a scoring pitfall found along the way.** The obvious
+approach (dump each run's best to `.dom`, reload, rescore with matching conf)
+gives a WRONG, but stable and easy-to-miss, fail count once `collapse_insearch`
+is doing real relabelling work: on harbor-house seed 0 the search itself
+reported 37 fails, and `copy.deepcopy(r.best.root)` rescored immediately
+in-process reproduces 37 exactly, but `dom.dump` + `dom.load` + rescore of the
+*same* topology gives a stable 53 — 15 extra `missing`/`adjacency`/`level`
+fails for a level-0 `count: 3` code that collapse-relabelling satisfies in the
+live tree but that is not present as a literal leaf type once round-tripped.
+Root cause not yet found (hash-seed randomness and float round-trip loss are
+both ruled out); filed as `homemaker-py-iio` (P2). A narrower, separate bug —
+`run_staged_search.py`'s own final sanity rescore omits the `collapse_insearch`
+override entirely, so its own "MISMATCH" line cannot be trusted whenever
+leaf-sharing is on — is filed as `homemaker-py-7ua` (P3). This diagnostic
+sidesteps both: `experiments/run_and_capture_91f.py` scores
+`copy.deepcopy(r.best.root)` immediately after `search_staged` returns, and
+writes the fails list to a `*.fails.json` sidecar (verified `rescore_match` on
+all 6 runs); `experiments/diag_residual_91f.py` tallies fail categories from
+those sidecars, never rescoring a `.dom` from disk.
+
+**Result (mean fails/seed; category % of all fails, combined):**
+
+| programme | seeds (fails) | mean | vs §13.9 cited floor |
+|---|---|---|---|
+| harbor-house | 37, 33, 30 | 33.3 | 31.0 |
+| maple-court | 82, 84, 78 | 81.3 | 74.0 |
+
+(Both a bit above the cited floor, as expected — a single staged run per seed
+here vs. whatever selection produced the cited numbers; same order of
+magnitude, good sanity check that the stack is wired correctly.)
+
+| category | combined n | % |
+|---|---|---|
+| **crinkliness** | 165 | **48.0%** |
+| **size** | 71 | **20.6%** |
+| adjacency (not adjacent) | 20 | 5.8% |
+| proportion | 13 | 3.8% |
+| access | 12 | 3.5% |
+| edge too long (outside) | 12 | 3.5% |
+| missing (adjacency/level/vertical cascade) | 12 | 3.5% |
+| circulation not connected | 9 | 2.6% |
+| edge too long (wall) | 9 | 2.6% |
+| missing required space | 6 | 1.7% |
+| (remaining: too-many-spaces, covered-outside, stairs, width, public-access) | 12 | 3.4% |
+
+Per-programme shares are consistent (crinkliness 43%/size 21% on harbor-house,
+crinkliness 50%/size 20.5% on maple-court) — this is not an artefact of one
+programme.
+
+**VERDICT — shape-intrinsic fails (crinkliness + size ≈ 69% of the residual)
+now completely dominate; construction-completeness fails (missing space,
+adjacency, level, vertical connectivity — the failure modes the §11–§13 series
+of construction levers targeted) are now a small tail, ≤6% each.** This
+revises the `erc.1` recommendation. `erc.1` (§13.1) found per-leaf crinkliness
+FLAT vs. slicing density and concluded the floor was intrinsic to leaf COUNT,
+prioritising leaf-sharing (`erc.3`) over compactness-aware cuts (`erc.5`,
+deprioritised: "cuts are already squarest ... little headroom at fixed count").
+Leaf-sharing (plus depth-balancing, interior-O, and the edge cap) is now fully
+deployed as the default stack, and crinkliness is not just still present but
+*more* dominant proportionally than in any earlier per-category breakdown in
+this document (cf. §7's 27/85 and §9's 346/939-ish shares) — the "reduce leaf
+count" avenue has been substantially exploited by the current stack, yet the
+per-leaf shape tax persists and is now, by a wide margin, the single largest
+lever available. **Recommendation: reopen `erc.5`-style compactness-aware
+cutting (or a crinkliness-targeted construction/mutation lever specifically,
+since crinkliness outweighs size ~2.3:1) as the next concrete construction
+lever** — the same diagnostic-first logic that turned §13.7's edge-too-long
+finding directly into `hph`.
+
 ## 14. Island model: multi-run recombination (`homemaker-py-psk`) — DONE (null)
 
 **Lever (user-proposed).** Perl Urb ran the search many times and kept the best,
