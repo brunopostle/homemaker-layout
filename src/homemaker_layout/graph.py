@@ -711,6 +711,11 @@ def substrate_readiness(
 
     Returns ``core_factor * capacity`` (both in [0,1]).
     """
+    # Parallel staged runs (n_workers>1) score children in pool workers, so this
+    # parent-process read is never preceded by the score_with_fails clear that
+    # normally keeps geometry._cache cold; without this, evicted trees' freed
+    # addresses can alias into freshly unpickled ones (homemaker-py-cvw).
+    geometry.clear_cache()
     base_lvl = levels(base_root)[0]
     base_leaves = base_lvl.leaves()
     total_base_area = sum(geometry.area(lf) for lf in base_leaves)

@@ -642,6 +642,11 @@ class Fitness:
         from collections import Counter
         from . import graph as graph_mod
 
+        # Defensive (homemaker-py-cvw): geometry._cache is id()-keyed and only
+        # safe when cold or exclusively populated by this tree; a stale entry
+        # from a gc'd tree at a recycled address could otherwise alias in.
+        geometry.clear_cache()
+
         # homemaker-py-r5a: drop any stale share/share_type BEFORE this pass
         # relabels anything, so a leaf relabelled back to the code its stale
         # stamp names cannot resurrect a multiplicity credit (see
