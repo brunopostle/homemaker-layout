@@ -3850,3 +3850,45 @@ regression testbed for this particular question at that budget; harbor-house (bu
 "suspiciously good" result is a smell — a fallback default that never reports "ERR" loudly is worth
 distrusting on sight (the harness now sets `fails=ERR` on a missing `.fails` file instead of `0`,
 kept in `qpk_verify_ab.sh`/`qpk_verify_hh_ab.sh` in scratch, not committed).
+
+## 36. Expert review of the numeric/scoring path (`homemaker-py-zrx`) — DONE, 3 confirmed bugs filed
+
+Motivated by §35: the `iio` stale-share leak survived unnoticed because it corrupted scores without
+crashing anything. This review read the whole numeric path end-to-end — `fitness.py`, `solver.py`,
+`collapse_cmd.py`, the `collapse_insearch` path through `innerloop.py`/`driver.py`, plus the
+`geometry.py`/`graph.py`/`dom.py` substrate and `evolve.py` plumbing — hunting specifically for that
+bug class (stale shared state, valuation/accounting mismatches, parallel non-determinism). Three
+confirmed bugs and one hygiene task, each verified with a runnable probe before filing:
+
+- **`homemaker-py-r5a` (P2) — stale-share *resurrection* through the collapse commit.** The `iio`
+  fix guards the *probes*, but when `collapse_global` (or a 2-opt swap) commits a leaf back to its
+  stale `share_type`, the k× credit reactivates — a credit the Hungarian matrix just valued at 1× —
+  and the resurrected stamp then serialises (`type == share_type` again), so it persists. Minimal
+  repro diverges live vs dump/reload evals of the *same tree* 12 vs 19 fails (scores 7.4e-08 vs
+  7.3e-11): the §35/91f divergence class, reopened through the commit door. Recommended fix:
+  canonicalise stale stamps at `_evaluate_full` entry, mirroring `dom._emit`'s guard.
+- **`homemaker-py-cvw` (P2) — parallel staged runs read stale geometry through `id()` reuse.** With
+  `n_workers>1`, `search_staged` stage 1 computes `substrate_readiness` in the *parent* process,
+  which never scores and so never clears `geometry._cache`; evicted individuals' id-keyed entries
+  alias freshly unpickled children. Churn probe: 24/300 readiness values corrupted (worst error ~1.0
+  on a [0,1] signal), cache growing unboundedly. Address-dependent stage-1 selection bias — a
+  concrete non-BLAS candidate for part of `b8g`'s irreproducibility. Serial runs are safe.
+- **`homemaker-py-sd3` (P3) — `collapse_best`'s keep-better guard is vacuous.** Its evaluator is
+  built with `_fitness_for`'s default `collapse_insearch=True` (the run flag cannot be threaded
+  through), so `base_fails` is measured on a copy that *re-collapses in-eval*: base == collapsed on
+  5/5 probed files (logs "12 → 12" where the canonical evaluator shows 15 → 12). The 94g safety
+  property is not actually checked against the true base, and a `--no-collapse-insearch` run's
+  finish evaluator contradicts its own objective (the deterministic `7ua` mechanism, in the product).
+- **`homemaker-py-pek` (P3)** — `fitness.py` carries two `process_storey` definitions; the first is
+  dead code silently shadowed by the second, a silent-bug vector for future edits.
+
+Reviewed clean: the gaussian/truncated-e ports, `_gaussian_product`, count/adjacency/level checks and
+missing-id suppression, `collapse_global`'s pin/slot/forbid accounting and Jacobi update, the `xcy`
+submission-order determinism fix, `NativeEvaluator` deepcopy hygiene (the per-eval
+`geometry.clear_cache()` at `_evaluate_full` entry protects the whole in-eval path), and
+`merge_divided` (o/s-only, so no share-stamp interaction). `solver.py` is experiments-only — nothing
+on the search path calls it. `collapse_finish`'s cand-deepcopy id-reuse hazard was probed 0/6 (Node
+trees are reference cycles, so the dead copy outlives the reuse window); a defensive clear at
+`collapse_global` entry is folded into `cvw`. Verdict on the method: the §35 hypothesis held — all
+three confirmed bugs are silent, non-crashing, and invisible to the test suite (337/337 green
+throughout), and two of them sit exactly on the leaf-share/collapse seam `iio` came from.
