@@ -3892,3 +3892,49 @@ trees are reference cycles, so the dead copy outlives the reuse window); a defen
 `collapse_global` entry is folded into `cvw`. Verdict on the method: the §35 hypothesis held — all
 three confirmed bugs are silent, non-crashing, and invisible to the test suite (337/337 green
 throughout), and two of them sit exactly on the leaf-share/collapse seam `iio` came from.
+
+## 37. Phase 9 plan: ground truth, exact evaluation, solver-directed search (`homemaker-py-2g7`)
+
+**Epic:** `homemaker-py-2g7`. **Status:** scoped 2026-08-02, pre-implementation.
+Strategic review of §11–§13 + the 3M-eval runs (`examples/harbor-house/evolve-3M*.log`:
+1.7 M evals / 2.4 days inside one 15-fail tier, hard structural fails — level
+connectivity, wrong-level — surviving > 1 M evals despite dedicated repair
+operators). The scoreboard is lopsided: every fail-count win of Phases 6–8 was a
+construction/objective-honesty lever; every search-machinery lever (§11.4 grade,
+§11.5 niching/restarts, §11.8 tournament-k, §14 islands, §16 annealing, §29/§30
+beam, §27 bubble, §34 autodiff) was null or negative. Three root causes, three
+tracks:
+
+1. **No ground truth.** Every non-empty `.dom` in the repo is evolution output —
+   there are *no human-generated plans in the corpus*, so nobody has ever
+   measured what a known-good design scores; "the examples are solvable" is
+   currently unfalsifiable, and the residual taxonomy (crinkliness = 48 %,
+   §13.11) may be miscalibrated rather than unmet.
+   → `2g7.1` plan→dom composer + traced human solutions (guillotine-cut
+   extraction from rectangular partitions; non-slicible input is itself a
+   representability finding) → `2g7.2` objective calibration against them →
+   `2g7.3` hard/soft fail tiering ("solved" = 0 hard fails; guards: §4.5/§4.9
+   inner-loop cliff protection must survive).
+2. **Evaluation is ~10²–10³× too expensive.** The 80-eval NM inner loop answers
+   a question the classic Otten/Stockmeyer slicing-floorplan shape-curve DP
+   answers exactly in one bottom-up pass (feasibility + optimal ratios for the
+   size/width/proportion family). → `2g7.4` (prototype on harbor-house-l0,
+   rectangular-plot approximation, DP as pre-filter + NM warm start), unlocking
+   `2g7.9` parallel best-of-N + racing (blocked by `cvw`/`b8g`; §14 showed
+   best-of-N ≥ islands; the box has 4 cores and 3M runs used 1–2 workers) and
+   `2g7.10` MAP-Elites (elite-per-niche archive — mechanically distinct from the
+   failed §11.5/§11.8 diversity-under-one-selection).
+3. **Evolution used as a constraint solver.** Discrete subproblems have exact
+   methods: `2g7.5` CP-SAT type assignment for a fixed tree (the optimal big
+   brother of the §11.6/§11.7 greedy assignment — the biggest Phase-6 win);
+   `2g7.6` spike on graph-first construction (rectangular dualization /
+   adjacency-realizing slicing trees); `2g7.7` LLM repair operator at stagnation
+   (generalising the §4.10 compound-operator lesson: fails are semantic and
+   localized, so an LLM proposes the valley-crossing multi-edit; native fitness
+   disposes; plateau-only for cost) and later `2g7.8` AlphaEvolve-style operator
+   synthesis against the existing A/B harness.
+
+Prerequisite hygiene: the open scoring-path bugs (`cvw`, `r5a`, `7ua`, `sd3`,
+`pek`) land first so Phase-9 A/Bs measure a sound objective. Recommended
+opening moves: `2g7.1`+`2g7.2` (days, and they redefine the target for
+everything else) in parallel with `2g7.4` (the compute multiplier).
