@@ -138,6 +138,27 @@ def levels(root: Node) -> list[Node]:
     return out
 
 
+def canonicalize_shares(root: Node) -> None:
+    """Drop any leaf-share stamp that no longer matches its leaf's current
+    type (``share = 1``, ``share_type = None``).
+
+    homemaker-py-r5a: ``_emit`` already treats a leaf's share as live only
+    while ``share_type == type`` (a READ-time guard), but a stale stamp left
+    on the live tree can be COMMITTED back to life: if something later
+    relabels the leaf back to the code its stale ``share_type`` names
+    (``collapse_global``'s assignment, ``collapse_superposition``, or an
+    ordinary retype mutation restoring an old code), ``share_type == type``
+    becomes true again and the leaf resurrects a multiplicity credit for
+    area that was never re-verified against it. Calling this before any
+    relabelling pass makes the guard an actual invariant instead of a
+    per-reader check, so a resurrection can never happen."""
+    for lvl in levels(root):
+        for leaf in lvl.leaves():
+            if leaf.share_type is not None and leaf.share_type != leaf.type:
+                leaf.share = 1
+                leaf.share_type = None
+
+
 def _link(root: Node) -> None:
     lvls = levels(root)
     for lvl in lvls:

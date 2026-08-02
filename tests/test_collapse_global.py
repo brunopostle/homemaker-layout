@@ -249,6 +249,53 @@ def test_collapse_global_dump_reload_agree_with_stale_share(tmp_path):
     assert live_types == ["b2", "b1"]
 
 
+def test_collapse_global_commit_does_not_resurrect_stale_share(tmp_path):
+    # homemaker-py-r5a: unlike the iio bug above (a stale stamp swaying which
+    # CANDIDATE code wins), this is the COMMIT door -- collapse_global's own
+    # assignment relabels the leaf back to the code its stale share_type
+    # names, so share_type == type becomes true again "for real" and the
+    # leaf would resurrect a share=3 credit for area that was never sized
+    # for 3 rooms. Demand/sizes mirror test_relabels_to_demand_set (two
+    # identically-typed leaves of different area spread across two demand
+    # codes by size fit) so collapse is EXPECTED to move the smaller (left)
+    # leaf onto "n" -- exactly the stale share_type stamped on it below.
+    from homemaker_layout import dom
+
+    conf = _conf({
+        "b1": {"size": [16.0, 4.0], "width": [4.0, 1.0], "proportion": [1.5, 0.5]},
+        "n": {"size": [12.0, 3.0], "width": [3.5, 0.8], "proportion": [1.5, 0.5]},
+    }, leaf_sharing=True)
+
+    def _make_root():
+        root = _two_leaf_root("b1", "b1")
+        left, _right = root.leaves()
+        left.share = 3
+        left.share_type = "n"  # stale: left is currently typed "b1", not "n"
+        return root
+
+    live = _make_root()
+    Fitness(conf=conf).collapse_global(live)
+    left, right = live.leaves()
+    # Collapse did relabel left back onto "n" (the scenario the bug needs)...
+    assert left.type == "n"
+    # ...but the resurrected-looking match must not carry a share credit --
+    # the stamp predates this assignment and was never re-verified.
+    assert not (left.share > 1 and left.share_type == left.type)
+
+    path = tmp_path / "stale_share_commit.dom"
+    dumped = _make_root()
+    dom.dump(dumped, str(path))
+    reloaded = dom.load(str(path))
+    Fitness(conf=conf).collapse_global(reloaded)
+
+    assert [lf.type for lf in live.leaves()] == [lf.type for lf in reloaded.leaves()]
+    assert [lf.share for lf in live.leaves()] == [lf.share for lf in reloaded.leaves()]
+    assert (
+        [lf.share_type for lf in live.leaves()]
+        == [lf.share_type for lf in reloaded.leaves()]
+    )
+
+
 def test_collapse_finish_is_keep_better_and_unmerged():
     # collapse_finish returns (tree, base, collapsed, applied); the tree it hands
     # back is unmerged (leaves still carry their divisions), and collapsed<=base.

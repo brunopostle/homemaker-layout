@@ -642,6 +642,12 @@ class Fitness:
         from collections import Counter
         from . import graph as graph_mod
 
+        # homemaker-py-r5a: drop any stale share/share_type BEFORE this pass
+        # relabels anything, so a leaf relabelled back to the code its stale
+        # stamp names cannot resurrect a multiplicity credit (see
+        # dom.canonicalize_shares).
+        dom_mod.canonicalize_shares(root)
+
         prog = self._programme or {}
         if not prog:
             return
@@ -1671,6 +1677,10 @@ class Fitness:
         from . import graph as graph_mod
 
         geometry.clear_cache()
+        # homemaker-py-r5a: canonicalise stale share stamps before any
+        # relabelling pass (collapse_superposition/collapse_global) or read
+        # can resurrect one -- see dom.canonicalize_shares.
+        dom_mod.canonicalize_shares(root)
 
         failures: list[str] = []
         tracking: dict = {
