@@ -62,6 +62,91 @@ def _leaf_grade(factors: dict[str, float]) -> float:
             g += fv / FAIL_THRESHOLD
     return g
 
+
+# --------------------------------------------------------------------------- #
+# Hard/soft fail tiering (homemaker-py-2g7.3, DESIGN.md §37)
+# --------------------------------------------------------------------------- #
+# HARD: the design lacks a required structural provision (a space, a level
+# placement, a connectivity path, a stair, weather-tight cover) that no amount
+# of ratio-only (shape) optimisation within the CURRENT topology can supply —
+# fixing it needs a topology mutation (add/remove/retype/reconnect a node).
+# These are graph.py's structural check_* fails plus the count/coverage fails
+# fitness.py emits at the storey/building level (stairs, storey limits, public
+# access, covered-outside support).
+#
+# SOFT: a continuous per-leaf/edge shape or quality metric — evaluate_leaf's
+# perpendicular/proportion/size/width/crinkliness/access factors, wall/edge
+# length caps, stair-fit volume — that the inner-loop ratio solve can, in
+# principle, improve without changing the tree. "access" sits here (not with
+# graph.py's structural adjacency checks) because it is computed exactly like
+# proportion/crinkliness — a per-leaf continuous factor thresholded in
+# evaluate_leaf — and _GRADED_FACTORS already groups it with the shape family.
+#
+# New fail strings MUST be added to one of these tuples — classify_fail_tier
+# raises on anything unrecognised rather than silently defaulting a tier
+# (homemaker-py-2g7.3 acceptance criteria).
+_HARD_FAIL_MARKERS = (
+    "missing required space",
+    "too many spaces",
+    "would need",  # missing-space cascade placeholders (size/width/proportion/
+                    # adjacency/level/connection-below checks for an absent space)
+    "not adjacent to",
+    "on wrong level",
+    "not connected to",  # vertical/stair connectivity to the level below
+    "not connected",  # level circulation connectivity
+    "inaccessible usable space",  # has_circulation disconnected a level (graph.py)
+    "no outside space",
+    "unsupported covered outside",
+    "covered outside above ground",
+    "too few stairs",
+    "too many stairs",
+    "storey limit",
+    "storey minimum",
+    "no outside public access",
+)
+
+_SOFT_FAIL_MARKERS = (
+    " perpendicular",
+    " proportion",
+    " size",
+    " width",
+    " crinkliness",
+    " access",
+    "edge too long",
+    "staircase volume",
+)
+
+
+def classify_fail_tier(fail: str) -> str:
+    """Return ``"hard"`` or ``"soft"`` for one failure string.
+
+    Checks ``_HARD_FAIL_MARKERS`` before ``_SOFT_FAIL_MARKERS`` so cascade
+    placeholders like "missing k1: would need size check" (a missing-space
+    consequence, HARD) aren't caught by the generic " size" SOFT marker.
+    Raises ``ValueError`` for a fail string matching neither list.
+    """
+    for marker in _HARD_FAIL_MARKERS:
+        if marker in fail:
+            return "hard"
+    for marker in _SOFT_FAIL_MARKERS:
+        if marker in fail:
+            return "soft"
+    raise ValueError(
+        f"unclassified fail string (add a tier marker in fitness.py): {fail!r}"
+    )
+
+
+def tier_counts(fails) -> tuple[int, int]:
+    """Return ``(n_hard, n_soft)`` for an iterable of failure strings."""
+    n_hard = n_soft = 0
+    for f in fails:
+        if classify_fail_tier(f) == "hard":
+            n_hard += 1
+        else:
+            n_soft += 1
+    return n_hard, n_soft
+
+
 # Urb::Dom::Fitness::Base $CONF — keep values byte-identical to the Perl
 # expressions (5.0/6 etc. evaluate to the same IEEE doubles in both languages).
 CONF_DEFAULTS: dict = {

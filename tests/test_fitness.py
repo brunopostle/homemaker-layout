@@ -10,7 +10,9 @@ from homemaker_layout.fitness import (
     FAIL_THRESHOLD,
     Fitness,
     _leaf_grade,
+    classify_fail_tier,
     gaussian,
+    tier_counts,
 )
 
 
@@ -375,3 +377,94 @@ def test_programme_parses_per_code_share(tmp_path):
     reqs = load_programme(str(p))
     assert reqs["b"].share == 3 and reqs["b"].has_share is True
     assert reqs["k"].share == 1 and reqs["k"].has_share is False
+
+
+# --------------------------------------------------------------------------- #
+# Hard/soft fail tiering (homemaker-py-2g7.3)
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("fail_str", [
+    "missing required space: la1",
+    "missing required space: la1 (critical)",
+    "too many spaces: k (found 3, expected 2)",
+    "missing ef1: would need size check",
+    "missing ef1: would need width check",
+    "missing ef1: would need proportion check",
+    "missing m: would need adjacency to c",
+    "missing r: would need to be on level 1",
+    "missing t1: would need connection to c below",
+    "0/lr (cr1) not adjacent to c",
+    "li1 on wrong level (level 0, expected 1)",
+    "t1 not connected to c below",
+    "level 0 not connected",
+    "0 inaccessible usable space",
+    "level 0 no outside space",
+    "0/lr unsupported covered outside",
+    "0/lr covered outside above ground",
+    "too few stairs (0, min 1)",
+    "too many stairs (2, max 1)",
+    "storey limit",
+    "storey minimum",
+    "no outside public access",
+])
+def test_classify_fail_tier_hard(fail_str):
+    assert classify_fail_tier(fail_str) == "hard"
+
+
+@pytest.mark.parametrize("fail_str", [
+    "0/lr perpendicular",
+    "0/lr proportion",
+    "0/lr size",
+    "0/lr width",
+    "0/lr crinkliness",
+    "0/lr access",
+    "0/lr lrr edge too long",
+    "lr outside edge too long",
+    "staircase volume",
+])
+def test_classify_fail_tier_soft(fail_str):
+    assert classify_fail_tier(fail_str) == "soft"
+
+
+def test_classify_fail_tier_missing_cascade_is_hard_not_soft():
+    # "missing X: would need size check" contains the SOFT " size" substring,
+    # but is a consequence of a HARD missing-space fail, not a shape defect —
+    # the HARD markers must be checked first (fitness.py ordering).
+    assert classify_fail_tier("missing m#2: would need size check") == "hard"
+
+
+def test_classify_fail_tier_unknown_raises():
+    with pytest.raises(ValueError):
+        classify_fail_tier("some brand new fail string nobody tiered yet")
+
+
+def test_tier_counts_splits_hard_and_soft():
+    fails = ("level 0 not connected", "0/lr proportion", "0/lr crinkliness",
+              "missing required space: k1")
+    assert tier_counts(fails) == (2, 2)
+
+
+def test_tier_counts_empty():
+    assert tier_counts(()) == (0, 0)
+
+
+def test_classify_fail_tier_covers_full_corpus():
+    """Regression guard: every fail string ever emitted into a checked-in
+    native (non-YAML) .fails file must still classify without error."""
+    import glob
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parent.parent
+    checked = 0
+    for path in glob.glob(str(repo_root / "examples" / "**" / "*.fails"), recursive=True):
+        with open(path) as f:
+            first = f.readline()
+            if first.startswith("---"):
+                continue  # legacy Perl-oracle YAML .fails, not this evaluator's output
+            lines = [first.rstrip("\n")] + [ln.rstrip("\n") for ln in f]
+        for line in lines:
+            if not line:
+                continue
+            classify_fail_tier(line)  # raises on failure
+            checked += 1
+    assert checked > 0

@@ -113,6 +113,20 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "circulation that the binary 'not connected' fail lacks. "
                         "Does not change the scalar fitness or fail count "
                         "(default: off)")
+    p.add_argument("--use-tiers", dest="use_tiers",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_USE_TIERS", False),
+                   help="homemaker-py-2g7.3 (DESIGN.md §37): hard/soft fail "
+                        "tiering. Outer comparator becomes (-n_hard, -n_soft, "
+                        "fitness) instead of (-n_fails, fitness), so budget "
+                        "stops being spent polishing SOFT shape fails "
+                        "(crinkliness/proportion/size/width/edge-too-long/"
+                        "staircase-volume) while HARD structural fails (missing "
+                        "space, wrong/required level, level/circulation/vertical "
+                        "connectivity, adjacency, stairs, covered-outside, "
+                        "storey limits, public access) remain unfixed. Does not "
+                        "change the scalar fitness or total fail count "
+                        "(default: off)")
     p.add_argument("--bridge-circulation", dest="bridge_circulation",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_BRIDGE_CIRCULATION", False),
@@ -217,6 +231,7 @@ def main(argv=None) -> int:
     print(f"superpose    : {args.superpose}", file=sys.stderr)
     print(f"multi_use    : {args.multi_use}", file=sys.stderr)
     print(f"conn grade   : {args.conn_grade}", file=sys.stderr)
+    print(f"use tiers    : {args.use_tiers}", file=sys.stderr)
     print(f"bridge circulation : {args.bridge_circulation}", file=sys.stderr)
     print(f"ruin recreate      : {args.ruin_recreate}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
@@ -271,6 +286,7 @@ def main(argv=None) -> int:
             superpose=args.superpose,
             multi_use=args.multi_use,
             conn_grade=args.conn_grade,
+            use_tiers=args.use_tiers,
             enable_bridge_circulation=args.bridge_circulation,
             enable_ruin_recreate=args.ruin_recreate,
             collapse_insearch=args.collapse_insearch,

@@ -131,6 +131,8 @@ class Individual:
     lineage: str = "seed"
     grade: float = 0.0  # §11.4 graded proximity; secondary comparator key only
     sig: str = ""  # §11.5 structural topology signature; niching key
+    n_hard: int = 0  # homemaker-py-2g7.3: hard-fail count (structural, tiered comparator)
+    n_soft: int = 0  # homemaker-py-2g7.3: soft-fail count (shape/quality, tiered comparator)
 
 
 @dataclass
@@ -187,9 +189,12 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
             _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
                          conn_grade, collapse_insearch, multi_use))
         if pred > feasibility_max_shape_fails and pred >= best_n_fails:
+            # predicted_shape_fails only counts the size/width/proportion/
+            # crinkliness SOFT family (operators._SHAPE_FAIL_SUFFIXES), so the
+            # proxy carries no HARD information — tier it all soft.
             ind = Individual(root=root, fitness=0.0, n_fails=pred, ratios={},
                              lineage=f"pruned/{lineage}", grade=0.0,
-                             sig=genome.signature(root))
+                             sig=genome.signature(root), n_hard=0, n_soft=pred)
             return ind, 1
     r = innerloop.optimise(root, programme_dir, x0=x0, budget=budget,
                            urb_root=urb_root, conf_overrides=overrides, **inner_kw)
@@ -203,9 +208,11 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
             str(programme_dir), leaf_sharing, superpose, max_share,
             conn_grade, collapse_insearch, multi_use).score_with_grade(
             copy.deepcopy(root))
+    n_hard, n_soft = fitness.tier_counts(r.fail_lines)
     ind = Individual(root=root, fitness=r.fitness, n_fails=r.n_fails,
                      ratios=innerloop.ratio_map(root), lineage=lineage,
-                     grade=grade, sig=genome.signature(root))
+                     grade=grade, sig=genome.signature(root),
+                     n_hard=n_hard, n_soft=n_soft)
     return ind, r.n_evals
 
 
@@ -231,6 +238,7 @@ def search(
     log=None,
     n_workers: int = 1,
     use_lex: bool = True,
+    use_tiers: bool = False,
     rank_bonus_fn=None,
     rank_bonus_weight: float = 1.0,
     seed_factory=None,
@@ -395,7 +403,20 @@ def search(
     # homemaker-py-qi6 §18: the connectivity signal rides the same grade channel,
     # so enabling it enables the grade secondary key.
     use_grade = use_grade or conn_grade
-    if use_lex and use_grade:
+    # homemaker-py-2g7.3 (DESIGN.md §37): tiered comparator, EXPERIMENT default off.
+    # Splits the flat -n_fails key into (-n_hard, -n_soft) so search budget stops
+    # being spent polishing SOFT shape fails (crinkliness/proportion/size/width/
+    # edge-too-long/staircase-volume) while HARD structural fails (missing space,
+    # wrong/required level, level/circulation/vertical connectivity, adjacency,
+    # stairs, covered-outside, storey limits, public access — fitness.py's
+    # classify_fail_tier) remain unfixed. Does not change the scalar fitness or
+    # total fail count, so the inner-loop 0.5^n cliff protection (§5.4) and the
+    # §4.9 outer A/B baseline are untouched when this flag is off.
+    if use_lex and use_tiers and use_grade:
+        _key = lambda ind: (-ind.n_hard, -ind.n_soft, ind.grade, _rank_fitness(ind))
+    elif use_lex and use_tiers:
+        _key = lambda ind: (-ind.n_hard, -ind.n_soft, _rank_fitness(ind))
+    elif use_lex and use_grade:
         _key = lambda ind: (-ind.n_fails, ind.grade, _rank_fitness(ind))
     elif use_lex:
         _key = lambda ind: (-ind.n_fails, _rank_fitness(ind))

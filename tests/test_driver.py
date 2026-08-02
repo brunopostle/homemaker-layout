@@ -1,5 +1,6 @@
 """Driver tests with a faked inner loop (no oracle, no perl)."""
 
+import copy
 from pathlib import Path
 
 import numpy as np
@@ -398,3 +399,46 @@ def test_search_annealed_degenerate_ladder_falls_back(fake_inner):
     assert r.best is not None
     assert r.n_evals >= 300
     assert all(lf.share == 1 for lf in r.best.root.leaves())
+
+
+def test_use_tiers_prefers_fewer_hard_over_fewer_total_fails(monkeypatch):
+    """homemaker-py-2g7.3: with use_tiers=True the outer comparator is
+    (-n_hard, -n_soft, fitness) instead of (-n_fails, fitness). Construct a
+    seed (0 hard, 2 soft) vs. a mutated child (1 hard, 0 soft, FEWER total
+    fails and HIGHER raw fitness) — the flat comparator prefers the child
+    (1 < 2 total fails); the tiered comparator must keep the seed (0 < 1
+    hard fails dominates regardless of soft count or fitness)."""
+    from homemaker_layout import innerloop
+
+    seed_root = dom.load(str(SEED_FILE))
+    calls = []  # first call is always the seed eval; every later call is a child
+
+    def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+        for _, b in innerloop.free_with_keys(root):
+            b.division = [0.25, 0.25]
+        is_seed = len(calls) == 0
+        calls.append(1)
+        if is_seed:
+            fail_lines = ("0/lr proportion", "0/lr crinkliness")  # 0 hard, 2 soft
+            fit = 0.5
+        else:
+            fail_lines = ("level 0 not connected",)  # 1 hard, 0 soft
+            fit = 0.9  # higher raw fitness AND fewer total fails than the seed
+        return innerloop.Result(
+            x=np.array([0.25]), fitness=fit, n_fails=len(fail_lines),
+            fail_lines=fail_lines, x0_fitness=fit, x0_n_fails=len(fail_lines),
+            n_evals=budget, n_oracle_calls=1,
+        )
+
+    monkeypatch.setattr(innerloop, "optimise", fake_optimise)
+
+    common_kw = dict(programme_dir=CORPUS, pop_size=1, seed_budget=50,
+                     child_budget=50, budget=100, bootstrap=False, seed=0)
+
+    flat = driver.search(seed_root, **common_kw)
+    assert flat.best.n_fails == 1  # flat comparator: fewer total fails wins
+
+    calls.clear()
+    tiered = driver.search(copy.deepcopy(seed_root), use_tiers=True, **common_kw)
+    assert tiered.best.n_hard == 0  # tiered comparator: fewer hard fails wins
+    assert tiered.best.n_fails == 2
