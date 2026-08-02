@@ -2771,6 +2771,14 @@ needs the cheaper finish-time-only path. `fitness.Fitness` itself is unchanged (
 when `collapse_insearch` is absent from conf — the default lives in the driver/CLI override layer,
 same contract as `leaf_sharing`).
 
+**Caveat added retroactively (`homemaker-py-iio`, 2026-08-02).** A stale-leaf-share bug (§35) meant
+every `collapse_insearch=ON` eval during this era's runs (and any leaf-sharing run's finish-time
+`--collapse`) could occasionally value one candidate cell of the collapse assignment using leftover
+`share`/`share_type` metadata from a code the leaf no longer held. §35's re-verification shows this
+is real per-seed noise (not a directional bias) that does not appear to overturn the ON-beats-OFF
+verdict above, but the exact historical per-seed numbers quoted in this section were not re-measured
+under the fix. See §35 for the mechanism and what was (and wasn't) re-confirmed.
+
 ## 21. Insert/relocate-circulation repair operator (`homemaker-py-8sh`) — DONE (mixed, kept off)
 
 **Motivation.** qi6's remaining candidate (§18): mechanism (a), an explicit search-time
@@ -3722,3 +3730,123 @@ call anyway. `experiments/autodiff_spike.py` is kept as a reference/starting poi
 `innerloop.py`) should a future architect want to revisit this at a very different scale (e.g. thousands of
 DOF, where nm_search's `O(DOF)` per-iteration cost would start to dominate) — not worth further investment
 at current programme/topology sizes (6-40 DOF).
+
+## 35. Stale leaf-share leak into `collapse_global`'s candidate valuation (`homemaker-py-iio`) — FIXED, retroactive impact partially assessed
+
+**Discovery.** Found while diagnosing `homemaker-py-91f`: rescoring a dumped `.dom` under the
+`leaf_sharing`+`collapse_insearch` stack did not reproduce `driver.search_staged`'s own reported
+`n_fails`. `copy.deepcopy(r.best.root)` rescored in-process matched the search's own number exactly
+(37 fails, harbor-house seed=0, budget=20000, full default stack); `dom.dump`+`dom.load` of the exact
+same tree, rescored identically, gave 64. Ruled out first: hash-seed randomness (stable across
+`PYTHONHASHSEED` 0-4), float-precision loss (`dom.dump`/`dom.load` round-trips a Python `float` exactly
+— `yaml`'s float representer uses `repr()`, which is round-trip-exact by construction — confirmed no
+`numpy.float64` leaks into `.division`, all such writes already go through `float(...)`), and
+below-link/geometry staleness (the leading hypothesis going in — `dom._link` is re-run after every
+structural mutation, so this turned out to be a dead end).
+
+**Root cause.** Not geometry at all — a metadata leak in `Fitness._collapse_value` and
+`Fitness._usage_quality` (`fitness.py`). Both temporarily overwrite `leaf.type` to probe a
+*hypothetical* candidate code (`_collapse_value` inside `collapse_global`'s Hungarian assignment build;
+`_usage_quality` inside `collapse_superposition`/9o5), call `quality_size`, and restore the original
+type in a `finally`. `quality_size` reads `graph.leaf_share(leaf, max_share)`, which returns the
+leaf-sharing multiplier `k` only when `leaf.share > 1 and leaf.share_type == leaf.type` — by design,
+this makes a share stamp "stale" (harmless) the moment a leaf is retyped away from the code it was
+stamped for (§13.3's own documented contract). But because the probe overwrites `leaf.type` to the
+*candidate*, not the leaf's real current type, `leaf_share`'s guard compares the stale `share_type`
+against the CANDIDATE code — so whenever a probed candidate happens to equal a leaf's old, stale
+`share_type`, the k× size-target credit spuriously reactivates for that one (leaf, candidate) cell,
+even though the leaf never actually committed to that code. This skews that one cell of the Hungarian
+matrix and can flip which leaf `collapse_global` assigns to which room.
+
+`dom._emit` only serialises `share` when `share_type == type` (the same live/stale guard, correctly
+applied to the leaf's REAL type) — so a stale `share`/`share_type` combo is silently dropped on
+`dom.dump`+`dom.load`. That is exactly why the live in-process tree (still carrying the stale
+metadata) and its dump/reload round trip (metadata gone) fed different values into the same
+`collapse_global` call and landed on different optimal assignments. Structural diff of the live vs.
+reloaded harbor-house tree that triggered this showed exactly two leaves differing, both in
+`share`/`share_type` only (e.g. `share=3, share_type='n'` live vs. `share=1, share_type=None`
+reloaded) — nothing else (no type, division, or below-link differences).
+
+**Fix** (`src/homemaker_layout/fitness.py`): in both `_collapse_value` and `_usage_quality`,
+temporarily clear `leaf.share_type` for the duration of the probe whenever the candidate differs from
+the leaf's real current type, restoring it in the `finally` block. The leaf's own real current type
+(the non-hypothetical, `code == orig` case — e.g. `_two_opt_adjacency_polish`'s `reward()`, which
+always evaluates a leaf's own current type, never a hypothetical one, and so was never exposed to this
+bug) still legitimately carries a live share.
+
+**Verification.** Two new regression tests in `tests/test_collapse_global.py`
+(`test_collapse_value_ignores_stale_share_for_hypothetical_code`,
+`test_collapse_global_dump_reload_agree_with_stale_share`), both confirmed to fail pre-fix and pass
+post-fix. Full suite 337/337. Re-ran the exact 91f repro (harbor-house seed=0, budget=20000): search /
+in-process rescore / dump-reload rescore now agree at 37/37/37 (previously 35/35/64).
+
+**Retroactive impact: who was exposed.** The bug requires `leaf_sharing=True` (default since §13.10
+`x3b`) *and* `collapse_global` running on a tree carrying a stale share — either every eval
+(`collapse_insearch=True`, default since §20 `1ph`, 2026-07-24) or once at finish time (`--collapse`,
+94g, §17, default on since before that). That describes essentially the whole "full default stack"
+used for every experiment from `x3b` onward, including the very studies that justified defaulting
+these features on (`94g`, `qpk`/`1ph`, `8sh`, and everything downstream). Two things are NOT exposed:
+the `9wi`/`cdl` 2-opt polish (`reward()` always probes a leaf's own current type — see above), and
+`9o5`/`superpose`-only runs (exposed via `_usage_quality`, but only when `superpose=True`, which has
+always defaulted off and — as far as this investigation went — was not cross-checked against whether
+`leaf_sharing` was also on in that specific historical A/B).
+
+**Re-verification performed (2026-08-02).** Re-ran the qpk protocol's harbor-house arm
+(`examples/harbor-house/init.dom`, budget 2500, seeds 1-3, 4 workers, `--collapse-insearch` ON/OFF,
+canonical `homemaker-fitness` re-score) on **today's codebase**, once with the `iio` fix in place and
+once with it reverted (`git show 929be5b~1:src/homemaker_layout/fitness.py` swapped in temporarily via
+the editable install, then restored — no commit was made with the bug reintroduced):
+
+| seed | collapse_insearch | fixed | pre-fix (buggy) |
+|---|---|---:|---:|
+| 1 | OFF | 85 | 85 |
+| 2 | OFF | 76 | 76 |
+| 3 | OFF | 80 | 80 |
+| 1 | ON | 82 | 74 |
+| 2 | ON | 65 | 65 |
+| 3 | ON | 72 | 77 |
+
+OFF is byte-identical between the two code versions on all 3 seeds — expected, since OFF never calls
+`collapse_global` during search, only once at finish time, and none of these three final trees
+happened to carry a triggering stale share at that point. ON diverges on 2 of 3 seeds, by a real
+margin (seed 1: 74 vs. 82, an 8-fail swing; seed 3: 77 vs. 72, a 5-fail swing) — and, critically, **not
+directionally**: the bug's noise landed better on seed 1 and worse on seed 3. This is consistent with
+the mechanism (a coincidental corruption of one assignment-matrix cell, not a systematic push in either
+direction).
+
+**What this does and doesn't establish.** It establishes the bug was not merely theoretical: it
+demonstrably perturbed real per-seed outcomes under `collapse_insearch=ON` on this exact protocol, by
+margins (5-10% of the fail count) that are not negligible next to the ~10% mean effect `qpk`/`1ph`
+reported. Because the perturbation is non-directional noise rather than a systematic bias, it's
+unlikely to have flipped `1ph`'s aggregate, statistically-tested verdict (N=20 programme-house seeds,
+paired t-test p≈0.028, consistent direction and magnitude with the original N=5 sample and with
+harbor-house) — random per-seed noise in both directions tends to average out rather than compound
+across a 20-seed sample. But this was NOT rigorously confirmed: the comparison above reran today's
+code (fix vs. no-fix), not the actual historical commit at the time `1ph`/`qpk` were measured, and used
+only 3 harbor-house seeds, not the original seed sets. Any specific historical per-seed number quoted
+in §17/§20/§21 (and elsewhere the full default stack was used) should be treated as carrying real,
+now-quantified uncertainty from this bug; the qualitative "leaf-sharing helps" / "in-search collapse
+helps" conclusions are probably still sound but were not independently re-proven against the fix.
+
+**Follow-up (not done here, low priority, filed as `homemaker-py-d86`):** a rigorous re-verification
+would check out the codebase near the `1ph` commit (2026-07-24), backport the `iio` fix there in an
+isolated worktree, and re-run the *actual* historical seed set (programme-house N=20, harbor-house
+N=3) to get a direct before/after comparison against the published numbers, rather than today's
+much-improved baseline (which, at these budgets, mostly saturates to 0 fails and so is no longer a
+useful testbed — see below).
+
+**Aside: today's baseline has moved far past the `qpk`-era regime.** An earlier pass at this
+re-verification (same protocol, same code) produced a systematic false "0 fails" for every arm/seed —
+traced to a bug in the *verification script*, not the product: it built `homemaker-fitness`'s target
+path as `realpath "../../$dom"` (copied from `experiments/run_8sh_ab.sh`, where the equivalent `$dom`
+is relative to the repo root) against an already-absolute scratch path, `realpath` failed, the error
+was swallowed by `>/dev/null 2>&1`, and the harness's `fails=0` fallback silently reported success
+instead of an error. Once the path bug was fixed, real (non-zero) numbers came back matching the
+historical scale. Two things worth remembering from this: (1) `programme-house` at the `1ph` budget
+(3000) now reaches 0 fails on every seed/arm tried under today's full default stack — a large
+improvement since `1ph` from the many subsequent Phase-8/9+ landings — so it is no longer a useful
+regression testbed for this particular question at that budget; harbor-house (budget 2500, still
+65-85 fails) still has real headroom and is what the table above uses. (2) a silent-failure-shaped
+"suspiciously good" result is a smell — a fallback default that never reports "ERR" loudly is worth
+distrusting on sight (the harness now sets `fails=ERR` on a missing `.fails` file instead of `0`,
+kept in `qpk_verify_ab.sh`/`qpk_verify_hh_ab.sh` in scratch, not committed).
