@@ -4005,3 +4005,89 @@ faster in wall-clock/eval terms than flat lex at the SAME budget (this A/B
 measured fail composition at fixed budget, not convergence speed); an
 apples-to-apples "evals to 0 hard fails" race is a natural follow-up once
 `2g7.1`/`2g7.2` ground truth lands.
+
+### 37.2 `homemaker-py-2g7.4` shape-curve DP prototype — measured 2026-08-02, ACCEPTANCE: PASS
+
+**What was built.** `experiments/shapecurve_spike.py` + `experiments/
+validate_shapecurve.py`: an Otten/Stockmeyer-style shape-curve DP answering
+"does some equal-offset ratio assignment clear the size/width/proportion
+FAIL_THRESHOLD for every leaf" in one bottom-up pass, for a frozen topology on
+harbor-house-l0. Each leaf's feasible (width, height) region is bounded by an
+area hyperbola, a min-width line, and an aspect-ratio wedge — closed-form
+FAIL_THRESHOLD inversions of `quality_size`/`quality_width`/
+`quality_proportion` (`leaf_constraints`, verified against the real Gaussian
+formulas by construction, not reimplemented magic numbers: same `conf`/
+`get_space_params` lookups `fitness.py` uses, including the "any type code
+starting with 'c' or 's'/'o' hits the circulation/outside branch, not its own
+programme params" quirk — confirmed this is existing product behaviour, not a
+bug, by reading `get_space_params`/`quality_size` together). Regions compose
+bottom-up through the slicing tree: a node's cut is either a "width-split"
+(children share height, widths sum) or "height-split" (heights sum), measured
+once from the actual baseline geometry (`_orientation`) rather than derived
+symbolically from `rotation` — robust to any rotation convention. Composition
+is done on a shared log-spaced grid (interval-sum + a numpy-vectorised
+inversion, `_invert`); leaf curves themselves are exact closed forms, so all
+discretisation error is confined to internal-node composition. A top-down
+`realise()` back-substitution converts a feasible root point into actual
+`division` ratios, so the DP's output is a real, scoreable `.dom` tree, not
+just a yes/no.
+
+**Explicit scope (per the plan's own caveats).** Only size/width/proportion
+is modelled — crinkliness/adjacency/access/level connectivity are graph
+terms, out of scope by design. Every quad is approximated by its axis-aligned
+bounding box (exact only for a true rectangle). `leaf_sharing`/`co_type`
+target-adjustment is not modelled (harbor-house-l0's programme doesn't
+exercise either).
+
+**Validation** (`experiments/validate_shapecurve.py`, harbor-house-l0, 200
+`driver.random_topology` topologies, 2-14 leaves, seed 12345): compared
+against NM search **minimising shape-fail count directly** (`ShapeFailEvaluator`,
+budget 100), not `innerloop.optimise`'s full aggregate objective — the first
+version of this harness used the full objective and found spurious
+"disagreements" where the DP's own realised point independently verified at
+**zero** shape fails but NM's full-objective search had wandered away from it,
+because on a topology missing most of its programme, the 0.5^n missing-space
+penalty swamps the objective and NM has no pressure to preserve
+shape-feasibility specifically. Minimising shape-fail count alone is the
+correct apples-to-apples comparison against what the DP claims to solve.
+
+| metric | result | target |
+|---|---|---|
+| agreement | 198/200 = **99.0%** | >= 95% |
+| false positives (DP feasible, NM can't reach 0) | 2 | — |
+| false negatives (DP infeasible, NM reaches 0 anyway) | **0** | — |
+| speedup (grid_n=150, vs 100-eval NM) | **93.6x** | >= 50x |
+| speedup (grid_n=300) | 42.7x | — |
+| plot-level bbox area error | measured **+7.5%** overestimate | quantified |
+
+Zero false negatives across 200 topologies: the DP never wrongly rejects a
+topology NM finds feasible — the safe direction for a pre-filter (worst case
+it fails to prune, never wrongly prunes a viable topology). grid_n=150 vs 300
+gave **identical** agreement (99.0%, the same 2 mismatches) at 2.2x the
+speedup — internal-node grid resolution has headroom below 300 with no
+measured accuracy cost on this benchmark; `_invert`'s pure-Python O(N²)
+double loop was ~70% of DP wall-clock before vectorising with numpy
+(profiled: 170ms → 40ms/topology at grid_n=300 from that change alone).
+
+**Approximation error, root-caused.** Both false positives were traced to the
+bounding-box approximation, not a DP logic bug: the DP's own realised point
+for both cases had one leaf whose bbox-approximated area (e.g. 29.54 m²,
+comfortably inside `[27.12, 52.88]`) was a **real skewed quad** whose true
+`geometry.area` (26.90 m²) fell just *below* the true lower bound — a bbox
+overestimate of the same ~8-12% magnitude as the plot-level +7.5% figure
+above (harbor-house-l0's plot is a near-rectangular trapezoid, not a true
+rectangle). Every mismatch occurred within one bbox-error-width of a boundary
+— exactly the failure mode the plan's caveat predicted ("equal-offset
+skew-quad geometry means DP areas are approximate — measure the approximation
+error on real plots first").
+
+**ACCEPTANCE: PASS** — all three criteria cleared (agreement, speedup,
+quantified approximation error). **Not done in this session** (follow-on,
+new bead needed before this can replace `operators.predicted_shape_fails` in
+`driver.py`'s real pre-filter path): wiring the DP into `driver._evaluate`/
+`innerloop.optimise` as an actual pre-filter + NM warm-start, multi-storey
+(`below`-link) support, `leaf_sharing`/`co_type` modelling, and a true
+skew-quad (non-bbox) leaf region to remove the measured approximation-error
+source rather than just quantify it. `experiments/shapecurve_spike.py` is
+kept as a reference/prototype (the §34 `autodiff_spike.py` precedent), not
+wired into `innerloop.py`.
