@@ -3914,7 +3914,7 @@ tracks:
    extraction from rectangular partitions; non-slicible input is itself a
    representability finding) → `2g7.2` objective calibration against them →
    `2g7.3` hard/soft fail tiering ("solved" = 0 hard fails; guards: §4.5/§4.9
-   inner-loop cliff protection must survive).
+   inner-loop cliff protection must survive) — **DONE, PASS, see §37.1**.
 2. **Evaluation is ~10²–10³× too expensive.** The 80-eval NM inner loop answers
    a question the classic Otten/Stockmeyer slicing-floorplan shape-curve DP
    answers exactly in one bottom-up pass (feasibility + optimal ratios for the
@@ -3938,3 +3938,70 @@ Prerequisite hygiene: the open scoring-path bugs (`cvw`, `r5a`, `7ua`, `sd3`,
 `pek`) land first so Phase-9 A/Bs measure a sound objective. Recommended
 opening moves: `2g7.1`+`2g7.2` (days, and they redefine the target for
 everything else) in parallel with `2g7.4` (the compute multiplier).
+
+### 37.1 `homemaker-py-2g7.3` hard/soft fail tiering — measured 2026-08-02
+
+**Implementation.** `fitness.classify_fail_tier`/`tier_counts` (fitness.py)
+classify every fail string emitted across `fitness.py` and `graph.py` into two
+tiers, raising `ValueError` on anything unrecognised (no silent default) so a
+new fail-emission site must declare a tier:
+
+- **HARD** — no amount of ratio-only optimisation within the current topology
+  can fix it; needs a topology mutation (add/remove/retype/reconnect a node):
+  missing/excess required space (and its "would need … check" cascade
+  placeholders), wrong/required level, level circulation connectivity
+  ("level N not connected", "N inaccessible usable space"), vertical/stair
+  connectivity, adjacency ("not adjacent to"), stairs count, covered-outside
+  support, storey limit/minimum, no outside public access.
+- **SOFT** — a continuous per-leaf/edge shape or quality metric the inner-loop
+  ratio solve can improve without changing the tree: perpendicular,
+  proportion, size, width, crinkliness, access (grouped with the shape family,
+  not with `graph.py`'s structural adjacency checks, because `evaluate_leaf`
+  computes it identically to proportion/crinkliness — a per-leaf continuous
+  factor thresholded against `FAIL_THRESHOLD` — and `_GRADED_FACTORS` already
+  groups it there), edge-too-long, staircase volume.
+
+`driver.Individual` gained `n_hard`/`n_soft` (populated from
+`innerloop.Result.fail_lines`); `driver.search(use_tiers=True)` swaps the
+outer comparator from `(-n_fails, fitness)` to `(-n_hard, -n_soft, fitness)`.
+Default off (`evolve.py --use-tiers` / `HOMEMAKER_USE_TIERS`), so existing
+runs/reproductions are unaffected.
+
+**Guard 1 (§4.5/§4.9 inner-loop 0.5^n cliff protection).** Not re-measured
+empirically — the change touches neither `innerloop.py` nor the existing
+`value *= 0.5 ** len(failures)` line in `fitness.py`; tiering only adds pure
+functions that classify `driver.py`'s already-collected `r.fail_lines` after
+the fact. The cliff is unaffected by construction.
+
+**Guard 2 (§4.9 outer A/B — no scalar-pathology regression).** The tiered key
+is still a lexicographic tuple, not a blended scalar, so it structurally
+cannot reproduce the §4.8 pathology (a worse-tier design winning on raw
+fitness). Encoded as a regression test,
+`tests/test_driver.py::test_use_tiers_prefers_fewer_hard_over_fewer_total_fails`:
+constructs a seed (0 hard, 2 soft) vs. a mutated child with FEWER total fails
+and HIGHER raw fitness but 1 hard fail — the flat comparator picks the child,
+the tiered comparator keeps the seed.
+
+**Acceptance A/B** (`experiments/tier_ab_2g7_3.py`, `URB_NO_OCCLUSION=1`,
+harbor-house + maple-court, 3 seeds, budget 20 000 native evals/run,
+`leaf_sharing=True`, `n_workers=4`, ~2h53m wall):
+
+| programme     | scheme | hard (mean) | soft (mean) | total (mean) |
+|---------------|--------|-------------|-------------|---------------|
+| harbor-house  | flat   | 11.67       | 29.00       | 40.67         |
+| harbor-house  | tiered | **5.33**    | 42.33       | 47.67         |
+| maple-court   | flat   | 19.33       | 71.33       | 90.67         |
+| maple-court   | tiered | **14.00**   | 87.67       | 101.67        |
+
+Hard-fail mean strictly improves on both programmes (harbor 11.67→5.33,
+maple 19.33→14.00) at the cost of more soft fails and a higher raw total —
+exactly the intended trade: budget stops being spent polishing shape fails
+while structural fails remain. **ACCEPTANCE: PASS.** Full per-seed log:
+`scratch/tier_ab_2g7_3/log.txt` (not checked in — regenerate via the script).
+
+**Not yet done** (follow-on, not blocking this bead's acceptance criteria):
+`2g7.2`-style calibration of whether tiered search reaches 0 hard fails
+faster in wall-clock/eval terms than flat lex at the SAME budget (this A/B
+measured fail composition at fixed budget, not convergence speed); an
+apples-to-apples "evals to 0 hard fails" race is a natural follow-up once
+`2g7.1`/`2g7.2` ground truth lands.
