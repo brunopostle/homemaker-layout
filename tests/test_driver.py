@@ -333,10 +333,11 @@ def test_shapecurve_warmstart_seeds_ratios_when_eligible(monkeypatch):
     )
 
 
-def test_shapecurve_warmstart_skips_multistorey(monkeypatch):
-    """homemaker-py-6xh: the DP has no notion of ``below``-inherited
-    (wall-stacked) fixed splits, so it must never be invoked on a
-    multi-storey topology — ``shapecurve.eligible`` guards this."""
+def test_shapecurve_warmstart_handles_multistorey(monkeypatch):
+    """homemaker-py-koo: the DP now models ``below``-inherited (wall-stacked)
+    fixed splits directly (DESIGN.md §37.6), so ``shapecurve.eligible`` no
+    longer excludes a multi-storey topology and the warm-start path invokes
+    it exactly as it would a single-storey one."""
     from homemaker_layout import shapecurve
 
     def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
@@ -357,7 +358,7 @@ def test_shapecurve_warmstart_skips_multistorey(monkeypatch):
     driver.search(multi_root, CORPUS, budget=200, pop_size=2,
                   child_budget=60, seed_budget=60, seed=1,
                   bootstrap=False, shapecurve_warmstart=True, leaf_sharing=False)
-    assert not solve_calls
+    assert solve_calls, "shapecurve.solve must be called for an eligible multi-storey child"
 
 
 HARBOR_L0 = Path(__file__).parent.parent / "examples" / "harbor-house-l0"

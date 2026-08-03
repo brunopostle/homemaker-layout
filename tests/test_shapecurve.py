@@ -2,6 +2,7 @@
 experiments/shapecurve_spike.py; see DESIGN.md §37.2/§37.4 for the full
 200-topology validation this unit scale is a fast smoke check of)."""
 
+import copy
 from pathlib import Path
 
 import numpy as np
@@ -28,7 +29,53 @@ def _small_feasible_topology():
     return driver.random_topology(seed, 2, rng, ["C", "O"])
 
 
-def test_eligible_guards_multistorey_and_sharing():
+def _two_storey_feasible_topology():
+    """Level 0: the whole plot as one undivided 'O' room (trivially
+    feasible, below is always None at level 0). Level 1: an independent
+    fresh 2-leaf 'C'/'O' topology whose root inherits the *whole plot* as
+    its fixed box (its below -- level 0's root -- exists but is undivided,
+    so the root itself is a free-region-root per ``shapecurve._region_roots``,
+    pinned to the same box ``_small_feasible_topology`` already validates as
+    shape-feasible for a single storey)."""
+    base_seed = dom.load(str(HARBOR_L0 / "init.dom"))
+    level0 = copy.deepcopy(base_seed)
+    level0.type = "O"
+    rng = np.random.default_rng(0)
+    level1 = driver.random_topology(dom.load(str(HARBOR_L0 / "init.dom")), 2, rng, ["C", "O"])
+    level0.above = level1
+    dom.link(level0)
+    return level0
+
+
+def _two_storey_mixed_topology(child_types=("O", "O")):
+    """Level 0: the same 2-leaf 'C'/'O' topology ``_small_feasible_topology``
+    validates. Level 1: an exact structural copy (so its root and both
+    leaves start out below-inherited/FIXED, wall-stacked on level 0), with
+    one of its leaves (``target``, id 'l') further divided into two brand
+    new leaves of ``child_types`` -- a genuine below-fixed-box/free-split
+    (case B) fringe node nested under a below-fixed-divided (case A) root,
+    the mixed scenario ``homemaker-py-koo`` adds support for. Returns
+    ``(root, target)``."""
+    seed = dom.load(str(HARBOR_L0 / "init.dom"))
+    rng = np.random.default_rng(0)
+    level0 = driver.random_topology(seed, 2, rng, ["C", "O"])
+    level1 = copy.deepcopy(level0)
+    level0.above = level1
+    dom.link(level0)
+
+    target = level1.left
+    target.division = [0.5, 0.5]
+    target.rotation = 0
+    target.left = dom.Node(rotation=0, type=child_types[0])
+    target.right = dom.Node(rotation=0, type=child_types[1])
+    dom.link(level0)
+    return level0, target
+
+
+def test_eligible_guards_sharing_not_storey_count():
+    """homemaker-py-koo: multi-storey is now handled (below-inherited fixed
+    splits, DESIGN.md §37.6), so ``eligible`` only guards the still-unmodelled
+    leaf_sharing/superpose/max_share/multi_use family."""
     root = dom.load(str(HARBOR_L0 / "generated.dom"))
     assert len(dom.levels(root)) == 1
     assert shapecurve.eligible(root)
@@ -40,7 +87,8 @@ def test_eligible_guards_multistorey_and_sharing():
     seed = dom.load(str(HARBOR_L0 / "init.dom"))
     seed.above = dom.Node(rotation=0)  # fake a second storey
     assert len(dom.levels(seed)) == 2
-    assert not shapecurve.eligible(seed)
+    assert shapecurve.eligible(seed)
+    assert not shapecurve.eligible(seed, leaf_sharing=True)
 
 
 def test_solve_feasible_root_realises_zero_shape_fails(tmp_path):
@@ -106,6 +154,112 @@ def test_is_feasible_agrees_with_solve_but_never_writes(monkeypatch):
     seed = dom.load(str(HARBOR_L0 / "init.dom"))
     rng = np.random.default_rng(0)
     infeasible_root = driver.random_topology(seed, 60, rng, ["k1", "l1", "b1", "C", "O"])
+    before = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
+    assert shapecurve.is_feasible(infeasible_root, fit) is False
+    after = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
+    assert before == after
+
+
+# --------------------------------------------------------------------------- #
+# Multi-storey (homemaker-py-koo, DESIGN.md §37.6)
+# --------------------------------------------------------------------------- #
+
+
+def test_solve_multistorey_feasible_realises_zero_shape_fails(tmp_path):
+    """A 2-storey topology whose upper storey is a fresh, independently-free
+    2-leaf split (pinned to the whole plot, since the ground storey below it
+    is a single undivided room) round-trips to zero size/width/proportion
+    fails at every level, exactly like the single-storey case."""
+    root = _two_storey_feasible_topology()
+    fit = _fit()
+
+    feasible, info = shapecurve.solve(root, fit)
+    assert feasible is True
+    assert info["w_plot"] > 0 and info["h_plot"] > 0
+    assert info["n_levels"] == 2
+
+    out_path = tmp_path / "realised.dom"
+    out_path.write_text(dom.dumps(root))
+    reloaded = dom.load(str(out_path))
+
+    _, fails = fit.score_with_fails(reloaded)
+    shape_fails = [f for f in fails if f.endswith((" size", " width", " proportion"))]
+    assert shape_fails == []
+
+
+def test_solve_multistorey_matches_free_branches(tmp_path):
+    """Mixed fixture: level 1 is a structural copy of level 0 (so its root
+    and both original leaves are below-fixed) with one leaf further divided
+    into two brand new 'O' leaves (a below-fixed-box/free-split fringe node
+    nested under a below-fixed-divided root). ``solve`` must write ratios on
+    exactly ``solver.free_branches`` -- the pre-existing single-storey
+    invariant this generalises -- and leave every below-fixed node's own
+    ``division`` byte-identical, even though it sits on a realised subtree."""
+    root, target = _two_storey_mixed_topology(child_types=("O", "O"))
+    level1 = root.above
+    fit = _fit()
+
+    all_nodes_before = [(n, list(n.division))
+                        for lvl in dom.levels(root) for n in shapecurve._divided_nodes(lvl)]
+    free_before = [b for b in solver.free_branches(root)]
+
+    feasible, _ = shapecurve.solve(root, fit)
+    assert feasible is True
+
+    # level 1's own root is below-fixed (its below, level 0's root, is
+    # divided) so it must never appear as a free branch, and 'target' (a
+    # fresh split introduced only at level 1) must.
+    assert any(b is target for b in solver.free_branches(root))
+    assert not any(b is level1 for b in solver.free_branches(root))
+
+    for node, before in all_nodes_before:
+        if any(node is b for b in free_before):
+            continue
+        assert node.division == before, "below-fixed node's division must never be written"
+
+    out_path = tmp_path / "realised.dom"
+    out_path.write_text(dom.dumps(root))
+    reloaded = dom.load(str(out_path))
+    _, fails = fit.score_with_fails(reloaded)
+    shape_fails = [f for f in fails if f.endswith((" size", " width", " proportion"))]
+    assert shape_fails == []
+
+
+def test_solve_multistorey_infeasible_restores_every_level():
+    """When an upper-storey free split is infeasible (a 'C' leaf forced into
+    a below-fixed box too tall for its proportion/size bounds -- verified by
+    inspection, not tuned to just barely fail), ``solve`` must roll back
+    ALL levels, including the ground storey it already realised earlier in
+    the same call -- not just the storey where infeasibility was detected."""
+    root, target = _two_storey_mixed_topology(child_types=("C", "O"))
+    level1 = root.above
+    fit = _fit()
+
+    before = {
+        id(n): list(n.division)
+        for lvl in dom.levels(root) for n in shapecurve._divided_nodes(lvl)
+    }
+
+    feasible, _ = shapecurve.solve(root, fit)
+    assert feasible is False
+
+    after = {
+        id(n): list(n.division)
+        for lvl in dom.levels(root) for n in shapecurve._divided_nodes(lvl)
+    }
+    assert after == before, "an infeasible upper storey must not leave the ground storey mutated"
+
+
+def test_is_feasible_multistorey_never_writes():
+    fit = _fit()
+
+    feasible_root = _two_storey_feasible_topology()
+    before = [tuple(b.division) for b in solver.free_branches(feasible_root)]
+    assert shapecurve.is_feasible(feasible_root, fit) is True
+    after = [tuple(b.division) for b in solver.free_branches(feasible_root)]
+    assert before == after
+
+    infeasible_root, _ = _two_storey_mixed_topology(child_types=("C", "O"))
     before = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
     assert shapecurve.is_feasible(infeasible_root, fit) is False
     after = [tuple(b.division) for b in solver.free_branches(infeasible_root)]

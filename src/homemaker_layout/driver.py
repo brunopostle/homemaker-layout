@@ -185,9 +185,10 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     # incumbent is never discarded. Pruned individuals are tagged and never admitted.
     overrides = _overrides_for(leaf_sharing, superpose, max_share, conn_grade,
                                collapse_insearch, multi_use)
-    # §37.4 shape-curve DP warm-start (homemaker-py-6xh, DESIGN.md §37.2/§37.4):
-    # when eligible (single storey, no leaf_sharing/superpose/max_share/multi_use
-    # — none of which the DP models) and no caller-supplied x0 (never override an
+    # §37.4/§37.6 shape-curve DP warm-start (homemaker-py-6xh/koo, DESIGN.md
+    # §37.2/§37.4/§37.6): when eligible (any storey count since homemaker-py-koo
+    # — none of leaf_sharing/superpose/max_share/multi_use, which the DP still
+    # doesn't model) and no caller-supplied x0 (never override an
     # explicit Lamarckian warm-start), solve for an exact shape-feasible ratio
     # point and write it onto the tree in place. `x0=None` below then picks it up
     # as the inner loop's start point. On infeasible or ineligible, `root` is left

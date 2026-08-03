@@ -4476,3 +4476,108 @@ branch (DP infeasible + `best_n_fails<=0` prunes for 1 eval, skipping
 `predicted_shape_fails`); the defer branch (DP infeasible + `best_n_fails>0`
 still consults and obeys `predicted_shape_fails`, unchanged). Full suite:
 393 passed.
+
+### 37.6 `homemaker-py-koo` multi-storey (below-link) support for the shape-curve DP — measured 2026-08-03, ACCEPTANCE: PASS
+
+**What was built.** `6xh`'s/`wkh`'s own deferred item: the DP's `eligible`
+guard excluded any tree with `len(dom.levels(root)) > 1`, so it never fired
+on `programme-house`/`harbor-house`'s real ≥2-storey, `leaf_sharing`-default
+programmes — the gap both §37.4 and §37.5 flagged as the more direct route to
+making either land's win apply day-to-day. `shapecurve.py` now processes
+`dom.levels(root)` bottom-up, one storey at a time, instead of assuming a
+single free tree. The key fact this is built on: `geometry.coordinate` mirrors
+a `below`-linked node's corners from the storey below **unconditionally**,
+regardless of whether that storey's counterpart is itself divided — so a
+node with `below.divided` True has both its own outer box AND its split
+ratio dictated by the (already-realised) storey below (dead variables,
+exactly `solver.free_branches`' own free/fixed criterion), while a node
+whose `below` is None or undivided has a genuinely free split — and,
+critically, that free node's own outer box is *still* pinned by geometry
+whenever `below` is not None (only the split inside that fixed box is
+unknown). This means every free region the DP has to solve, at every storey,
+reduces to the exact same single-region problem the pre-existing (single-
+storey) `_check`/`realise` pair already solved — homemaker-py-koo added zero
+new curve-composition math, only `_region_roots` (walks a storey's tree,
+descending through `below.divided` spines without solving anything there,
+collecting the below-fixed leaves and below-fixed-box/free-split fringe
+nodes it bottoms out at) and `_solve_all_levels` (the per-storey sequential
+driver: realise storey *i*'s free regions before checking storey *i+1*, since
+storey *i+1*'s fixed boxes are read off storey *i*'s just-realised geometry,
+not chosen; snapshot every storey's divisions up front and restore them
+unless every region at every storey was feasible, preserving `solve`'s and
+`is_feasible`'s pre-existing all-or-nothing/never-writes contracts exactly).
+A below-fixed leaf (no search freedom — its (w, h) is a single known point)
+is checked directly against `leaf_constraints` via `LeafBounds.h_range`
+(`_leaf_feasible`) rather than routed through the grid-interpolated curve
+machinery, avoiding a discretisation error that would otherwise be paid
+uselessly, once per below-fixed leaf per storey, on a real multi-storey
+building with dozens of wall-stacked rooms. `eligible` now allows any storey
+count; only `leaf_sharing`/`superpose`/`max_share`/`multi_use` (still
+unmodelled by `leaf_constraints`, `homemaker-py-tym`'s scope) remain excluded.
+
+**Validation** (`experiments/validate_shapecurve_multistorey.py`, same
+protocol as §37.2/§37.5 — DP feasibility vs NM search minimising shape-fail
+count directly, shape-fail-count-only comparison, see that module's
+docstring for why): 200 topologies against the real, non-de-risked
+`examples/harbor-house` (storey_minimum 2, full named-space programme, not
+harbor-house-l0's C/O-only single-storey de-risk variant). Each trial starts
+from a genuinely 2-storey seed (`operators.mutate_level_add` once on the bare
+plot) and grows leaves across BOTH storeys via `driver.random_topology`
+(`mutate_divide` picks candidate leaves from every level uniformly), so a
+trial topology naturally mixes below-inherited-fixed spines with
+below-fixed-box/free-split fringe nodes on the upper storey — exactly
+`koo`'s new code path, not a corner case constructed to flatter it:
+
+| metric | harbor-house-l0 single-storey (§37.2, for scale) | harbor-house multi-storey (this session) |
+|---|---|---|
+| agreement | 198/200 = 99.0% | 199/200 = **99.5%** |
+| false positives (DP feasible, NM can't reach 0) | 2 | 1 |
+| false negatives (DP infeasible, NM reaches 0 anyway) | **0** | **0** |
+| speedup (grid_n=150, vs 80-eval NM) | 97.2x | **117.7x** |
+| DP feasible / NM 0-shape-fail | — | 4/200 / 3/200 |
+
+Zero false negatives — the property the hard-prune (`wkh`) branch actually
+depends on — holds on the real multi-storey target at the same 200-topology
+scale as every prior sweep (harbor-house-l0 unrotated 200 + rotated 100 +
+re-run smoke 20, programme-house 200, this session's harbor-house
+multi-storey 200 — 0 false negatives throughout, 720 topologies total across
+the DP's whole validation history). The single false positive
+(topology 119, seed 19314526) is consistent with the already-quantified
+rectangle-vs-true-skewed-quad approximation error (§37.2) compounding across
+two storeys rather than a new defect — not re-investigated to the same depth
+§37.2 gave its own two false positives, since the safety-critical direction
+(false negatives) is unaffected and the magnitude matches expectation.
+Manual smoke test: `driver.search(..., shapecurve_warmstart=True)` and
+`driver.search(..., shapecurve_prune=True, feasibility_filter=True,
+feasibility_max_shape_fails=0)` both run to completion from
+`examples/harbor-house/init.dom` (budget=300, 2 realised storeys in the
+result) without error — the full pipeline this bead was blocking, not just
+the DP in isolation.
+
+**Not done in this session** (deliberately out of scope, per the bead's own
+framing): a `driver.search` A/B on multi-storey harbor-house at `6xh`/`wkh`'s
+budget=2000/5-seed protocol — `koo`'s job was making the DP correct and safe
+on multi-storey trees at all, which the DP-vs-NM agreement/false-negative
+bar above (the same bar §37.2/§37.5 used) already clears; measuring the
+search-level payoff is better sized as its own follow-up once
+`leaf_sharing` support (`homemaker-py-tym`, still gating most real programmes
+by default) lands too, so one A/B can measure the combined win instead of two
+partial ones. `leaf_sharing`/`co_type` modelling and the true skew-quad
+(non-rectangle) leaf region remain open, as they were before this session.
+
+**Verification.** `tests/test_shapecurve.py` (+4 tests, 1 renamed): `eligible`
+no longer excludes multi-storey (renamed from
+`test_eligible_guards_multistorey_and_sharing`); a 2-storey fixture whose
+upper storey is a fresh free split pinned to the whole plot (ground storey
+undivided) realises zero shape fails end to end; a mixed fixture (upper
+storey a structural copy of the ground storey, i.e. below-fixed, with one
+leaf further divided into two brand-new below-free leaves) writes ratios on
+exactly `solver.free_branches` and leaves every below-fixed node's own
+`division` byte-identical; the same mixed fixture with an intentionally
+oversized child type is infeasible and rolls back **every** level, including
+the ground storey already realised earlier in the same call, not just the
+storey where infeasibility was detected; `is_feasible` never writes on either
+multi-storey fixture. `tests/test_driver.py`: the multi-storey warm-start
+test renamed and inverted (`test_shapecurve_warmstart_handles_multistorey`
+now asserts `shapecurve.solve` **is** called on a multi-storey child, where
+it previously asserted the opposite). Full suite: 397 passed.

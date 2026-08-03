@@ -36,11 +36,35 @@ Explicit scope (see ``eligible``, and DESIGN.md §37.2/§37 point 2):
   * ``leaf_sharing``/``co_type`` (multi-use leaves) target-adjustment is NOT
     modelled — ``leaf_constraints`` uses each leaf's own type's base params
     only. ``eligible`` excludes runs using either.
-  * Only a single storey is modelled: ``solve`` writes ``division`` on every
-    divided node under the given level root unconditionally, with no notion
-    of upper-storey ``below``-inherited (wall-stacked) fixed splits. Calling
-    it on a multi-storey tree would corrupt wall-stacking. ``eligible``
-    excludes multi-storey topologies (``len(dom.levels(root)) > 1``).
+
+Multi-storey (homemaker-py-koo, DESIGN.md §37.6): ``solve``/``is_feasible``
+take the whole tree's level-0 root and process ``dom.levels(root)`` bottom-up,
+one storey at a time. Within a storey, a divided node's split is only a DP
+variable (free) when ``solver.free_branches``' own criterion holds (``below``
+is None, or not divided there) -- ``geometry.coordinate`` always mirrors a
+``below``-linked node's corners from the storey below regardless of whether
+that storey's counterpart is itself divided, so a node with ``below.divided``
+True has BOTH its own outer box AND its split ratio dictated by the (already-
+realised) storey below; only a node whose ``below`` is None or undivided
+introduces genuine freedom at this storey, and its outer box is nonetheless
+already fixed by geometry whenever ``below`` is not None (only the split
+inside that fixed box is free). ``_region_roots`` walks each storey's tree,
+descending through ``below.divided`` spines (verifying nothing needs solving
+there -- their shape is pinned, not searched) until it finds a node that is
+either a plain leaf (``below`` not None: fixed point, checked directly by
+feeding it through the ordinary single-leaf-curve path) or a genuinely free
+subtree root (``below`` None -- always true for the level-0 root and for a
+below-undivided fringe node's descendants, since a broken/absent below-chain
+never resumes lower in the tree). Each such root is solved with the exact
+same single-region ``_check``/``realise`` this module always had -- no
+change to that machinery, only to how many independent roots a level
+contributes and what box each is pinned to. Storeys are realised strictly
+bottom-up (each storey's free regions are written to ``division`` before the
+storey above is checked) because upper fixed boxes are read off the storey
+below's *realised* geometry, not chosen; ``solve``/``is_feasible`` snapshot
+every level's divisions first and restore them if any region anywhere is
+infeasible (or always, for ``is_feasible``), so a caller never sees a
+partially-mutated tree from a failed or read-only attempt.
 """
 
 from __future__ import annotations
@@ -66,13 +90,12 @@ def eligible(root: dom_mod.Node, leaf_sharing: bool = False,
              multi_use: bool = False) -> bool:
     """Is ``root`` inside this DP's validated scope for ``solve``?
 
-    Single storey only (no ``below``-inherited wall-stacking to model) and
+    Any storey count (homemaker-py-koo — ``solve``/``is_feasible`` handle
+    ``below``-inherited wall-stacking directly, see the module docstring) but
     none of ``leaf_sharing``/``superpose``/``max_share``/``multi_use`` (none
-    of which ``leaf_constraints`` models). See the module docstring.
+    of which ``leaf_constraints`` models).
     """
-    return (len(dom_mod.levels(root)) == 1
-            and not leaf_sharing and not superpose
-            and max_share is None and not multi_use)
+    return not leaf_sharing and not superpose and max_share is None and not multi_use
 
 
 def _interval_add(a: Interval, b: Interval) -> Interval:
@@ -353,43 +376,133 @@ def build_curves_with_children(
     return Curve(w_of_h=w_of_h, h_of_w=h_of_w)
 
 
-def _check(level_root: dom_mod.Node, fit, grid_n: int) -> tuple[
+def _check(region_root: dom_mod.Node, fit, grid_n: int) -> tuple[
         Feasibility, dict[int, tuple[Curve, Curve]], np.ndarray, float, float]:
-    w_plot, h_plot = _dims(level_root)
+    """Solve one independently-free region (a level-0 root, or any node with
+    no ``below`` link -- see ``_region_roots``): its own outer box, from
+    ``_dims``, is either the plot itself or already fixed by a below-linked
+    ancestor; only the subtree's own splits are unknowns here."""
+    w_plot, h_plot = _dims(region_root)
     grid = make_grid(max(w_plot, h_plot) * 1.2, n=grid_n)
     curves_by_node: dict[int, tuple[Curve, Curve]] = {}
-    root_curve = build_curves_with_children(level_root, fit, grid, curves_by_node)
+    root_curve = build_curves_with_children(region_root, fit, grid, curves_by_node)
     feas = check_feasible(root_curve, grid, w_plot, h_plot)
     return feas, curves_by_node, grid, w_plot, h_plot
 
 
-def is_feasible(level_root: dom_mod.Node, fit, grid_n: int = 150) -> bool:
-    """Read-only DP feasibility verdict: does some equal-offset ratio
-    assignment clear the size/width/proportion FAIL_THRESHOLD for every leaf?
+def _leaf_feasible(fit, leaf: dom_mod.Node) -> bool:
+    """Exact (gridless) feasibility check for a below-fixed leaf: its (w, h)
+    is a single known point, not a search, so this skips the grid entirely
+    rather than routing a degenerate one-point region through ``_check``'s
+    interpolated machinery (a discretisation error the multi-storey case
+    would otherwise pay repeatedly, once per below-fixed leaf per storey)."""
+    w, h = _dims(leaf)
+    b = leaf_constraints(fit, leaf)
+    hr = b.h_range(w)
+    return hr is not None and hr[0] - 1e-6 <= h <= hr[1] + 1e-6
+
+
+def _region_roots(level_root: dom_mod.Node) -> list[dom_mod.Node]:
+    """Nodes at which this storey's DP has genuine freedom to search.
+
+    Descends through a ``below.divided`` spine without solving anything
+    there (module docstring: both the box and the split ratio of such a node
+    are dictated by the storey below, never chosen here) until it reaches
+    either a plain leaf (fixed if ``below`` is not None, otherwise an
+    ordinary free leaf -- only possible at a level-0 root) or a node with no
+    ``below`` link, whose subtree is composed exactly as the single-storey
+    DP always has: the level-0 root itself, or a below-undivided fringe node
+    (a fresh split introduced at this storey; ``geometry.coordinate`` still
+    fixes ITS OWN outer box from the below leaf it replaces, but nothing
+    beneath a broken/absent below-link is fixed, so ordinary composition
+    applies to its whole subtree, see the module docstring)."""
+    roots: list[dom_mod.Node] = []
+
+    def walk(node: dom_mod.Node) -> None:
+        if node.divided and node.below is not None and node.below.divided:
+            walk(node.left)
+            walk(node.right)
+        else:
+            roots.append(node)
+
+    walk(level_root)
+    return roots
+
+
+def _divided_nodes(node: dom_mod.Node) -> list[dom_mod.Node]:
+    if not node.divided:
+        return []
+    return [node] + _divided_nodes(node.left) + _divided_nodes(node.right)
+
+
+def _solve_all_levels(root: dom_mod.Node, fit, grid_n: int, *, commit: bool) -> tuple[bool, dict]:
+    """Bottom-up per storey (homemaker-py-koo, DESIGN.md §37.6): realise each
+    storey's free regions before checking the storey above, since an
+    above-storey's fixed boxes are read off THIS storey's already-realised
+    geometry (``geometry.coordinate``), not chosen by the DP. Every storey's
+    divisions are snapshotted up front and restored unless ``commit`` and
+    every region at every storey was feasible -- ``is_feasible`` always
+    restores (``commit=False``), matching its pre-existing never-writes
+    contract; ``solve`` keeps the writes only on overall success, the same
+    all-or-nothing contract the single-storey version always had.
+    """
+    levels = dom_mod.levels(root)
+    snapshot = [(n, tuple(n.division)) for lvl in levels for n in _divided_nodes(lvl)]
+    w_plot, h_plot = _dims(levels[0])
+
+    feasible = True
+    n_regions = 0
+    for level_root in levels:
+        if not feasible:
+            break
+        for region_root in _region_roots(level_root):
+            if not region_root.divided and region_root.below is not None:
+                if not _leaf_feasible(fit, region_root):
+                    feasible = False
+                    break
+                continue
+            n_regions += 1
+            feas, curves, grid, w, h = _check(region_root, fit, grid_n)
+            if not feas.feasible:
+                feasible = False
+                break
+            realise(region_root, curves, grid, w, h)
+            geometry.clear_cache()
+
+    if not commit or not feasible:
+        for n, d in snapshot:
+            n.division = list(d)
+        geometry.clear_cache()
+
+    return feasible, {
+        "w_plot": w_plot, "h_plot": h_plot,
+        "n_levels": len(levels), "n_regions": n_regions,
+    }
+
+
+def is_feasible(root: dom_mod.Node, fit, grid_n: int = 150) -> bool:
+    """Read-only DP feasibility verdict, across every storey of ``root``:
+    does some equal-offset ratio assignment clear the size/width/proportion
+    FAIL_THRESHOLD for every leaf, at every level (homemaker-py-koo)?
 
     Unlike :func:`solve`, never writes ``division`` — the hard-prune caller
     (``driver._evaluate``, homemaker-py-wkh) needs the boolean verdict alone,
     without the warm-start's tree mutation (kept a strictly separate code path
     so the two experimental flags, ``shapecurve_prune``/``shapecurve_warmstart``,
     compose cleanly and can be A/B'd independently)."""
-    feas, *_ = _check(level_root, fit, grid_n)
-    return feas.feasible
+    feasible, _ = _solve_all_levels(root, fit, grid_n, commit=False)
+    return feasible
 
 
-def solve(level_root: dom_mod.Node, fit, grid_n: int = 150) -> tuple[bool, dict]:
-    """End-to-end: compute plot dims, build curves, check root feasibility,
-    and (if feasible) write realising ratios in place. Returns (feasible,
-    info) where info carries timing-relevant intermediates for the caller.
+def solve(root: dom_mod.Node, fit, grid_n: int = 150) -> tuple[bool, dict]:
+    """End-to-end, across every storey of ``root`` (homemaker-py-koo): solve
+    each level bottom-up and, if every level's every free region is
+    feasible, leave the realising ratios written in place. Returns (feasible,
+    info) where info carries the overall plot dims and a couple of diagnostic
+    counts for the caller.
 
-    ``level_root`` must be a single storey (see ``eligible``) — the DP has no
-    notion of upper-storey ``below``-inherited fixed splits and will
-    overwrite ``division`` unconditionally on every divided node it walks.
+    On infeasible, ``root`` is restored exactly as passed in — no partial
+    writes from an earlier, feasible storey are left behind (see
+    ``_solve_all_levels``).
     """
-    feas, curves_by_node, grid, w_plot, h_plot = _check(level_root, fit, grid_n)
-    if feas.feasible:
-        realise(level_root, curves_by_node, grid, w_plot, h_plot)
-        geometry.clear_cache()
-    return feas.feasible, {
-        "w_plot": w_plot, "h_plot": h_plot,
-        "grid": grid, "h_range_at_w": feas.h_range_at_w, "w_range_at_h": feas.w_range_at_h,
-    }
+    return _solve_all_levels(root, fit, grid_n, commit=True)
