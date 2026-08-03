@@ -28,7 +28,7 @@ from . import dom
 def _finalise(root: dom.Node) -> dom.Node:
     from . import geometry
 
-    dom._link(root)
+    dom.link(root)
     geometry.clear_cache()
     return root
 
@@ -889,7 +889,7 @@ def unfold_shared_leaves(root: dom.Node, above: int = 1) -> int:
                 _grow_balanced(leaf, leaf.type, leaf.share)
                 grown.append(leaf)
     if grown:
-        dom._link(root)
+        dom.link(root)
         geometry.clear_cache()
         for sub in grown:
             _size_subtree_equal(sub)
@@ -1220,7 +1220,7 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             # seeding interior light wells (default 1 peripheral O otherwise).
             n_o = max(1, round(len(rooms) / outside_divisor)) if interior_outside else 1
             _grow_leaves(lvl, len(rooms) + n_o + n_circ, rng, balance=depth_balanced)
-            dom._link(child)
+            dom.link(child)
             _assign_adjacency_aware(lvl, rooms, reqs, rng,
                                     interior_outside=interior_outside, n_outside=n_o,
                                     beam_width=construction_beam_width)
@@ -1238,7 +1238,7 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             # width/proportion. Topology and type assignment are unchanged. Link
             # first so upper-storey roots resolve geometry (the else branch above
             # does not link, unlike the adjacency-aware branch).
-            dom._link(child)
+            dom.link(child)
             leaf_co = _leaf_colocate_from_plan(lvl, colocate_plan, reqs) if multi_use else {}
             leaf_extra = {lf: reqs[co].size for lf, co in leaf_co.items()
                           if co in reqs and reqs[co].size > 0}
@@ -1331,7 +1331,7 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
                 leaf.right = dom.Node(type=leaf.type)
                 leaf.type = None
             prev.above = dup
-            dom._link(child)  # link so the upper storey's geometry is computable
+            dom.link(child)  # link so the upper storey's geometry is computable
             _assign_adjacency_aware(
                 dup, rooms, reqs, rng,
                 fixed_circ=[core_node] if core_node is not None else None,
@@ -1368,7 +1368,7 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             # constructed upper storey's ratios are rewritten. (Cuts inherited from
             # the base via below-links are no-ops here — their geometry is fixed
             # below — so this best-effort sizes the floor's own new divisions.)
-            dom._link(child)
+            dom.link(child)
             leaf_co = _leaf_colocate_from_plan(dup, colocate_plan, reqs) if multi_use else {}
             leaf_extra = {lf: reqs[co].size for lf, co in leaf_co.items()
                           if co in reqs and reqs[co].size > 0}
@@ -1440,12 +1440,12 @@ def mutate_ruin_recreate(root: dom.Node, rng: np.random.Generator,
     wing.division = None
     wing.type = None
     _grow_leaves(wing, max(1, n_new), rng, balance=True)
-    dom._link(child)
+    dom.link(child)
 
     _assign_adjacency_aware(
         lvl, rooms, reqs, rng, fixed_circ=border_circ or None,
         interior_outside=True, n_outside=n_o, scope=set(wing.leaves()))
-    dom._link(child)
+    dom.link(child)
     _size_divisions_from_targets(wing, reqs)
 
     return _finalise(child), (
@@ -1518,7 +1518,7 @@ def predicted_shape_fails(root: dom.Node, reqs, fit) -> int:
     ``root`` is left untouched (a deep copy is laid out and scored).
     """
     child = copy.deepcopy(root)
-    dom._link(child)
+    dom.link(child)
     for lvl in dom.levels(child):
         _size_divisions_from_targets(lvl, reqs)
     _, fails = fit.score_with_fails(child)

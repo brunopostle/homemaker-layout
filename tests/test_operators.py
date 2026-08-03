@@ -57,7 +57,7 @@ def test_level_add_delete():
 
 
 def test_relink_clears_stale_below_after_base_undivide():
-    # regression: dom._link must clear below-links whose path vanished, or
+    # regression: dom.link must clear below-links whose path vanished, or
     # geometry on the mutated tree dereferences orphaned nodes
     from homemaker_layout import geometry
 
@@ -74,7 +74,7 @@ def test_relink_clears_stale_below_after_base_undivide():
     target.division = None
     target.left = target.right = None
     target.type = "l1"
-    dom._link(child)
+    dom.link(child)
     geometry.clear_cache()
     for lvl in dom.levels(child):
         for leaf in lvl.leaves():
@@ -88,7 +88,7 @@ def test_all_mutations_survive_undivided_tree():
     # an undivided plot (init.dom-style seed) must never crash an operator
     bare = dom.Node(type="O", node=[[0, 0], [10, 0], [10, 8], [0, 8]],
                     height=2.7, wall_outer=0.25, wall_inner=0.08)
-    dom._link(bare)
+    dom.link(bare)
     for name, op in operators.MUTATIONS.items():
         for seed in range(3):
             child, desc = op(bare, np.random.default_rng(seed), TYPES)
@@ -108,7 +108,7 @@ def test_unfold_shared_leaves_materialises_deficit():
                     rotation=0, division=[0.5, 0.5])
     root.left = dom.Node(type="n", share=3, share_type="n")   # 3-room shared leaf
     root.right = dom.Node(type="C")                            # untouched
-    dom._link(root)
+    dom.link(root)
     geometry.clear_cache()
     area_before = geometry.area(root)
 
@@ -136,7 +136,7 @@ def test_unfold_shared_leaves_above_grain_cap():
                     rotation=0, division=[0.5, 0.5])
     root.left = dom.Node(type="n", share=4, share_type="n")    # exceeds cap 3
     root.right = dom.Node(type="m", share=3, share_type="m")   # at cap 3, kept
-    dom._link(root)
+    dom.link(root)
     geometry.clear_cache()
 
     created = operators.unfold_shared_leaves(root, above=3)
@@ -303,7 +303,7 @@ def test_interior_outside_seeds_landlocked_wells_and_scales_count():
 
     def _outside_exposure(root):
         geometry.clear_cache()
-        dom._link(root)
+        dom.link(root)
         exps, n_o = [], 0
         for lvl in dom.levels(root):
             for leaf in lvl.leaves():
@@ -541,7 +541,7 @@ def _same_axis_chain() -> dom.Node:
     root.left.left = dom.Node(type="A")
     root.left.right = dom.Node(type="B")
     root.right = dom.Node(type="C")
-    dom._link(root)
+    dom.link(root)
     return root
 
 
@@ -568,7 +568,7 @@ def test_reassociate_noop_on_perpendicular_cuts():
     root.left.left = dom.Node(type="A")
     root.left.right = dom.Node(type="B")
     root.right = dom.Node(type="C")
-    dom._link(root)
+    dom.link(root)
     _, desc = operators.mutate_reassociate(root, np.random.default_rng(0), TYPES)
     assert desc == "reassociate noop"
 
@@ -719,7 +719,7 @@ def _row_of_three(mid_type: str) -> dom.Node:
     root.right = dom.Node(rotation=0, division=[0.5, 0.5])
     root.right.left = dom.Node(type=mid_type)
     root.right.right = dom.Node(type="C")
-    dom._link(root)
+    dom.link(root)
     return root
 
 
@@ -736,7 +736,7 @@ def _diamond(top_right_type: str) -> dom.Node:
     root.right = dom.Node(rotation=1, division=[0.5, 0.5])
     root.right.left = dom.Node(type=top_right_type)
     root.right.right = dom.Node(type="C")
-    dom._link(root)
+    dom.link(root)
     return root
 
 

@@ -303,7 +303,7 @@ def _shared_best_result() -> driver.SearchResult:
                     rotation=0, division=[0.5, 0.5])
     root.left = dom.Node(type="n", share=3, share_type="n")
     root.right = dom.Node(type="C")
-    dom._link(root)
+    dom.link(root)
     best = driver.Individual(root=root, fitness=1e-5, n_fails=3, ratios={},
                              lineage="construct/0")
     r = driver.SearchResult(best=best, population=[best], n_evals=1000,

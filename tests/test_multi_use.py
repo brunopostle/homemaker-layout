@@ -194,7 +194,7 @@ def test_check_vertical_connectivity_honours_co_type_leaf():
     lower = _leaf_tree("below")
     upper = _leaf_tree("x", co="y")
     lower.above = upper
-    dom._link(lower)
+    dom.link(lower)
 
     reqs = {"x": _req("x", 10.0, requires_below="below"),
             "y": _req("y", 9.0, requires_below="below")}

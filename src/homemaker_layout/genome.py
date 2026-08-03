@@ -193,6 +193,6 @@ def decode(genome: Genome) -> dom.Node:
         lvl.height = delta.height
         prev.above = lvl
         prev = lvl
-    dom._link(base)
+    dom.link(base)
     geometry.clear_cache()
     return base

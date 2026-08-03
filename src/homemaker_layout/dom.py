@@ -159,7 +159,7 @@ def canonicalize_shares(root: Node) -> None:
                 leaf.share_type = None
 
 
-def _link(root: Node) -> None:
+def link(root: Node) -> None:
     lvls = levels(root)
     for lvl in lvls:
         _link_subtree(lvl, None, "")  # each level root is parent-less
@@ -191,7 +191,7 @@ def load(path: str) -> Node:
 
     with open(path) as fh:
         root = _parse(yaml.safe_load(fh))
-    _link(root)
+    link(root)
     if root.wall_outer is None:
         root.wall_outer = 0.25  # Urb::Dom::Wall_Outer default
     if root.wall_inner is None:
@@ -401,4 +401,4 @@ def merge_divided(root: Node) -> None:
     ``below`` / ``parent`` / ``position`` fields stay consistent.
     """
     _merge_node(root)
-    _link(root)
+    link(root)

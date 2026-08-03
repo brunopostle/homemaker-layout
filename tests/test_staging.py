@@ -79,7 +79,7 @@ def test_substrate_readiness_range_and_core(reqs):
     for leaf in dom.levels(base)[0].leaves():
         if leaf.type and leaf.type[0].lower() == "c":
             leaf.type = "m"
-    dom._link(base)
+    dom.link(base)
     r_nocore = graph.substrate_readiness(base, reqs, n)
     assert r_nocore < r  # losing the reserved core lowers readiness
 

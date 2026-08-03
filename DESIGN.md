@@ -4148,3 +4148,93 @@ region to remove the remaining ~8-12% approximation-error source rather than
 just quantify it. `experiments/shapecurve_spike.py` is kept as a reference/
 prototype (the §34 `autodiff_spike.py` precedent), not wired into
 `innerloop.py`.
+
+### 37.3 `homemaker-py-2g7.1` plan→dom composer — implemented 2026-08-03, trace still open
+
+**Finding that reframed this bead.** `examples/harbor-house/drawings/harbor-house 1.svg`
+looked like it might already be a usable human trace. It isn't: it has
+exactly 32 `IfcSpace` path elements, matching the upper-storey leaf count of
+`examples/harbor-house/3m.dom` (23 + 32 leaves across two storeys), and its
+file timestamp is 6 minutes after `3m.dom.ifc`. It's a Bonsai/Blender SVG
+export of `3m.dom`'s own IFC — a rendering of evolution output, not an
+independent reference. There is currently no human-generated plan anywhere
+in the repo; producing one needs the user to actually trace a building by
+hand, which is out of scope for a single session. This session built and
+tested the **composer** — the code half of the bead — and specified the
+trace format so a real trace can be authored later without redesigning
+anything.
+
+**Trace format — lines + labels, not room shapes.** Urb's data model
+requires every storey to share the ground-floor plot exactly: in
+`geometry.coordinate()`, a level root with a `below` link always inherits
+its 4 corners from the level below, and `dom.link()` always finds that link
+for a root (`by_id("")` is trivially the root itself, so the below-chain
+never breaks at level-root granularity). So there is only ever *one* site
+outline (the ground plot), never one per storey to keep aligned. Per storey,
+the trace is only straight open cut lines + text labels — never closed room
+polygons, which is what makes a rough hand sketch usable: room outlines are
+*derived* by recursively finding a line that spans the current region
+edge-to-edge (with a snapping tolerance for overlap/undershoot/misalignment
+slop), never drawn and matched.
+
+**Metadata sidecar = a stub `.dom` file, not a new schema** (this was the
+user's call, and it's the right one — reuses `dom.load()`/`dom.dumps()`
+verbatim). A "boundary" `.dom` carries `node` (the plot, level 0 only),
+`perimeter`, `height`/`elevation`/`wall_inner`/`wall_outer` per level (via
+`above` chaining) and nothing else — no `division`, no `type`, no `l`/`r`.
+The composer fills in `division`/`left`/`right`/`rotation` per level from
+the SVG trace and re-links. Composer matches against the boundary's
+`node_file` (raw, as-authored corners) rather than the wall-inset `node` —
+a human traces the visible/surveyed outer wall face, not the wall-thickness
+inset the geometry engine derives internally.
+
+**Composer only has to get topology right; `solver.solve_ratios` fixes
+geometry.** Traced cut positions from a hand sketch are rough. The composer
+converts a detected cut into an initial `division` ratio; `compose.refine()`
+then calls `solver.solve_ratios(root, targets, strip=False)` to slide cuts
+to the best fit for the programme's target dimensions, exactly like the
+existing bottom-up solve path (`strip=False` is required — the default
+`True` would discard the traced starting ratios and start from 0.5). This
+means sub-metre trace precision doesn't matter; only which side of which
+line a room falls on does.
+
+**Implementation.** `compose.py`: `parse_svg()` reads Inkscape layers named
+`storey-N` (flat, not nested) via `xml.etree.ElementTree`, flattening each
+element's `transform` stack (translate/scale/matrix/rotate composed as 2x3
+affines); a `<line>` or straight 2-point `<path d="M.. L..">` is a cut, a
+`<text>` (its own `x`/`y` or its first `<tspan>`'s) is a label. The
+recursive core (`_build`/`_find_span`) mirrors `geometry.py`'s own
+division-line algebra exactly (`coord_a`/`coord_b`'s two edge-pairs, and the
+left/right child corner formulas the engine uses to re-derive coordinates
+top-down) so a composed node's `rotation`/`division` reproduce the traced
+corners bit-for-bit when read back. A region with interior lines but none
+spanning it raises `NonSlicible(storey, corners)`; a leaf with != 1 label
+raises `LabelError` — both name the offending region rather than guessing.
+`dom._link` was renamed to the public `dom.link` (one-line rename at all
+call sites in `genome.py`/`operators.py`/tests) since the composer needs to
+re-link after mutating a loaded boundary tree from outside `dom.py`.
+`compose_cmd.py` → `homemaker-compose plan.svg boundary.dom -o out.dom
+[--tol 0.15] [--scale 1.0] [--refine]`, mirroring `fitness_cmd.py`'s CLI
+shape; catches `NonSlicible`/`LabelError` and prints the diagnostic to
+stderr with exit 1 instead of a traceback.
+
+**Verification.** `tests/test_compose.py` (6 tests, synthetic fixtures
+only): a 3-room/2-cut partition (exercising both axes and depth-2
+recursion) composes, round-trips through `dom.dumps`/`dom.load`, has
+leaf areas summing to the plot area, and scores cleanly through
+`fitness.Fitness`; the same partition with endpoints perturbed by less
+than the default tolerance still composes (and fails with a tightened
+tolerance — the negative control); a dangling interior line that spans
+neither edge pair raises `NonSlicible` naming the whole-plot region;
+label-count mismatches, missing `storey-N` layers, and a boundary/trace
+storey-count mismatch each raise a clear error. Manually verified the CLI
+end-to-end against the same fixture, including `homemaker-fitness` scoring
+the emitted `.dom` (`0/rl size`, `level 0 no outside space`, etc. — expected
+fails with no programme/patterns.config on disk). Full suite: 381 passed.
+
+**ACCEPTANCE: PARTIAL.** Composer half done (round-trips a synthetic
+slicible partition; non-slicible input reports the offending region). Still
+open: tracing an actual harbor-house or programme-house human plan in
+Inkscape and composing/scoring it — needs the user's time, tracked as
+follow-up under `2g7.1`. `2g7.2` (objective calibration against the human
+reference) stays blocked on that trace landing.
