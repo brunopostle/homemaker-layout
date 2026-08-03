@@ -4338,3 +4338,141 @@ test: `homemaker-evolve init.dom --programme-dir . --no-leaf-sharing
 --shapecurve-warmstart` in `examples/harbor-house-l0` runs to completion and
 the emitted `.dom` scores cleanly with `homemaker-fitness` (score matches
 the run's own reported best).
+
+### 37.5 `homemaker-py-wkh` DP-exact hard pre-filter — measured 2026-08-03, ACCEPTANCE: PARTIAL
+
+**What was built.** `6xh`'s own deferred item 1: use `shapecurve`'s exact
+feasible/infeasible verdict alongside `operators.predicted_shape_fails`'
+heuristic-count pre-filter (§12.3/9gp.1) in `driver._evaluate`, instead of
+only as an NM warm-start. Added `shapecurve.is_feasible(level_root, fit,
+grid_n)` — a read-only refactor of `solve`'s own check phase (`_check`, now
+shared by both) that never calls `realise()`/writes `division`, so the new
+`shapecurve_prune` flag composes cleanly with `shapecurve_warmstart` and the
+two can be A/B'd independently without one experiment's tree mutation
+contaminating the other's measurement (a real risk: `solve` always writes a
+realised point in place when feasible).
+
+**Composition (the design item the bead's own description flagged as
+needed).** Conservative by construction, chosen to extend today's prune
+guard (`pred > threshold && pred >= best_n_fails`) rather than replace it,
+because — per the bead's own risk framing — a wrong prune permanently
+discards a topology that could have beaten the incumbent, unlike a bad
+warm-start:
+
+- **DP feasible → veto.** A real ratio point exists clearing every leaf's
+  size/width/proportion threshold, so a heuristic-triggered prune must have
+  come from `predicted_shape_fails`' own single (proportion-aware) layout
+  being an unlucky, non-representative sample — not the topology's true
+  floor. Never prunes in this case, and skips the `predicted_shape_fails`
+  eval entirely (redundant once the DP has already answered the question it
+  approximates).
+- **DP infeasible + incumbent already at 0 total fails → exact prune.**
+  Infeasible proves the shape-fail floor is ≥1 (0/400 measured false
+  negatives across both validation sweeps below), which alone beats a
+  zero-fail incumbent — no heuristic count needed, and again the
+  `predicted_shape_fails` eval is skipped.
+- **DP infeasible + incumbent >0 total fails → defer to the heuristic,
+  unchanged.** Infeasible only proves the floor is ≥1, not that it reaches
+  an arbitrary `best_n_fails>0`; asserting that would need a hard
+  *count*, which the DP (a boolean feasibility oracle) does not give.
+  `predicted_shape_fails` still runs and its threshold decides, exactly as
+  before `shapecurve_prune` existed.
+
+Threaded as `search(…, shapecurve_prune=False)` (mirrors `shapecurve_warmstart`'s
+threading exactly — `_evaluate`, the parallel-batch tuple, the explicit
+single-seed call) and `homemaker-evolve --shapecurve-prune` (default off).
+Note: like the pre-existing `feasibility_filter`/`feasibility_max_shape_fails`
+it augments, `shapecurve_prune` is a no-op unless `feasibility_filter=True`
+is also set — that pair has never been exposed as its own CLI flag (a
+pre-existing gap in `evolve.py`, not introduced here), so
+`--shapecurve-prune` alone only reaches the Python `driver.search` API today.
+
+**False-negative-risk validation (bead item (b)): a second, genuinely
+non-rectangular plot, not just a rotated copy of harbor-house-l0.**
+`experiments/validate_shapecurve.py` was pointed at the *promoted product
+module* (`homemaker_layout.shapecurve`, not the frozen `experiments/
+shapecurve_spike.py` it validated in §37.2) — the actual code path
+`wkh`'s hard-prune now trusts — and given a `programme_dir` CLI arg (was
+silently hardcoded to harbor-house-l0 before) to run against
+`examples/programme-house`: an authentically skewed parallelogram plot
+(`node:` corners not axis-aligned, unlike harbor-house-l0's near-rectangle),
+its own 6-space single-storey programme, 200 random topologies, seed 12345
+(same protocol as §37.2):
+
+| metric | harbor-house-l0 (re-run, product module) | programme-house (skewed) |
+|---|---|---|
+| agreement | 20/20 = 100.0% (n=20 smoke) | 200/200 = **100.0%** |
+| false positives | 0 | **0** |
+| false negatives | 0 | **0** |
+| DP feasible / NM 0-shape-fail | — | 20/200 both |
+| speedup | 97.6x | **87.4x** |
+
+Zero false negatives on a structurally distinct, genuinely non-rectangular
+plot — the DP-infeasible verdict the hard-prune branch relies on has now
+been checked on 400 combined topologies (200 harbor-house-l0 from §37.2 +
+200 here) across two plots with no measured false negative either time.
+This clears the bead's own bar ("a larger/less-rectangular topology sweep
+… before enabling by default" — still shipped **off** by default, matching
+every other experimental flag in this codebase, but the safety case for a
+future default-on is now measured, not just argued).
+
+**`driver.search` A/B (bead item (c)): NULL on harbor-house-l0 at the
+6xh-matching protocol.** `experiments/ab_shapecurve_prune.py`, same
+benchmark/budget/seed protocol as §37.4's warm-start A/B
+(`feasibility_filter=True, feasibility_max_shape_fails=0`, budget=2000,
+seeds 0-4, `leaf_sharing=False`):
+
+| seed | off hard/soft/fit/topo | on hard/soft/fit/topo |
+|---|---|---|
+| 0 | 3/13/1.222e-08/25 | 3/13/1.222e-08/25 |
+| 1 | 4/13/1.234e-08/25 | 4/13/1.234e-08/25 |
+| 2 | 6/15/6.95e-10/25 | 6/15/6.95e-10/25 |
+| 3 | 3/18/3.954e-10/25 | 3/18/3.954e-10/25 |
+| 4 | 6/17/5.6e-11/26 | 6/17/5.6e-11/26 |
+
+Byte-identical off/on across all 5 seeds. Instrumented to find out why
+(`shapecurve.is_feasible` call-count/verdict spy, seed 0 alone): 17 calls,
+**0 feasible, 17 infeasible** — the veto branch never fired (needs at least
+one DP-feasible verdict on a would-be-pruned candidate; got none) and the
+incumbent's total fails never reached 0 in this run (best hard=3, soft=13,
+so the exact-prune branch's own precondition, `best_n_fails<=0`, was never
+true either) — every one of the 17 eligible checks fell through to "defer
+to heuristic, unchanged" by construction, so nothing *could* have differed.
+Root cause is upstream of `wkh`: at `feasibility_max_shape_fails=0`,
+`predicted_shape_fails` itself rarely reaches `best_n_fails` (≈16-18 here)
+on harbor-house-l0's modest leaf counts — `test_feasibility_filter_
+prunes_cheaply` (tests/test_driver.py) already had to monkeypatch it to a
+forced 999 to observe *any* real prune, a pre-existing characteristic of
+9gp.1 (documented there as a "scaling lever", i.e. expected to bite on
+larger programmes/leaf counts, not this benchmark) — not something `wkh`'s
+composition introduced or could route around, since it only ever refines a
+decision the base heuristic was already about to make.
+
+**ACCEPTANCE: PARTIAL.** Composition designed and landed conservatively
+(never prunes anything the pre-`wkh` filter wouldn't have, per the veto/
+defer rules above); DP-exactness (0 false negatives) independently
+re-validated on a second, structurally distinct plot at the same 200-
+topology scale as §37.2's original result — items (a) and (b) from the
+bead's own description are done. Item (c), the `driver.search` A/B, is
+measured but **NULL** on harbor-house-l0 at this budget/threshold, for the
+structurally-understood reason above (the base 9gp.1 filter barely engages
+organically at this scale, so there is nothing for `wkh`'s refinement to
+change) rather than a defect in the new logic. A benchmark/threshold where
+`predicted_shape_fails` organically prunes — a larger programme or leaf
+count, where 9gp.1 is itself expected to start mattering — is the natural
+next measurement, tracked as a follow-up rather than blocking this landing;
+the multi-storey (`homemaker-py-koo`) and leaf-sharing (`homemaker-py-tym`)
+follow-ups remain the more direct route to that (today's DP eligibility
+excludes `programme-house`/`harbor-house`'s real ≥2-storey, leaf-sharing-
+default programmes, the same gap §37.4 already flagged).
+
+**Verification.** `tests/test_shapecurve.py` (+1 test): `is_feasible` agrees
+with `solve`'s own verdict on both the feasible and infeasible fixtures
+already used there, and never writes `division` in either case.
+`tests/test_driver.py` (+4 tests): off/on parity when the flag is off; the
+veto branch (DP feasible skips `predicted_shape_fails` and never prunes,
+even when the heuristic would have via a forced 999 return); the exact-prune
+branch (DP infeasible + `best_n_fails<=0` prunes for 1 eval, skipping
+`predicted_shape_fails`); the defer branch (DP infeasible + `best_n_fails>0`
+still consults and obeys `predicted_shape_fails`, unchanged). Full suite:
+393 passed.

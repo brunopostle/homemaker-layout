@@ -34,9 +34,7 @@ import numpy as np
 import yaml
 
 from homemaker_layout import dom, driver, fitness as fit_mod, geometry, innerloop
-
-sys.path.insert(0, "experiments")
-import shapecurve_spike as sc  # noqa: E402
+from homemaker_layout import shapecurve as sc
 
 PROGRAMME_DIR = "examples/harbor-house-l0"
 _SHAPE_SUFFIXES = (" size", " width", " proportion")
@@ -114,7 +112,7 @@ def main(n_topologies: int = 200, nm_budget: int = 100, grid_n: int = 150,
         seed = int(rng.integers(0, 2**31 - 1))
         trng = np.random.default_rng(seed)
         topo = driver.random_topology(seed_root, n_leaves, trng, types)
-        dom._link(topo)
+        dom.link(topo)
         lvl = dom.levels(topo)[0]
         if len(lvl.leaves()) < 2:
             continue  # undivided, nothing for the DP to do
@@ -180,15 +178,20 @@ def main(n_topologies: int = 200, nm_budget: int = 100, grid_n: int = 150,
 
 
 if __name__ == "__main__":
-    # Usage: validate_shapecurve.py [n_topologies] [nm_budget] [grid_n] [rotate_deg]
+    # Usage: validate_shapecurve.py [n_topologies] [nm_budget] [grid_n] [rotate_deg] [programme_dir]
     # rotate_deg (optional, default 0): test on a scratch copy of the plot
     # rotated this many degrees about its centroid -- DESIGN.md §37.2's
-    # rotation-invariance check (0 => harbor-house-l0 unmodified).
+    # rotation-invariance check (0 => plot unmodified).
+    # programme_dir (optional, default examples/harbor-house-l0): homemaker-py-wkh
+    # (DESIGN.md §37.5) uses this to sweep a genuinely non-rectangular plot
+    # (e.g. examples/programme-house's skewed parallelogram) rather than only a
+    # rotated copy of harbor-house-l0's near-rectangular one.
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 200
     budget = int(sys.argv[2]) if len(sys.argv) > 2 else 100
     grid_n = int(sys.argv[3]) if len(sys.argv) > 3 else 150
     rotate_deg = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
-    prog_dir = str(rotated_plot_dir(PROGRAMME_DIR, rotate_deg)) if rotate_deg else PROGRAMME_DIR
+    base_dir = sys.argv[5] if len(sys.argv) > 5 else PROGRAMME_DIR
+    prog_dir = str(rotated_plot_dir(base_dir, rotate_deg)) if rotate_deg else base_dir
     if rotate_deg:
-        print(f"(testing on {PROGRAMME_DIR}'s plot rotated {rotate_deg} deg -> {prog_dir})")
+        print(f"(testing on {base_dir}'s plot rotated {rotate_deg} deg -> {prog_dir})")
     main(n, budget, grid_n, prog_dir)

@@ -360,6 +360,109 @@ def test_shapecurve_warmstart_skips_multistorey(monkeypatch):
     assert not solve_calls
 
 
+HARBOR_L0 = Path(__file__).parent.parent / "examples" / "harbor-house-l0"
+
+
+def _fake_optimise_ok(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+    for _, b in innerloop.free_with_keys(root):
+        b.division = [0.25, 0.25]
+    return innerloop.Result(
+        x=np.array([0.25]), fitness=0.5, n_fails=0, fail_lines=(),
+        x0_fitness=0.25, x0_n_fails=1, n_evals=budget, n_oracle_calls=1,
+    )
+
+
+def test_shapecurve_prune_off_matches_baseline(fake_inner):
+    """homemaker-py-wkh: with the flag off (default), the run is identical to
+    one that omits the param — the same clean A/B control as the existing
+    feasibility-filter/shapecurve-warmstart control tests."""
+    init_root = dom.load(str(INIT_FILE))
+    base = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                         child_budget=60, seed_budget=100, seed=9)
+    off = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                        child_budget=60, seed_budget=100, seed=9,
+                        shapecurve_prune=False)
+    assert off.best.sig == base.best.sig
+    assert off.n_topologies == base.n_topologies
+    assert off.n_evals == base.n_evals
+
+
+def test_shapecurve_prune_vetoes_heuristic_when_dp_feasible(monkeypatch):
+    """homemaker-py-wkh (DESIGN.md §37.5): a DP-feasible verdict is a real
+    certificate that some ratio point clears every leaf's shape threshold, so
+    it must veto a heuristic-triggered prune outright — even one predicted
+    from a bad (999-fail) proxy layout — and skip the ``predicted_shape_fails``
+    eval entirely rather than just override its verdict."""
+    from homemaker_layout import operators, shapecurve
+
+    monkeypatch.setattr(shapecurve, "is_feasible", lambda root, fit, grid_n=150: True)
+    pred_calls = []
+    monkeypatch.setattr(operators, "predicted_shape_fails",
+                        lambda root, reqs, fit: pred_calls.append(1) or 999)
+    monkeypatch.setattr(innerloop, "optimise", _fake_optimise_ok)
+
+    if not HARBOR_L0.is_dir():
+        pytest.skip("harbor-house-l0 not available")
+    root = dom.load(str(HARBOR_L0 / "init.dom"))
+    ind, used = driver._evaluate(
+        root, HARBOR_L0, None, x0=None, budget=100, inner_kw={}, lineage="child",
+        feasibility_max_shape_fails=0, best_n_fails=5, leaf_sharing=False,
+        shapecurve_prune=True)
+
+    assert not pred_calls, "heuristic proxy must be skipped when DP proves feasibility"
+    assert not ind.lineage.startswith("pruned/")
+    assert used == 100
+
+
+def test_shapecurve_prune_hard_prunes_when_dp_infeasible_and_incumbent_perfect(monkeypatch):
+    """homemaker-py-wkh: DP-infeasible proves the shape-fail floor is >=1
+    (exact, 0/200 measured false negatives — DESIGN.md §37.2), which alone
+    beats a zero-total-fail incumbent — an exact prune, no heuristic count
+    needed."""
+    from homemaker_layout import operators, shapecurve
+
+    monkeypatch.setattr(shapecurve, "is_feasible", lambda root, fit, grid_n=150: False)
+    pred_calls = []
+    monkeypatch.setattr(operators, "predicted_shape_fails",
+                        lambda root, reqs, fit: pred_calls.append(1) or 0)
+
+    if not HARBOR_L0.is_dir():
+        pytest.skip("harbor-house-l0 not available")
+    root = dom.load(str(HARBOR_L0 / "init.dom"))
+    ind, used = driver._evaluate(
+        root, HARBOR_L0, None, x0=None, budget=100, inner_kw={}, lineage="child",
+        feasibility_max_shape_fails=0, best_n_fails=0, leaf_sharing=False,
+        shapecurve_prune=True)
+
+    assert not pred_calls, "the exact DP verdict makes the heuristic proxy redundant here"
+    assert ind.lineage.startswith("pruned/")
+    assert used == 1
+
+
+def test_shapecurve_prune_defers_to_heuristic_when_incumbent_nonzero(monkeypatch):
+    """homemaker-py-wkh: DP-infeasible only proves the shape-fail floor is
+    >=1, not that it reaches an arbitrary best_n_fails>0, so that case must
+    still fall through to today's heuristic-count decision unchanged."""
+    from homemaker_layout import operators, shapecurve
+
+    monkeypatch.setattr(shapecurve, "is_feasible", lambda root, fit, grid_n=150: False)
+    pred_calls = []
+    monkeypatch.setattr(operators, "predicted_shape_fails",
+                        lambda root, reqs, fit: pred_calls.append(1) or 999)
+
+    if not HARBOR_L0.is_dir():
+        pytest.skip("harbor-house-l0 not available")
+    root = dom.load(str(HARBOR_L0 / "init.dom"))
+    ind, used = driver._evaluate(
+        root, HARBOR_L0, None, x0=None, budget=100, inner_kw={}, lineage="child",
+        feasibility_max_shape_fails=0, best_n_fails=5, leaf_sharing=False,
+        shapecurve_prune=True)
+
+    assert pred_calls, "heuristic proxy must still be consulted when best_n_fails>0"
+    assert ind.lineage.startswith("pruned/")
+    assert used == 1
+
+
 def test_search_parallel_smoke():
     """n_workers>1 runs without error and produces valid results."""
     init_root = dom.load(str(INIT_FILE))

@@ -114,6 +114,22 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "superpose/max-share/multi-use — none of which the DP "
                         "models). Falls through to today's start unchanged when "
                         "ineligible or DP-infeasible (default: off)")
+    p.add_argument("--shapecurve-prune", dest="shapecurve_prune",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_SHAPECURVE_PRUNE", False),
+                   help="homemaker-py-wkh (DESIGN.md §37.5): use the shape-curve "
+                        "DP's exact feasible/infeasible verdict alongside the "
+                        "existing predicted_shape_fails pre-filter (a no-op "
+                        "unless the driver.search()-level feasibility_filter is "
+                        "also on -- not yet exposed as its own CLI flag). A "
+                        "DP-feasible verdict vetoes a heuristic-triggered prune "
+                        "outright (a real shape-feasible point exists, so the "
+                        "heuristic's high count was a false signal); a "
+                        "DP-infeasible verdict prunes immediately only when the "
+                        "incumbent already has zero total fails (exact: "
+                        "DP-infeasible proves the shape-fail floor is >=1); "
+                        "otherwise falls through to today's heuristic-count "
+                        "decision unchanged (default: off)")
     p.add_argument("--conn-grade", dest="conn_grade",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_CONN_GRADE", False),
@@ -247,6 +263,7 @@ def main(argv=None) -> int:
     print(f"ruin recreate      : {args.ruin_recreate}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
+    print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
     anneal_ladder = None
@@ -303,6 +320,7 @@ def main(argv=None) -> int:
             enable_ruin_recreate=args.ruin_recreate,
             collapse_insearch=args.collapse_insearch,
             shapecurve_warmstart=args.shapecurve_warmstart,
+            shapecurve_prune=args.shapecurve_prune,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
         _finish_sharing = args.leaf_sharing

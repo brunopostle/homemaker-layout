@@ -88,3 +88,25 @@ def test_solve_is_deterministic():
     divisions_2 = [tuple(b.division) for b in solver.free_branches(root)]
     assert f1 == f2 is True
     assert divisions_1 == pytest.approx(divisions_2)
+
+
+def test_is_feasible_agrees_with_solve_but_never_writes(monkeypatch):
+    """homemaker-py-wkh: the hard-prune caller needs the boolean verdict
+    without solve()'s tree mutation, so ``is_feasible`` must (a) agree with
+    ``solve``'s own verdict and (b) never write ``division`` -- verified on
+    both the feasible and infeasible fixtures already exercised above."""
+    fit = _fit()
+
+    feasible_root = _small_feasible_topology()
+    before = [tuple(b.division) for b in solver.free_branches(feasible_root)]
+    assert shapecurve.is_feasible(feasible_root, fit) is True
+    after = [tuple(b.division) for b in solver.free_branches(feasible_root)]
+    assert before == after
+
+    seed = dom.load(str(HARBOR_L0 / "init.dom"))
+    rng = np.random.default_rng(0)
+    infeasible_root = driver.random_topology(seed, 60, rng, ["k1", "l1", "b1", "C", "O"])
+    before = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
+    assert shapecurve.is_feasible(infeasible_root, fit) is False
+    after = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
+    assert before == after

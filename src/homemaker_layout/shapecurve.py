@@ -353,6 +353,29 @@ def build_curves_with_children(
     return Curve(w_of_h=w_of_h, h_of_w=h_of_w)
 
 
+def _check(level_root: dom_mod.Node, fit, grid_n: int) -> tuple[
+        Feasibility, dict[int, tuple[Curve, Curve]], np.ndarray, float, float]:
+    w_plot, h_plot = _dims(level_root)
+    grid = make_grid(max(w_plot, h_plot) * 1.2, n=grid_n)
+    curves_by_node: dict[int, tuple[Curve, Curve]] = {}
+    root_curve = build_curves_with_children(level_root, fit, grid, curves_by_node)
+    feas = check_feasible(root_curve, grid, w_plot, h_plot)
+    return feas, curves_by_node, grid, w_plot, h_plot
+
+
+def is_feasible(level_root: dom_mod.Node, fit, grid_n: int = 150) -> bool:
+    """Read-only DP feasibility verdict: does some equal-offset ratio
+    assignment clear the size/width/proportion FAIL_THRESHOLD for every leaf?
+
+    Unlike :func:`solve`, never writes ``division`` — the hard-prune caller
+    (``driver._evaluate``, homemaker-py-wkh) needs the boolean verdict alone,
+    without the warm-start's tree mutation (kept a strictly separate code path
+    so the two experimental flags, ``shapecurve_prune``/``shapecurve_warmstart``,
+    compose cleanly and can be A/B'd independently)."""
+    feas, *_ = _check(level_root, fit, grid_n)
+    return feas.feasible
+
+
 def solve(level_root: dom_mod.Node, fit, grid_n: int = 150) -> tuple[bool, dict]:
     """End-to-end: compute plot dims, build curves, check root feasibility,
     and (if feasible) write realising ratios in place. Returns (feasible,
@@ -362,13 +385,7 @@ def solve(level_root: dom_mod.Node, fit, grid_n: int = 150) -> tuple[bool, dict]
     notion of upper-storey ``below``-inherited fixed splits and will
     overwrite ``division`` unconditionally on every divided node it walks.
     """
-    w_plot, h_plot = _dims(level_root)
-    grid = make_grid(max(w_plot, h_plot) * 1.2, n=grid_n)
-
-    curves_by_node: dict[int, tuple[Curve, Curve]] = {}
-    root_curve = build_curves_with_children(level_root, fit, grid, curves_by_node)
-
-    feas = check_feasible(root_curve, grid, w_plot, h_plot)
+    feas, curves_by_node, grid, w_plot, h_plot = _check(level_root, fit, grid_n)
     if feas.feasible:
         realise(level_root, curves_by_node, grid, w_plot, h_plot)
         geometry.clear_cache()

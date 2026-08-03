@@ -174,7 +174,8 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
               conn_grade: bool = False,
               collapse_insearch: bool = True,
               multi_use: bool = False,
-              shapecurve_warmstart: bool = False) -> tuple[Individual, int]:
+              shapecurve_warmstart: bool = False,
+              shapecurve_prune: bool = False) -> tuple[Individual, int]:
     # §12.3 shape-feasibility pre-filter (homemaker-py-9gp.1): if even the best
     # achievable (proportion-aware) geometry of this topology already has at least
     # as many shape fails as the incumbent's TOTAL fails — and exceeds the tunable
@@ -191,17 +192,44 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     # point and write it onto the tree in place. `x0=None` below then picks it up
     # as the inner loop's start point. On infeasible or ineligible, `root` is left
     # untouched — falls through to today's cold/proportion-aware start exactly.
-    if shapecurve_warmstart and x0 is None and shapecurve.eligible(
-            root, leaf_sharing, superpose, max_share, multi_use):
-        shapecurve.solve(root, _fitness_for(
+    dp_eligible = ((shapecurve_warmstart or shapecurve_prune)
+                   and shapecurve.eligible(root, leaf_sharing, superpose, max_share, multi_use))
+    dp_feasible = None
+    if dp_eligible and shapecurve_warmstart and x0 is None:
+        dp_feasible, _ = shapecurve.solve(root, _fitness_for(
             str(programme_dir), leaf_sharing, superpose, max_share,
             conn_grade, collapse_insearch, multi_use))
     if (feasibility_max_shape_fails is not None and best_n_fails is not None):
-        pred = operators.predicted_shape_fails(
-            root, _reqs_for(str(programme_dir)),
-            _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
-                         conn_grade, collapse_insearch, multi_use))
-        if pred > feasibility_max_shape_fails and pred >= best_n_fails:
+        # §37.5 DP-exact hard prune (homemaker-py-wkh, DESIGN.md §37.5): the
+        # shape-curve DP gives an EXACT feasible/infeasible verdict (0/200
+        # measured false negatives on harbor-house-l0, §37.2) for the same
+        # size/width/proportion family predicted_shape_fails only heuristically
+        # counts at one (proportion-aware) layout. Composed conservatively —
+        # DP feasible VETOES the heuristic prune outright (a real feasible
+        # point exists, so the heuristic's high count was a false signal from
+        # an unlucky single layout, never the true floor); DP infeasible only
+        # licenses an exact prune when the incumbent already has zero total
+        # fails (best_n_fails<=0) — infeasible proves the shape-fail floor is
+        # >=1, which alone beats a zero-fail incumbent, but does not by itself
+        # establish the floor reaches an arbitrary best_n_fails>0, so that case
+        # still defers to the heuristic count (unchanged behaviour).
+        if dp_eligible and shapecurve_prune and dp_feasible is None:
+            dp_feasible = shapecurve.is_feasible(root, _fitness_for(
+                str(programme_dir), leaf_sharing, superpose, max_share,
+                conn_grade, collapse_insearch, multi_use))
+        if shapecurve_prune and dp_feasible is True:
+            prune = False
+            pred = 0
+        elif shapecurve_prune and dp_feasible is False and best_n_fails <= 0:
+            prune = True
+            pred = max(1, best_n_fails)
+        else:
+            pred = operators.predicted_shape_fails(
+                root, _reqs_for(str(programme_dir)),
+                _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
+                             conn_grade, collapse_insearch, multi_use))
+            prune = pred > feasibility_max_shape_fails and pred >= best_n_fails
+        if prune:
             # predicted_shape_fails only counts the size/width/proportion/
             # crinkliness SOFT family (operators._SHAPE_FAIL_SUFFIXES), so the
             # proxy carries no HARD information — tier it all soft.
@@ -284,6 +312,7 @@ def search(
     seed_pop: list[dom.Node] | None = None,
     collapse_insearch: bool = True,
     shapecurve_warmstart: bool = False,
+    shapecurve_prune: bool = False,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -533,7 +562,7 @@ def search(
         full = [
             (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade,
              mx, best_nf, leaf_sharing, superpose, max_share, conn_grade,
-             collapse_insearch, multi_use, shapecurve_warmstart)
+             collapse_insearch, multi_use, shapecurve_warmstart, shapecurve_prune)
             for root, x0, budget_, kw_, lin in tasks
         ]
         if _pool is not None:
@@ -620,7 +649,8 @@ def search(
                                        conn_grade=conn_grade,
                                        collapse_insearch=collapse_insearch,
                                        multi_use=multi_use,
-                                       shapecurve_warmstart=shapecurve_warmstart)
+                                       shapecurve_warmstart=shapecurve_warmstart,
+                                       shapecurve_prune=shapecurve_prune)
             n_evals += used
             admit(seed_ind, pop)
 
