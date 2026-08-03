@@ -4238,3 +4238,103 @@ open: tracing an actual harbor-house or programme-house human plan in
 Inkscape and composing/scoring it — needs the user's time, tracked as
 follow-up under `2g7.1`. `2g7.2` (objective calibration against the human
 reference) stays blocked on that trace landing.
+
+### 37.4 `homemaker-py-6xh` shape-curve DP wired as NM warm-start — measured 2026-08-03, ACCEPTANCE: PARTIAL
+
+**What was built.** `2g7.4`'s validated shape-curve DP (§37.2) was still a
+reference-only spike (`experiments/shapecurve_spike.py`), not wired into the
+product. This session: (1) promoted it verbatim (plus one bugfix, below) into
+`src/homemaker_layout/shapecurve.py`; (2) added `shapecurve.eligible(root,
+leaf_sharing, superpose, max_share, multi_use)`, gating on the DP's actual
+validated scope — single storey (`len(dom.levels(root)) == 1`) and none of
+`leaf_sharing`/`superpose`/`max_share`/`multi_use` (none of which
+`leaf_constraints` models); (3) wired it into `driver._evaluate` as an NM
+warm-start only: when `shapecurve_warmstart=True`, the caller supplied no
+explicit `x0` (never override a real Lamarckian warm-start), and the
+topology is eligible, `shapecurve.solve(root, fit)` writes an exact
+shape-feasible ratio point onto the tree in place *before*
+`innerloop.optimise` runs; `optimise`'s existing `x0=None` behaviour (read
+the tree's current ratios) then picks it up unchanged. On ineligible or
+DP-infeasible, the tree is left exactly as the cold/proportion-aware seed
+left it — no new false-negative risk, because nothing is pruned by this
+change. Threaded through `driver.search` and exposed as
+`homemaker-evolve --shapecurve-warmstart` (off by default, matching every
+other experimental search toggle in `evolve.py`). Deliberately **not**
+built this session (tracked as follow-up beads under `2g7`, see below): the
+DP-exact hard pre-filter (replacing `predicted_shape_fails`' heuristic
+threshold), multi-storey (`below`-link) support, `leaf_sharing`/`co_type`
+modelling, and the true skew-quad polygon algebra to remove the ~7-12%
+rectangle-approximation error §37.2 already quantified.
+
+**Bug caught promoting the spike: `realise()` leaked `numpy.float64` into
+`division`.** `_interp_range`'s interpolation branch computes on a numpy
+grid, so `t = wl / w` in `realise()` is a `numpy.float64` whenever that
+branch fires (common — any non-grid-exact point) rather than a plain Python
+float. `experiments/validate_shapecurve.py` never caught this because it
+only ever scored the in-memory tree directly, never round-tripped through
+`dom.dumps` (`yaml.safe_dump` cannot represent `numpy.float64` and raises
+`RepresenterError`). This session's `tests/test_shapecurve.py` does
+round-trip (`dom.dumps`/`dom.load` after `solve()`), caught it immediately,
+and the fix is a one-line `float()` cast on both list elements of
+`node.division`. This means the shipped `experiments/shapecurve_spike.py`
+copy silently carries this latent bug too — harmless for the validation
+harness's own in-memory comparisons, but would break the moment anyone
+tried to write its output to a `.dom` file.
+
+**A/B** (`experiments/ab_shapecurve_warmstart.py`, `examples/harbor-house-l0`
+— the DP's own single-storey validated benchmark; the full multi-storey
+`examples/harbor-house` is out of scope until the multi-storey follow-up
+lands): `driver.search(..., leaf_sharing=False)` off vs on, budget=2000,
+seeds 0-4, same-seed paired runs:
+
+| seed | off hard | off soft | off fitness | on hard | on soft | on fitness |
+|---|---|---|---|---|---|---|
+| 0 | 3 | 13 | 1.222e-08 | 3 | 13 | 1.222e-08 |
+| 1 | 4 | 13 | 1.234e-08 | 4 | 8  | 6.556e-08 |
+| 2 | 6 | 15 | 6.95e-10  | 5 | 13 | 9.31e-09  |
+| 3 | 3 | 18 | 3.954e-10 | 5 | 9  | 2.522e-09 |
+| 4 | 6 | 17 | 5.6e-11   | 6 | 17 | 5.6e-11   |
+| **mean** | **4.400** | **15.200** | **5.14e-09** | **4.600** | **12.000** | **1.79e-08** |
+
+Wall-clock is identical (56.4s vs 57.1s mean, as expected — same budget, the
+DP adds one cheap solve per eligible child). This run used the default flat
+comparator (`use_tiers=False`, i.e. `admit()`'s selection pressure is total
+fail count, not hard/soft-tiered), so the metric that actually drove which
+children survived is **mean total fails**: OFF 4.4+15.2=19.6 vs ON
+4.6+12.0=16.6, a ~15% reduction, tracking the ~3.5x mean-fitness improvement.
+Mean **hard**-fail count alone ticked up slightly (4.6 vs 4.4) — driven
+entirely by seed 3 (3→5); seed 2 moved the other way (6→5), seeds 0/4 tied.
+At n=5 seeds this is noise-dominated, not a signal either direction.
+
+**ACCEPTANCE: PARTIAL — net positive on the metric that drives selection
+(total fails / fitness), inconclusive on hard fails specifically.** The
+warm-start is unambiguously safe (verified by the off/on-parity test,
+`test_shapecurve_warmstart_off_matches_baseline`) and measurably improves
+soft-fail/fitness convergence on its validated single-storey envelope at
+this budget/seed-count. It is not yet the "evals to N hard fails" race the
+`6xh` bead framed as the target metric — reaching that needs either a larger
+seed count (this A/B's hard-fail delta is within noise at n=5) or the
+DP-exact hard pre-filter (`homemaker-py-wkh`) doing more than warm-starting.
+Also unresolved: this envelope (single storey, no sharing) excludes most
+real programmes by default (`leaf_sharing` defaults `True` in
+`driver.search`; `programme-house`/`harbor-house` both require ≥2 storeys),
+so today's win applies only when a caller explicitly opts into both
+`leaf_sharing=False` and a single-storey seed — the multi-storey
+(`homemaker-py-koo`) and leaf-sharing (`homemaker-py-tym`) follow-ups are
+what make this apply to the programmes the search actually runs on day to
+day.
+
+**Verification.** `tests/test_shapecurve.py` (4 tests): eligibility guard
+correctness (multi-storey, each of leaf_sharing/superpose/max_share/
+multi_use independently disqualifying); a small feasible topology's
+DP-realised ratios round-trip `dom.dumps`/`dom.load` and independently score
+zero shape fails via the real `fitness.Fitness`; an obviously-oversized
+topology (60 leaves on harbor-house-l0's plot) is correctly infeasible;
+determinism. `tests/test_driver.py` (+3 tests): off/on parity when the flag
+is off; `shapecurve.solve` is invoked (and its written ratio is visible to
+`innerloop.optimise`) exactly when eligible; `shapecurve.solve` is never
+invoked on a multi-storey seed. Full suite: 388 passed. Manual CLI smoke
+test: `homemaker-evolve init.dom --programme-dir . --no-leaf-sharing
+--shapecurve-warmstart` in `examples/harbor-house-l0` runs to completion and
+the emitted `.dom` scores cleanly with `homemaker-fitness` (score matches
+the run's own reported best).

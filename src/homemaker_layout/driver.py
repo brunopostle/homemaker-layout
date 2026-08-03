@@ -34,7 +34,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import dom, fitness, genome, innerloop, operators, programme
+from . import dom, fitness, genome, innerloop, operators, programme, shapecurve
 
 _CHILD_INNER_KW: dict = {}
 
@@ -173,7 +173,8 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
               max_share: int | None = None,
               conn_grade: bool = False,
               collapse_insearch: bool = True,
-              multi_use: bool = False) -> tuple[Individual, int]:
+              multi_use: bool = False,
+              shapecurve_warmstart: bool = False) -> tuple[Individual, int]:
     # §12.3 shape-feasibility pre-filter (homemaker-py-9gp.1): if even the best
     # achievable (proportion-aware) geometry of this topology already has at least
     # as many shape fails as the incumbent's TOTAL fails — and exceeds the tunable
@@ -183,6 +184,18 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
     # incumbent is never discarded. Pruned individuals are tagged and never admitted.
     overrides = _overrides_for(leaf_sharing, superpose, max_share, conn_grade,
                                collapse_insearch, multi_use)
+    # §37.4 shape-curve DP warm-start (homemaker-py-6xh, DESIGN.md §37.2/§37.4):
+    # when eligible (single storey, no leaf_sharing/superpose/max_share/multi_use
+    # — none of which the DP models) and no caller-supplied x0 (never override an
+    # explicit Lamarckian warm-start), solve for an exact shape-feasible ratio
+    # point and write it onto the tree in place. `x0=None` below then picks it up
+    # as the inner loop's start point. On infeasible or ineligible, `root` is left
+    # untouched — falls through to today's cold/proportion-aware start exactly.
+    if shapecurve_warmstart and x0 is None and shapecurve.eligible(
+            root, leaf_sharing, superpose, max_share, multi_use):
+        shapecurve.solve(root, _fitness_for(
+            str(programme_dir), leaf_sharing, superpose, max_share,
+            conn_grade, collapse_insearch, multi_use))
     if (feasibility_max_shape_fails is not None and best_n_fails is not None):
         pred = operators.predicted_shape_fails(
             root, _reqs_for(str(programme_dir)),
@@ -270,6 +283,7 @@ def search(
     max_share: int | None = None,
     seed_pop: list[dom.Node] | None = None,
     collapse_insearch: bool = True,
+    shapecurve_warmstart: bool = False,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -519,7 +533,7 @@ def search(
         full = [
             (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade,
              mx, best_nf, leaf_sharing, superpose, max_share, conn_grade,
-             collapse_insearch, multi_use)
+             collapse_insearch, multi_use, shapecurve_warmstart)
             for root, x0, budget_, kw_, lin in tasks
         ]
         if _pool is not None:
@@ -605,7 +619,8 @@ def search(
                                        max_share=max_share,
                                        conn_grade=conn_grade,
                                        collapse_insearch=collapse_insearch,
-                                       multi_use=multi_use)
+                                       multi_use=multi_use,
+                                       shapecurve_warmstart=shapecurve_warmstart)
             n_evals += used
             admit(seed_ind, pop)
 

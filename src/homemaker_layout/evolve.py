@@ -103,6 +103,17 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "bounds) may be fused onto one leaf at construction time, "
                         "surviving unchanged into the output (unlike --superpose's "
                         "per-eval collapse to a single usage) (default: off)")
+    p.add_argument("--shapecurve-warmstart", dest="shapecurve_warmstart",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_SHAPECURVE_WARMSTART", False),
+                   help="homemaker-py-6xh (DESIGN.md §37.2/§37.4): warm-start "
+                        "each child's inner-loop ratio search from the exact "
+                        "Otten/Stockmeyer shape-curve DP solution instead of "
+                        "the proportion-aware target-geometry seed, when the "
+                        "topology is eligible (single storey, no leaf-sharing/"
+                        "superpose/max-share/multi-use — none of which the DP "
+                        "models). Falls through to today's start unchanged when "
+                        "ineligible or DP-infeasible (default: off)")
     p.add_argument("--conn-grade", dest="conn_grade",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_CONN_GRADE", False),
@@ -235,6 +246,7 @@ def main(argv=None) -> int:
     print(f"bridge circulation : {args.bridge_circulation}", file=sys.stderr)
     print(f"ruin recreate      : {args.ruin_recreate}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
+    print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
     anneal_ladder = None
@@ -290,6 +302,7 @@ def main(argv=None) -> int:
             enable_bridge_circulation=args.bridge_circulation,
             enable_ruin_recreate=args.ruin_recreate,
             collapse_insearch=args.collapse_insearch,
+            shapecurve_warmstart=args.shapecurve_warmstart,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
         _finish_sharing = args.leaf_sharing

@@ -264,6 +264,102 @@ def test_feasibility_filter_prunes_cheaply(fake_inner, monkeypatch):
     assert on.best is not None and not on.best.lineage.startswith("pruned/")
 
 
+def test_shapecurve_warmstart_off_matches_baseline(fake_inner):
+    """homemaker-py-6xh: with the flag off (default), the run is identical to
+    one that omits the param — a clean A/B control, mirroring the existing
+    feasibility-filter control test."""
+    init_root = dom.load(str(INIT_FILE))
+    base = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                         child_budget=60, seed_budget=100, seed=9)
+    off = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                        child_budget=60, seed_budget=100, seed=9,
+                        shapecurve_warmstart=False)
+    assert off.best.sig == base.best.sig
+    assert off.n_topologies == base.n_topologies
+    assert off.n_evals == base.n_evals
+
+
+def test_shapecurve_warmstart_seeds_ratios_when_eligible(monkeypatch):
+    """homemaker-py-6xh: when eligible (single storey, no leaf_sharing/
+    superpose/max_share/multi_use) and no caller-supplied x0, ``shapecurve.
+    solve`` is called and its written ratios are on the tree by the time
+    ``innerloop.optimise`` runs — the mechanism the inner loop's own
+    ``x0=None`` (tree's current ratios) picks up as the warm start."""
+    from homemaker_layout import shapecurve
+
+    divisions_at_optimise = []
+
+    def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+        divisions_at_optimise.append(
+            [tuple(b.division) for _, b in innerloop.free_with_keys(root)])
+        n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(root))
+        fit = 1.0 / (1.0 + abs(12 - n_leaves))
+        for _, b in innerloop.free_with_keys(root):
+            b.division = [0.25, 0.25]
+        return innerloop.Result(
+            x=np.array([0.25]), fitness=fit, n_fails=0, fail_lines=(),
+            x0_fitness=fit / 2, x0_n_fails=1, n_evals=budget, n_oracle_calls=1,
+        )
+
+    monkeypatch.setattr(innerloop, "optimise", fake_optimise)
+
+    solve_calls = []
+
+    def spy_solve(root, fit, grid_n=150):
+        solve_calls.append(len(dom.levels(root)))
+        for _, b in innerloop.free_with_keys(root):
+            b.division = [0.37, 0.37]
+        return True, {}
+
+    monkeypatch.setattr(shapecurve, "solve", spy_solve)
+
+    # harbor-house-l0 (storey_minimum=1) rather than CORPUS (programme-house,
+    # storey_minimum=2) — constructive_topology would otherwise grow a
+    # multi-storey seed and shapecurve.eligible would rightly never fire.
+    harbor_l0 = Path(__file__).parent.parent / "examples" / "harbor-house-l0"
+    if not harbor_l0.is_dir():
+        pytest.skip("harbor-house-l0 not available")
+    init_root = dom.load(str(harbor_l0 / "init.dom"))
+    driver.search(init_root, harbor_l0, budget=300, pop_size=2,
+                  child_budget=60, seed_budget=60, seed=3,
+                  shapecurve_warmstart=True, leaf_sharing=False)
+
+    assert solve_calls, "shapecurve.solve must be called for eligible children"
+    assert all(n == 1 for n in solve_calls), "only ever called on single-storey trees"
+    # the DP-written ratio (0.37) was on the tree when optimise saw it
+    assert any(
+        any(abs(t[0] - 0.37) < 1e-9 for t in divs)
+        for divs in divisions_at_optimise if divs
+    )
+
+
+def test_shapecurve_warmstart_skips_multistorey(monkeypatch):
+    """homemaker-py-6xh: the DP has no notion of ``below``-inherited
+    (wall-stacked) fixed splits, so it must never be invoked on a
+    multi-storey topology — ``shapecurve.eligible`` guards this."""
+    from homemaker_layout import shapecurve
+
+    def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+        for _, b in innerloop.free_with_keys(root):
+            b.division = [0.25, 0.25]
+        return innerloop.Result(
+            x=np.array([0.25]), fitness=0.5, n_fails=0, fail_lines=(),
+            x0_fitness=0.25, x0_n_fails=1, n_evals=budget, n_oracle_calls=1,
+        )
+
+    monkeypatch.setattr(innerloop, "optimise", fake_optimise)
+    solve_calls = []
+    monkeypatch.setattr(shapecurve, "solve",
+                        lambda root, fit, grid_n=150: (solve_calls.append(1), (True, {}))[1])
+
+    multi_root = dom.load(str(SEED_FILE))
+    assert len(dom.levels(multi_root)) > 1
+    driver.search(multi_root, CORPUS, budget=200, pop_size=2,
+                  child_budget=60, seed_budget=60, seed=1,
+                  bootstrap=False, shapecurve_warmstart=True, leaf_sharing=False)
+    assert not solve_calls
+
+
 def test_search_parallel_smoke():
     """n_workers>1 runs without error and produces valid results."""
     init_root = dom.load(str(INIT_FILE))
