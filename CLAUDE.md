@@ -70,6 +70,7 @@ Key modules:
 - `geometry.py` — faithful port of Urb's top-down geometry
 - `programme.py` — parse `patterns.config` space requirements
 - `solver.py` — bottom-up ratio solve (scipy)
+- `shapecurve.py` — Otten/Stockmeyer shape-curve DP: exact size/width/proportion feasibility for a frozen topology, any storey count (DESIGN.md §37.2/§37.4-§37.6); used as `driver._evaluate`'s NM warm-start/hard pre-filter
 - `fitness.py` — native Python fitness evaluator (replaces Perl oracle)
 - `fitness_cmd.py` — `homemaker-fitness` CLI entry point
 - `collapse_cmd.py` — `homemaker-collapse` CLI: finish-time global cell→room collapse (94g)
