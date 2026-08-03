@@ -23,10 +23,15 @@ Usage: python experiments/validate_shapecurve.py [n_topologies] [nm_budget]
 from __future__ import annotations
 
 import copy
+import math
+import shutil
 import sys
+import tempfile
 import time
+from pathlib import Path
 
 import numpy as np
+import yaml
 
 from homemaker_layout import dom, driver, fitness as fit_mod, geometry, innerloop
 
@@ -35,6 +40,34 @@ import shapecurve_spike as sc  # noqa: E402
 
 PROGRAMME_DIR = "examples/harbor-house-l0"
 _SHAPE_SUFFIXES = (" size", " width", " proportion")
+
+
+def rotated_plot_dir(src_dir: str, degrees: float) -> Path:
+    """A scratch copy of ``src_dir`` with the plot's ``node:`` corners rotated
+    ``degrees`` about their centroid -- for testing that the DP's feasibility
+    verdict doesn't depend on the plot's orientation relative to the survey/
+    CRS x/y axes it happens to be recorded in (see DESIGN.md §37.2,
+    "Correction 1"). The programme (patterns.config) is untouched -- rotation
+    changes nothing about which spaces are required or their targets, only
+    the plot's physical orientation.
+    """
+    src = Path(src_dir)
+    dst = Path(tempfile.mkdtemp(prefix="shapecurve_rot_"))
+    d = yaml.safe_load((src / "init.dom").read_text())
+    pts = d["node"]
+    cx = sum(p[0] for p in pts) / len(pts)
+    cy = sum(p[1] for p in pts) / len(pts)
+    theta = math.radians(degrees)
+    cos_t, sin_t = math.cos(theta), math.sin(theta)
+
+    def _rot(p):
+        x, y = p[0] - cx, p[1] - cy
+        return [x * cos_t - y * sin_t + cx, x * sin_t + y * cos_t + cy]
+
+    d["node"] = [_rot(p) for p in pts]
+    (dst / "init.dom").write_text(yaml.safe_dump(d, default_flow_style=False))
+    shutil.copy(src / "patterns.config", dst / "patterns.config")
+    return dst
 
 
 class ShapeFailEvaluator(innerloop.NativeEvaluator):
@@ -56,9 +89,10 @@ class ShapeFailEvaluator(innerloop.NativeEvaluator):
         return results
 
 
-def main(n_topologies: int = 200, nm_budget: int = 100, grid_n: int = 150) -> None:
-    seed_root = dom.load(f"{PROGRAMME_DIR}/init.dom")
-    conf, cost = fit_mod.load_config(PROGRAMME_DIR)
+def main(n_topologies: int = 200, nm_budget: int = 100, grid_n: int = 150,
+         programme_dir: str = PROGRAMME_DIR) -> None:
+    seed_root = dom.load(f"{programme_dir}/init.dom")
+    conf, cost = fit_mod.load_config(programme_dir)
     fit = fit_mod.Fitness(conf, cost)
     types = sorted(fit.spaces.keys())
 
@@ -97,7 +131,7 @@ def main(n_topologies: int = 200, nm_budget: int = 100, grid_n: int = 150) -> No
         t0 = time.time()
         topo_nm = copy.deepcopy(topo)
         geometry.clear_cache()
-        with ShapeFailEvaluator(topo_nm, PROGRAMME_DIR) as ev:
+        with ShapeFailEvaluator(topo_nm, programme_dir) as ev:
             x0 = ev.x_current
             if len(x0) == 0:
                 nm_shape_fails: list[str] = []
@@ -146,7 +180,15 @@ def main(n_topologies: int = 200, nm_budget: int = 100, grid_n: int = 150) -> No
 
 
 if __name__ == "__main__":
+    # Usage: validate_shapecurve.py [n_topologies] [nm_budget] [grid_n] [rotate_deg]
+    # rotate_deg (optional, default 0): test on a scratch copy of the plot
+    # rotated this many degrees about its centroid -- DESIGN.md §37.2's
+    # rotation-invariance check (0 => harbor-house-l0 unmodified).
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 200
     budget = int(sys.argv[2]) if len(sys.argv) > 2 else 100
     grid_n = int(sys.argv[3]) if len(sys.argv) > 3 else 150
-    main(n, budget, grid_n)
+    rotate_deg = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
+    prog_dir = str(rotated_plot_dir(PROGRAMME_DIR, rotate_deg)) if rotate_deg else PROGRAMME_DIR
+    if rotate_deg:
+        print(f"(testing on {PROGRAMME_DIR}'s plot rotated {rotate_deg} deg -> {prog_dir})")
+    main(n, budget, grid_n, prog_dir)

@@ -9,22 +9,33 @@ height) region is bounded by an area hyperbola (``quality_size``), a min-width
 line (``quality_width``), and an aspect-ratio wedge (``quality_proportion``) --
 all three are FAIL_THRESHOLD-inversions of the Gaussian/clipped-Gaussian
 factors in ``fitness.py`` (see ``leaf_constraints`` below). These per-leaf
-regions compose bottom-up through the slicing tree: a "width-split" node
-(children share height, widths sum) or "height-split" node (children share
-width, heights sum) -- see ``_orientation``.
+regions compose bottom-up through the slicing tree: a node's cut ALWAYS sums
+its two children's contributions into the node's own "w" (edge0+edge2)
+dimension, with "h" (edge1+edge3) the shared/cross dimension -- a fixed
+convention of ``geometry.py``'s division formula, no per-node ambiguity.
+The only variable is which of a CHILD's own (w, h) plays which role, an
+EXACT function of that child's ``rotation`` parity -- see ``_child_contrib``.
 
 Approximations made explicit (the plan's caveats, DESIGN.md §37 point 2):
 
-  * Every quad (leaf or internal) is approximated by its axis-aligned
-    bounding-box (w, h) -- exact only for a true rectangle; harbor-house-l0's
-    plot is a near-rectangular trapezoid (DESIGN.md says "harbor plot is a
-    near-rect quad"), so this is the intended first target, not a general
-    solution for skew quads.
-  * A node's cut orientation (does it split width or height?) is measured
-    once from the ACTUAL geometry at ratio=0.5 baseline, not derived from
-    ``rotation`` symbolically -- robust to any rotation convention, but a
-    property of the *frozen topology*, computed once, not re-derived by the
-    DP itself.
+  * Every quad (leaf or internal) is approximated by a rectangle with the
+    same edge-length-derived (w, h) as ``geometry.aspect`` uses --
+    ``(edge0+edge2)/2`` and ``(edge1+edge3)/2`` -- exact only for a true
+    rectangle/parallelogram; harbor-house-l0's plot is a near-rectangular
+    trapezoid (DESIGN.md says "harbor plot is a near-rect quad"), so this is
+    the intended first target, not a general solution for skew quads. This
+    is deliberately NOT the quad's axis-aligned bounding box in global x/y --
+    an earlier version used that and was wrong for any quad whose (locally
+    orthogonal, per Urb's Straighten lineage -- see ``_dims``) walls aren't
+    near-parallel to the plot's global x/y axes; edge lengths are
+    rotation-invariant by construction.
+  * Composition itself (which of a child's local w/h sums into its parent's
+    w) is NOT approximated or measured -- an earlier version measured it
+    empirically per node (comparing children's summed dims against the
+    parent's) and that REGRESSED accuracy (99.0% -> 95.5% on the 200-
+    topology validation, with a spurious false negative). It's an exact
+    algebraic identity determined purely by ``child.rotation % 2`` -- see
+    ``_child_contrib`` and the Stage 2 note above ``_dims``.
   * Leaf curves are EXACT closed forms (hyperbola/line/wedge intersection --
     no discretisation error). Internal-node composition is done on a shared
     discretised grid (log-spaced) with linear interpolation -- this is where
@@ -163,55 +174,51 @@ def leaf_constraints(fit, leaf: dom_mod.Node) -> LeafBounds:
 
 
 # --------------------------------------------------------------------------- #
-# Bounding-box geometry + cut-orientation detection (rectangular approximation)
+# Local-edge-length dimensions + EXACT rotation-parity composition.
+#
+# NB (fixed after initial review, in two stages):
+#
+# Stage 1: the first version measured (w, h) from each quad's axis-aligned
+# bounding box in GLOBAL x/y -- correct only when the plot/walls happen to be
+# near-parallel to the global axes (true for harbor-house-l0's near-
+# rectangular trapezoid, ~7.5% bbox-area error there, but WRONG in general: a
+# perfectly rectangular room whose walls run at 45 deg to the survey/CRS axes
+# gets a bbox up to 2x its true area -- confirmed by rotating harbor-house-l0's
+# plot 45 deg: bbox area error jumped from 7.5% to 102%). Urb's Perl ancestor
+# (Urb::Quad::Straighten/Straighten_Root) keeps internal walls mutually
+# orthogonal but NEVER assumes them axis-aligned; this port's equal-offset
+# division convention gives that same local straightness for free, so each
+# node's own 4 corners already form a near-rectangle in ITS OWN frame
+# regardless of the plot's global orientation -- (edge0+edge2)/2 and
+# (edge1+edge3)/2 (the pairing geometry.aspect() uses) measure that local
+# rectangle's two dimensions with no global-axis dependency (``_dims``).
+#
+# Stage 2: switching to local edge lengths alone was NOT sufficient and
+# initially REGRESSED accuracy (99.0% -> 95.5% on the harbor-house-l0 200-
+# topology validation, with a false negative appearing for the first time).
+# Root cause: geometry.coordinate() applies a node's OWN ``rotation`` field
+# even when reading ITS OWN corners as inherited from its parent -- a node
+# with odd rotation has its local edge0/edge2 pair correspond to its PARENT's
+# edge1/edge3 pair instead of edge0/edge2 (rotation parity selects between a
+# quad's two possible opposite-edge pairings). A prior version tried to
+# detect this empirically (comparing children's summed dims against the
+# parent's, picking whichever of two hypotheses fit better) -- but the
+# relationship is not a matter of degree to be measured, it's an EXACT
+# algebraic identity determined purely by ``child.rotation % 2``: verified
+# numerically (float-exact) that ``left.w + right.h == parent.w`` whenever
+# left.rotation is even and right.rotation is odd (and the symmetric case
+# generally), for ANY topology, independent of skew or global orientation.
+# ``_child_contrib`` below applies this directly -- no geometry measurement,
+# no baseline-ratio pass, no heuristic threshold.
 # --------------------------------------------------------------------------- #
 
 
-def _bbox(n: dom_mod.Node) -> tuple[float, float]:
-    """Axis-aligned bounding-box (w, h) of a quad's 4 corners."""
-    xs = [geometry.coordinate(n, i)[0] for i in range(4)]
-    ys = [geometry.coordinate(n, i)[1] for i in range(4)]
-    return (max(xs) - min(xs), max(ys) - min(ys))
-
-
-def _orientation(node: dom_mod.Node) -> str:
-    """'w' (width-split, children share height) or 'h' (height-split),
-    measured from the actual baseline geometry -- see module docstring."""
-    bw, bh = _bbox(node)
-    lw, lh = _bbox(node.left)
-    rw, rh = _bbox(node.right)
-    err_w = abs((lw + rw) - bw)
-    err_h = abs((lh + rh) - bh)
-    return "w" if err_w <= err_h else "h"
-
-
-def annotate_orientations(level_root: dom_mod.Node) -> dict[int, str]:
-    """Baseline-geometry orientation per internal node, keyed by id(node).
-
-    Sets every free branch's division to [0.5, 0.5] on the LIVE tree (matching
-    the inner loop's cold-start convention), clears the geometry cache, then
-    measures. Caller must re-clear the cache afterwards if it goes on to use
-    different ratios (the DP itself never reads real coordinates again after
-    this call -- only the plot bbox, computed separately).
-    """
-    from homemaker_layout import solver
-
-    for b in solver._branches(level_root):
-        if b.below is None or not b.below.divided:
-            b.division = [0.5, 0.5]
-    geometry.clear_cache()
-
-    orientations: dict[int, str] = {}
-
-    def _walk(n: dom_mod.Node) -> None:
-        if not n.divided:
-            return
-        orientations[id(n)] = _orientation(n)
-        _walk(n.left)
-        _walk(n.right)
-
-    _walk(level_root)
-    return orientations
+def _dims(n: dom_mod.Node) -> tuple[float, float]:
+    """Rotation-invariant (w, h) of a quad from its own edge lengths (mirrors
+    the (edge0+edge2) vs (edge1+edge3) pairing ``geometry.aspect`` uses)."""
+    w = (geometry.edge_length(n, 0) + geometry.edge_length(n, 2)) / 2
+    h = (geometry.edge_length(n, 1) + geometry.edge_length(n, 3)) / 2
+    return (w, h)
 
 
 # --------------------------------------------------------------------------- #
@@ -266,6 +273,15 @@ def make_grid(wmax: float, n: int = 400, wmin: float = 0.1) -> np.ndarray:
     return np.geomspace(wmin, wmax, n)
 
 
+def _child_contrib(curve: "Curve", rotation: int) -> list[Interval]:
+    """The child's curve, reinterpreted in the PARENT's frame: parent.w is
+    ALWAYS the sum of its two children's ``_child_contrib`` (see module
+    docstring) -- even rotation contributes the child's own w_of_h directly;
+    odd rotation swaps w<->h (child.h sums; child.w is the one that
+    approximates the parent's shared/cross dimension)."""
+    return curve.w_of_h if rotation % 2 == 0 else curve.h_of_w
+
+
 @dataclass
 class Feasibility:
     feasible: bool
@@ -289,85 +305,82 @@ def check_feasible(root_curve: Curve, grid: np.ndarray, w_plot: float, h_plot: f
 def realise(
     node: dom_mod.Node,
     curves: dict[int, tuple[Curve, Curve]],
-    orientations: dict[int, str],
     grid: np.ndarray,
     w: float,
     h: float,
 ) -> None:
     """Write ``division`` on every free branch under ``node`` so its subtree
     realises the (w, h) target, given each descendant's precomputed curves.
-    ``curves[id(n)] = (left_curve, right_curve)`` for internal nodes."""
+    ``curves[id(n)] = (left_curve, right_curve)`` for internal nodes.
+
+    ``node.w`` (the summed dimension) is ALWAYS ``w`` -- the parent-child cut
+    convention is fixed (see module docstring), not orientation-dependent.
+    Only each CHILD's rotation parity determines which of ITS OWN (w, h) the
+    allocated share becomes: even rotation -> child's own w; odd rotation ->
+    child's own h (the two are swapped for that recursive call).
+    """
     if not node.divided:
         return
     cl, cr = curves[id(node)]
-    orient = orientations[id(node)]
-    if orient == "w":
-        rl = _interp_range(grid, cl.w_of_h, h)
-        rr = _interp_range(grid, cr.w_of_h, h)
-        lo = max(rl[0], w - rr[1])
-        hi = min(rl[1], w - rr[0])
-        wl = min(max((lo + hi) / 2.0, rl[0]), rl[1])
-        wl = min(max(wl, w - rr[1]), w - rr[0])
-        wr = w - wl
-        t = wl / w if w > 0 else 0.5
-        node.division = [t, t]
-        realise(node.left, curves, orientations, grid, wl, h)
-        realise(node.right, curves, orientations, grid, wr, h)
+    contrib_l = _child_contrib(cl, node.left.rotation)
+    contrib_r = _child_contrib(cr, node.right.rotation)
+    rl = _interp_range(grid, contrib_l, h)
+    rr = _interp_range(grid, contrib_r, h)
+    lo = max(rl[0], w - rr[1])
+    hi = min(rl[1], w - rr[0])
+    wl = min(max((lo + hi) / 2.0, rl[0]), rl[1])
+    wl = min(max(wl, w - rr[1]), w - rr[0])
+    wr = w - wl
+    t = wl / w if w > 0 else 0.5
+    node.division = [t, t]
+    if node.left.rotation % 2 == 0:
+        realise(node.left, curves, grid, wl, h)
     else:
-        rl = _interp_range(grid, cl.h_of_w, w)
-        rr = _interp_range(grid, cr.h_of_w, w)
-        lo = max(rl[0], h - rr[1])
-        hi = min(rl[1], h - rr[0])
-        hl = min(max((lo + hi) / 2.0, rl[0]), rl[1])
-        hl = min(max(hl, h - rr[1]), h - rr[0])
-        hr = h - hl
-        t = hl / h if h > 0 else 0.5
-        node.division = [t, t]
-        realise(node.left, curves, orientations, grid, w, hl)
-        realise(node.right, curves, orientations, grid, w, hr)
+        realise(node.left, curves, grid, h, wl)
+    if node.right.rotation % 2 == 0:
+        realise(node.right, curves, grid, wr, h)
+    else:
+        realise(node.right, curves, grid, h, wr)
 
 
 def build_curves_with_children(
-    node: dom_mod.Node, fit, orientations: dict[int, str], grid: np.ndarray,
+    node: dom_mod.Node, fit, grid: np.ndarray,
     out: dict[int, tuple[Curve, Curve]],
 ) -> Curve:
-    """Like ``build_curves`` but also records each internal node's (left,
-    right) curves in ``out`` for ``realise`` to consume."""
+    """Bottom-up: leaf curves are exact closed forms; internal nodes compose
+    on ``grid`` via the EXACT rotation-parity rule (``_child_contrib``), also
+    recording each internal node's (left, right) curves in ``out`` for
+    ``realise`` to consume."""
     if not node.divided:
         b = leaf_constraints(fit, node)
         w_of_h = h_of_w = b.range_grid(grid)
         return Curve(w_of_h=w_of_h, h_of_w=h_of_w)
 
-    cl = build_curves_with_children(node.left, fit, orientations, grid, out)
-    cr = build_curves_with_children(node.right, fit, orientations, grid, out)
+    cl = build_curves_with_children(node.left, fit, grid, out)
+    cr = build_curves_with_children(node.right, fit, grid, out)
     out[id(node)] = (cl, cr)
-    orient = orientations[id(node)]
-    if orient == "w":
-        w_of_h = [_interval_add(cl.w_of_h[i], cr.w_of_h[i]) for i in range(len(grid))]
-        h_of_w = _invert(grid, w_of_h)
-    else:
-        h_of_w = [_interval_add(cl.h_of_w[j], cr.h_of_w[j]) for j in range(len(grid))]
-        w_of_h = _invert(grid, h_of_w)
+    contrib_l = _child_contrib(cl, node.left.rotation)
+    contrib_r = _child_contrib(cr, node.right.rotation)
+    w_of_h = [_interval_add(contrib_l[i], contrib_r[i]) for i in range(len(grid))]
+    h_of_w = _invert(grid, w_of_h)
     return Curve(w_of_h=w_of_h, h_of_w=h_of_w)
 
 
 def solve(level_root: dom_mod.Node, fit, grid_n: int = 150) -> tuple[bool, dict]:
-    """End-to-end: orientation-annotate, compute plot bbox, build curves,
-    check root feasibility, and (if feasible) write realising ratios in
-    place. Returns (feasible, info) where info carries timing-relevant
-    intermediates for the caller."""
-    orientations = annotate_orientations(level_root)
-    w_plot, h_plot = _bbox(level_root)
+    """End-to-end: compute plot dims, build curves, check root feasibility,
+    and (if feasible) write realising ratios in place. Returns (feasible,
+    info) where info carries timing-relevant intermediates for the caller."""
+    w_plot, h_plot = _dims(level_root)
     grid = make_grid(max(w_plot, h_plot) * 1.2, n=grid_n)
 
     curves_by_node: dict[int, tuple[Curve, Curve]] = {}
-    root_curve = build_curves_with_children(level_root, fit, orientations, grid, curves_by_node)
+    root_curve = build_curves_with_children(level_root, fit, grid, curves_by_node)
 
     feas = check_feasible(root_curve, grid, w_plot, h_plot)
     if feas.feasible:
-        realise(level_root, curves_by_node, orientations, grid, w_plot, h_plot)
+        realise(level_root, curves_by_node, grid, w_plot, h_plot)
         geometry.clear_cache()
     return feas.feasible, {
-        "w_plot": w_plot, "h_plot": h_plot, "orientations": orientations,
+        "w_plot": w_plot, "h_plot": h_plot,
         "grid": grid, "h_range_at_w": feas.h_range_at_w, "w_range_at_h": feas.w_range_at_h,
     }

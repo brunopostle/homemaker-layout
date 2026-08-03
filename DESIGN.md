@@ -4021,28 +4021,76 @@ formulas by construction, not reimplemented magic numbers: same `conf`/
 starting with 'c' or 's'/'o' hits the circulation/outside branch, not its own
 programme params" quirk — confirmed this is existing product behaviour, not a
 bug, by reading `get_space_params`/`quality_size` together). Regions compose
-bottom-up through the slicing tree: a node's cut is either a "width-split"
-(children share height, widths sum) or "height-split" (heights sum), measured
-once from the actual baseline geometry (`_orientation`) rather than derived
-symbolically from `rotation` — robust to any rotation convention. Composition
-is done on a shared log-spaced grid (interval-sum + a numpy-vectorised
-inversion, `_invert`); leaf curves themselves are exact closed forms, so all
-discretisation error is confined to internal-node composition. A top-down
-`realise()` back-substitution converts a feasible root point into actual
-`division` ratios, so the DP's output is a real, scoreable `.dom` tree, not
-just a yes/no.
+bottom-up through the slicing tree: a node's cut ALWAYS sums its two
+children's contributions into the node's own "w" (`edge0+edge2`) dimension,
+with "h" (`edge1+edge3`) the shared/cross dimension — a fixed convention of
+`geometry.py`'s division formula (`coord_a`/`coord_b` always interpolate
+between edge(0,1) and edge(3,2)), not a per-node choice. The only variable is
+which of a CHILD's own (w, h) plays which role relative to its parent, an
+EXACT function of that child's `rotation` parity (`_child_contrib` — see the
+correction below). Composition runs on a shared log-spaced grid (interval-sum
++ a numpy-vectorised inversion, `_invert`); leaf curves themselves are exact
+closed forms, so all discretisation error is confined to internal-node
+composition. A top-down `realise()` back-substitution converts a feasible
+root point into actual `division` ratios, so the DP's output is a real,
+scoreable `.dom` tree, not just a yes/no.
 
 **Explicit scope (per the plan's own caveats).** Only size/width/proportion
 is modelled — crinkliness/adjacency/access/level connectivity are graph
-terms, out of scope by design. Every quad is approximated by its axis-aligned
-bounding box (exact only for a true rectangle). `leaf_sharing`/`co_type`
-target-adjustment is not modelled (harbor-house-l0's programme doesn't
-exercise either).
+terms, out of scope by design. Every quad is approximated by a rectangle with
+edge-length-derived (w, h) — exact only for a true rectangle/parallelogram
+(see the rotation-invariance correction below for why this is edge lengths,
+not a bounding box). `leaf_sharing`/`co_type` target-adjustment is not
+modelled (harbor-house-l0's programme doesn't exercise either).
+
+**Correction 1 (caught in review): bounding-box (w, h) is not rotation-invariant.**
+The first version measured each quad's (w, h) from its axis-aligned bounding
+box in global x/y — silently correct only because harbor-house-l0's plot
+happens to be near-parallel to its own x/y axes (~7.5% bbox-area error, see
+below). Flagged in review: Urb's Perl ancestor (`Urb::Quad::Straighten`/
+`Straighten_Root`) explicitly keeps internal walls mutually orthogonal but
+NEVER assumes them axis-aligned — `Straighten()` aligns a division parallel/
+perpendicular to its PARENT's own division line, not to global x/y, so a
+real building's walls can legitimately run at any angle (45° tried explicitly
+below) to the survey/CRS axes the plot's `node:` corners are recorded in.
+Confirmed by rotating harbor-house-l0's plot 45° about its centroid: bbox
+area error jumped from 7.5% to **102%** (a rotated square's bbox is up to 2x
+its true area). Fix: `_dims` measures (w, h) from `(edge0+edge2)/2` and
+`(edge1+edge3)/2` — the same pairing `geometry.aspect()` already uses —
+which depends only on the quad's own edge lengths, never on global
+coordinates. This port's equal-offset division convention already gives the
+local-orthogonality property Urb's `Straighten()` provides explicitly (no
+such pass exists or is needed in `operators.py`), so this is a safe
+substitution, not a new modelling assumption.
+
+**Correction 2 (caught in review, and this one REGRESSED accuracy before
+being fixed properly): which dimension sums is not a matter of degree.**
+Switching to edge-length (w, h) alone was not sufficient — a first attempt
+kept the "measure orientation empirically, per node" structure from the bbox
+version (comparing children's summed dims against the parent's under two
+hypotheses, picking whichever fit better) and this DROPPED agreement on the
+untouched harbor-house-l0 benchmark from 99.0% to **95.5%**, with a false
+negative appearing for the first time (previously zero). Root cause:
+`geometry.coordinate()` applies a node's OWN `rotation` field even when
+reading corners it inherited from its parent — a node with odd rotation has
+its local edge0/edge2 pair correspond to its PARENT's edge1/edge3 pair
+instead (rotation parity selects between a quad's two possible opposite-edge
+pairings; `operators.mutate_divide` randomises this on every newly-divided
+node, so it's common, not an edge case). This is not something to measure and
+approximate — it's an exact algebraic identity: verified numerically
+(float-exact, `29.533730484465025 == 29.533730484465025`) that
+`left.w + right.h == parent.w` whenever `left.rotation` is even and
+`right.rotation` is odd, independent of skew or global orientation.
+`_child_contrib(curve, rotation)` applies this directly (`curve.w_of_h` for
+even rotation, `curve.h_of_w` for odd) — no geometry measurement, no
+baseline-ratio pass, no heuristic threshold, and the empirical `_orientation`/
+`annotate_orientations` machinery from both prior versions was deleted
+entirely (simpler code, not just more correct).
 
 **Validation** (`experiments/validate_shapecurve.py`, harbor-house-l0, 200
 `driver.random_topology` topologies, 2-14 leaves, seed 12345): compared
 against NM search **minimising shape-fail count directly** (`ShapeFailEvaluator`,
-budget 100), not `innerloop.optimise`'s full aggregate objective — the first
+budget 100), not `innerloop.optimise`'s full aggregate objective — an earlier
 version of this harness used the full objective and found spurious
 "disagreements" where the DP's own realised point independently verified at
 **zero** shape fails but NM's full-objective search had wandered away from it,
@@ -4051,43 +4099,52 @@ penalty swamps the objective and NM has no pressure to preserve
 shape-feasibility specifically. Minimising shape-fail count alone is the
 correct apples-to-apples comparison against what the DP claims to solve.
 
-| metric | result | target |
+| metric | harbor-house-l0 (unrotated) | harbor-house-l0 rotated 45° |
 |---|---|---|
-| agreement | 198/200 = **99.0%** | >= 95% |
-| false positives (DP feasible, NM can't reach 0) | 2 | — |
-| false negatives (DP infeasible, NM reaches 0 anyway) | **0** | — |
-| speedup (grid_n=150, vs 100-eval NM) | **93.6x** | >= 50x |
-| speedup (grid_n=300) | 42.7x | — |
-| plot-level bbox area error | measured **+7.5%** overestimate | quantified |
+| agreement | 198/200 = **99.0%** (target >= 95%) | 100/100 = **100.0%** |
+| false positives (DP feasible, NM can't reach 0) | 2 | 0 |
+| false negatives (DP infeasible, NM reaches 0 anyway) | **0** | 0 |
+| speedup (grid_n=150, vs 100-eval NM) | **97.2x** (target >= 50x) | 97.1x |
+| plot-level (w,h)-approximation area error | **+7.5%** (bbox, pre-fix) / ~0.1% (edge-length, post-fix) | 102% (bbox, pre-fix) / ~0.1% (edge-length, post-fix) |
 
-Zero false negatives across 200 topologies: the DP never wrongly rejects a
-topology NM finds feasible — the safe direction for a pre-filter (worst case
-it fails to prune, never wrongly prunes a viable topology). grid_n=150 vs 300
-gave **identical** agreement (99.0%, the same 2 mismatches) at 2.2x the
-speedup — internal-node grid resolution has headroom below 300 with no
-measured accuracy cost on this benchmark; `_invert`'s pure-Python O(N²)
-double loop was ~70% of DP wall-clock before vectorising with numpy
-(profiled: 170ms → 40ms/topology at grid_n=300 from that change alone).
+The unrotated-plot numbers are BACK to matching the original (pre-Correction-2)
+99.0%/0-false-negative result exactly — same 2 mismatches, same seeds
+(`623465425`/`1523713848`) — confirming Correction 2 fixed the regression it
+introduced without disturbing the genuine, separately-diagnosed residual
+error below. The 45°-rotated run (`python experiments/validate_shapecurve.py
+100 100 150 45` -- same protocol, `n=100` for wall-clock, the plot's `node:`
+corners rotated 45° about their centroid into a scratch copy via
+`rotated_plot_dir`) is the direct, reproducible test of the concern that
+motivated Correction 1: 100% agreement, confirming the fix generalises and
+isn't overfit to harbor-house-l0's near-axis-aligned plot. Zero false
+negatives in both: the DP never wrongly rejects a topology NM finds feasible
+— the safe direction for a pre-filter (worst case it fails to prune, never
+wrongly prunes a viable topology). `_invert`'s pure-Python O(N²) double loop
+was ~70% of DP wall-clock before vectorising with numpy (profiled: 170ms →
+40ms/topology at grid_n=300 from that change alone; grid_n=150 is the
+shipped default, no measured accuracy cost vs. 300 on this benchmark).
 
-**Approximation error, root-caused.** Both false positives were traced to the
-bounding-box approximation, not a DP logic bug: the DP's own realised point
-for both cases had one leaf whose bbox-approximated area (e.g. 29.54 m²,
-comfortably inside `[27.12, 52.88]`) was a **real skewed quad** whose true
-`geometry.area` (26.90 m²) fell just *below* the true lower bound — a bbox
-overestimate of the same ~8-12% magnitude as the plot-level +7.5% figure
-above (harbor-house-l0's plot is a near-rectangular trapezoid, not a true
-rectangle). Every mismatch occurred within one bbox-error-width of a boundary
-— exactly the failure mode the plan's caveat predicted ("equal-offset
-skew-quad geometry means DP areas are approximate — measure the approximation
-error on real plots first").
+**Remaining approximation error, root-caused (unchanged by Corrections 1/2 —
+a different, smaller error source).** Both unrotated false positives trace to
+the rectangle-vs-true-skewed-quad approximation itself (§37.2's plan-flagged
+"equal-offset skew-quad geometry" caveat), not to global rotation or to
+composition: the DP's own realised point for both cases had one leaf whose
+edge-length-approximated area was comfortably inside its feasible bound, but
+whose true `geometry.area` (a real, slightly non-parallelogram quad) fell
+just below the true lower bound — an ~8-12% approximation gap, the same
+magnitude as harbor-house-l0's own plot-level residual skew. This is a
+strictly smaller, already-anticipated error source, distinct from the two
+corrections above (which were about measuring w/h and composing them
+correctly, not about the rectangle-vs-skew-quad approximation itself).
 
 **ACCEPTANCE: PASS** — all three criteria cleared (agreement, speedup,
-quantified approximation error). **Not done in this session** (follow-on,
-new bead needed before this can replace `operators.predicted_shape_fails` in
-`driver.py`'s real pre-filter path): wiring the DP into `driver._evaluate`/
-`innerloop.optimise` as an actual pre-filter + NM warm-start, multi-storey
-(`below`-link) support, `leaf_sharing`/`co_type` modelling, and a true
-skew-quad (non-bbox) leaf region to remove the measured approximation-error
-source rather than just quantify it. `experiments/shapecurve_spike.py` is
-kept as a reference/prototype (the §34 `autodiff_spike.py` precedent), not
-wired into `innerloop.py`.
+quantified approximation error), on both the original and the rotated plot.
+**Not done in this session** (follow-on, new bead needed before this can
+replace `operators.predicted_shape_fails` in `driver.py`'s real pre-filter
+path): wiring the DP into `driver._evaluate`/`innerloop.optimise` as an
+actual pre-filter + NM warm-start, multi-storey (`below`-link) support,
+`leaf_sharing`/`co_type` modelling, and a true skew-quad (non-rectangle) leaf
+region to remove the remaining ~8-12% approximation-error source rather than
+just quantify it. `experiments/shapecurve_spike.py` is kept as a reference/
+prototype (the §34 `autodiff_spike.py` precedent), not wired into
+`innerloop.py`.
