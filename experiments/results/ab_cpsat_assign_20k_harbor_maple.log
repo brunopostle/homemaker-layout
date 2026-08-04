@@ -1,0 +1,19 @@
+=== harbor-house 2026-08-04T10:52:41+01:00 ===
+seed 0: | greedy hard=8 soft=36 fit=5.386e-15 1862.0s | cpsat hard=15 soft=22 fit=1.388e-13 1869.1s | reassign hard=11 soft=36 fit=5.057e-16 2037.1s reassign_fired=0
+seed 1: | greedy hard=13 soft=31 fit=1.422e-16 1487.8s | cpsat hard=13 soft=35 fit=1.881e-16 1774.5s | reassign hard=5 soft=39 fit=3.977e-16 1816.8s reassign_fired=0
+seed 2: | greedy hard=7 soft=39 fit=2.434e-17 1784.6s | cpsat hard=11 soft=39 fit=6.704e-18 1709.9s | reassign hard=9 soft=31 fit=9.487e-15 1673.1s reassign_fired=0
+
+budget=20000 n_seeds=3 programme=harbor-house
+greedy   : mean hard=9.333 soft=35.333 fitness=1.85089e-15 wall=1711.5s
+cpsat    : mean hard=13.000 soft=32.000 fitness=4.63301e-14 wall=1784.5s
+reassign : mean hard=8.333 soft=35.333 fitness=3.46334e-15 wall=1842.3s mean_reassign_fired=0.0
+=== maple-court 2026-08-04T15:19:37+01:00 ===
+seed 0: | greedy hard=30 soft=72 fit=6.825e-34 2735.1s | cpsat hard=23 soft=57 fit=5.002e-26 3384.4s | reassign hard=25 soft=79 fit=4.567e-34 3221.9s reassign_fired=0
+seed 1: | greedy hard=13 soft=76 fit=3.645e-30 2981.7s | cpsat hard=25 soft=73 fit=1.047e-32 3229.9s | reassign hard=49 soft=71 fit=1.48e-39 2921.1s reassign_fired=1
+seed 2: | greedy hard=25 soft=69 fit=6.827e-31 2882.0s | cpsat hard=19 soft=75 fit=8.893e-32 3404.5s | reassign hard=32 soft=83 fit=1.06e-37 3071.1s reassign_fired=0
+
+budget=20000 n_seeds=3 programme=maple-court
+greedy   : mean hard=22.667 soft=72.333 fitness=1.44285e-30 wall=2866.3s
+cpsat    : mean hard=22.333 soft=68.333 fitness=1.66721e-26 wall=3339.6s
+reassign : mean hard=35.333 soft=77.667 fitness=1.5226e-34 wall=3071.4s mean_reassign_fired=0.3
+=== ALL DONE 2026-08-04T23:03:32+01:00 ===
