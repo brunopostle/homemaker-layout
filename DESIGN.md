@@ -4582,7 +4582,7 @@ test renamed and inverted (`test_shapecurve_warmstart_handles_multistorey`
 now asserts `shapecurve.solve` **is** called on a multi-storey child, where
 it previously asserted the opposite). Full suite: 397 passed.
 
-## 37.7 CP-SAT type assignment for a fixed tree (`homemaker-py-2g7.5`) — PARTIAL, seeder-level positive, driver-level INCONCLUSIVE at pilot scale
+## 37.7 CP-SAT type assignment for a fixed tree (`homemaker-py-2g7.5`) — CLOSED: seeder-level positive in isolation, does NOT survive a full driver.search run; both flags stay default off
 
 `§11.6`/`§11.7`'s greedy connected-dominating-set + hardest-constrained-
 code-first room placement (`operators._assign_adjacency_aware`) was Phase
@@ -4664,43 +4664,43 @@ proxy for what `homemaker-fitness` actually scores. Wired in as:
    coefficient range — reverted in favour of the explicit grouping
    constraint above.
 
-**`driver.search`-level A/B: INCONCLUSIVE at pilot scale, NOT the bead's own
-20k-budget/harbor+maple/3-seed acceptance protocol.** Wall-clock budget for
-this session did not stretch to the bead's own acceptance criteria (~28min
-per arm at budget=20000 on real harbor-house, ×3 arms ×3 seeds ×2
-programmes ≈ 8+ hours). `experiments/ab_cpsat_assign.py`, harbor-house only,
-budget=3000, 3 seeds (greedy / cpsat-seed-only / cpsat+`enable_reassign`):
+**`driver.search`-level A/B: RUN TO COMPLETION at the bead's own acceptance
+protocol (harbor+maple, 3 seeds, budget=20000) — result does NOT clear the
+bar.** An earlier pilot (harbor-house only, budget=3000) was inconclusive
+because `reassign` never fired in the small child-count that budget
+produces. The full run (`experiments/ab_cpsat_assign.py 20000 3
+<programme>`, ~12h wall clock, 18 `driver.search` runs total; raw log
+`experiments/results/ab_cpsat_assign_20k_harbor_maple.log`) settles it:
 
-| arm | mean hard | mean soft | mean fitness | mean wall |
-|---|---|---|---|---|
-| greedy | 21.000 | 39.000 | 9.308e-19 | 237.2s |
-| cpsat | 24.000 | 36.667 | 5.313e-18 | 245.6s |
-| reassign | 19.667 | 44.667 | 3.930e-19 | 240.0s |
+| programme | greedy hard/soft | cpsat hard/soft | reassign hard/soft |
+|---|---|---|---|
+| harbor-house | 9.3 / 35.3 | 13.0 / 32.0 | 8.3 / 35.3 |
+| maple-court | 22.7 / 72.3 | 22.3 / 68.3 | 35.3 / 77.7 |
 
-Mixed: `cpsat` is worse on mean HARD fails but better on soft fails and
-~5.7x the mean fitness; `reassign` has the best mean hard fails but the
-worst soft fails. The `reassign` arm's own mechanism was **never observed
-to fire** in any of the 3 seeds (`mean_reassign_fired=0.0`) — at
-budget=3000 the loop only generates ~15-20 children total, and `reassign`
-carries the implicit uniform mutation weight (no boost was added — DESIGN.md
-§22's `bridge_circulation` precedent measured that an un-A/B-tested weight
-boost can backfire, so none was assumed here without evidence) — so the
-`reassign` arm's difference from `cpsat` at this budget is attributable to
-RNG/exploration noise from the changed weight-normalisation denominator,
-not to the operator's own effect. `mutate_reassign` firing-and-being-
-accepted IS independently confirmed at the operator level
-(`tests/test_operators.py::test_reassign_fires_and_preserves_room_multiset`,
-20/20 direct trials on a real seeded harbor-house design) — the pilot budget
-was simply too small to give it enough draws in the full search loop.
+`reassign_fired` (mean over 3 seeds): harbor-house 0.0, maple-court 0.3 —
+i.e. it fired in only 1 of 18 runs total (1 of 6 `reassign`-arm runs), even
+at 20k budget. None of the bead's three acceptance criteria hold: `cpsat`
+is WORSE than greedy on harbor-house hard fails (13.0 vs 9.3) and only
+roughly tied on maple-court (22.3 vs 22.7) — no consistent "strictly lower"
+win; `reassign` is worse than greedy end-to-end on maple-court (35.3 vs
+22.7 hard); and the operator does not reliably fire even once per run.
+Likely explanation: CP-SAT's exact optimum at seed geometry (or after
+`_cpsat_relabel_settled`) doesn't stay optimal once the inner loop keeps
+moving ratios across thousands of further evals — the bead's own §11.2
+lesson, but the "re-run after geometry settles" fix only re-solves once,
+not continuously, and any seeder-level gain gets swamped by ordinary search
+noise over a 20k-eval run. Not pursuing a higher budget or more seeds to
+chase this further — the direction (no clear win, one programme regresses)
+is consistent enough between the pilot and the full run to close it out.
 
-**Verdict: ship as opt-in EXPERIMENTAL, both default off** (matching every
-other flag in this codebase) — the seeder-level win (item (a)) is real and
-measured with low noise; the full-search-level payoff (matching the bead's
-own acceptance criteria) is unconfirmed at pilot scale and needs a proper
-larger-budget/larger-N run, tracked as follow-up work on `2g7.5` itself
-(left `in_progress`, not closed — same pattern `6xh` used when its own
-acceptance bar wasn't fully met). `homemaker-py-5bv` (child of `2g7`/`2g7.5`)
-tracks the deferred item (c).
+**Verdict: ship as opt-in EXPERIMENTAL, both default off, and leave it
+there** (matching every other flag in this codebase) — the seeder-level win
+in isolation (item (a), measured via
+`test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency`) is real and
+low-noise, but does not survive contact with a full `driver.search` run
+across two programmes at the bead's own acceptance budget. `2g7.5` is
+CLOSED on this basis. `homemaker-py-5bv` (child of `2g7`/`2g7.5`) remains
+open, tracking the deferred item (c).
 
 **Verification.** `tests/test_cpsat.py` (5 tests): a hand-built
 counter-example graph (hub + one non-hub edge) where the beam/greedy
