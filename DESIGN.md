@@ -4716,3 +4716,116 @@ default and `enable_reassign` default both reproduce prior runs
 byte-for-byte (`sig`/`n_topologies`/`n_evals` equality), the same clean
 single-variable-toggle control every other experimental flag in `driver.
 search` uses. Full suite: 409 passed.
+
+## 37.8 Spike: graph-first construction — adjacency-realizing slicing trees / rectangular dualization (`homemaker-py-2g7.6`) — NO-GO
+
+Timeboxed research spike (no code deliverable expected unless the literature
+review came back clearly positive; it didn't). Premise: instead of mutating
+trees and hoping the programme's adjacency requirements emerge (§11.6/§11.7's
+greedy CDS seeding), *construct* a slicing tree that realizes the required
+adjacency graph by construction, using the rectangular-dualization literature
+(VLSI/architectural floorplanning: planar graph → set of mutually-adjacent
+rectangles). Question: does that literature actually apply to our programme
+graphs, and if so is realizing-tree enumeration tractable at harbor scale?
+
+**The literature, briefly.** A properly-triangulated planar (PTP) graph — every
+internal face a triangle, every internal vertex degree ≥4, no separating
+triangle — has a *rectangular dual* (one rectangle per vertex, adjacent iff
+edge-connected), constructible in linear time via a regular edge labeling
+(Kozminski & Kinnen 1985; Bhasker & Sahni 1986; He 1993). Two caveats that
+matter here: (1) an arbitrary requirement graph must first be triangulated to
+reach PTP form, and triangulation *adds* edges (chosen by the algorithm, not
+the architect) — every added edge is a spurious adjacency constraint the
+programme never asked for; (2) not every rectangular dual is **sliceable**
+(reachable by our guillotine-cut binary tree) — Yeap & Sarrafzadeh (1993)
+characterize the sliceable subset and the standard counterexample is the
+"pinwheel": five rectangles arranged around a shared interior point, each
+touching its two neighbours, with no single straight cut that separates the
+figure. Counting results in the floorplan-combinatorics literature put general
+("mosaic") rectangular duals in bijection with Baxter permutations (~8^n
+growth) and sliceable ones in a strictly smaller class related to guillotine
+partitions (~5.8^n, the Schröder-number growth rate) — both exponential in
+room count, sliceable a smaller exponential inside the general one.
+
+**Does our programme graph fit the model at all? No — the load-bearing
+mismatch is upstream of sliceability.** Rectangular dualization's central
+assumption is **one graph vertex = one final rectangle**. Checked against the
+actual required-adjacency graph (`programme.load_programme_dir` +
+`derive_colocate_pairs`, computed live for harbor-house: 16 codes / 32 room
+instances, `storey_minimum: 2`):
+
+- Every one of the 16 codes requires adjacency to `c` (circulation) — a single
+  hub vertex of degree 16 (32 at instance granularity) in graph terms. But `c`
+  is never realized as one rectangle: `§11.6` built adjacency-aware seeding
+  specifically because "a single circulation leaf cannot border a dozen
+  rooms" — circulation is a *connected region of several leaves* (a greedy
+  connected dominating set over the geometric leaf graph), shape and leaf
+  count both emergent, not fixed in advance. Rectangular-dual theory has no
+  vertex type for "one region, unknown number of constituent rectangles,
+  shape decided by the rest of the layout" — that is precisely the soft-module
+  / non-rectangular-module extension of the literature (L/T-shaped modules),
+  a materially harder and less mature body of work than plain PTP
+  dualization, and still assumes the module's *adjacency set* is known in
+  advance. Ours isn't: which leaves end up in the circulation CDS is a
+  function of the tree that doesn't exist yet — circular for a construct-
+  first approach.
+- The **non-circulation** requirement graph (room ↔ room edges only, `c`/`o`/
+  `s` excluded) is, by contrast, close to empty: harbor-house has exactly
+  three edges among 16 codes — `da1↔k1` (explicit `adjacency:`), `ef1↔m` and
+  `la1↔me1` (`co_locate:`, i.e. §26's fused-leaf pairs) — the rest isolated,
+  no code of degree >1. Checked live (`networkx.check_planarity`): trivially
+  planar, but planarity was never in doubt at this density — a 3-edge matching
+  on 16 nodes needs no dualization machinery, PTP triangulation, or REL
+  construction. `operators._assign_adjacency_aware`'s constraint-ordered
+  placement (§11.7: "codes with the most non-`c` adjacency requirements are
+  placed first … clustering `k1↔da1`, `da1↔o`, etc.") already handles a graph
+  this sparse by direct sibling-clustering; confirmed empirically —
+  `evolved-3M-nols-3.dom.fails` (the 2g7.7 issue's own named 15-fail plateau
+  benchmark) has **zero** secondary-adjacency fails. The residual there is
+  8 geometry fails (size/width/proportion/crinkliness on specific leaf paths)
+  and 4 structural fails (`level 0 not connected`, `level 1 not connected`,
+  `me1 on wrong level`, `r on wrong level`) — connectivity-*within*-a-level and
+  cross-storey placement, not room-to-room adjacency. A perfect
+  graph-dualization construction for the sparse room graph would not touch
+  any of these.
+- **Multi-storey stacking has no literature answer.** Harbor's L0/L1 room
+  sets are almost disjoint (13 L0-only, 13 L1-only codes/instances, 6 free),
+  linked only through `genome.py`'s base-floor-plus-delta encoding and the
+  vertical-core-alignment invariant (§11.3/§11.7: upper floors must not
+  "recreate the §4.2 partial-objective trap … the vertical core must stay
+  aligned and load-bearing walls must stack"). Rectangular dualization is a
+  single-plan-per-graph algorithm; nothing in the surveyed literature jointly
+  dualizes two graphs under a shared-footprint/aligned-core constraint. Making
+  that work would be new research, not an application of an existing result —
+  and it would be solving it for the *dense* hub-and-stacking problem that
+  the point above already shows the classical model can't represent anyway.
+
+**Enumeration tractability, for completeness.** Even setting the mismatch
+aside: the sparse room-graph is realizable by exactly the number of sibling
+pairings possible (small, already handled). The circulation hub isn't a
+fixed-graph dualization problem at all (previous point), so "how many
+realizing trees" isn't well-posed for it — the honest analogue is "how many
+binary slicing trees exist over N leaves", which is a Schröder-number-scaling
+count (~5.8^N) at harbor's 32-leaf-plus-circulation scale (N≈45-55 leaves
+after `§11.6`'s "~one extra leaf per three rooms on circulation") — far too
+large to enumerate, which is exactly why the codebase already searches
+(evolutionary + CDS-guided constructive seeding) rather than enumerates.
+
+**Verdict: NO-GO.** Classical rectangular dualization does not apply to
+harbor's programme graph as posed: the one-vertex-one-rectangle assumption
+breaks exactly where the problem is hard (the circulation hub, realized as an
+emergent-shape connected leaf-set, not a fixed-adjacency single module), and
+where the assumption *would* hold (the 3-edge secondary room graph) the
+problem is already trivial and already solved by §11.7's constraint-ordered
+seeding — confirmed by zero secondary-adjacency fails on the project's own
+named plateau benchmark. Multi-storey joint dualization under a stacking
+constraint is open research, not a citable algorithm, and would only matter
+for the part of the graph the model can't represent anyway. Not prototyping.
+No change to `operators.py`/`genome.py`. `homemaker-py-2g7.6` closes on this
+write-up; the useful fraction of the original idea (construct, don't just
+mutate, toward required adjacency) is already shipped as §11.6/§11.7's
+CDS-based seeding, and the actual harbor plateau (§37.7's own benchmark) is a
+connectivity/level-placement/geometry problem, not an adjacency-graph one —
+future effort on that plateau (`homemaker-py-2g7.7`'s LLM repair operator, or
+a level-connectivity-targeted operator) is better aimed than a graph-dual
+construction pass would have been.
