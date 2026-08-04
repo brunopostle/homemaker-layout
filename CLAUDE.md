@@ -71,6 +71,7 @@ Key modules:
 - `programme.py` — parse `patterns.config` space requirements
 - `solver.py` — bottom-up ratio solve (scipy)
 - `shapecurve.py` — Otten/Stockmeyer shape-curve DP: exact size/width/proportion feasibility for a frozen topology, any storey count (DESIGN.md §37.2/§37.4-§37.6); used as `driver._evaluate`'s NM warm-start/hard pre-filter
+- `cpsat.py` — exact room-code-to-leaf labelling via OR-Tools CP-SAT for a fixed topology (DESIGN.md §37.7); replaces `operators._assign_adjacency_aware`'s greedy/beam room placement behind `assign_solver="cpsat"`, and powers the `operators.mutate_reassign` in-search repair operator
 - `fitness.py` — native Python fitness evaluator (replaces Perl oracle)
 - `fitness_cmd.py` — `homemaker-fitness` CLI entry point
 - `collapse_cmd.py` — `homemaker-collapse` CLI: finish-time global cell→room collapse (94g)

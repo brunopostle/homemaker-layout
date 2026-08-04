@@ -495,6 +495,97 @@ def test_beam_place_rooms_is_deterministic_given_inputs():
 
 
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_construction_assign_cpsat_yields_valid_seed():
+    # homemaker-py-2g7.5: the CP-SAT room-labelling path must satisfy the same
+    # construction invariants as the greedy path — every required space
+    # present, canonical genome.
+    from homemaker_layout import graph, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+    for trial in range(5):
+        root = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(trial), types,
+            assign_solver="cpsat")
+        _, missing = graph.check_space_counts(root, reqs)
+        assert missing == [], f"trial {trial} left {missing}"
+        canonical(root)
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency():
+    # homemaker-py-2g7.5: CP-SAT solves the same room-labelling decision the
+    # greedy/beam heuristic approximates exactly — its secondary-adjacency
+    # (not the access/adjacent-to-c fails the dominating-set step already
+    # solves) fail count must be strictly lower in aggregate.
+    import copy
+
+    from homemaker_layout import fitness, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    conf, cost = fitness.load_config(str(HARBOR))
+    fit = fitness.Fitness(conf, cost)
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+
+    def secondary_fails(solver: str) -> list[int]:
+        counts = []
+        for trial in range(10):
+            root = operators.constructive_topology(
+                seed, reqs, np.random.default_rng(trial), types,
+                assign_solver=solver)
+            _, fails = fit.score_with_fails(copy.deepcopy(root))
+            counts.append(sum(1 for f in fails if "not adjacent to" in f))
+        return counts
+
+    # Per-seed outcomes are noisy (both solvers depend on the same random
+    # room-order shuffle before falling into their own placement logic), so
+    # the comparison is on the aggregate over several seeds, not every seed
+    # individually — measured on harbor-house (10 seeds): cpsat wins on
+    # most, ties on a few, loses on rare ones, net ~13% fewer total fails.
+    greedy = secondary_fails("greedy")
+    cpsat = secondary_fails("cpsat")
+    assert sum(cpsat) < sum(greedy)
+
+
+def test_reassign_noop_without_reqs():
+    root = genome.decode(genome.encode(dom.load(str(CORPUS / FILES[0]))))
+    child, desc = operators.mutate_reassign(root, np.random.default_rng(0), TYPES)
+    assert desc == "reassign noop"
+    canonical(child)
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_reassign_fires_and_preserves_room_multiset():
+    # homemaker-py-2g7.5: the reassign operator must fire (find at least one
+    # wing to re-label) on a real seeded design, and it must preserve the
+    # wing's exact room-code multiset — only the leaf<->code labelling
+    # changes, never the topology or which codes are present.
+    from collections import Counter
+
+    from homemaker_layout import programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+    root = operators.constructive_topology(
+        seed, reqs, np.random.default_rng(0), types)
+    before = Counter(lf.type for lf in root.leaves())
+
+    fired = False
+    for trial in range(20):
+        child, desc = operators.mutate_reassign(
+            root, np.random.default_rng(trial), types, reqs=reqs)
+        canonical(child)
+        after = Counter(lf.type for lf in child.leaves())
+        assert after == before, f"trial {trial}: room multiset changed ({desc})"
+        if not desc.endswith("noop"):
+            fired = True
+    assert fired, "reassign never fired across 20 trials on a real seeded design"
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
 def test_place_missing_repairs_deficient_tree():
     # §11.2 repair: iterating mutate_place_missing drives a deficient design's
     # missing-space count to zero, then noops once the required set is complete.

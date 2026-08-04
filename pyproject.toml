@@ -10,6 +10,7 @@ dependencies = [
     "shapely>=2.0",
     "networkx>=3.0",
     "cma>=3.0",
+    "ortools>=9.10",
 ]
 
 [project.scripts]

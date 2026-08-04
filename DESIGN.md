@@ -4581,3 +4581,138 @@ multi-storey fixture. `tests/test_driver.py`: the multi-storey warm-start
 test renamed and inverted (`test_shapecurve_warmstart_handles_multistorey`
 now asserts `shapecurve.solve` **is** called on a multi-storey child, where
 it previously asserted the opposite). Full suite: 397 passed.
+
+## 37.7 CP-SAT type assignment for a fixed tree (`homemaker-py-2g7.5`) — PARTIAL, seeder-level positive, driver-level INCONCLUSIVE at pilot scale
+
+`§11.6`/`§11.7`'s greedy connected-dominating-set + hardest-constrained-
+code-first room placement (`operators._assign_adjacency_aware`) was Phase
+6's single biggest fail-count win, but it is a one-shot heuristic: each
+room code is placed onto the locally-best open slot and never revisited.
+The bead's premise: for a FIXED topology, room-code-to-leaf assignment
+(~30-70 leaves, ~16-26 codes) is small enough for exact solve. DESIGN.md
+§25 (line ~3089) explicitly rejected adding OR-Tools for a harder, different
+problem (`Fitness.collapse_global`'s finish-time relabel) "because the
+project has no ortools" — that gap is now closed (`pyproject.toml`
+`ortools>=9.10`), but only for this bead's simpler fixed-topology labelling
+problem; `collapse_global` itself is untouched (deferred, see below).
+
+**What shipped.** `src/homemaker_layout/cpsat.py`: a single pure function
+`solve_room_labels(slots, codes, reqs, neighbors, context_types)` — a
+boolean assignment ILP (`x[i,s]`, one code per slot) with a `sat[i,s,adj]`
+reified-AND term per (code, adjacency-requirement, slot), maximising total
+satisfied requirements. Matches `graph.check_adjacency`'s REAL semantics
+(full-code case-insensitive prefix match) rather than the existing greedy
+heuristic's first-character-only local approximation — a strictly closer
+proxy for what `homemaker-fitness` actually scores. Wired in as:
+
+- (a) **seeder**: `_assign_adjacency_aware`/`constructive_topology`/
+  `lift_base_to_storeys` gain `assign_solver: str = "greedy"|"cpsat"`
+  (EXPERIMENTAL, default `"greedy"` — byte-identical to before). Circulation/
+  outside placement (the dominating-set step, a graph-connectivity problem,
+  not this bead's ~30-70-leaf combinatorial one) is unchanged either way;
+  only the room-code-to-slot step is replaced. Falls through to the
+  greedy/beam path on any solver failure (unavailable/infeasible/timeout).
+- (b) **`operators.mutate_reassign`** (new `MUTATIONS` entry, default weight
+  0 unless `driver.search(..., enable_reassign=True)`): the "assignment
+  analogue of ruin_recreate" (§23) the bead's own plan named — picks the
+  same kind of wing `mutate_ruin_recreate` does, but does NOT un-divide or
+  regrow it; only re-solves which leaf gets which code, preserving the
+  wing's exact room-code multiset and topology.
+- (c) **post-collapse repair** — deferred, filed as `homemaker-py-5bv`
+  (child of `2g7`/`2g7.5`): replacing/augmenting `Fitness.collapse_global`'s
+  Jacobi+2-opt QAP relaxation is a materially separate, riskier change to a
+  delicate routine that runs inside every in-search eval by default
+  (`collapse_insearch=True`) — correctness/wall-clock regressions there
+  would be felt everywhere, not just behind an opt-in flag.
+
+**Two bugs found and fixed en route, both worth recording.**
+
+1. *Resize fragility.* First measurement (seeder-only, `constructive_topology`,
+   harbor-house, 6 seeds): with `proportion_aware=True` (the real default —
+   target-size-based ratio resizing right after assignment), `cpsat` was
+   WORSE than greedy on real fitness-scored secondary-adjacency fails (104
+   vs 92 total) despite tying/slightly-beating it with `proportion_aware=False`
+   (86 vs 87). Root cause: resizing can shrink a shared-wall segment below
+   the door-width adjacency threshold, silently invalidating an edge the
+   exact solve specifically relied on — it packs satisfaction tightly
+   against the PRE-resize graph, leaving less slack than the greedy path's
+   more conservative, degree-biased placement. Fix: `_cpsat_relabel_settled`
+   re-runs the exact solve once more against the now-settled geometry,
+   right after `_size_divisions_from_targets` — cheap (same small model),
+   never worse (can only improve on wherever resizing left it). This is the
+   bead's own "§11.2 lesson … re-run assignment after geometry settles
+   (alternating minimization)" applied literally. After the fix: 82 vs 92
+   (cpsat now ahead) at the same protocol; a wider 10-seed re-check
+   (`tests/test_operators.py::test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency`)
+   holds: 13/20 seed-pairs cpsat-better, 4 ties, 3 cpsat-worse, net ~13%
+   fewer total real fails.
+2. *Symmetry blowup.* Isolated solves on real harbor-house models (~15
+   slots — trivial by variable count) occasionally stalled for multiple
+   seconds against a 2s `time_limit_s`, non-deterministically (system-load
+   dependent, since a timeout returns whatever CP-SAT's branch-and-bound
+   had reached). Cause: several codes sharing an identical, unreferenced
+   adjacency signature (e.g. four "t" bedroom instances all needing only
+   "c") are fully interchangeable — CP-SAT's branch-and-bound was proving
+   optimality across their entire permutation space. Fix: group codes that
+   share their own adjacency-requirement set AND are never themselves a
+   match target for any other code's requirement; force a canonical
+   slot-index ordering within each group (never removes an achievable
+   objective value, only the redundant permutations of it). All previously-
+   slow captured instances now solve in <200ms. A naive first attempt at a
+   fix (a lexicographic tie-break term folded into the objective) made
+   things WORSE (more instances timed out) by widening the objective's
+   coefficient range — reverted in favour of the explicit grouping
+   constraint above.
+
+**`driver.search`-level A/B: INCONCLUSIVE at pilot scale, NOT the bead's own
+20k-budget/harbor+maple/3-seed acceptance protocol.** Wall-clock budget for
+this session did not stretch to the bead's own acceptance criteria (~28min
+per arm at budget=20000 on real harbor-house, ×3 arms ×3 seeds ×2
+programmes ≈ 8+ hours). `experiments/ab_cpsat_assign.py`, harbor-house only,
+budget=3000, 3 seeds (greedy / cpsat-seed-only / cpsat+`enable_reassign`):
+
+| arm | mean hard | mean soft | mean fitness | mean wall |
+|---|---|---|---|---|
+| greedy | 21.000 | 39.000 | 9.308e-19 | 237.2s |
+| cpsat | 24.000 | 36.667 | 5.313e-18 | 245.6s |
+| reassign | 19.667 | 44.667 | 3.930e-19 | 240.0s |
+
+Mixed: `cpsat` is worse on mean HARD fails but better on soft fails and
+~5.7x the mean fitness; `reassign` has the best mean hard fails but the
+worst soft fails. The `reassign` arm's own mechanism was **never observed
+to fire** in any of the 3 seeds (`mean_reassign_fired=0.0`) — at
+budget=3000 the loop only generates ~15-20 children total, and `reassign`
+carries the implicit uniform mutation weight (no boost was added — DESIGN.md
+§22's `bridge_circulation` precedent measured that an un-A/B-tested weight
+boost can backfire, so none was assumed here without evidence) — so the
+`reassign` arm's difference from `cpsat` at this budget is attributable to
+RNG/exploration noise from the changed weight-normalisation denominator,
+not to the operator's own effect. `mutate_reassign` firing-and-being-
+accepted IS independently confirmed at the operator level
+(`tests/test_operators.py::test_reassign_fires_and_preserves_room_multiset`,
+20/20 direct trials on a real seeded harbor-house design) — the pilot budget
+was simply too small to give it enough draws in the full search loop.
+
+**Verdict: ship as opt-in EXPERIMENTAL, both default off** (matching every
+other flag in this codebase) — the seeder-level win (item (a)) is real and
+measured with low noise; the full-search-level payoff (matching the bead's
+own acceptance criteria) is unconfirmed at pilot scale and needs a proper
+larger-budget/larger-N run, tracked as follow-up work on `2g7.5` itself
+(left `in_progress`, not closed — same pattern `6xh` used when its own
+acceptance bar wasn't fully met). `homemaker-py-5bv` (child of `2g7`/`2g7.5`)
+tracks the deferred item (c).
+
+**Verification.** `tests/test_cpsat.py` (5 tests): a hand-built
+counter-example graph (hub + one non-hub edge) where the beam/greedy
+heuristic (`operators._beam_place_rooms`) provably strands two codes that
+need each other while CP-SAT finds the assignment satisfying all of them;
+fixed-context credit without a decision-neighbour; over-capacity code
+dropping (least-constrained first); determinism; empty-input degeneracy.
+`tests/test_operators.py` (+5): CP-SAT seed satisfies
+`graph.check_space_counts`/stays canonical; the 10-seed secondary-adjacency
+A/B above; `mutate_reassign` no-ops without `reqs`; fires-and-preserves-
+multiset over 20 trials. `tests/test_driver.py` (+2): `assign_solver`
+default and `enable_reassign` default both reproduce prior runs
+byte-for-byte (`sig`/`n_topologies`/`n_evals` equality), the same clean
+single-variable-toggle control every other experimental flag in `driver.
+search` uses. Full suite: 409 passed.

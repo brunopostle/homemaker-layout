@@ -314,6 +314,8 @@ def search(
     collapse_insearch: bool = True,
     shapecurve_warmstart: bool = False,
     shapecurve_prune: bool = False,
+    assign_solver: str = "greedy",
+    enable_reassign: bool = False,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -401,6 +403,19 @@ def search(
     a width-K beam search over which leaf a room lands on during construction,
     instead of one irrevocable greedy pass. ``1`` (default) reproduces the
     prior greedy seeding exactly.
+
+    ``assign_solver`` (homemaker-py-2g7.5, EXPERIMENTAL, default "greedy")
+    forwarded to ``operators.constructive_topology``/``lift_base_to_storeys``'s
+    same-named parameter: ``"cpsat"`` replaces the greedy/beam room-code
+    placement with an exact OR-Tools CP-SAT solve (DESIGN.md §37.7),
+    falling through to the greedy/beam path on any solver failure.
+    ``"greedy"`` (default) reproduces prior seeding exactly.
+
+    ``enable_reassign`` (homemaker-py-2g7.5, EXPERIMENTAL, default off)
+    un-mutes ``operators.mutate_reassign``: the CP-SAT analogue of
+    ``enable_ruin_recreate`` — re-solves one wing's room-code labelling
+    exactly instead of un-dividing and regrowing it. Gated the same way as
+    ``ruin_recreate`` (zero mutation weight unless enabled).
     """
     from .oracle import DEFAULT_URB_ROOT
 
@@ -417,6 +432,8 @@ def search(
         mutation_weights["bridge_circulation"] = 0.0
     if not enable_ruin_recreate:
         mutation_weights["ruin_recreate"] = 0.0
+    if not enable_reassign:
+        mutation_weights["reassign"] = 0.0
     # homemaker-py-161: shape_rotate/deslim are gated by operators.mutate itself
     # (fit_ops go to zero probability when fit=None) — only build the Fitness
     # instance, and thus only let them fire, when explicitly enabled.
@@ -613,7 +630,7 @@ def search(
                 depth_balanced=depth_balanced,
                 interior_outside=interior_outside, outside_divisor=outside_divisor,
                 construction_beam_width=construction_beam_width,
-                multi_use=multi_use)
+                multi_use=multi_use, assign_solver=assign_solver)
             return (topo, None, child_budget, {}, f"construct/{tag}")
         n = int(rng.integers(max(1, n_target - 1), n_target + 2))
         return (random_topology(seed_root, n, rng, types), None, child_budget,
@@ -1049,6 +1066,8 @@ def search_staged(
     interior_outside: bool = True,
     outside_divisor: int = 3,
     construction_beam_width: int = 1,
+    assign_solver: str = "greedy",
+    enable_reassign: bool = False,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -1108,7 +1127,9 @@ def search_staged(
                       depth_balanced=depth_balanced,
                       interior_outside=interior_outside,
                       outside_divisor=outside_divisor,
-                      construction_beam_width=construction_beam_width)
+                      construction_beam_width=construction_beam_width,
+                      assign_solver=assign_solver,
+                      enable_reassign=enable_reassign)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -1150,6 +1171,8 @@ def search_staged(
             interior_outside=interior_outside,
             outside_divisor=outside_divisor,
             construction_beam_width=construction_beam_width,
+            assign_solver=assign_solver,
+            enable_reassign=enable_reassign,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -1172,7 +1195,7 @@ def search_staged(
             depth_balanced=depth_balanced,
             interior_outside=interior_outside, outside_divisor=outside_divisor,
             construction_beam_width=construction_beam_width,
-            multi_use=multi_use)
+            multi_use=multi_use, assign_solver=assign_solver)
 
     _log(f"[staged] stage 2: upper floors as deltas, budget {b2}, base_p {base_p}")
     r2 = search(
@@ -1202,6 +1225,8 @@ def search_staged(
         interior_outside=interior_outside,
         outside_divisor=outside_divisor,
         construction_beam_width=construction_beam_width,
+        assign_solver=assign_solver,
+        enable_reassign=enable_reassign,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

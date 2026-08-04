@@ -388,6 +388,36 @@ def test_shapecurve_prune_off_matches_baseline(fake_inner):
     assert off.n_evals == base.n_evals
 
 
+def test_assign_solver_default_matches_greedy(fake_inner):
+    """homemaker-py-2g7.5: with assign_solver left at its default ("greedy"),
+    the run is identical to one that passes it explicitly — the same clean
+    A/B control as shapecurve_prune's."""
+    init_root = dom.load(str(INIT_FILE))
+    base = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                         child_budget=60, seed_budget=100, seed=9)
+    explicit = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                             child_budget=60, seed_budget=100, seed=9,
+                             assign_solver="greedy")
+    assert explicit.best.sig == base.best.sig
+    assert explicit.n_topologies == base.n_topologies
+    assert explicit.n_evals == base.n_evals
+
+
+def test_enable_reassign_default_off_matches_baseline(fake_inner):
+    """homemaker-py-2g7.5: with enable_reassign left at its default (off),
+    the run is identical to one that passes it explicitly False — the
+    reassign operator never fires (zero mutation weight)."""
+    init_root = dom.load(str(INIT_FILE))
+    base = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                         child_budget=60, seed_budget=100, seed=9)
+    off = driver.search(init_root, CORPUS, budget=600, pop_size=4,
+                        child_budget=60, seed_budget=100, seed=9,
+                        enable_reassign=False)
+    assert off.best.sig == base.best.sig
+    assert off.n_topologies == base.n_topologies
+    assert off.n_evals == base.n_evals
+
+
 def test_shapecurve_prune_vetoes_heuristic_when_dp_feasible(monkeypatch):
     """homemaker-py-wkh (DESIGN.md §37.5): a DP-feasible verdict is a real
     certificate that some ratio point clears every leaf's shape threshold, so

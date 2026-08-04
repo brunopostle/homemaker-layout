@@ -914,7 +914,8 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
                             interior_outside: bool = False,
                             n_outside: int = 1,
                             scope: "set[dom.Node] | None" = None,
-                            beam_width: int = 1) -> None:
+                            beam_width: int = 1,
+                            assign_solver: str = "greedy") -> None:
     """Assign leaf types so rooms cluster around a connected circulation spine.
 
     s44 (DESIGN.md §11.2 follow-up): random type assignment leaves rooms stranded
@@ -956,6 +957,15 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     since circulation/outside are already fixed and shared across every beam
     branch), so a room whose best slot is later needed by a harder-to-place
     room is no longer locked in by one irrevocable greedy step.
+
+    ``assign_solver`` (homemaker-py-2g7.5, EXPERIMENTAL, default "greedy"):
+    "cpsat" replaces the room-placement pass above (both the plain-greedy
+    and beam variants) with an exact solve of the same decision via
+    :func:`cpsat.solve_room_labels` — see DESIGN.md §37.7. Circulation and
+    outside placement (the connected-dominating-set step above) is
+    unaffected either way. Falls through to the greedy/beam path on any
+    solver failure (OR-Tools unavailable, infeasible, or timeout), so
+    behaviour is always defined.
     """
     from . import geometry
 
@@ -1051,7 +1061,24 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
 
     codes.sort(key=_n_secondary, reverse=True)
 
-    if beam_width <= 1:
+    placed = None
+    if assign_solver == "cpsat":
+        # homemaker-py-2g7.5 (DESIGN.md §37.7): exact assignment via
+        # OR-Tools CP-SAT, in place of this block's greedy/beam heuristics
+        # below. Falls through to them on any solver failure (unavailable/
+        # infeasible/timeout) — always a defined outcome.
+        from . import cpsat
+        room_set = set(room_slots)
+        neighbors = {L: {nb for nb in _nbrs(L) if nb in room_set} for L in room_slots}
+        context_types = {L: {nb.type for nb in _nbrs(L) if nb.type and nb not in room_set}
+                         for L in room_slots}
+        placed = cpsat.solve_room_labels(room_slots, codes, reqs, neighbors, context_types)
+
+    if placed is not None:
+        for leaf, code in placed.items():
+            leaf.type = code
+        leftover = [L for L in room_slots if L not in placed]
+    elif beam_width <= 1:
         open_slots = sorted(room_slots,
                             key=lambda L: (L in dominated, deg.get(L, 0), -idx[L]),
                             reverse=True)
@@ -1069,7 +1096,7 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
                                                   deg.get(L, 0), -idx[L]))
             best.type = code
             open_slots.remove(best)
-        placed, leftover = None, open_slots
+        leftover = open_slots
     else:
         placed = _beam_place_rooms(codes, room_slots, dominated, deg, idx, _nbrs,
                                    reqs, beam_width)
@@ -1132,6 +1159,43 @@ def _beam_place_rooms(codes: list[str], slots: list, dominated: set,
     return max(beam, key=lambda c: c[0])[1] if beam else {}
 
 
+def _cpsat_relabel_settled(lvl: dom.Node, reqs) -> None:
+    """Re-solve room-code labelling against the storey's SETTLED geometry
+    (homemaker-py-2g7.5, DESIGN.md §37.7's "alternating minimization"
+    follow-up, §11.2's lesson applied at seed time).
+
+    ``assign_solver="cpsat"``'s exact solve is measured (A/B, harbor-house)
+    to be MORE fragile than the greedy/beam heuristic to the proportion-
+    aware target-size resizing that runs right after assignment
+    (``_size_divisions_from_targets``): resizing can shrink a shared-wall
+    segment below the door-width adjacency threshold, silently invalidating
+    an edge the exact solve specifically relied on (it packs adjacency
+    satisfaction tightly against the pre-resize graph, leaving less slack
+    than the greedy path's more conservative, degree-biased placement).
+    Re-running the exact solve once more against the now-settled geometry
+    recovers this — cheap (same small model) and never worse (it can only
+    IMPROVE satisfied-adjacency count from wherever resizing left it).
+    """
+    from . import cpsat, geometry
+
+    geometry.clear_cache()
+    G = geometry.leaf_graph(lvl)
+    room_slots = [lf for lf in lvl.leaves() if lf.type in reqs]
+    if not room_slots:
+        return
+    codes = [lf.type for lf in room_slots]
+    room_set = set(room_slots)
+    neighbors = {L: {nb for nb in G.neighbors(L) if nb in room_set}
+                for L in room_slots if G.has_node(L)}
+    context_types = {L: {nb.type for nb in G.neighbors(L)
+                         if nb.type and nb not in room_set}
+                     for L in room_slots if G.has_node(L)}
+    result = cpsat.solve_room_labels(room_slots, codes, reqs, neighbors, context_types)
+    if result:
+        for leaf, code in result.items():
+            leaf.type = code
+
+
 def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           types: list[str], min_storeys: int = 1,
                           adjacency_aware: bool = True,
@@ -1143,7 +1207,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           interior_outside: bool = True,
                           outside_divisor: int = 3,
                           construction_beam_width: int = 1,
-                          multi_use: bool = False) -> dom.Node:
+                          multi_use: bool = False,
+                          assign_solver: str = "greedy") -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -1158,6 +1223,11 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
     ``construction_beam_width`` (homemaker-py-c94, EXPERIMENTAL, default 1):
     forwarded to ``_assign_adjacency_aware``'s ``beam_width`` — see there.
     ``1`` reproduces the prior greedy room placement exactly.
+
+    ``assign_solver`` (homemaker-py-2g7.5, EXPERIMENTAL, default "greedy"):
+    forwarded to ``_assign_adjacency_aware``'s same-named parameter — see
+    there. ``"greedy"`` reproduces the prior placement exactly regardless
+    of ``construction_beam_width``.
 
     Returns a finalised deep copy; ``seed_root`` is unchanged.
     """
@@ -1223,7 +1293,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             dom.link(child)
             _assign_adjacency_aware(lvl, rooms, reqs, rng,
                                     interior_outside=interior_outside, n_outside=n_o,
-                                    beam_width=construction_beam_width)
+                                    beam_width=construction_beam_width,
+                                    assign_solver=assign_solver)
         else:
             assign = rooms + ["C", "O"]  # +core circulation, +outside
             _grow_leaves(lvl, len(assign), rng, balance=depth_balanced)
@@ -1245,6 +1316,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             _size_divisions_from_targets(
                 lvl, reqs, leaf_mult=_leaf_mult_from_plan(lvl, share_plan),
                 leaf_extra=leaf_extra)
+            if adjacency_aware and assign_solver == "cpsat":
+                _cpsat_relabel_settled(lvl, reqs)
 
     return _finalise(child)
 
@@ -1260,7 +1333,8 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
                          interior_outside: bool = True,
                          outside_divisor: int = 3,
                          construction_beam_width: int = 1,
-                         multi_use: bool = False) -> dom.Node:
+                         multi_use: bool = False,
+                         assign_solver: str = "greedy") -> dom.Node:
     """Stack upper storeys onto an evolved single-storey base (DESIGN.md §11.3).
 
     Stage 2 seeder: the Stage-1 base is the credible ground floor and is left
@@ -1271,6 +1345,10 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
     one dict per storey >= 1) by construction, plus one outside ``O``. Stochastic
     splits/assignment keep a bootstrap batch diverse; ``mutate_place_missing``
     repairs any residual gaps during the loop.
+
+    ``assign_solver`` (homemaker-py-2g7.5, EXPERIMENTAL, default "greedy"):
+    forwarded to ``_assign_adjacency_aware``'s same-named parameter — see
+    there.
 
     Returns a finalised deep copy; ``base_root`` is unchanged.
     """
@@ -1336,7 +1414,8 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
                 dup, rooms, reqs, rng,
                 fixed_circ=[core_node] if core_node is not None else None,
                 interior_outside=interior_outside, n_outside=n_o,
-                beam_width=construction_beam_width)
+                beam_width=construction_beam_width,
+                assign_solver=assign_solver)
         else:
             assign = rooms + ["O"]  # courtyard / outside on the upper floor
             if core_node is None:
@@ -1375,6 +1454,8 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             _size_divisions_from_targets(
                 dup, reqs, leaf_mult=_leaf_mult_from_plan(dup, share_plan),
                 leaf_extra=leaf_extra)
+            if adjacency_aware and assign_solver == "cpsat":
+                _cpsat_relabel_settled(dup, reqs)
 
         prev = dup
 
@@ -1451,6 +1532,65 @@ def mutate_ruin_recreate(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), (
         f"ruin_recreate {li}/{wing.id or 'root'} "
         f"({len(rooms)} rooms, {len(border_circ)} anchors)")
+
+
+def mutate_reassign(root: dom.Node, rng: np.random.Generator,
+                    types: list[str], reqs=None) -> tuple[dom.Node, str]:
+    """CP-SAT re-labelling of one wing's room codes (homemaker-py-2g7.5).
+
+    The "assignment analogue of ruin_recreate" (§23/DESIGN.md §37.7): picks
+    the same kind of wing ``mutate_ruin_recreate`` does (a divided,
+    live-cut subtree of one storey holding a genuine partial neighbourhood,
+    at least 2 leaves, at most half the storey), but does NOT un-divide or
+    regrow it — the topology and the wing's room-code multiset are both
+    preserved exactly. Only which leaf gets which code is re-decided, via
+    an exact :func:`cpsat.solve_room_labels` solve over the wing's room
+    leaves (circulation/outside leaves inside or bordering the wing stay
+    fixed, contributing as context for adjacency-to-``c`` credit). Where
+    ``mutate_ruin_recreate`` repairs a badly-grown wing structurally, this
+    move repairs a badly-LABELLED wing whose leaf structure is already
+    fine — the seeder's own one-shot greedy assignment can be beaten by
+    revisiting it once the wing's geometry (and therefore its adjacency
+    graph) has settled during search, not just once at construction time.
+
+    No ``reqs``, no eligible wing, no room leaves in the chosen wing, or
+    solver failure (unavailable/infeasible/no improvement) all no-op.
+    """
+    if not reqs:
+        return _finalise(copy.deepcopy(root)), "reassign noop"
+    from . import cpsat, geometry
+
+    child = copy.deepcopy(root)
+    _finalise(child)
+    lvls = dom.levels(child)
+    totals = {li: len(lvl.leaves()) for li, lvl in enumerate(lvls)}
+    cands = [(li, n) for li, n in _owned_branches(child)
+             if totals[li] >= 4 and 2 <= len(n.leaves()) <= max(2, totals[li] // 2)]
+    if not cands:
+        return _finalise(child), "reassign noop"
+    li, wing = _pick(rng, cands)
+    lvl = lvls[li]
+
+    room_slots = [lf for lf in wing.leaves() if lf.type in reqs]
+    if not room_slots:
+        return _finalise(child), "reassign noop"
+    codes = [lf.type for lf in room_slots]
+
+    G = geometry.leaf_graph(lvl)
+    room_set = set(room_slots)
+    neighbors = {L: {nb for nb in G.neighbors(L) if nb in room_set}
+                for L in room_slots if G.has_node(L)}
+    context_types = {L: {nb.type for nb in G.neighbors(L)
+                         if nb.type and nb not in room_set}
+                     for L in room_slots if G.has_node(L)}
+    result = cpsat.solve_room_labels(room_slots, codes, reqs, neighbors, context_types)
+    if not result or all(leaf.type == code for leaf, code in result.items()):
+        return _finalise(child), "reassign noop"
+
+    for leaf, code in result.items():
+        leaf.type = code
+
+    return _finalise(child), f"reassign {li}/{wing.id or 'root'} ({len(room_slots)} rooms)"
 
 
 def mutate_reassociate(root: dom.Node, rng: np.random.Generator,
@@ -1676,6 +1816,7 @@ MUTATIONS = {
     "shape_rotate": mutate_shape_rotate,
     "deslim": mutate_deslim,
     "ruin_recreate": mutate_ruin_recreate,
+    "reassign": mutate_reassign,
 }
 
 
@@ -1693,7 +1834,8 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     names = sorted(MUTATIONS)
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
     # these operators need programme reqs; disable them when not available
-    reqs_ops = ("level_fix", "level_compound_fix", "place_missing", "ruin_recreate")
+    reqs_ops = ("level_fix", "level_compound_fix", "place_missing", "ruin_recreate",
+               "reassign")
     # also takes reqs (to avoid displacing a required room) but works without
     # it — never zero-weighted, unlike reqs_ops above
     reqs_optional_ops = ("bridge_circulation",)
