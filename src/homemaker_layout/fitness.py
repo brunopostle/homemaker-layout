@@ -881,13 +881,29 @@ class Fitness:
 
         Returns ``(tree, base_fails, collapsed_fails, applied)``. Both the input
         and returned trees are UNMERGED — scoring is done on throwaway deepcopies
-        because ``score_with_fails`` merges the tree in place."""
+        because ``score_with_fails`` merges the tree in place.
+
+        homemaker-py-sd3: ``base_fails``/``cand_fails`` are measured with
+        ``collapse_insearch`` forced off, regardless of how ``self`` was
+        configured. The guard's job is to protect the CANONICAL fail count of
+        the written ``.dom`` — what ``homemaker-fitness`` reports on disk with
+        no in-search override — not this run's in-search objective. Scoring
+        with ``collapse_insearch`` on made the guard vacuous: ``score_with_fails``
+        re-applies its own ``collapse_global`` pass before counting fails, so
+        ``base_fails`` already reflected an auto-collapsed tree and came out
+        equal to ``cand_fails`` regardless of what this method's own explicit
+        collapse actually did."""
         import copy
 
-        base_fails = len(self.score_with_fails(copy.deepcopy(root))[1])
-        cand = copy.deepcopy(root)
-        self.collapse_global(cand, **kw)
-        cand_fails = len(self.score_with_fails(copy.deepcopy(cand))[1])
+        saved_insearch = self._collapse_insearch
+        self._collapse_insearch = False
+        try:
+            base_fails = len(self.score_with_fails(copy.deepcopy(root))[1])
+            cand = copy.deepcopy(root)
+            self.collapse_global(cand, **kw)
+            cand_fails = len(self.score_with_fails(copy.deepcopy(cand))[1])
+        finally:
+            self._collapse_insearch = saved_insearch
         if cand_fails <= base_fails:
             return cand, base_fails, cand_fails, True
         return copy.deepcopy(root), base_fails, cand_fails, False

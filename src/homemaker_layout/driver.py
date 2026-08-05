@@ -842,6 +842,8 @@ def collapse_best(
     leaf_sharing: bool = False,
     superpose: bool = False,
     multi_use: bool = False,
+    max_share: int | None = None,
+    conn_grade: bool = False,
     log=None,
     **collapse_kw,
 ) -> SearchResult:
@@ -855,11 +857,23 @@ def collapse_best(
     geometry, so it cannot touch shape-intrinsic fails (long-thin cells, etc.).
 
     Updates ``result.best`` in place with the canonically re-scored relabelling
-    when it helps; otherwise leaves the result untouched."""
+    when it helps; otherwise leaves the result untouched.
+
+    homemaker-py-sd3: the evaluator built here is deliberately CANONICAL
+    (``collapse_insearch=False``) regardless of whether the run being finished
+    used in-search collapse — both the keep-better guard and the reported
+    post-collapse fail count must match what ``homemaker-fitness`` reports for
+    the written ``.dom`` (no in-search override on disk), not this run's
+    in-search objective. ``max_share``/``conn_grade`` are still threaded through
+    so the evaluator's config otherwise matches the run (matters when
+    ``leaf_sharing`` is on, e.g. a kpu/anneal grain that hasn't been unfolded
+    yet, or qi6's graded scalar in the reported grade).
+    """
     if result.best is None:
         return result
 
-    fit = _fitness_for(str(programme_dir), leaf_sharing, superpose, multi_use=multi_use)
+    fit = _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
+                       conn_grade, collapse_insearch=False, multi_use=multi_use)
     tree, base_fails, coll_fails, applied = fit.collapse_finish(
         result.best.root, **collapse_kw
     )
@@ -1019,9 +1033,16 @@ def search_annealed(
         created = operators.unfold_shared_leaves(best_root, above=1)
         _log(f"[anneal] finish: de-share (grain off), rescore only — unfolded "
              f"{created} leaf-{'copy' if created == 1 else 'copies'}")
+        # homemaker-py-sd3: forward collapse_insearch/multi_use from the phase
+        # kwargs (same family as the collapse_best bug) — omitting them left
+        # this rescore silently defaulting to _evaluate's collapse_insearch=True
+        # even on a --no-collapse-insearch run, contradicting the run's own
+        # objective on interrupt/no-polish exits.
         ind, used = _evaluate(
             best_root, programme_dir, None, x0=None, budget=seed_budget,
-            inner_kw={}, lineage="unfold", leaf_sharing=False, superpose=superpose)
+            inner_kw={}, lineage="unfold", leaf_sharing=False, superpose=superpose,
+            collapse_insearch=search_kw.get("collapse_insearch", True),
+            multi_use=search_kw.get("multi_use", False))
         r = SearchResult(best=ind, population=[ind], n_evals=used, n_topologies=1)
         r.n_distinct_signatures = 1
         r.history = [(0, ind.fitness, ind.lineage)]

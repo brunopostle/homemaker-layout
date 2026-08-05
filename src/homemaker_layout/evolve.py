@@ -367,6 +367,7 @@ def main(argv=None) -> int:
             r, programme_dir,
             superpose=args.superpose,
             multi_use=args.multi_use,
+            conn_grade=args.conn_grade,
             local_search=args.collapse_local_search,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )

@@ -309,3 +309,33 @@ def test_collapse_finish_is_keep_better_and_unmerged():
     assert coll_f <= base_f
     assert applied == (coll_f < base_f) or coll_f == base_f
     assert len(tree.leaves()) == 2  # unmerged: both room leaves intact
+
+
+def test_collapse_finish_guard_is_canonical_even_with_insearch_collapse_on():
+    # homemaker-py-sd3 regression: score_with_fails auto-collapses BEFORE
+    # counting fails whenever the Fitness instance itself is configured with
+    # collapse_insearch=True (as driver.collapse_best used to build its
+    # evaluator). That silently made base_fails equal the ALREADY-collapsed
+    # count, so the 94g keep-better guard compared a collapsed tree against a
+    # collapsed tree and could never see collapse_global's true effect.
+    # collapse_finish must force canonical (collapse_insearch=False) scoring
+    # for its own base/collapsed measurement regardless of self's conf.
+    conf = _conf({
+        "b1": {"size": [16.0, 4.0], "width": [4.0, 1.0], "proportion": [1.5, 0.5]},
+        "b2": {"size": [12.0, 3.0], "width": [3.5, 0.8], "proportion": [1.5, 0.5]},
+    }, collapse_insearch=True)
+    fit = Fitness(conf=conf)
+    assert fit._collapse_insearch is True
+    root = _two_leaf_root("b1", "b1")  # both b1 -> missing b2 is a real fail
+
+    tree, base_f, coll_f, applied = fit.collapse_finish(root)
+
+    # canonical base: the pre-collapse tree really is missing b2 -- if the
+    # guard were still vacuous, base_f would already equal coll_f (both
+    # silently pre-collapsed) instead of reporting the true starting fail.
+    assert base_f >= 1
+    assert coll_f < base_f
+    assert applied
+    assert sorted(lf.type for lf in tree.leaves()) == ["b1", "b2"]
+    # collapse_finish must not leak its temporary override back onto self.
+    assert fit._collapse_insearch is True
