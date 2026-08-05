@@ -1251,54 +1251,6 @@ class Fitness:
                 fail(f"{dom_mod.level_of(leaf)}/{leaf.id} outside edge too long")
         return rate * length * _height(leaf)
 
-    # ------------------------------------------------------------------ #
-    # Storey processing (Storey.pm::process_storey — cost/value/leaf scope)
-    # ------------------------------------------------------------------ #
-
-    def process_storey(self, level_root: Node, G: nx.Graph, level_id: int, fail) -> StoreyEval:
-        """Per-storey cost, value and leaf evaluations on the MERGED tree.
-
-        Covers the cost/value accumulation and per-leaf checks of
-        ``process_storey``; circulation connectivity, roof-garden, stair fit
-        and tracking-driven building checks are homemaker-py-hgg.
-        """
-        groups = geometry.boundary_groups(level_root)
-        cost = 0.0
-        value = 0.0
-        leaves_eval: list[LeafEval] = []
-
-        for leaf in level_root.leaves():
-            if dom_mod.is_outside(leaf) and dom_mod.is_covered(leaf) and level_id:
-                if not dom_mod.is_supported(leaf):
-                    fail(f"{level_id}/{leaf.id} unsupported covered outside")
-                fail(f"{level_id}/{leaf.id} covered outside above ground")
-
-            cost += self.leaf_cost(leaf)
-            if not dom_mod.is_usable(leaf):
-                continue
-
-            quality, factors = self.evaluate_leaf(leaf, G, level_id, groups, fail)
-            rate = self.value_rate(leaf)
-            value += quality * rate * geometry.area(leaf)
-            leaves_eval.append(
-                LeafEval(
-                    level=level_id,
-                    id=leaf.id,
-                    type=leaf.type or "",
-                    area=geometry.area(leaf),
-                    rate=rate,
-                    quality=quality,
-                    factors=factors,
-                )
-            )
-
-        for a, b in G.edges():
-            cost += self.edge_cost(G, a, b, fail)
-        for leaf in level_root.leaves():
-            cost += self.outside_edge_cost(leaf, fail)
-
-        return StoreyEval(cost=cost, value=value, leaves=leaves_eval)
-
     def plot_cost(self, root: Node) -> float:
         """The 'initial cost' term: plot rate x lowest-root area."""
         return self.cost("plot") * geometry.area(root)
