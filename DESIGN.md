@@ -2165,7 +2165,12 @@ Root cause not yet found (hash-seed randomness and float round-trip loss are
 both ruled out); filed as `homemaker-py-iio` (P2). A narrower, separate bug —
 `run_staged_search.py`'s own final sanity rescore omits the `collapse_insearch`
 override entirely, so its own "MISMATCH" line cannot be trusted whenever
-leaf-sharing is on — is filed as `homemaker-py-7ua` (P3). This diagnostic
+leaf-sharing is on — was filed as `homemaker-py-7ua` (P3, fixed) but the fix
+only covers the `LEAFSHARE`/`MULTIUSE` monkeypatch path; the same rescore is
+still wrong on baseline (`LEAFSHARE=0`/`MULTIUSE=0`) runs since
+`driver.search_staged` has no `collapse_insearch` param and always runs its
+inner evaluator with it on regardless of those flags — tracked as
+`homemaker-py-4ok` (P3). This diagnostic
 sidesteps both: `experiments/run_and_capture_91f.py` scores
 `copy.deepcopy(r.best.root)` immediately after `search_staged` returns, and
 writes the fails list to a `*.fails.json` sidecar (verified `rescore_match` on
