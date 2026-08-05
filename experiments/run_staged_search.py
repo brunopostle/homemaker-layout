@@ -92,6 +92,12 @@ def main() -> int:
                 conf["share_edge_cap"] = share_edge
             if multi_use:
                 conf["multi_use"] = True
+            # 7ua: driver.search_staged has no param to disable collapse_insearch,
+            # so its inner evaluator always runs with search()'s collapse_insearch=
+            # True default. Pin it here too or this rescore silently diverges from
+            # search-time conf whenever leaf_sharing is on, producing a false
+            # MISMATCH against the search-reported fail count.
+            conf["collapse_insearch"] = True
             return conf, cost
 
         fitness.load_config = _load_with_flags
