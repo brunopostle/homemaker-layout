@@ -4834,3 +4834,161 @@ connectivity/level-placement/geometry problem, not an adjacency-graph one —
 future effort on that plateau (`homemaker-py-2g7.7`'s LLM repair operator, or
 a level-connectivity-targeted operator) is better aimed than a graph-dual
 construction pass would have been.
+
+## 38. The plateau is an objective-gradient problem, not a search problem (`homemaker-py-ssz`/`hxi`/`tdp`/`gvb`/`1i8`) — measured 2026-08-25
+
+Independent review of why the search "finds solutions that are clearly not the
+best and gets stuck in local minima", prompted by the §37 scoreboard: *every*
+fail-count win of Phases 6–8 was a construction/objective-honesty lever and
+*every* search-machinery lever (§11.4 grade, §11.5 niching/restarts, §11.8
+tournament-k, §14 islands, §16 annealing, §29/§30 beam, §27 bubble, §34
+autodiff, §37.7 CP-SAT) was null or negative. That pattern is itself the
+finding: eight independent attempts to improve the *search* all failed, which
+is what you would expect if the search is working correctly and the
+**objective's gradient points away from good buildings**.
+
+Reproduce everything below with `experiments/diag_exposure_frontage.py`
+(`frontage` / `exposure` / `value` reports; no search run required).
+
+### 38.1 Zero-exposure leaves score a hard quality of 0 (`homemaker-py-ssz`)
+
+`fitness.quality_uncrinkliness` computes `crink = area_outside / area` and
+returns a hard `0.0` when `area_outside == 0` — a leaf with no daylit wall
+(no non-`private`/`fortified` external edge, no adjacent uncovered outside
+leaf). This is the mathematically consistent limit of the formula
+(`1/crink → ∞`, and `gaussian(∞, …) → 0`), so it is a **faithful port, not a
+porting bug** — but its consequences were never traced:
+
+- `evaluate_leaf` **multiplies** factors into `quality`, and `process_storey`
+  accumulates `value += quality * rate * area`. A buried leaf therefore
+  contributes **exactly zero value** while still adding cost.
+- So the objective cannot distinguish a buried room that is perfectly sized
+  from one that is absurd. Both score zero. The only thing the objective can
+  still see about a buried room is that it costs money.
+
+Measured share of interior/covered leaves that are zero-exposure, under the
+driver's real default stack (`leaf_sharing`, `depth_balanced`,
+`interior_outside`, `collapse_insearch`), 3 constructed seeds each:
+
+| programme | zero-exposure | wrong-ratio | ok |
+|---|---|---|---|
+| harbor-house | **36 (46%)** | 24 | 18 |
+| health-centre | **35 (45%)** | 0 | 43 |
+| maple-court | **83 (56%)** | 44 | 22 |
+
+On a converged run (`homemaker-evolve init.dom --budget 20000 --seed 1`,
+harbor-house, 57 fails) **14 of 17 crinkliness fails are zero-exposure**, and
+roughly 470 m² of the 721 m² ground-floor plate sits at zero value.
+
+### 38.2 Buried circulation and outside space are negative-value (`homemaker-py-hxi`)
+
+Programme rooms are pinned in place by the missing-space fail cascade — but
+nothing pins circulation (`C`) or outside (`O`) leaves, which carry no
+`count:` requirement. Deleting a buried one is therefore a pure win.
+Measured on a constructed harbor-house seed (`value` report):
+
+| deleted leaf | score change | fail change |
+|---|---|---|
+| buried `O`, 45.8 m² | **×85.6 BETTER** | 92 → 85 |
+| buried `C`, 46.6 m² | **×61.6 BETTER** | 92 → 86 |
+| buried `k1`, 30.3 m² | ×0.00 worse | 92 → 107 |
+| buried `da1`, 61.7 m² | ×0.00 worse | 92 → 107 |
+
+**The search is rewarded, by roughly two orders of magnitude, for deleting the
+circulation spine.** Observed live: in the 20 000-eval harbor-house run above,
+`undivide`/`core_undivide` appear 16 times in the improvement log.
+
+This retro-explains three prior results as one mechanism, and suggests two of
+them were measuring a broken gradient rather than a bad idea:
+
+- **§18 graded circulation-connectivity — NEGATIVE.** A secondary comparator
+  key cannot beat a ×60 primary-scalar gradient pulling the other way.
+- **§21/§22 `bridge_circulation` — mixed/null.** The operator inserts exactly
+  the corridor leaves the objective then pays to delete.
+- **The 3M-eval run's `level 0/1 not connected` hard fails surviving >1M
+  evals.** Not a stubborn search; a correctly-followed gradient.
+
+### 38.3 The binding constraint is a frontage budget (`homemaker-py-tdp`)
+
+Closed form, no search needed. Crinkliness fails when `1/crink > 1.6202`
+(solving `gaussian(x, 1, 5/6, 1.1/3) = FAIL_THRESHOLD`), and `crink = L·h/A`,
+so every interior leaf needs exposed wall `L ≥ A/(1.6202·h)` — per storey,
+`A_storey/4.86` metres at `h = 3`. `area_outside` skips `private` and
+`fortified` perimeter edges, and harbor-house/maple-court mark **half their
+plot perimeter `private`**:
+
+| programme | daylit frontage | needed per built storey | verdict | observed floor |
+|---|---|---|---|---|
+| harbor-house | 54 m | 148 m | **2.7× short** | plateaus 30–40 fails |
+| maple-court | 56 m | 162 m | **2.9× short** | plateaus 74–84 fails |
+| health-centre | 43 m | 41 m | feasible | §32 clean null |
+| programme-house | 24 m | 12 m | 2× surplus | **1 fail** (12k evals) |
+
+**The corpus fail-count plateau is predicted by frontage deficit alone.** The
+two programmes that are frontage-short are exactly the two that plateau; the
+two with surplus are the two that effectively solve. Causal check
+(`experiments/diag_exposure_frontage.py`, 6 seeds): relabelling harbor's two
+`private` edges as open — identical geometry, identical programme, perimeter
+labels only — cuts zero-exposure leaves **52% → 19%** and seeder crinkliness
+fails 16.5 → 12.0.
+
+The deficit *is* closable: ~108 m² per storey (≈15% of the plate) given over
+to ~3 m courtyard slots would satisfy harbor's budget while still leaving
+1226 m² of floor against an 835 m² programme demand. **But that is precisely
+the move the objective punishes en route** — a small new `O` leaf is itself
+buried, hence zero-value, hence worth ×85 to delete. The payoff only arrives
+once a slot is wide enough and long enough to serve many rooms at once. Every
+intermediate step is punished; the reward is behind a coordinated multi-leaf
+move. That is the valley, and no amount of population diversity crosses it
+when the gradient opposes you the whole way — which is why §11.5, §14, §16 and
+§37.10-style diversity levers were always going to be null here.
+
+### 38.4 Crinkliness is mis-tiered as SOFT (`homemaker-py-gvb`)
+
+`fitness._SOFT_FAIL_MARKERS` lists `" crinkliness"` as SOFT, defined in §37.1
+as "a continuous per-leaf shape metric the inner-loop ratio solve can improve
+without changing the tree". **False for the zero-exposure case**: no ratio
+assignment can give a buried leaf a wall, so by this document's own definition
+it is HARD. Zero-exposure share of crinkliness fails: harbor-house 60%,
+maple-court 65%, health-centre 100%, and 82% (14/17) on the converged run.
+Since crinkliness is the single largest fail category (48% of the residual,
+§13.11), **the §37.1 tiered comparator is mis-informed about the largest block
+of fails it sorts** — `n_soft` is not the polish-budget signal it was designed
+to be. Fix: emit a distinct fail string for the zero-exposure case (which also
+makes the condition visible in `.fails` output, where today it is
+indistinguishable from an ordinary shape miss) and tier it HARD.
+
+### 38.5 The missing-space cascade is weighted by YAML verbosity (`homemaker-py-1i8`)
+
+`graph.check_space_counts` emits, per missing room instance, 2 base fails
+(`missing required space: X` + `(critical)`) plus one `would need <check>`
+placeholder for **each of `size`/`width`/`proportion` the programme happens to
+declare** — `has_size` is literally `"size" in c` from the YAML. So a missing
+room costs 3–5 fails depending only on how many optional keys the author
+typed, and under `value *= 0.5 ** len(failures)` that is a **4× difference in
+fitness weight between two single rooms**. In programme-house, missing `b1`
+(declares all three) = 5 fails = 1/32; missing `t2` (declares `size` only) =
+3 fails = 1/8. The tiered comparator inherits it: `n_hard` is dominated by
+these cascades, so the primary search key is weighted by config verbosity.
+
+### 38.6 Consequences for the Phase 9 plan
+
+§37 track 1 ("no ground truth … the residual taxonomy may be miscalibrated
+rather than unmet") was aimed at the right target, and §38.3 supplies a cheap
+way to test it that does **not** need `2g7.1`'s traced human plans: the
+frontage bound is a pre-flight feasibility check computable from a plot and a
+programme alone. Two of the four corpus programmes fail it by ~3×, which means
+a share of the residual those runs are being judged on **is not reachable at
+all** — and any A/B measured against that residual has been measuring, in
+part, an unsatisfiable constraint.
+
+Tracks 2 and 3 (cheaper evaluation, exact sub-solvers) remain sound but are
+orthogonal: making an evaluation 97× faster, or a labelling exact, does not
+change which direction the objective points. Recommended ordering is now
+`ssz` → `hxi`/`gvb` (restore a value gradient for interior space, re-tier),
+then `tdp` (ship the pre-flight bound and re-baseline the corpus), and only
+then resume `2g7.9`/`2g7.10`. In particular `2g7.7` (LLM repair operator at
+stagnation) is worth deferring until after `ssz`: an LLM asked to propose a
+valley-crossing multi-edit against an objective that pays ×85 to delete the
+corridor it just inserted will have its work reverted by the next selection
+step.
