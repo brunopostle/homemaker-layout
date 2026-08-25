@@ -59,6 +59,9 @@ backup/
 # Per-project environment file (Dolt connection config, GH#2520)
 .env
 
+# Auto-import tracking marker (local mtime/size cache, per-machine)
+.auto-import-issues.jsonl
+
 # Legacy files (from pre-Dolt versions)
 *.db
 *.db?*
