@@ -5192,6 +5192,44 @@ steer the search to a better building?* The arm's own-objective count is
 reported alongside solely to show the size of the definitional discount. A mode
 passes on the stock column. `experiments/ab_ssz_search.py`.
 
+**The result: NOT A PASS at this budget, and n=3 cannot decide it.** Budget
+3000, 3 seeds, paired per-seed deltas against `urb` (negative = fewer fails):
+
+| mode | harbor hard Δ | mean | maple hard Δ | mean |
+|---|---|---|---|---|
+| `floor` | [0, −1, −2] | −1.0 | [+5, −2, −1] | +0.7 |
+| `compact_ok` | [0, −2, **−12**] | −4.7 | [0, +2, +1] | +1.0 |
+| `exempt_circulation` | [+2, −3, −1] | −0.7 | [0, +2, +1] | +1.0 |
+| `usage_daylight` | [0, −1, **−10**] | −3.7 | [0, +2, **−10**] | −2.7 |
+
+The means flatter every mode. **The whole signal is seed 2**, in both
+programmes, and seed 2 is the seed where stock itself does worst (harbor 22
+hard against 16/22; maple 51 against 30/23). Two seeds in three are flat or
+slightly worse. What this says is "on a bad run, the permissive modes do less
+badly" — which is not nothing, but it is not the claim.
+
+And on that seed the soft count rises by as much as the hard count falls:
+harbor seed 2 −10 hard / +9 soft, maple seed 2 −10 hard / +15 soft. **Totals**:
+harbor 62 → 61, maple 120 → **125**. Because every arm is scored under stock
+`urb`, this is a real change of layout and not a relabelling — the search
+genuinely traded hard failures for soft ones. Under the project's tiered
+comparator, where `n_hard` is the primary key, that trade is progress. Under
+`ssz`'s acceptance criterion — *lowers hard without inflating soft* — it is
+not. The criterion is stricter than the comparator the search actually uses;
+which of the two is the right yardstick is now the live question, and it is
+`homemaker-py-gvb`'s question as much as this one.
+
+`usage_daylight` stays **default off** pending a higher-powered run
+(`urb` vs `usage_daylight` only, more seeds, both programmes). Nothing here
+justifies shipping it as a default, and nothing here refutes it either: at
+n=3 with one dominant seed, the honest reading is *undecided*.
+
+**What is decided** is the diagnostic half, which does not depend on the search
+A/B: the daylight requirement is applied to rooms that architecturally do not
+want daylight, in two thirds of the buried population, and §38.6's contrary
+null was an artefact of three modes that never touched those leaves.
+
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated
