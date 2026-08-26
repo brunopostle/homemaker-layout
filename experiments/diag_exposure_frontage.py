@@ -35,7 +35,6 @@ import math
 from pathlib import Path
 
 import numpy as np
-import yaml
 
 from homemaker_layout import dom as dom_mod
 from homemaker_layout import driver, fitness, geometry
@@ -176,6 +175,53 @@ def report_value(progdir: str, seed: int, limit: int) -> None:
               f"({verdict}), fails {len(base_fails)} -> {len(fails)}")
 
 
+def frontage_budget(progdir: str) -> dict:
+    """Feasibility of a programme on its plot, before any search runs.
+
+    Two independent checks, in the order they bite:
+
+    1. **Does the programme fit the plot at all?** ``demand / storeys`` against
+       the plot area. health-centre asks for 240 m² on a 183 m² plot — 131% —
+       and every room comes out at 0.60x its target no matter what the search
+       does.
+    2. **Is there enough daylit wall for the area it does demand?** Every
+       interior leaf needs ``L >= A/(X*h)`` (§38.3), so a storey building
+       ``A_built`` needs ``A_built/(X*h)`` metres. The plot's non-``private``
+       perimeter supplies some; interior courtyard supplies the rest, at roughly
+       ``2 * area / width`` metres per courtyard slot.
+
+    NB this must be computed against the area the programme actually DEMANDS,
+    not a fully built plot — see §39.11 for the correction.
+    """
+    root = dom_mod.load(f"{progdir}/init.dom")
+    per = root.perimeter or {}
+    height = root.height or 3.0
+    # measured exactly as `Fitness.area_outside` does: an external boundary is
+    # daylit unless its perimeter type is `private` or `fortified`. Going
+    # through `geometry` rather than the raw YAML corners also picks up the
+    # `wall_outer` inset and the plot rotation, so these are the metres and the
+    # square metres the leaves actually get.
+    daylit = sum(geometry.edge_length(root, e) for e in range(4)
+                 if (per.get(geometry.boundary_id(root, e)) or "").lower()
+                 not in ("private", "fortified"))
+    plot = geometry.area(root)
+    reqs = programme.load_programme_dir(progdir)
+    storeys = max(programme.n_storeys_required(reqs),
+                  programme.storey_minimum(progdir))
+    demand = sum(r.size * r.count for r in reqs.values())
+    built = demand / storeys
+    x_buried, _ = fail_bounds()
+    needed = built / (x_buried * height)
+    gap = needed - daylit
+    court = max(0.0, gap) * 3.0 / 2.0          # 3 m courtyard slots
+    spare = plot - built
+    return dict(plot=plot, daylit=daylit, height=height, storeys=storeys,
+                demand=demand, built=built, needed=needed, gap=gap,
+                court=court, spare=spare,
+                fits_plot=built <= plot,
+                frontage_ok=court <= spare)
+
+
 def report_frontage(progdirs: list[str]) -> None:
     x_buried, x_exposed = fail_bounds()
     print(f"crinkliness fails when 1/crink > {x_buried:.4f} (buried) "
@@ -183,35 +229,23 @@ def report_frontage(progdirs: list[str]) -> None:
     print(f"=> every interior leaf needs exposed wall L >= A / ({x_buried:.4f} * h)\n")
 
     for progdir in progdirs:
-        seed = yaml.safe_load(open(f"{progdir}/init.dom"))
-        corners, per = seed["node"], (seed.get("perimeter") or {})
-        height = seed.get("height") or 3.0
-        n = len(corners)
-        edges = [math.hypot(corners[(i + 1) % n][0] - corners[i][0],
-                            corners[(i + 1) % n][1] - corners[i][1]) for i in range(n)]
-        daylit = sum(e for k, e in zip("abcd", edges)
-                     if (per.get(k) or "").lower() not in ("private", "fortified"))
-        area = abs(sum(corners[i][0] * corners[(i + 1) % n][1]
-                       - corners[(i + 1) % n][0] * corners[i][1]
-                       for i in range(n))) / 2
-        reqs = programme.load_programme_dir(progdir)
-        n_storeys = max(programme.n_storeys_required(reqs),
-                        programme.storey_minimum(progdir))
-        demand = sum(r.size * r.count for r in reqs.values())
-        needed = area / (x_buried * height)
-
+        b = frontage_budget(progdir)
         print(f"=== {Path(progdir).name}")
-        print(f"  plot {area:.0f} m2, perimeter {sum(edges):.0f} m, "
-              f"{n_storeys} storeys, h={height}")
-        print(f"  perimeter {per} -> daylit frontage {daylit:.0f} m")
-        print(f"  a fully built storey needs {needed:.0f} m exposed wall; "
-              f"plot supplies {daylit:.0f} m "
-              f"-> {needed / max(daylit, 1e-9):.1f}x short"
-              if needed > daylit else
-              f"  a fully built storey needs {needed:.0f} m exposed wall; "
-              f"plot supplies {daylit:.0f} m -> FEASIBLE")
-        print(f"  programme demands {demand:.0f} m2 over {n_storeys} storeys "
-              f"({demand / n_storeys:.0f} m2/storey of {area:.0f} m2 plot)\n")
+        print(f"  plot {b['plot']:.0f} m2, daylit perimeter {b['daylit']:.0f} m, "
+              f"{b['storeys']} storeys, h={b['height']:g}")
+        pct = 100 * b["built"] / b["plot"]
+        verdict = "OK" if b["fits_plot"] else "DOES NOT FIT THE PLOT"
+        print(f"  1. programme demands {b['demand']:.0f} m2 -> {b['built']:.0f} m2 "
+              f"per storey = {pct:.0f}% of the plot   [{verdict}]")
+        print(f"  2. that needs {b['needed']:.0f} m of daylit wall; perimeter gives "
+              f"{b['daylit']:.0f} m -> gap {b['gap']:+.0f} m")
+        if b["gap"] > 0:
+            print(f"     closing it takes ~{b['court']:.0f} m2 of 3 m courtyard; "
+                  f"spare plot {b['spare']:.0f} m2   "
+                  f"[{'OK' if b['frontage_ok'] else 'NOT ENOUGH ROOM'}]")
+        else:
+            print("     perimeter alone is sufficient")
+        print()
 
 
 def main() -> None:

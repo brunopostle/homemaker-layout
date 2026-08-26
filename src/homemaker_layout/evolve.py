@@ -223,6 +223,60 @@ def _parse_args(argv=None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+def _preflight(programme_dir) -> None:
+    """Warn before the run if the programme cannot fit its plot (homemaker-py-tdp).
+
+    Two checks, cheap and closed-form (DESIGN.md §38.3/§39.11). Neither can be
+    fixed by searching harder, so it is worth saying so up front rather than
+    letting a multi-hour run bottom out against it:
+
+    1. does the demanded floor area fit the plot at all;
+    2. is there enough daylit wall for that area, given every interior leaf
+       needs ``L >= A/(1.6202*h)`` before it fails crinkliness.
+
+    "Daylit" is measured exactly as ``Fitness.area_outside`` does: an external
+    boundary counts unless its perimeter type is ``private`` or ``fortified``.
+
+    Advisory only — it never blocks a run, since an author may deliberately be
+    exploring an over-tight brief.
+    """
+    from . import geometry
+    from . import programme as _prog
+
+    try:
+        root = dom.load(f"{programme_dir}/init.dom")
+        per = root.perimeter or {}
+        daylit = sum(geometry.edge_length(root, e) for e in range(4)
+                     if (per.get(geometry.boundary_id(root, e)) or "").lower()
+                     not in ("private", "fortified"))
+        plot = geometry.area(root)
+        height = root.height or 3.0
+        reqs = _prog.load_programme_dir(str(programme_dir))
+        storeys = max(_prog.n_storeys_required(reqs),
+                      _prog.storey_minimum(str(programme_dir)))
+        built = sum(r.size * r.count for r in reqs.values()) / max(storeys, 1)
+    except Exception:
+        return                              # advisory only; never block a run
+
+    if not plot or not daylit:
+        return
+
+    if built > plot:
+        print(f"WARNING: programme demands {built:.0f} m2 per storey on a "
+              f"{plot:.0f} m2 plot ({100 * built / plot:.0f}%). Every room will "
+              f"be squeezed below its target however long the search runs. "
+              f"(DESIGN.md §39.11)", file=sys.stderr)
+    needed = built / (1.6202 * height)
+    if needed > daylit:
+        court = (needed - daylit) * 1.5
+        note = (f", but only {plot - built:.0f} m2 of plot is spare"
+                if court > plot - built else "")
+        print(f"WARNING: {built:.0f} m2 per storey needs ~{needed:.0f} m of daylit "
+              f"wall; the plot's non-private perimeter gives {daylit:.0f} m. "
+              f"Roughly {court:.0f} m2 of courtyard closes the gap{note}. "
+              f"(DESIGN.md §38.3)", file=sys.stderr)
+
+
 def main(argv=None) -> int:
     args = _parse_args(argv)
 
@@ -245,6 +299,8 @@ def main(argv=None) -> int:
         out = None
     else:
         out = args.output.resolve()
+
+    _preflight(programme_dir)
 
     print(f"seed         : {seed_file}", file=sys.stderr)
     print(f"programme    : {programme_dir.name}", file=sys.stderr)

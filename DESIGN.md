@@ -4968,6 +4968,14 @@ plot perimeter `private`**:
 | health-centre | 43 m | 41 m | feasible | §32 clean null | — |
 | programme-house | 24 m | 12 m | 2× surplus | — | **1 fail @ 12k evals** |
 
+**PARTLY RETRACTED — see §39.11.** The "2.7× / 2.9× short" figures below are
+computed for a **fully built plot**, which is not what these programmes ask
+for. Against actual demand the deficits are far smaller and both are closable:
+harbor needs 86 m against 54 m supplied (a 48 m² courtyard, with 304 m² of plot
+spare), maple 70 m against 56 m (20 m²). Neither is infeasible. The one
+programme that genuinely does not fit is health-centre, for an unrelated and
+much simpler reason: it demands 240 m² on a 197 m² plot.
+
 **Frontage deficit predicts the COST of solving, not impossibility.** An
 earlier draft of this section claimed the deficit predicts the plateau
 outright, quoting §13.11's 20k-budget figure as harbor's floor; that was
@@ -5644,3 +5652,63 @@ was never a construction problem *or* an incentive problem (§39.8). Both flags
 (`repair_circulation`, `preserve_circulation`) stay default off with these
 numbers recorded. **Do not revisit either without a new formulation** — the same
 standing this document gives `bubble.py`.
+
+### 39.11 The frontage bound, computed correctly (`homemaker-py-tdp`) — shipped as a pre-flight check
+
+§38.3 derived a real constraint — every interior leaf needs
+`L >= A/(1.6202·h)` of daylit wall — and then applied it to the wrong quantity.
+It measured what a **fully built plot** would need. These programmes do not ask
+for a fully built plot.
+
+Recomputed against the area each programme actually demands:
+
+| programme | demanded/storey | % of plot | frontage needed | supplied | gap | courtyard to close | spare plot | |
+|---|---|---|---|---|---|---|---|---|
+| harbor-house | 418 m² | 60% | 86 m | 53 m | +33 m | 49 m² | 277 m² | **OK** |
+| maple-court | 338 m² | 44% | 70 m | 55 m | +15 m | 22 m² | 424 m² | **OK** |
+| programme-house | 38 m² | 72% | 8 m | 22 m | −14 m | none | — | **OK** |
+| health-centre | 240 m² | **131%** | 49 m | 41 m | +8 m | 12 m² | **−57 m²** | **DOES NOT FIT** |
+
+Plot area and frontage are measured through `geometry`, not from the raw
+`init.dom` corners, so they carry the `wall_outer` inset and the plot rotation —
+these are the metres and the square metres the leaves actually get. "Daylit"
+means what `Fitness.area_outside` means by it: an external boundary counts
+unless its perimeter type is `private` or `fortified`.
+
+So harbor-house and maple-court are **not** frontage-infeasible; they need a
+courtyard of 49 m² and 22 m² respectively, against 277 m² and 424 m² of spare
+plot. §38.3's "2.7× short" overstated it by comparing against a building nobody
+asked for.
+
+**The one genuinely infeasible programme is health-centre, and not for daylight
+reasons: it demands 240 m² of floor on a 183 m² plot.** That shows up
+unmistakably in the geometry — every room comes out at **0.60×** its declared
+target, 100% of them undersized, uniformly, no matter what the search does.
+Contrast harbor-house and maple-court, where the seeder hits targets almost
+exactly (median area / (target × share) = **1.01×**).
+
+*(An intermediate measurement suggested rooms were systematically inflated to
+1.26–1.65× target. That was an artefact of not dividing by a shared leaf's
+multiplicity — a leaf covering k rooms is legitimately k× a single target.
+Corrected above; the seeder's sizing is accurate where the plot allows.)*
+
+**Shipped: `evolve._preflight`.** Both checks now run at startup and print a
+warning before a multi-hour run bottoms out against something no amount of
+searching can fix:
+
+```
+WARNING: programme demands 240 m2 per storey on a 183 m2 plot (131%). Every room
+will be squeezed below its target however long the search runs.
+WARNING: 418 m2 per storey needs ~86 m of daylit wall; the plot's non-private
+perimeter gives 53 m. Roughly 49 m2 of courtyard closes the gap.
+```
+
+Advisory only — it never blocks a run, since an author may be deliberately
+exploring an over-tight brief. Silent on programme-house. The same numbers are
+available in full from `experiments/diag_exposure_frontage.py frontage`.
+
+**What this means for §38.** The frontage bound survives as a *diagnostic* and
+is now correctly calibrated, but it does **not** say the corpus is
+unsatisfiable. Of the four programmes, three fit their plots and one does not —
+and that one fails a much cruder test than daylight. §38.3's claim that the
+plateau programmes are "frontage-infeasible as specified" is withdrawn.
