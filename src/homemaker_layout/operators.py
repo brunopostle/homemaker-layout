@@ -460,6 +460,80 @@ def mutate_bridge_circulation(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"bridge_circulation lvl{li}: {names} -> C"
 
 
+def repair_circulation_settled(lvl: dom.Node, reqs, max_bridges: int = 8) -> int:
+    """Reconnect a storey's circulation AFTER the geometry has settled.
+
+    homemaker-py-yql (DESIGN.md §39.9). ``_assign_adjacency_aware`` picks
+    circulation as a CONNECTED dominating set, but it does so against the
+    pre-resize geometry; ``_size_divisions_from_targets`` then moves every wall
+    to hit the programme's area targets and the shared boundaries the dominating
+    set relied on shrink below ``door_width`` or vanish outright. Measured on
+    health-centre: 41 of 49 circulation-to-circulation edges destroyed by the
+    resize, surviving shared walls squeezed to 0.54-1.11 m against a 1.2 m
+    threshold — so only 5% of constructed seeds started connected, against 100%
+    with the resize disabled.
+
+    This is the same alternating-minimisation fix §37.7 applied to room
+    assignment (``_cpsat_relabel_settled``): re-run the step against the
+    geometry that actually resulted. Retypes the cheapest bridging leaves to
+    ``C``, preferring generic outside, then unassigned, and crossing a required
+    room last — the cost model ``mutate_bridge_circulation`` already uses.
+
+    Returns the number of leaves retyped. Idempotent once connected.
+    """
+    import networkx as nx
+
+    from . import geometry as _geo, graph as _graph
+
+    def _cost(node: dom.Node) -> int:
+        if dom.is_circulation(node):
+            return 0
+        if not node.type:
+            return 1
+        if node.type in dom.GENERIC_OUTSIDE:
+            return 0
+        if reqs and node.type in reqs:
+            return 5
+        return 1
+
+    retyped = 0
+    for _ in range(max_bridges):
+        _geo.clear_cache()
+        G = _geo.leaf_graph(lvl, _graph.DOOR_WIDTH)
+        circ = [x for x in G.nodes() if dom.is_circulation(x)]
+        if not circ:
+            return retyped
+        comps = list(nx.connected_components(G.subgraph(circ)))
+        if len(comps) <= 1:
+            return retyped
+        weighted = G.copy()
+        for u, v, data in weighted.edges(data=True):
+            data["bridge_weight"] = (_cost(u) + _cost(v)) / 2.0
+        best_path = None
+        best_weight = None
+        for i in range(len(comps)):
+            for j in range(i + 1, len(comps)):
+                for a in comps[i]:
+                    for b in comps[j]:
+                        try:
+                            path = nx.shortest_path(weighted, a, b,
+                                                    weight="bridge_weight")
+                        except nx.NetworkXNoPath:
+                            continue
+                        w = sum(_cost(x) for x in path[1:-1])
+                        if best_weight is None or w < best_weight:
+                            best_weight, best_path = w, path
+        if not best_path:
+            return retyped
+        middle = [x for x in best_path[1:-1] if not dom.is_circulation(x)]
+        if not middle:
+            return retyped          # components already touch; nothing to retype
+        for leaf in middle:
+            leaf.type = "C"
+            retyped += 1
+    return retyped
+
+
 def _shape_failing(leaf: dom.Node, fit) -> bool:
     """A named-room leaf whose width or proportion factor actually fails
     (``< fitness.FAIL_THRESHOLD``) under ``fit``, the same Gaussian quality
@@ -1207,7 +1281,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           outside_divisor: int = 3,
                           construction_beam_width: int = 1,
                           multi_use: bool = False,
-                          assign_solver: str = "greedy") -> dom.Node:
+                          assign_solver: str = "greedy",
+                          repair_circulation: bool = False) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -1317,6 +1392,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                 leaf_extra=leaf_extra)
             if adjacency_aware and assign_solver == "cpsat":
                 _cpsat_relabel_settled(lvl, reqs)
+            if repair_circulation:
+                repair_circulation_settled(lvl, reqs)
 
     return _finalise(child)
 

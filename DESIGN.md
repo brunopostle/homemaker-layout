@@ -5494,3 +5494,86 @@ question (`homemaker-py-yql`) — the evidence now says it is a reachability pro
 (connected topologies are hard to construct and hold onto), not an incentive
 one. It is newly measurable: §39.7 made the fails fire on constructed seeds
 instead of being hidden by routes through store cupboards.
+
+### 39.9 Why `level N not connected` persists: the resize destroys it (`homemaker-py-yql`)
+
+§39.8 closed `2v1` NULL — severing circulation is already punished, so the fail
+is not something the search is paid to create. That left the real question: is a
+connected layout **rarely constructed**, or **constructed and then lost**?
+
+**Answer: constructed, then lost — at construction time, in the resize.**
+
+`level N not connected` fires from `graph.connected_circulation`, which keeps
+only the generic `C`/`S` leaves and asks whether *they* form one component.
+Measured over 20 constructed seeds per programme
+(`experiments/diag_connectivity_yql.py`):
+
+| programme | levels connected | seeds fully connected |
+|---|---|---|
+| harbor-house | 21/40 (52%) | **1/20** |
+| health-centre | 1/20 (5%) | **1/20** |
+| maple-court | 39/60 (65%) | **0/20** |
+
+Then the decisive control — the same seeds with `proportion_aware=False`, i.e.
+skipping `_size_divisions_from_targets`:
+
+| programme | with resize | **without resize** |
+|---|---|---|
+| harbor-house | 52% | **100%** |
+| health-centre | 5% | **100%** |
+| maple-court | 65% | **100%** |
+
+`_assign_adjacency_aware` picks circulation as a **connected** dominating set —
+and it succeeds every time. The resize then moves every wall to hit the
+programme's area targets, and the shared boundaries the dominating set relied on
+shrink or vanish. On health-centre, **41 of 49 circulation-to-circulation edges
+are destroyed by the resize**, and surviving shared walls are squeezed to
+0.54–1.11 m against a 1.2 m `door_width`, so they stop counting as edges at all.
+
+This is exactly the failure mode §37.7 recorded for CP-SAT room assignment —
+"resizing can shrink a shared-wall segment below the door-width adjacency
+threshold, silently invalidating an edge the exact solve relied on" — but nobody
+had looked for it in **circulation connectivity**, where it costs 35–95 points.
+
+**§39.7 cost check: zero.** The same measurement under prefix-inferred vs
+declared usages is identical (52/5/65% both ways). `has_circulation` never trims
+`C`–`C` edges, so the usage change could not and did not make connectivity
+harder to achieve.
+
+#### The obvious repair is a net loss — measured
+
+`operators.repair_circulation_settled` applies §37.7's own alternating-
+minimisation fix: after the geometry settles, re-connect circulation by retyping
+the cheapest bridging leaves to `C` (preferring generic outside, then
+unassigned, crossing a required room last — `mutate_bridge_circulation`'s cost
+model). It works, completely:
+
+| programme | levels connected, repair OFF | repair ON |
+|---|---|---|
+| harbor-house | 52% (1/20 seeds full) | **100% (20/20)** |
+| health-centre | 5% (1/20) | **100% (20/20)** |
+| maple-court | 65% (0/20) | **100% (20/20)** |
+
+And it is still the wrong trade. Mean fails per constructed seed, 12 seeds:
+
+| programme | total | hard | connectivity | missing-room |
+|---|---|---|---|---|
+| harbor-house | 96.6 → **108.9** | 46.0 → 56.2 | 3.7 → 2.0 | 14.2 → **19.2** |
+| health-centre | 62.8 → **84.2** | 24.2 → 46.8 | 2.9 → 2.2 | 2.0 → **10.5** |
+| maple-court | 141.8 → **156.6** | 57.4 → 69.2 | 4.7 → 3.5 | 14.8 → **19.8** |
+
+Connectivity failures fall by 0.8–1.7; missing-room failures rise by 5.0–8.5,
+because every leaf retyped to `C` displaces a required room and each displacement
+costs a 3–5 fail cascade (§38.5). **Robbing Peter to pay Paul.** Kept default
+off with this write-up, per house style for a measured-null lever.
+
+**The lever is upstream, not downstream.** The repair is treating a symptom: the
+connection should never be destroyed in the first place. The named next move is
+to *preserve* it during the resize — constrain `_size_divisions_from_targets` so
+a shared boundary between two circulation leaves cannot fall below `door_width`
+— rather than to rebuild it afterwards at the cost of the programme. That is a
+constraint on an existing solve rather than a new repair pass. Filed as
+`homemaker-py-3z0`. Worth noting while there: `solver.py` already carries
+`min_width_generic` (default 1.2) to stop generic leaves collapsing to slivers
+— the same idea applied to a leaf's WIDTH rather than to a shared BOUNDARY
+between two specific leaves, so the new constraint may belong beside it.

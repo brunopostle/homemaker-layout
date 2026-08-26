@@ -937,3 +937,65 @@ def test_assign_cpsat_beats_greedy_on_a_namespace_clean_programme():
         return total
 
     assert secondary_fails("cpsat") < secondary_fails("greedy")
+
+
+# --------------------------------------------------------------------------- #
+# homemaker-py-yql / DESIGN.md §39.9 — settled-geometry circulation repair
+# --------------------------------------------------------------------------- #
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_repair_circulation_default_off_reproduces_prior_seeds():
+    """Default off must be byte-identical, like every other experimental flag."""
+    from homemaker_layout import programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+    kw = dict(min_storeys=programme.storey_minimum(str(HARBOR)),
+              adjacency_aware=True, proportion_aware=True, circ_divisor=3)
+
+    def sig(**extra):
+        root = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(3), types, **kw, **extra)
+        return tuple(lf.type for lvl in dom.levels(root) for lf in lvl.leaves())
+
+    assert sig() == sig(repair_circulation=False)
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_repair_circulation_reconnects_every_storey():
+    """§39.9: the constructed circulation dominating set is connected, but
+    _size_divisions_from_targets then moves every wall and the shared
+    boundaries it relied on drop below door_width. Repairing against the
+    SETTLED geometry restores connectivity — measured 52% -> 100% of levels on
+    harbor-house. (Whether that is a net WIN is a different question: it is
+    not, see §39.9 — it displaces required rooms. Hence default off.)
+    """
+    import networkx as nx
+
+    from homemaker_layout import geometry, graph as graph_mod, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+
+    def levels_connected(repair: bool) -> tuple[int, int]:
+        ok = tot = 0
+        for s in range(6):
+            root = operators.constructive_topology(
+                seed, reqs, np.random.default_rng(s), types,
+                min_storeys=programme.storey_minimum(str(HARBOR)),
+                adjacency_aware=True, proportion_aware=True, circ_divisor=3,
+                repair_circulation=repair)
+            for lvl in dom.levels(root):
+                geometry.clear_cache()
+                G = geometry.leaf_graph(lvl, graph_mod.DOOR_WIDTH)
+                circ = [n for n in G.nodes() if dom.is_circulation(n)]
+                tot += 1
+                if circ and nx.is_connected(G.subgraph(circ)):
+                    ok += 1
+        return ok, tot
+
+    off_ok, off_tot = levels_connected(False)
+    on_ok, on_tot = levels_connected(True)
+    assert on_ok == on_tot, f"repair left {on_tot - on_ok} storeys disconnected"
+    assert on_ok > off_ok, f"repair did not help: {off_ok}/{off_tot} -> {on_ok}/{on_tot}"
