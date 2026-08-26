@@ -39,7 +39,8 @@ def test_colliding_code_is_a_full_requirement_not_a_generic():
     """The §39.2 damage in one assertion: a c-prefixed code must keep its
     declared targets and stay in the required set."""
     conf = {"spaces": {"cr1": {"size": [80.0, 10.0], "width": [6.0, 1.5],
-                               "proportion": [2.0, 0.5], "count": 1}}}
+                               "proportion": [2.0, 0.5], "count": 1,
+                               "usage": "living"}}}
     fit = fitness.Fitness(conf=conf)
     assert fit.get_space_params("cr1", "size") == [80.0, 10.0]
     assert fit.get_space_params("cr1", "width") == [6.0, 1.5]
@@ -52,14 +53,57 @@ def test_colliding_code_is_a_full_requirement_not_a_generic():
     assert dom.is_outside(dom.Node(type="S")) and dom.is_circulation(dom.Node(type="S"))
 
 
-def test_semantic_but_unreserved_prefixes_are_allowed():
-    """l/k/b/t carry adjacency semantics but never discard a requirement, so
-    programme codes may use them freely — only c/o/s are reserved."""
+def test_a_codes_first_letter_no_longer_decides_anything():
+    """§39.7: usage is DECLARED, so a code's spelling carries no meaning at all.
+
+    `b1` was a bedroom purely because it started with "b"; here it declares
+    `utility` and that is what it is. This is the property the old prefix
+    convention could not offer, and the reason `la1` "Laundry Room" was being
+    trimmed as a living room.
+    """
     reqs = programme._parse_spaces({"spaces": {
-        "l1": {"size": [20.0, 4.0]}, "k1": {"size": [12.0, 3.0]},
-        "b1": {"size": [16.0, 4.0]}, "t1": {"size": [3.0, 1.0]},
+        "l1": {"size": [20.0, 4.0], "usage": "utility"},
+        "k1": {"size": [12.0, 3.0], "usage": "none"},
+        "b1": {"size": [16.0, 4.0], "usage": "utility"},
+        "zzz": {"size": [3.0, 1.0], "usage": "bedroom"},
     }})
-    assert sorted(reqs) == ["b1", "k1", "l1", "t1"]
+    assert reqs["l1"].usage == "utility"
+    assert reqs["k1"].usage == "none"
+    assert reqs["b1"].usage == "utility"
+    assert reqs["zzz"].usage == "bedroom"
+
+
+def test_usage_is_mandatory_and_reported_by_code():
+    with pytest.raises(ValueError, match=r"declare no .usage.*\['b1'\]|\['b1'\].*declare no"):
+        programme._parse_spaces({"spaces": {"b1": {"size": [16.0, 4.0]}}})
+
+
+def test_unknown_usage_is_rejected_not_silently_ignored():
+    with pytest.raises(ValueError, match="unknown usage value"):
+        programme._parse_spaces(
+            {"spaces": {"b1": {"size": [16.0, 4.0], "usage": "craft"}}})
+
+
+def test_usage_is_rejected_by_both_parse_paths():
+    """Fitness parses conf["spaces"] independently of programme._parse_spaces."""
+    conf = {"spaces": {"b1": {"size": [16.0, 4.0]}}}
+    with pytest.raises(ValueError, match="declare no"):
+        programme._parse_spaces(conf)
+    with pytest.raises(ValueError, match="declare no"):
+        fitness.Fitness(conf=conf)
+
+
+def test_usage_survives_a_retype_because_it_is_code_level():
+    """The mutation-safety property: usage is looked up from the CODE, so a
+    retype changes the class automatically and nothing can go stale."""
+    fit = fitness.Fitness(conf={"spaces": {
+        "b1": {"size": [16.0, 4.0], "usage": "bedroom"},
+        "s9": {"size": [16.0, 4.0], "usage": "utility"},
+    }})
+    leaf = dom.Node(type="b1")
+    assert fit.usage_of(leaf) == "bedroom"
+    leaf.type = "s9"                      # exactly what mutate_retype does
+    assert fit.usage_of(leaf) == "utility"
 
 
 def test_corpus_programmes_are_namespace_clean():

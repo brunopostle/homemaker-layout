@@ -26,6 +26,7 @@ import networkx as nx
 
 from . import dom, geometry
 from .dom import Node, is_generic, levels
+from . import programme as _pr
 from .programme import SpaceReq
 
 DOOR_WIDTH = 1.2  # Urb::Dom::Fitness::Base default_params door_width
@@ -50,6 +51,7 @@ def build_graphs_with_circ(
     root: Node,
     door_width: float,
     fail,
+    usages: dict[str, str],
 ) -> tuple[list[nx.Graph], list[nx.Graph]]:
     """Build ``(graph_base, graph_circ)`` pairs; mirrors ``setup_storey_graphs``
     in ``Base.pm:217-241``.
@@ -69,7 +71,7 @@ def build_graphs_with_circ(
         g = geometry.leaf_graph(lvl, door_width)
         graph_base.append(g)
         gc = g.copy()
-        if not has_circulation(gc):
+        if not has_circulation(gc, usages):
             fail(f"{i} inaccessible usable space")
         graph_circ.append(gc)
     return graph_base, graph_circ
@@ -93,8 +95,14 @@ def _avg_path_len_from(G: nx.Graph, node: Node) -> float:
         return 0.0
 
 
-def has_circulation(G: nx.Graph) -> bool:
+def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
     """Port of ``Urb::Dom::Has_Circulation`` (modifies G in place).
+
+    ``usages`` maps room code -> access-requirement class (homemaker-py-sel,
+    DESIGN.md §39.7); it decides which edges are trimmed. It used to be inferred
+    from a leaf type's first character, so `la1` "Laundry Room" was trimmed as a
+    living room and `tr1` "Treatment Room" as a toilet. Codes absent from the
+    map (the generic ``C``/``O``/``S``) have no usage and are never trimmed.
 
     Replicates the Perl clone quirk: isolated vertices (degree 0) are removed
     first since Perl's ``Graph::clone`` only copies vertices in edges.  After
@@ -110,40 +118,41 @@ def has_circulation(G: nx.Graph) -> bool:
     non_usable = [v for v in list(G.nodes()) if not dom.is_usable(v)]
     G.remove_nodes_from(non_usable)
 
-    # Remove b → [lkbt] edges  (bedrooms only connect to circulation/outside)
+    def _usage(v: Node) -> str:
+        return usages.get(v.type, "")
+
+    # A TERMINAL room (bedroom/utility) is reachable from circulation or outside
+    # only — never a route through. Trim its edges to every other room.
     for v in list(G.nodes()):
-        if not (v.type and v.type[0].lower() == "b"):
+        if _usage(v) not in _pr.PRIVATE_USAGES:
             continue
-        to_remove = [
-            nb for nb in list(G.neighbors(v))
-            if nb.type and nb.type[0].lower() in ("l", "k", "b", "t")
-        ]
+        to_remove = [nb for nb in list(G.neighbors(v))
+                     if _usage(nb) in _pr.PRIVATE_STRIPS]
         G.remove_edges_from((v, nb) for nb in to_remove)
 
-    # Remove t → [olkt] edges  (toilets only connect to bedrooms/circulation)
+    # A toilet keeps its edge to a terminal room (the Brand adjacency, §39.6)
+    # and loses outside/living/kitchen/toilet.
     for v in list(G.nodes()):
-        if not (v.type and v.type[0].lower() == "t"):
+        if _usage(v) != "toilet":
             continue
-        to_remove = [
-            nb for nb in list(G.neighbors(v))
-            if (nb.type in dom.GENERIC_OUTSIDE
-                or (nb.type and nb.type[0].lower() in ("l", "k", "t")))
-        ]
+        to_remove = [nb for nb in list(G.neighbors(v))
+                     if nb.type in dom.GENERIC_OUTSIDE
+                     or _usage(nb) in _pr.TOILET_STRIPS]
         G.remove_edges_from((v, nb) for nb in to_remove)
 
-    # btlk nodes: keep only one circulation neighbour
+    # Any classified room keeps only one circulation neighbour.
     for v in list(G.nodes()):
-        if not (v.type and v.type[0].lower() in ("b", "t", "l", "k")):
+        if _usage(v) not in _pr.PRIVATE_USAGES + ("toilet",) + _pr.SOCIABLE_USAGES:
             continue
         circ_nbs = [nb for nb in list(G.neighbors(v)) if dom.is_circulation(nb)]
         if len(circ_nbs) <= 1:
             continue
         circ_nbs.sort(key=lambda nb: _avg_path_len_from(G, nb))
-        # b/t: keep least popular (last), remove most popular (first)
-        # l/k: keep most popular (first), remove least popular (last)
-        t0 = v.type[0].lower()
+        # terminal rooms and toilets keep their LEAST central circulation
+        # neighbour (privacy); sociable rooms keep their MOST central one.
+        sociable = _usage(v) in _pr.SOCIABLE_USAGES
         while len(circ_nbs) > 1:
-            if t0 in ("b", "t"):
+            if not sociable:
                 G.remove_edge(v, circ_nbs.pop(0))
             else:
                 G.remove_edge(v, circ_nbs.pop())
@@ -155,9 +164,8 @@ def has_circulation(G: nx.Graph) -> bool:
 
     # blkc nodes: keep only one outdoor neighbour per outdoor component
     for v in list(G.nodes()):
-        # b/l/k are SEMANTIC programme-code prefixes; the fourth member is
-        # generic circulation, so it takes the generic test (§39.4).
-        if not ((v.type and v.type[0].lower() in ("b", "l", "k"))
+        # terminal rooms, sociable rooms, and generic circulation
+        if not (_usage(v) in _pr.PRIVATE_USAGES + _pr.SOCIABLE_USAGES
                 or dom.is_circulation(v)):
             continue
         out_nbs = [
@@ -172,9 +180,9 @@ def has_circulation(G: nx.Graph) -> bool:
             component_nbs = [nb for nb in out_nbs if nb in component]
             if len(component_nbs) <= 1:
                 continue
-            t0 = v.type[0].lower()
+            terminal = _usage(v) in _pr.PRIVATE_USAGES
             while len(component_nbs) > 1:
-                if t0 == "b":
+                if terminal:
                     nb = component_nbs.pop(0)
                 else:
                     nb = component_nbs.pop()

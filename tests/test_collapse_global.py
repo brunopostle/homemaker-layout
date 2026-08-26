@@ -7,6 +7,7 @@ Covers the contracts of Fitness.collapse_global / collapse_finish:
   - no-op safety (no programme) and the keep-better wrapper
 """
 
+from _helpers import with_usage
 from homemaker_layout import geometry
 from homemaker_layout.dom import Node, _link_subtree
 from homemaker_layout.fitness import Fitness
@@ -24,7 +25,7 @@ def _two_leaf_root(t_left: str, t_right: str, side: float = 6.0, div: float = 0.
 
 
 def _conf(spaces, **extra):
-    return {"spaces": spaces, **extra}
+    return {"spaces": with_usage(spaces), **extra}
 
 
 # --------------------------------------------------------------------------- #

@@ -5347,3 +5347,78 @@ are *currently spelled correctly* too, so it needs its own A/B and re-baseline
 rather than being folded in here.
 
 
+
+### 39.7 `usage:` — access requirements become a declared attribute (`homemaker-py-sel`) — DONE
+
+§39.4 separated programme codes from the generic structural types. This closes
+the second namespace sharing the same first character: the **usage prefixes**
+`b`/`t`/`l`/`k`, under which a room silently inherited another room's
+connectivity rules from its spelling.
+
+**Usage is an ACCESS-REQUIREMENT class, not a room-name category** — "library
+corner and staff room are living rooms as they have the same access
+requirements". It is now a plain, mandatory attribute of the space definition:
+
+```yaml
+spaces:
+  la1:
+    usage: utility          # controlled, drives engine behaviour
+    name: Laundry Room      # free text, building-specific
+```
+
+**Why an attribute and not a lookup table.** An interim design proposed a
+top-level `usage_classes:` table binding author-coined names to behaviour. It
+was withdrawn: an indirect name→behaviour mapping living apart from the thing
+it describes is *exactly* the shape of the prefix rule §39 exists to remove,
+it is the only such table the schema would contain (every other space property
+— `name`, `size`, `adjacency`, `level`, `count`, `share`, `interchange`,
+`co_locate` — is a plain attribute), and the need it served was already met:
+"building specific" is about what a room is **called**, and `name:` is already
+free text. The rule that settles it: **a usage value exists if and only if the
+engine treats it differently somewhere.** Config selects among behaviours; it
+cannot invent them.
+
+**Mutation safety.** Usage is keyed by CODE, so `usage_of(leaf.type)` is looked
+up fresh on every read exactly as size/width/adjacency are; a retype changes the
+code and the class follows. It is never stamped on a leaf — 51 sites assign
+`leaf.type`, and `share`/`share_type` plus the `r5a` stale-stamp resurrection
+are this project's own evidence for why leaf-level attributes rot.
+
+**Vocabulary** (closed): `living`, `kitchen`, `bedroom`, `toilet`, `utility`,
+`none`. Missing or unknown is a load error naming the code, from **both** parse
+paths. `utility` shares `bedroom`'s access requirements today but is a distinct
+value — a genuinely different use, and an axis
+`derive_interchange_classes` can relax on (bedroom- and utility-class leaves
+interchangeable *during* search, collapsing to their real use at scoring time —
+the superposition relaxation §13/§26 already implements).
+
+`graph.has_circulation` now takes the usage map and trims on declared class;
+`fitness.access` and the public-access check likewise. **`fitness._t0` is
+deleted — no first-character type test remains anywhere in the codebase.**
+
+**The connectivity model was ~4× too permissive.** `none` is not neutral:
+nothing is trimmed, so the graph may route *through* the room. 34 of 52 corpus
+codes had no class, meaning a Dental Surgery, a Records Room and a Utilities
+Closet all served as corridors. Measured on constructed seeds, 3 per programme,
+prefix-inferred vs declared:
+
+| programme | codes reclassified | edges trimmed before | after | inaccessible-space fails |
+|---|---|---|---|---|
+| harbor-house | 12 of 16 | 18 (9%) | **79 (39%)** | 0 → **4** |
+| health-centre | 14 of 19 | 12 (8%) | **59 (40%)** | 2 → **3** |
+| maple-court | 18 of 26 | 53 (17%) | **123 (39%)** | 1 → **5** |
+
+**Re-baseline** (`--budget 20000 --workers 4 --seed 1`, harbor-house): 58 fails
+(15 hard / 43 soft) → **61 (16 hard / 45 soft)**, and the result now reports
+`1 inaccessible usable space` ×2, `level 0 not connected` and `level 1 not
+connected`. The count went **up because the objective got honest**: those
+failures were always true of the layout, and the old model could not see them.
+Every harbor number before §39.7 was measured against a connectivity graph that
+credited routes through store cupboards.
+
+This sharpens §38.2 rather than competing with it. The objective already pays
+×60–85 to delete circulation; until now the corridors it deleted were not
+missed, because consulting rooms and storage stood in for them. With that
+substitution gone, `homemaker-py-2v1` (connectivity priced at ×0.5 against a ×6
+circulation→habitable value gap) is the remaining half of the same problem —
+and now measurable, because the fails it should be preventing actually fire.

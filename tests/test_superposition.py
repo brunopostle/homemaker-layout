@@ -10,6 +10,7 @@ plus the default-OFF guarantee.
 
 import pytest
 
+from _helpers import with_usage
 from homemaker_layout import dom, geometry, programme
 from homemaker_layout.dom import Node, _link_subtree
 from homemaker_layout.fitness import Fitness
@@ -120,10 +121,10 @@ def test_interchange_veto_breaks_transitive_chain():
 
 
 def test_interchange_veto_parsed_from_config():
-    conf = {"spaces": {
+    conf = {"spaces": with_usage({
         "den": {"size": [9.0, 1.0]},
         "guest": {"size": [12.0, 1.0], "interchange": False},
-    }}
+    })}
     reqs = programme._parse_spaces(conf)
     assert reqs["den"].interchange is True
     assert reqs["guest"].interchange is False
@@ -202,12 +203,12 @@ def _two_leaf_root(t_left: str, t_right: str, side: float = 6.0, div: float = 0.
 def _bedroom_conf(superpose=True):
     return {
         "superpose": superpose,
-        "spaces": {
+        "spaces": with_usage({
             "b1": {"size": [16.0, 4.0], "width": [4.0, 1.0],
                    "proportion": [1.5, 0.5], "count": 1},
             "b2": {"size": [12.0, 3.0], "width": [3.5, 0.8],
                    "proportion": [1.5, 0.5], "count": 1},
-        },
+        }),
     }
 
 
@@ -230,7 +231,7 @@ def test_collapse_relabels_to_demand_set():
 def test_collapse_is_noop_without_a_class():
     # only one real code -> no interchange class -> collapse must not touch types
     conf = {"superpose": True,
-            "spaces": {"b1": {"size": [16.0, 4.0], "count": 2}}}
+            "spaces": with_usage({"b1": {"size": [16.0, 4.0], "count": 2}})}
     fit = Fitness(conf=conf)
     root = _two_leaf_root("b1", "b1")
     fit.collapse_superposition(root)

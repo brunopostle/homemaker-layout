@@ -17,6 +17,7 @@ from unittest.mock import patch
 
 import pytest
 
+from _helpers import with_usage
 from homemaker_layout import dom as dom_mod
 from homemaker_layout.dom import Node, _link_subtree
 from homemaker_layout.fitness import Fitness, load_config
@@ -69,7 +70,7 @@ def test_collapse_insearch_iters_knob():
 
 def test_evaluate_full_calls_collapse_global_when_on():
     fit = Fitness(conf={"collapse_insearch": True, "collapse_insearch_iters": 2,
-                        "spaces": {"b1": {"size": [16.0, 4.0], "count": 2}}})
+                        "spaces": with_usage({"b1": {"size": [16.0, 4.0], "count": 2}})})
     root = _two_leaf_root("b1", "b1")
     with patch.object(Fitness, "collapse_global", wraps=fit.collapse_global) as m:
         fit.score_with_fails(root)
@@ -82,7 +83,7 @@ def test_evaluate_full_calls_collapse_global_when_on():
 
 
 def test_evaluate_full_does_not_call_collapse_global_when_off():
-    fit = Fitness(conf={"spaces": {"b1": {"size": [16.0, 4.0], "count": 2}}})
+    fit = Fitness(conf={"spaces": with_usage({"b1": {"size": [16.0, 4.0], "count": 2}})})
     root = _two_leaf_root("b1", "b1")
     with patch.object(Fitness, "collapse_global", wraps=fit.collapse_global) as m:
         fit.score_with_fails(root)

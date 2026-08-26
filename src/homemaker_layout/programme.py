@@ -22,6 +22,8 @@ _DEFAULT_PROPORTION = (1.5, 0.5)
 class SpaceReq:
     code: str
     name: str = ""
+    # homemaker-py-sel: access-requirement class; mandatory in patterns.config.
+    usage: str = "none"
     size: float = 0.0  # target floor area, m^2
     size_sigma: float = 1.0
     width: float = _DEFAULT_WIDTH[0]
@@ -77,6 +79,32 @@ def _pair(d: dict, key: str, default: tuple[float, float]) -> tuple[float, float
 # rule can resolve.
 RESERVED_CODES = ("C", "O", "S")
 
+# homemaker-py-sel (DESIGN.md §39.7) — the ACCESS-REQUIREMENT class of a room.
+#
+# Declared per space, mandatory, no fallback. This replaces the old
+# first-character convention (b/t/l/k), under which a room silently inherited
+# another room's connectivity rules from its spelling: `la1` "Laundry Room" was
+# read as a living room, `tr1` "Treatment Room" as a toilet.
+#
+# The vocabulary is CONTROLLED because a value exists if and only if the engine
+# treats it differently somewhere — config selects among behaviours, it cannot
+# invent them. What a room is CALLED stays free text in ``name:``.
+USAGES = ("living", "kitchen", "bedroom", "toilet", "utility", "none")
+
+# Terminal rooms: reachable from circulation or outside, never a route through.
+# ``utility`` shares ``bedroom``'s access requirements today; it is a separate
+# value because it is a genuinely different use and because it gives
+# ``derive_interchange_classes`` an axis to relax on (§39.7 note 1).
+PRIVATE_USAGES = ("bedroom", "utility")
+# What a terminal room's edges are stripped down to in ``graph.has_circulation``.
+PRIVATE_STRIPS = ("living", "kitchen", "bedroom", "toilet", "utility")
+# A toilet keeps its edge to a terminal room (the Brand adjacency, §39.6 note 2)
+# and loses the rest.
+TOILET_STRIPS = ("living", "kitchen", "toilet")
+# Sociable rooms keep their MOST central circulation neighbour; terminal rooms
+# and toilets keep their LEAST central one.
+SOCIABLE_USAGES = ("living", "kitchen")
+
 
 def validate_codes(codes) -> None:
     """Raise ``ValueError`` if a programme code IS a generic structural type.
@@ -98,9 +126,38 @@ def validate_codes(codes) -> None:
     )
 
 
+def validate_usages(spaces: dict) -> None:
+    """Every declared space must carry a known ``usage:``.
+
+    Missing or unrecognised is a load error naming the code, never a silent
+    default — a forgotten key would otherwise hand the room another room's
+    connectivity rules, which is the bug this key exists to remove.
+    """
+    missing = sorted(c for c, spec in spaces.items()
+                     if not (spec or {}).get("usage"))
+    if missing:
+        raise ValueError(
+            f"space(s) {missing} declare no `usage:`. Every room must state its "
+            f"access-requirement class, one of {USAGES}. This replaced the old "
+            "first-character convention, under which a room inherited another "
+            "room's connectivity rules from its spelling. See DESIGN.md §39.7 / "
+            "homemaker-py-sel."
+        )
+    unknown = sorted({(c, (spec or {})["usage"]) for c, spec in spaces.items()
+                      if (spec or {})["usage"] not in USAGES})
+    if unknown:
+        raise ValueError(
+            f"unknown usage value(s) {unknown}; expected one of {USAGES}. The "
+            "vocabulary is closed on purpose: a usage exists only where the "
+            "engine treats it differently, so a new access class means new "
+            "code, not new config. What the room is CALLED belongs in `name:`."
+        )
+
+
 def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
     spaces = conf.get("spaces") or {}
     validate_codes(spaces)
+    validate_usages(spaces)
     out: dict[str, SpaceReq] = {}
     for code, c in spaces.items():
         size = _pair(c, "size", (0.0, 1.0))
@@ -109,6 +166,7 @@ def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
         out[code] = SpaceReq(
             code=code,
             name=c.get("name", ""),
+            usage=c["usage"],
             size=size[0],
             size_sigma=size[1],
             width=width[0],

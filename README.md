@@ -75,18 +75,23 @@ letter: since DESIGN.md §39.4 the generic tests match `C`/`O`/`S` exactly, so
 naming a room `cr1` no longer makes it circulation. (Before that fix it did —
 and silently dropped it from the required-space check entirely.)
 
-**3. Usage prefixes — `b` bedroom, `t` toilet, `l` living, `k` kitchen.**
-Still matched by first letter, deliberately: this is how Urb encodes room usage.
-`graph.has_circulation` deletes graph edges based on them (a "bedroom" loses its
-edges to living/kitchen/bedroom/toilet; a "toilet" loses its edges to
-outside/living/kitchen/toilet), and the access and public-access checks read
-them too.
+**3. Access requirements — the `usage:` attribute.** Every space declares one
+of `living`, `kitchen`, `bedroom`, `toilet`, `utility`, `none`. Mandatory, no
+fallback, and a missing or unknown value is a load error. It replaced a
+first-character convention (`b`/`t`/`l`/`k`) under which a room silently
+inherited another room's connectivity rules from its spelling — `la1` "Laundry
+Room" was trimmed as a living room (DESIGN.md §39.7).
 
-**So a code beginning with `b`/`t`/`l`/`k` inherits that room's connectivity
-rules whether or not you meant it** — `la1` "Laundry Room" is treated as a
-living room, `tr1` "Treatment Room" as a toilet. This is a known wart
-(`homemaker-py-sel`, DESIGN.md §39.6); an explicit `usage:` key is the planned
-fix. Until then, check any new programme with:
+```yaml
+spaces:
+  la1:
+    usage: utility          # controlled, drives engine behaviour
+    name: Laundry Room      # free text, building-specific
+```
+
+A usage value exists only where the engine treats it differently, so the
+vocabulary is closed: a new access class means new code, not new config. Check a
+programme with:
 
 ```bash
 python experiments/audit_programme_config.py

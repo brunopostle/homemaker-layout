@@ -65,10 +65,11 @@ Leaf types share a first character across three namespaces:
   at load.
 - **programme room codes** — lowercase, may start with *any* letter. The generic
   tests match `C`/`O`/`S` exactly, so `cr1` is a room, not circulation.
-- **usage prefixes `b`/`t`/`l`/`k`** — bedroom / toilet / living / kitchen,
-  still matched by first letter *by design*. `graph.has_circulation` strips graph
-  edges from them, so a code beginning with one inherits that room's
-  connectivity rules whether or not intended (`homemaker-py-sel`).
+- **`usage:`** — every space declares its access-requirement class
+  (`living`/`kitchen`/`bedroom`/`toilet`/`utility`/`none`), mandatory, no
+  fallback (DESIGN.md §39.7). A code's spelling decides nothing: `name:` is free
+  text, `usage:` drives behaviour. There is no first-character type test left
+  anywhere in the codebase.
 
 When adding or editing a programme, run
 `python experiments/audit_programme_config.py` — it reports reserved-name

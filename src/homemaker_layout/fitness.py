@@ -28,6 +28,7 @@ import yaml
 
 from . import dom as dom_mod
 from . import geometry
+from . import programme as _programme
 from .dom import Node
 
 FAIL_THRESHOLD = 0.1  # Urb::Dom::Fitness::Base
@@ -295,9 +296,9 @@ def _generic_class(n: Node) -> str:
     ``""`` for a programme room (§39.4).
 
     Replaces the old ``_t0(leaf)`` first-character dispatch in the quality terms
-    and value rate. ``_t0`` is still the right tool for the SEMANTIC prefixes
-    (``k`` kitchen, ``l`` living, …), which classify programme codes; this one
-    is for the generic structural types, which must match exactly. ``S`` (sahn)
+    and value rate. (``_t0`` itself is gone: the SEMANTIC prefixes it served —
+    ``k`` kitchen, ``l`` living, … — became the declared ``usage:`` key in
+    §39.7, so no first-character test remains anywhere.) ``S`` (sahn)
     belongs to both generic sets but takes the outside parameter families, so it
     maps to ``"o"`` — exactly as ``get_space_params`` dispatches it.
     """
@@ -306,11 +307,6 @@ def _generic_class(n: Node) -> str:
     if n.type == "C":
         return "c"
     return ""
-
-
-def _t0(n: Node) -> str:
-    """First char of the type, lowercased ('' if untyped) — Urb's /^x/i tests."""
-    return n.type[0].lower() if n.type else ""
 
 
 def _height(n: Node) -> float:
@@ -405,6 +401,21 @@ class Fitness:
         # would silently delete a whole fail category.
         self._crinkliness_floor = float(
             self.conf("crinkliness_floor") or 0.01)
+
+    def usages(self) -> dict[str, str]:
+        """``{room code: usage}`` for this programme (homemaker-py-sel).
+
+        Keyed by CODE, never stamped on a leaf: a retype changes the code and
+        the usage follows automatically, exactly as size/width/adjacency do.
+        Generic ``C``/``O``/``S`` are absent — they are not programme rooms and
+        their behaviour comes from the generic type rule (§39.4).
+        """
+        return {code: req.usage for code, req in (self._programme or {}).items()}
+
+    def usage_of(self, leaf: Node) -> str:
+        """Access-requirement class of one leaf, ``""`` for a generic type."""
+        req = (self._programme or {}).get(leaf.type)
+        return req.usage if req else ""
 
     # ------------------------------------------------------------------ #
     # Type superposition + collapse (homemaker-py-9o5)
@@ -899,8 +910,9 @@ class Fitness:
                 nbs = list(G.neighbors(lf))
                 if any(nb.type == "C" for nb in nbs):
                     continue  # circulation neighbour keeps access invariant
+                usages = self.usages()
                 for nb in nbs:
-                    if nb.type in room_codes and nb.type[0].lower() in ("l", "k"):
+                    if usages.get(nb.type) in _programme.SOCIABLE_USAGES:
                         pins.add(id(nb))
                         break
         return pins
@@ -1169,11 +1181,12 @@ class Fitness:
     def access(self, leaf: Node, G: nx.Graph) -> list[str]:
         """Useful circulation/access neighbour types; ``Urb::Dom::Access``."""
         types = self.neighbour_types(leaf, G)
-        if _t0(leaf) == "k":
-            # "l" is the SEMANTIC living-room prefix (a programme code); C/S are
-            # generic circulation. Two different namespaces, two different tests.
+        if self.usage_of(leaf) == "kitchen":
+            # a kitchen is served by circulation OR by a living space (§39.7)
+            usages = self.usages()
             return [t for t in types
-                    if t in dom_mod.GENERIC_CIRCULATION or t[:1].lower() == "l"]
+                    if t in dom_mod.GENERIC_CIRCULATION
+                    or usages.get(t) == "living"]
         if dom_mod.is_outside(leaf) or dom_mod.is_circulation(leaf):
             return types
         return [t for t in types if t in dom_mod.GENERIC_CIRCULATION]
@@ -1554,9 +1567,9 @@ class Fitness:
         if self._public_access(leaf, root) is None:
             return False
         for nb in G.neighbors(leaf):
-            # "l"/"k" are SEMANTIC programme-code prefixes; C is a generic
-            # circulation leaf. Two namespaces, two tests (§39.4).
-            if nb.type == "C" or (nb.type and nb.type[0].lower() in ("l", "k")):
+            # C is a generic circulation leaf; living/kitchen are DECLARED
+            # usages of programme rooms (§39.7). Two namespaces, two tests.
+            if nb.type == "C" or self.usage_of(nb) in _programme.SOCIABLE_USAGES:
                 return True
         return False
 
@@ -1860,7 +1873,7 @@ class Fitness:
 
         self.preprocess_building(root)
         _, graph_circ_pre = graph_mod.build_graphs_with_circ(
-            root, self.conf("door_width") or 1.2, failures.append
+            root, self.conf("door_width") or 1.2, failures.append, self.usages()
         )
 
         graph_base_pre = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
@@ -1878,7 +1891,7 @@ class Fitness:
         geometry.clear_cache()  # mirror Perl Merge_Divided → Clean_Cache
 
         _, graph_circ = graph_mod.build_graphs_with_circ(
-            root, self.conf("door_width") or 1.2, failures.append
+            root, self.conf("door_width") or 1.2, failures.append, self.usages()
         )
         graph_base = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
 
@@ -1925,7 +1938,7 @@ class Fitness:
 
     def _load_programme(self, conf: dict) -> None:
         """Populate ``_programme_cache`` from spaces section of conf dict."""
-        from .programme import SpaceReq, validate_codes
+        from .programme import SpaceReq, validate_codes, validate_usages
         _DW = (4.0, 1.0)
         _DP = (1.5, 0.5)
         spaces = conf.get("spaces") or {}
@@ -1937,6 +1950,7 @@ class Fitness:
         # independently of programme._parse_spaces, so validating in only one
         # of the two would leave the other door open.
         validate_codes(spaces)
+        validate_usages(spaces)
         reqs: dict = {}
         for code, c in spaces.items():
             sz = c.get("size") or [0.0, 1.0]
@@ -1944,6 +1958,7 @@ class Fitness:
             pr = c.get("proportion") or _DP
             reqs[code] = SpaceReq(
                 code=code,
+                usage=c["usage"],
                 name=c.get("name", ""),
                 size=float(sz[0]),
                 size_sigma=float(sz[1]),

@@ -91,7 +91,7 @@ def _native_evaluate(src: Path):
     check_f, missing = graph_mod.check_space_counts(root, programme)
     failures.extend(check_f)
     fit.preprocess_building(root)
-    _, gcpre = graph_mod.build_graphs_with_circ(root, fit.conf("door_width") or 1.2, failures.append)
+    _, gcpre = graph_mod.build_graphs_with_circ(root, fit.conf("door_width") or 1.2, failures.append, fit.usages())
     gbpre = graph_mod.build_graphs(root, fit.conf("door_width") or 1.2)
     failures.extend(graph_mod.check_adjacency(root, programme, gbpre, missing))
     failures.extend(graph_mod.check_level_constraints(root, programme, missing))
@@ -99,7 +99,7 @@ def _native_evaluate(src: Path):
 
     dom.merge_divided(root)
     geometry.clear_cache()
-    _, gc = graph_mod.build_graphs_with_circ(root, fit.conf("door_width") or 1.2, failures.append)
+    _, gc = graph_mod.build_graphs_with_circ(root, fit.conf("door_width") or 1.2, failures.append, fit.usages())
     gb = graph_mod.build_graphs(root, fit.conf("door_width") or 1.2)
 
     cost_v = fit.plot_cost(root)

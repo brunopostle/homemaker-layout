@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from _helpers import with_usage
 from homemaker_layout import dom, geometry, graph, operators, programme
 from homemaker_layout.dom import Node, _link_subtree
 from homemaker_layout.fitness import Fitness, gaussian
@@ -117,10 +118,10 @@ def test_undeclared_pair_is_never_valid_even_if_interchangeable():
 
 
 def test_co_locate_parsed_from_config():
-    conf = {"spaces": {
+    conf = {"spaces": with_usage({
         "den": {"size": [9.0, 1.0], "co_locate": ["guest"]},
         "guest": {"size": [12.0, 1.0]},
-    }}
+    })}
     reqs = programme._parse_spaces(conf)
     assert reqs["den"].co_locate == ["guest"]
     assert reqs["guest"].co_locate == []
@@ -255,7 +256,7 @@ def _multi_use_conf(pair=True):
     }
     if pair:
         spaces["x"]["co_locate"] = ["y"]
-    return {"multi_use": True, "spaces": spaces}
+    return {"multi_use": True, "spaces": with_usage(spaces)}
 
 
 def test_quality_size_combines_both_codes_area_additively():
@@ -341,14 +342,14 @@ def test_load_config_multi_use_override_merges_last(tmp_path):
     from homemaker_layout.fitness import load_config
 
     (tmp_path / "patterns.config").write_text(
-        yaml.safe_dump({"spaces": {"x": {"size": [10.0, 1.0]}}}))
+        yaml.safe_dump({"spaces": with_usage({"x": {"size": [10.0, 1.0]}})}))
 
     conf, _ = load_config(tmp_path)
     assert "multi_use" not in conf
 
     conf2, _ = load_config(tmp_path, overrides={"multi_use": True})
     assert conf2["multi_use"] is True
-    assert conf2["spaces"]["x"] == {"size": [10.0, 1.0]}
+    assert conf2["spaces"]["x"] == with_usage({"x": {"size": [10.0, 1.0]}})["x"]
 
 
 # --------------------------------------------------------------------------- #

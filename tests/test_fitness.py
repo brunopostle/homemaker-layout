@@ -2,6 +2,7 @@
 
 import pytest
 
+from _helpers import with_usage
 from homemaker_layout import dom, geometry
 from homemaker_layout.dom import Node
 from homemaker_layout.fitness import (
@@ -101,7 +102,7 @@ def test_get_space_params_inside_falls_back_to_inside_defaults():
 
 
 def test_get_space_params_named_space_overrides_default():
-    f = Fitness(conf={"spaces": {"k1": {"size": [20.0, 4.0]}}})
+    f = Fitness(conf={"spaces": with_usage({"k1": {"size": [20.0, 4.0]}})})
     assert f.get_space_params("k1", "size") == [20.0, 4.0]
 
 
@@ -348,14 +349,14 @@ def test_load_config_overrides_merge_last(tmp_path):
     from homemaker_layout.fitness import load_config
 
     (tmp_path / "patterns.config").write_text(
-        yaml.safe_dump({"spaces": {"b": {"size": [12.0, 1.0]}}}))
+        yaml.safe_dump({"spaces": with_usage({"b": {"size": [12.0, 1.0]}})}))
 
     conf, _ = load_config(tmp_path)
     assert "leaf_sharing" not in conf  # absent on disk
 
     conf2, _ = load_config(tmp_path, overrides={"leaf_sharing": True})
     assert conf2["leaf_sharing"] is True
-    assert conf2["spaces"]["b"] == {"size": [12.0, 1.0]}  # disk content preserved
+    assert conf2["spaces"]["b"] == with_usage({"b": {"size": [12.0, 1.0]}})["b"]
 
     # None / empty overrides are a no-op (default-OFF parity).
     assert "leaf_sharing" not in load_config(tmp_path, overrides=None)[0]
@@ -370,10 +371,10 @@ def test_programme_parses_per_code_share(tmp_path):
     from homemaker_layout.programme import load_programme
 
     p = tmp_path / "patterns.config"
-    p.write_text(yaml.safe_dump({"spaces": {
+    p.write_text(yaml.safe_dump({"spaces": with_usage({
         "b": {"size": [12.0, 1.0], "share": 3},
         "k": {"size": [20.0, 1.0]},            # no share key
-    }}))
+    })}))
     reqs = load_programme(str(p))
     assert reqs["b"].share == 3 and reqs["b"].has_share is True
     assert reqs["k"].share == 1 and reqs["k"].has_share is False
