@@ -999,3 +999,27 @@ def test_repair_circulation_reconnects_every_storey():
     on_ok, on_tot = levels_connected(True)
     assert on_ok == on_tot, f"repair left {on_tot - on_ok} storeys disconnected"
     assert on_ok > off_ok, f"repair did not help: {off_ok}/{off_tot} -> {on_ok}/{on_tot}"
+
+
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+def test_preserve_circulation_default_off_reproduces_prior_seeds():
+    """§39.10 measured NULL, so the default must stay byte-identical."""
+    from homemaker_layout import geometry, programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+    kw = dict(min_storeys=programme.storey_minimum(str(HARBOR)),
+              adjacency_aware=True, proportion_aware=True, circ_divisor=3)
+
+    def sig(**extra):
+        geometry.clear_cache()
+        root = operators.constructive_topology(
+            seed, reqs, np.random.default_rng(5), types, **kw, **extra)
+        geometry.clear_cache()
+        return tuple((lf.type, round(geometry.area(lf), 6))
+                     for lvl in dom.levels(root) for lf in lvl.leaves())
+
+    assert sig() == sig(preserve_circulation=False)
+    # ...and it does change something when enabled, or the A/B measured nothing
+    assert sig() != sig(preserve_circulation=True)

@@ -316,6 +316,7 @@ def search(
     shapecurve_prune: bool = False,
     assign_solver: str = "greedy",
     enable_reassign: bool = False,
+    preserve_circulation: bool = False,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -630,7 +631,8 @@ def search(
                 depth_balanced=depth_balanced,
                 interior_outside=interior_outside, outside_divisor=outside_divisor,
                 construction_beam_width=construction_beam_width,
-                multi_use=multi_use, assign_solver=assign_solver)
+                multi_use=multi_use, assign_solver=assign_solver,
+                preserve_circulation=preserve_circulation)
             return (topo, None, child_budget, {}, f"construct/{tag}")
         n = int(rng.integers(max(1, n_target - 1), n_target + 2))
         return (random_topology(seed_root, n, rng, types), None, child_budget,

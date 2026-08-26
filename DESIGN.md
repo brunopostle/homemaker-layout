@@ -5577,3 +5577,70 @@ constraint on an existing solve rather than a new repair pass. Filed as
 `min_width_generic` (default 1.2) to stop generic leaves collapsing to slivers
 — the same idea applied to a leaf's WIDTH rather than to a shared BOUNDARY
 between two specific leaves, so the new constraint may belong beside it.
+
+### 39.10 Preserving constructed connectivity through the resize (`homemaker-py-3z0`) — NULL, and it reframes §39.9
+
+§39.9 established that `_size_divisions_from_targets` destroys the connected
+circulation the seeder builds, and named the upstream fix: keep the connection
+*during* the resize rather than rebuilding it after. Built and measured. **It
+does not help, and the reason matters more than the lever.**
+
+**Both halves of the re-cut do damage, in different proportions per programme.**
+The resize changes each node's ratio *and* re-picks its rotation. Freezing the
+rotations and letting only the ratios move (12 seeds, % of levels connected):
+
+| programme | no resize | ratio only | full resize |
+|---|---|---|---|
+| harbor-house | 100% | 71% | 50% |
+| health-centre | 100% | **8%** | 8% |
+| maple-court | 100% | 92% | 67% |
+
+health-centre is destroyed entirely by the ratio; maple-court mostly by the
+rotation. So any fix has to be able to give back either.
+
+**`operators._size_divisions_preserving_circulation`** snapshots every cut,
+resizes, then reverts the cuts on the tree path between each
+circulation-to-circulation pair the resize broke. It keeps the programme
+completely intact — no retyping, no displacement, only geometry given back —
+and it works on connectivity:
+
+| programme | connected, OFF | ON | fails OFF → ON | hard OFF → ON |
+|---|---|---|---|---|
+| harbor-house | 50% | **92%** | 96.6 → **141.5** | 46.0 → 65.1 |
+| health-centre | 8% | 17% | 62.8 → **76.9** | 24.2 → 25.8 |
+| maple-court | 67% | **97%** | 141.8 → **175.8** | 57.4 → 70.9 |
+
+(A first attempt reverted greedily — whichever single cut most reduced the
+component count — and barely moved: it stalls on the plateau where no *one*
+revert helps though two would. Targeting the specific broken pairs is what
+made connectivity work.)
+
+Reverting a cut gives back that subtree's area accuracy, and size failures
+roughly double on harbor-house (5.2 → 11.4). The obvious defence is that these
+are raw constructed seeds and the inner loop has not run yet — the resize exists
+to *warm-start* the ratio optimiser, so a worse warm start might cost nothing
+once it converges. **Tested, and the defence fails.** Full search, harbor-house,
+12 000 evals, seed 1, both arms:
+
+| | fails | hard | soft | connectivity |
+|---|---|---|---|---|
+| `preserve_circulation` OFF | **43** | **9** | 34 | **3** |
+| `preserve_circulation` ON | 65 | 26 | 39 | 4 |
+
+Worse on every axis — including connectivity itself, the thing it was built to
+fix.
+
+**The reframing.** §39.9's finding stands as a fact (the resize really does
+destroy 41 of 49 circulation edges) but is **not actionable, because
+construction-time connectivity is not what determines final connectivity**. The
+search reaches 43 fails with 3 connectivity fails starting from a 50%-connected
+seed; forcing the seed to 92% connected yields 65 fails and 4 connectivity
+fails. The seeder's circulation topology is not the bottleneck — the search
+discards and rebuilds it either way, and constraining the seed only spends area
+quality the search then cannot recover.
+
+That also retires the framing this whole thread inherited from §38: connectivity
+was never a construction problem *or* an incentive problem (§39.8). Both flags
+(`repair_circulation`, `preserve_circulation`) stay default off with these
+numbers recorded. **Do not revisit either without a new formulation** — the same
+standing this document gives `bubble.py`.

@@ -876,6 +876,129 @@ def _size_divisions_from_targets(lvl: dom.Node, reqs, fmin: float = 0.04,
     geometry.clear_cache()
 
 
+def _circ_components(lvl: dom.Node) -> int:
+    """Number of connected components among this storey's circulation leaves."""
+    import networkx as nx
+
+    from . import geometry as _geo, graph as _graph
+
+    _geo.clear_cache()
+    G = _geo.leaf_graph(lvl, _graph.DOOR_WIDTH)
+    circ = [x for x in G.nodes() if dom.is_circulation(x)]
+    if not circ:
+        return 0
+    return nx.number_connected_components(G.subgraph(circ))
+
+
+def _circ_edges(lvl: dom.Node) -> list[tuple]:
+    """Circulation-to-circulation adjacencies on this storey, as leaf pairs."""
+    from . import geometry as _geo, graph as _graph
+
+    _geo.clear_cache()
+    G = _geo.leaf_graph(lvl, _graph.DOOR_WIDTH)
+    return [(a, b) for a, b in G.edges()
+            if dom.is_circulation(a) and dom.is_circulation(b)]
+
+
+def _circ_edge_absent(lvl: dom.Node, a: dom.Node, b: dom.Node) -> bool:
+    from . import geometry as _geo, graph as _graph
+
+    _geo.clear_cache()
+    G = _geo.leaf_graph(lvl, _graph.DOOR_WIDTH)
+    return not (G.has_node(a) and G.has_node(b) and G.has_edge(a, b))
+
+
+def _size_divisions_preserving_circulation(lvl: dom.Node, reqs,
+                                           max_reverts: int = 12, **kw) -> int:
+    """Resize toward the programme's area targets WITHOUT severing circulation.
+
+    homemaker-py-3z0 (DESIGN.md §39.10). ``_assign_adjacency_aware`` picks
+    circulation as a CONNECTED dominating set, then
+    ``_size_divisions_from_targets`` re-cuts every node — new ratio *and* new
+    rotation — and the shared boundaries the dominating set relied on shrink
+    below ``door_width`` or vanish. Measured (§39.9): fully-connected constructed
+    seeds 1/20, 1/20, 0/20 across the corpus, against 100% with the resize
+    skipped entirely. Both halves of the re-cut do damage, in different
+    proportions per programme — on health-centre it is entirely the ratio, on
+    maple-court mostly the rotation — so a fix has to be able to give back
+    either.
+
+    Rather than rebuild the connection afterwards by retyping rooms to ``C``
+    (measured a net loss — it displaces required rooms at a 3-5 fail cascade
+    each, §39.9), this gives back the *geometry* and keeps the programme intact:
+    snapshot every cut, resize, then greedily revert whichever single cut most
+    reduces the circulation component count until the storey is connected again.
+    Reverting a cut costs only the area-target accuracy of that one subtree, and
+    the inner loop optimises ratios anyway — nothing is displaced and no label
+    changes.
+
+    Returns the number of cuts reverted.
+    """
+    from . import geometry as _geo
+
+    nodes = []
+
+    def _walk(node: dom.Node) -> None:
+        if node.divided:
+            nodes.append(node)
+            _walk(node.left)
+            _walk(node.right)
+
+    _walk(lvl)
+    before = {id(x): (x.rotation, list(x.division) if x.division else None)
+              for x in nodes}
+    _pre_circ_edges = _circ_edges(lvl)
+
+    _size_divisions_from_targets(lvl, reqs, **kw)
+
+    if _circ_components(lvl) <= 1:
+        _geo.clear_cache()
+        return 0
+
+    # Which circulation pairs were adjacent BEFORE the re-cut and are not now?
+    # Those are the connections the resize broke, and the cuts that govern each
+    # are exactly the ones between the two leaves — so revert those, rather than
+    # hunting for a single cut that happens to reduce the component count. A
+    # plain greedy gets stuck: often no ONE revert helps even though two would.
+    def _paths_between(a: dom.Node, b: dom.Node) -> list[dom.Node]:
+        """Divided nodes on the tree path joining two leaves (via their LCA)."""
+        def _chain(x: dom.Node) -> list[dom.Node]:
+            out = []
+            while x is not None:
+                out.append(x)
+                x = x.parent
+            return out
+        ca, cb = _chain(a), _chain(b)
+        common = set(map(id, cb))
+        lca = next((x for x in ca if id(x) in common), None)
+        if lca is None:
+            return []
+        seen, out = set(), []
+        for chain in (ca, cb):
+            for x in chain:
+                if x.divided and id(x) not in seen:
+                    out.append(x)
+                    seen.add(id(x))
+                if x is lca:
+                    break
+        return out
+
+    broken = [(a, b) for a, b in _pre_circ_edges
+              if _circ_edge_absent(lvl, a, b)]
+    reverted = 0
+    for a, b in broken:
+        if _circ_components(lvl) <= 1 or reverted >= max_reverts:
+            break
+        for node in _paths_between(a, b):
+            rot, div = before.get(id(node), (None, None))
+            if div is None or (node.rotation == rot and node.division == div):
+                continue
+            node.rotation, node.division = rot, list(div)
+            reverted += 1
+    _geo.clear_cache()
+    return reverted
+
+
 def _grow_balanced(node: dom.Node, code: str, k: int) -> None:
     """Turn ``node`` (a leaf) into a balanced binary subtree of ``k`` leaves, all
     typed ``code``. Split ratio/rotation are placeholders ([0.5,0.5], rot 0);
@@ -1282,7 +1405,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           construction_beam_width: int = 1,
                           multi_use: bool = False,
                           assign_solver: str = "greedy",
-                          repair_circulation: bool = False) -> dom.Node:
+                          repair_circulation: bool = False,
+                          preserve_circulation: bool = False) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
 
     The §11.0 diagnosis: random divide+retype chains leave required programme
@@ -1387,9 +1511,10 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             leaf_co = _leaf_colocate_from_plan(lvl, colocate_plan, reqs) if multi_use else {}
             leaf_extra = {lf: reqs[co].size for lf, co in leaf_co.items()
                           if co in reqs and reqs[co].size > 0}
-            _size_divisions_from_targets(
-                lvl, reqs, leaf_mult=_leaf_mult_from_plan(lvl, share_plan),
-                leaf_extra=leaf_extra)
+            _resize = (_size_divisions_preserving_circulation if preserve_circulation
+                       else _size_divisions_from_targets)
+            _resize(lvl, reqs, leaf_mult=_leaf_mult_from_plan(lvl, share_plan),
+                    leaf_extra=leaf_extra)
             if adjacency_aware and assign_solver == "cpsat":
                 _cpsat_relabel_settled(lvl, reqs)
             if repair_circulation:
