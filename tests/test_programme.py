@@ -4,32 +4,52 @@ from pathlib import Path
 
 import pytest
 
-from homemaker_layout import fitness, programme
+from homemaker_layout import dom, fitness, programme
 
 # --------------------------------------------------------------------------- #
 # homemaker-py-ju3 / DESIGN.md §39.2 — reserved generic type prefixes
 # --------------------------------------------------------------------------- #
-def test_validate_codes_accepts_non_reserved_prefixes():
-    programme.validate_codes(["b1", "k1", "t3", "la1", "me1", "n", "fr1", "ao"])
+def test_validate_codes_accepts_codes_that_merely_start_with_c_o_s():
+    """§39.4: the generic-type tests match C/O/S EXACTLY, so a programme code
+    may start with any letter. This used to raise — that was the bug, not the
+    rule."""
+    programme.validate_codes(["cr1", "of", "st1", "st2", "b1", "k1", "la1"])
 
 
-@pytest.mark.parametrize("code", ["cr1", "of", "st1", "C", "O", "s2"])
-def test_validate_codes_rejects_reserved_prefixes(code):
-    """A colliding code must fail LOUDLY: silently reinterpreting it as a
-    generic type is the whole bug (§39.2)."""
-    with pytest.raises(ValueError, match="reserved generic type prefixes"):
+@pytest.mark.parametrize("code", ["C", "O", "S"])
+def test_validate_codes_rejects_exact_generic_types(code):
+    """A code spelled exactly like a generic structural type is a genuine
+    ambiguity no matching rule can resolve, so it still fails loudly."""
+    with pytest.raises(ValueError, match="generic structural types"):
         programme.validate_codes([code])
 
 
-def test_reserved_prefix_rejected_by_both_parse_paths():
+def test_exact_generic_rejected_by_both_parse_paths():
     """programme._parse_spaces and fitness.Fitness._load_programme parse
     conf["spaces"] independently — validating only one would leave the other
     door open."""
-    conf = {"spaces": {"cr1": {"size": [80.0, 10.0]}}}
-    with pytest.raises(ValueError, match="reserved generic type prefixes"):
+    conf = {"spaces": {"C": {"size": [80.0, 10.0]}}}
+    with pytest.raises(ValueError, match="generic structural types"):
         programme._parse_spaces(conf)
-    with pytest.raises(ValueError, match="reserved generic type prefixes"):
+    with pytest.raises(ValueError, match="generic structural types"):
         fitness.Fitness(conf=conf)
+
+
+def test_colliding_code_is_a_full_requirement_not_a_generic():
+    """The §39.2 damage in one assertion: a c-prefixed code must keep its
+    declared targets and stay in the required set."""
+    conf = {"spaces": {"cr1": {"size": [80.0, 10.0], "width": [6.0, 1.5],
+                               "proportion": [2.0, 0.5], "count": 1}}}
+    fit = fitness.Fitness(conf=conf)
+    assert fit.get_space_params("cr1", "size") == [80.0, 10.0]
+    assert fit.get_space_params("cr1", "width") == [6.0, 1.5]
+    assert not dom.is_generic("cr1")
+    assert not dom.is_circulation(dom.Node(type="cr1"))
+    assert not dom.is_outside(dom.Node(type="of"))
+    # ...while the genuine generics still classify as before
+    assert dom.is_circulation(dom.Node(type="C"))
+    assert dom.is_outside(dom.Node(type="O"))
+    assert dom.is_outside(dom.Node(type="S")) and dom.is_circulation(dom.Node(type="S"))
 
 
 def test_semantic_but_unreserved_prefixes_are_allowed():
@@ -48,3 +68,61 @@ def test_corpus_programmes_are_namespace_clean():
     for d in sorted(Path("examples").iterdir()):
         if (d / "patterns.config").is_file():
             programme.load_programme_dir(str(d))
+
+
+def test_scoring_is_invariant_under_programme_code_spelling(tmp_path):
+    """§39.4's headline invariant: renaming a programme code must not change
+    what a layout scores.
+
+    Builds one layout from harbor-house (whose codes ``cr1``/``of``/``st1``/
+    ``st2`` all begin with a reserved generic letter), then relabels that exact
+    tree AND its config together and re-scores. Same geometry, same topology,
+    only the spelling differs — so any difference is the generic-type rule
+    leaking into the programme namespace, which is the bug this guards.
+    """
+    import copy
+    import re
+    import shutil
+
+    import numpy as np
+
+    from homemaker_layout import driver, operators
+
+    rename = {"cr1": "fr1", "of": "ao", "st1": "gs1", "st2": "gs2"}
+    src = Path("examples/harbor-house")
+    shutil.copytree(src, tmp_path / "hh")
+    cfg = tmp_path / "hh" / "patterns.config"
+    text = cfg.read_text()
+    for old, new in rename.items():
+        text = re.sub(rf"^(  ){re.escape(old)}:$", rf"\g<1>{new}:", text, flags=re.M)
+    cfg.write_text(text)
+
+    def evaluator(directory):
+        overrides = driver._overrides_for(True, False, None, False, True, False)
+        conf, cost = fitness.load_config(str(directory), overrides=dict(overrides or {}))
+        return fitness.Fitness(conf, cost)
+
+    def relabel(root):
+        for lvl in dom.levels(root):
+            for leaf in lvl.leaves():
+                leaf.type = rename.get(leaf.type, leaf.type)
+                leaf.share_type = rename.get(leaf.share_type, leaf.share_type)
+        return root
+
+    reqs = programme.load_programme_dir(str(src))
+    before, after = evaluator(src), evaluator(tmp_path / "hh")
+    for seed in range(3):
+        root = operators.constructive_topology(
+            dom.load(str(src / "init.dom")), reqs, np.random.default_rng(seed),
+            sorted(reqs) + ["C", "O"],
+            min_storeys=programme.storey_minimum(str(src)),
+            adjacency_aware=True, proportion_aware=True, circ_divisor=3,
+            leaf_sharing=True, leaf_share_factor=3, depth_balanced=True,
+            interior_outside=True, outside_divisor=3)
+        score_a, fails_a = before.score_with_fails(copy.deepcopy(root))
+        score_b, fails_b = after.score_with_fails(relabel(copy.deepcopy(root)))
+        normalised = tuple(sorted(
+            re.sub(r"\b(%s)\b" % "|".join(rename), lambda m: rename[m.group(1)], f)
+            for f in fails_a))
+        assert f"{score_a:.12g}" == f"{score_b:.12g}", f"seed {seed}: score differs"
+        assert normalised == tuple(sorted(fails_b)), f"seed {seed}: fails differ"

@@ -25,7 +25,7 @@ from __future__ import annotations
 import networkx as nx
 
 from . import dom, geometry
-from .dom import Node, levels
+from .dom import Node, is_generic, levels
 from .programme import SpaceReq
 
 DOOR_WIDTH = 1.2  # Urb::Dom::Fitness::Base default_params door_width
@@ -126,7 +126,8 @@ def has_circulation(G: nx.Graph) -> bool:
             continue
         to_remove = [
             nb for nb in list(G.neighbors(v))
-            if nb.type and nb.type[0].lower() in ("o", "l", "k", "t")
+            if (nb.type in dom.GENERIC_OUTSIDE
+                or (nb.type and nb.type[0].lower() in ("l", "k", "t")))
         ]
         G.remove_edges_from((v, nb) for nb in to_remove)
 
@@ -154,7 +155,10 @@ def has_circulation(G: nx.Graph) -> bool:
 
     # blkc nodes: keep only one outdoor neighbour per outdoor component
     for v in list(G.nodes()):
-        if not (v.type and v.type[0].lower() in ("b", "l", "k", "c")):
+        # b/l/k are SEMANTIC programme-code prefixes; the fourth member is
+        # generic circulation, so it takes the generic test (§39.4).
+        if not ((v.type and v.type[0].lower() in ("b", "l", "k"))
+                or dom.is_circulation(v)):
             continue
         out_nbs = [
             nb for nb in list(G.neighbors(v))
@@ -364,7 +368,7 @@ def stack_corners_in_use(
     Returns [] if the stack does not span all levels above leaf, or if any
     level's node is not circulation type.
     """
-    if not (leaf.type and leaf.type[0].lower() == "c"):
+    if leaf.type != "C":
         return []
 
     stack = [leaf] + _stack_levels_above(leaf)
@@ -376,7 +380,7 @@ def stack_corners_in_use(
         return []
 
     # All stack nodes must be circulation
-    if not all(n.type and n.type[0].lower() == "c" for n in stack):
+    if not all(n.type == "C" for n in stack):
         return []
 
     leaf_rot = _ground_rotation(leaf)
@@ -409,8 +413,37 @@ def _level_index(n: Node, lvls: list[Node]) -> int:
 # Adjacency helpers
 # --------------------------------------------------------------------------- #
 
-def _codes_match_prefix(codes: list[str], tc: str) -> bool:
+def _codes_match_prefix(codes: list[str], tc) -> bool:
+    """Match a neighbour's codes against an adjacency target.
+
+    ``tc`` is either a lowercase prefix string (ordinary programme requirement,
+    Perl's ``^target_code`` semantics — a requirement ``t`` matches ``t1``,
+    ``t2``, …) or, for a GENERIC requirement, the exact set of generic types it
+    names (see :func:`_adjacency_target`).
+    """
+    if isinstance(tc, frozenset):
+        return any(c in tc for c in codes)
     return any(c.lower().startswith(tc) for c in codes)
+
+
+def _adjacency_target(target_code: str):
+    """Resolve one ``adjacency:`` entry to a matcher.
+
+    §39.4: programmes name the generic types in lowercase (``adjacency: [c, o]``
+    — every corpus programme does this), and a case-insensitive PREFIX match
+    then let any programme code beginning with that letter satisfy the
+    requirement: a room next to ``cr1`` "Common Room" counted as being next to
+    circulation. A generic requirement now matches only the generic types it
+    names; every other requirement keeps Perl's prefix semantics.
+    """
+    tc = target_code.lower()
+    if tc == "c":
+        return frozenset(dom.GENERIC_CIRCULATION)
+    if tc == "o":
+        return frozenset(("O",))
+    if tc == "s":
+        return frozenset(("S",))
+    return tc
 
 
 def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
@@ -429,7 +462,7 @@ def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
         node = node.parent
     if node is None:
         return False
-    tc = target_code.lower()
+    tc = _adjacency_target(target_code)
     for nb in G.neighbors(node):
         if _codes_match_prefix(leaf_codes(nb, colocate_pairs, multi_use), tc):
             return True
@@ -453,7 +486,7 @@ def has_vertical_connection(leaf: Node, target_code: str, lvls: list[Node],
     if li == 0:
         return False
     below_root = lvls[li - 1]
-    tc = target_code.lower()
+    tc = _adjacency_target(target_code)
     return any(_codes_match_prefix(leaf_codes(bl, colocate_pairs, multi_use), tc)
                for bl in below_root.leaves())
 
@@ -527,7 +560,12 @@ def check_space_counts(
     missing: list[str] = []
 
     for code, req in targets.items():
-        if code[0].lower() in ("c", "o", "s"):
+        # §39.4: skip only Urb's GENERIC structural types. This used to test
+        # code[0].lower(), which silently dropped any programme code beginning
+        # with c/o/s from the required set -- 14% of harbor-house. Generic types
+        # are never declared in ``spaces`` anyway, so this is now a no-op guard
+        # kept for intent rather than a filter that discards real requirements.
+        if is_generic(code):
             continue
 
         leaves_of = count.get(code, [])
@@ -722,7 +760,7 @@ def substrate_readiness(
 
     core_leaves = [
         lf for lf in base_leaves
-        if lf.type and lf.type[0].lower() == "c" and geometry.area(lf) >= STAIR_MIN_AREA
+        if lf.type == "C" and geometry.area(lf) >= STAIR_MIN_AREA
     ]
     core_factor = 1.0 if core_leaves else 0.25
     core_area = max((geometry.area(lf) for lf in core_leaves), default=0.0)

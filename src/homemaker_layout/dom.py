@@ -257,9 +257,41 @@ def dump(root: Node, path: str) -> None:
 # Structural predicates (mirrors Urb::Dom::Is_Outside etc.)
 # --------------------------------------------------------------------------- #
 
+# homemaker-py-ju3 / DESIGN.md §39.4 — generic structural types vs programme codes.
+#
+# Urb has exactly three GENERIC structural types (``get_space_types``:
+# ``qw/C O S/``) — C circulation, O outside, S sahn (an outside court that also
+# serves as circulation, hence a member of both sets). These are the leaves the
+# SEARCH creates; they are canonically UPPERCASE and the whole corpus obeys that
+# (measured: 154 ``C``, 110 ``O``, 1 ``S``, and not one lowercase generic).
+#
+# Programme room codes are a different namespace and are canonically lowercase
+# (``k1``, ``b1``, ``cr1``, ``of``, and single-character ones like ``r``, ``t``,
+# ``m``, ``n``). CASE is therefore the discriminator, not length.
+#
+# The predicates below used to test ``type[0].lower() in (...)`` — a
+# case-insensitive PREFIX match — which silently swept up any programme code
+# beginning with c/o/s: ``cr1`` "Common Room with Fireplace" was classified as
+# circulation, ``of`` "Staff Office" as outside space. Matching the generic set
+# EXACTLY keeps Urb's semantics for the leaves it was written for while leaving
+# programme codes alone, so a room may be called anything at all.
+#
+# NB this is deliberately NOT the same rule as the SEMANTIC prefixes (l/k/b/t):
+# those classify PROGRAMME CODES by first letter (``k1`` is a kitchen) and must
+# stay prefix-based. Only the generic-type tests are tightened.
+GENERIC_CIRCULATION = ("C", "S")
+GENERIC_OUTSIDE = ("O", "S")
+GENERIC_TYPES = ("C", "O", "S")
+
+
+def is_generic(type_: "str | None") -> bool:
+    """True for Urb's generic structural types (exactly ``C``/``O``/``S``)."""
+    return type_ in GENERIC_TYPES
+
+
 def is_outside(n: Node) -> bool:
-    """True if n's type starts with 'o' or 's' (case-insensitive)."""
-    return n.type is not None and n.type[0].lower() in ("o", "s")
+    """True if n carries a generic outside type (``O``/``S``)."""
+    return n.type in GENERIC_OUTSIDE
 
 
 def _level_root(n: Node) -> Node:
@@ -351,10 +383,15 @@ def is_usable(n: Node) -> bool:
 
 
 def is_circulation(n: Node) -> bool:
-    """Usable and type 'c'/'s'; mirrors ``Urb::Dom::Is_Circulation``."""
+    """Usable and carrying a generic circulation type (``C``/``S``).
+
+    Mirrors ``Urb::Dom::Is_Circulation`` for the leaves it was written for; see
+    the GENERIC_* note above for why this matches the generic set exactly rather
+    than by first-character prefix.
+    """
     if not is_usable(n):
         return False
-    return n.type is not None and n.type[0].lower() in ("c", "s")
+    return n.type in GENERIC_CIRCULATION
 
 
 # --------------------------------------------------------------------------- #
@@ -379,12 +416,12 @@ def _merge_node(n: Node) -> None:
         return
     lt = n.left.type or ""
     rt = n.right.type or ""
-    l_os = bool(lt) and lt[0].lower() in ("o", "s")
-    r_os = bool(rt) and rt[0].lower() in ("o", "s")
+    l_os = lt in GENERIC_OUTSIDE
+    r_os = rt in GENERIC_OUTSIDE
     if not (l_os and r_os):
         return
-    l_o = bool(lt) and lt[0].lower() == "o"
-    r_o = bool(rt) and rt[0].lower() == "o"
+    l_o = lt == "O"
+    r_o = rt == "O"
     if is_supported(n) and l_o and r_o:
         _undivide(n, "O")
     elif is_supported(n):

@@ -513,6 +513,16 @@ def test_construction_assign_cpsat_yields_valid_seed():
         canonical(root)
 
 
+@pytest.mark.xfail(
+    reason="§39.5: this win was measured against harbor's pre-§39.4 EFFECTIVE "
+           "programme, which silently dropped cr1/of/st1/st2 (14% of the rooms). "
+           "With those restored the aggregate flips (measured greedy 102 / cpsat "
+           "114 over 6 seeds; it was 98/99 -- a tie -- on the 32-instance "
+           "programme). Not a regression in the solver: on namespace-clean "
+           "maple-court cpsat still wins, which the companion test asserts. "
+           "Both assign_solver flags remain default off (§37.7).",
+    strict=False,
+)
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
 def test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency():
     # homemaker-py-2g7.5: CP-SAT solves the same room-labelling decision the
@@ -894,3 +904,37 @@ def test_mutate_bridge_circulation_prefers_free_leaf_over_required_room():
     lvl0 = dom.levels(child)[0]
     assert lvl0.by_id("lr").type == "C"
     assert lvl0.by_id("rl").type == "b1"
+
+
+@pytest.mark.skipif(not (HARBOR.parent / "maple-court").is_dir(),
+                    reason="maple-court not available")
+def test_assign_cpsat_beats_greedy_on_a_namespace_clean_programme():
+    """§39.5 companion: CP-SAT's seeder-level advantage is intact on a
+    programme whose codes never collided with the generic type prefixes.
+
+    This is what shows the §39.4 tightening did not regress the solver — the
+    harbor result above moved because harbor's programme changed (4 codes it had
+    been silently dropping came back), not because assignment got worse.
+    """
+    import copy
+
+    from homemaker_layout import fitness, programme
+
+    maple = HARBOR.parent / "maple-court"
+    reqs = programme.load_programme_dir(str(maple))
+    conf, cost = fitness.load_config(str(maple))
+    fit = fitness.Fitness(conf, cost)
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(maple / "init.dom"))
+
+    def secondary_fails(solver: str) -> int:
+        total = 0
+        for trial in range(6):
+            root = operators.constructive_topology(
+                seed, reqs, np.random.default_rng(trial), types,
+                assign_solver=solver)
+            _, fails = fit.score_with_fails(copy.deepcopy(root))
+            total += sum(1 for f in fails if "not adjacent to" in f)
+        return total
+
+    assert secondary_fails("cpsat") < secondary_fails("greedy")

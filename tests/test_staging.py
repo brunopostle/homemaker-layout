@@ -25,7 +25,9 @@ def reqs():
 
 
 def _required_counts(reqs):
-    return {c: r.count for c, r in reqs.items() if c[0].lower() not in "cos"}
+    # §39.4: every declared code is a real requirement — a programme code
+    # starting with c/o/s is no longer swallowed by the generic-type rule.
+    return {c: r.count for c, r in reqs.items() if not dom.is_generic(c)}
 
 
 def test_n_storeys_required(reqs):

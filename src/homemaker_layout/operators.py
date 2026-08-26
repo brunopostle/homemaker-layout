@@ -97,9 +97,9 @@ def mutate_undivide(root: dom.Node, rng: np.random.Generator,
     if not cands:
         return _finalise(child), "undivide noop"
     li, n = _pick_weighted_by_storey(rng, cands, base_p)
-    # generic classes (circulation/outside/sahn) match case-insensitively,
-    # cf. Urb Is_Circulation/Is_Outside
-    keep = [t for t in (n.left.type, n.right.type) if t and t[0].lower() not in "cos"]
+    # prefer a PROGRAMME room type over a generic (circulation/outside/sahn)
+    # one when collapsing two children into one leaf (§39.4)
+    keep = [t for t in (n.left.type, n.right.type) if t and not dom.is_generic(t)]
     n.type = keep[0] if keep else (n.left.type or str(_pick(rng, types)))
     n.division = None
     n.left = n.right = None
@@ -295,7 +295,7 @@ def mutate_level_compound_fix(root: dom.Node, rng: np.random.Generator,
 
 def _programme_codes(reqs) -> dict:
     """Required programme spaces only (drop generic circulation/outside/sahn)."""
-    return {c: r for c, r in reqs.items() if c[0].lower() not in "cos"}
+    return {c: r for c, r in reqs.items() if not dom.is_generic(c)}
 
 
 def mutate_place_missing(root: dom.Node, rng: np.random.Generator,
@@ -407,7 +407,7 @@ def mutate_bridge_circulation(root: dom.Node, rng: np.random.Generator,
             return 0
         if not n.type:
             return 1
-        if n.type[0].lower() == "o":
+        if n.type in dom.GENERIC_OUTSIDE:
             return 0
         if reqs and n.type in reqs:
             return 5
@@ -543,7 +543,7 @@ def mutate_deslim(root: dom.Node, rng: np.random.Generator,
         survivor = n.left
     else:
         survivor = max((n.left, n.right), key=_geo.area)
-    n.type = survivor.type if survivor.type and survivor.type[0].lower() not in "cos" else "C"
+    n.type = survivor.type if not dom.is_generic(survivor.type) and survivor.type else "C"
     n.division = None
     n.left = n.right = None
     return _finalise(child), f"deslim {li}/{n.id or 'root'} (kept {n.type})"
@@ -1360,7 +1360,7 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
     base.above = None  # start from the single-storey base only
 
     base_cs = [lf for lf in base.leaves()
-               if lf.type and lf.type[0].lower() == "c"]
+               if lf.type == "C"]
     core_path = max(base_cs, key=_geo.area).id if base_cs else None
     colocate_pairs = _prog.derive_colocate_pairs(reqs) if multi_use and reqs else []
 
@@ -1509,7 +1509,7 @@ def mutate_ruin_recreate(root: dom.Node, rng: np.random.Generator,
     wing_leaves = set(wing.leaves())
     border_circ = sorted(
         {nb for lf in wing_leaves for nb in G.neighbors(lf)
-         if nb not in wing_leaves and nb.type and nb.type[0].lower() == "c"},
+         if nb not in wing_leaves and nb.type == "C"},
         key=lambda n: n.id or "")
 
     rooms = [lf.type for lf in wing.leaves() if lf.type in reqs]
@@ -1737,7 +1737,7 @@ def mutate_core_undivide(root: dom.Node, rng: np.random.Generator,
         if node is None or not node.divided:
             continue
         keep = [t for t in (node.left.type, node.right.type)
-                if t and t[0].lower() not in "cos"]
+                if t and not dom.is_generic(t)]
         node.type = keep[0] if keep else (node.left.type or str(_pick(rng, types)))
         node.division = None
         node.left = node.right = None

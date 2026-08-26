@@ -5156,62 +5156,114 @@ document was measured against a **32-instance effective programme, not the
 harbor-house (§13.9, §13.11, §17, §20, §23, §37.1, §37.7) are internally
 consistent but are not measuring the programme as written.
 
-### 39.3 What shipped — loud validation + harbor rename, re-baselined
+### 39.3 What shipped — tighten the matching rule at the source
 
-**The `class:` key was NOT built, deliberately.** Auditing every use of the
-prefix rule first showed it runs far deeper than `c`/`o`/`s`: `l`/`k`/`b`/`t`
-carry real adjacency semantics too (`graph.py` builds bedroom↔toilet and
-kitchen↔living relations from first characters, `fitness.py` gates access and
-public-entrance checks on them). Re-plumbing that into a declared type system
-would invalidate the entire corpus and every baseline in this document, for a
-problem whose actual damage is the **silence**, not the prefix convention.
+A first pass took the cheaper route from the bead's design: refuse a colliding
+programme code at load, and rename harbor's four. **That has been superseded and
+the rename reverted** — `cr1`, `of`, `st1`, `st2` are back. The right fix was to
+tighten the matching rule so a room may be called anything at all.
 
-Two facts made the smaller fix clearly sufficient:
+**The rule.** Urb has exactly three GENERIC structural types
+(`get_space_types`: `qw/C O S/`) — the leaves the *search* creates. Measured
+across the whole corpus: **154 `C`, 110 `O`, 1 `S`, and not one lowercase
+generic**, while every programme code is lowercase — including single-character
+ones (`r`, `t`, `m`, `n`). So **case is the discriminator, not length**, and the
+two namespaces are cleanly separable. Every generic test used to be
+`type[0].lower() in (...)` — a case-insensitive *prefix* — which swept up any
+programme code starting with those letters. They now match the generic set
+exactly.
 
-1. **No corpus programme has ever declared a bare `c`/`o`/`s` code** (checked
-   across all ten `examples/*/patterns.config`). So `check_space_counts`'
-   skip never protected a legitimate case — generic types are not in `spaces`
-   at all — and could only ever discard a declared room.
-2. **Nothing references the four harbor codes** in any `adjacency:` or
-   `co_locate:` list, so renaming them is local.
+Crucially this is **not** applied to the SEMANTIC prefixes. `l`/`k`/`b`/`t`
+classify *programme codes* by first letter (`k1` is a kitchen; `graph.py` builds
+bedroom↔toilet and kitchen↔living relations from them) and stay prefix-based.
+Only the generic-type tests were tightened — 30 sites across `dom.py`,
+`fitness.py`, `graph.py`, `operators.py`, `programme.py`, `shapecurve.py` and
+`bubble.py`. Where the two namespaces were mixed in one expression they were
+split: `has_circulation`'s `("b","l","k","c")` is now three semantic prefixes
+*plus* `dom.is_circulation`, and `access()`'s `("l","c","s")` is the semantic
+`l` *plus* the generic circulation set.
 
-Shipped instead:
+New in `dom.py`: `GENERIC_CIRCULATION`/`GENERIC_OUTSIDE`/`GENERIC_TYPES` and
+`is_generic()`. New in `fitness.py`: `_generic_class()`, which replaces the
+`_t0()` first-character dispatch in `quality_size`/`quality_width`/
+`quality_proportion`/`value_rate` — the four terms that mattered most, and the
+ones a first sweep missed because they dispatch through a `t0` variable rather
+than an inline test.
 
-- **`programme.validate_codes`** (new, `RESERVED_PREFIXES = ("c", "o", "s")`)
-  raises with the full explanation and a pointer here. Called from **both**
-  parse paths — `programme._parse_spaces` *and*
-  `fitness.Fitness._load_programme`, which parse `conf["spaces"]`
-  independently, so validating only one would leave the other door open.
-  `l`/`k`/`b`/`t` are explicitly **not** reserved: they flavour heuristics but
-  never discard a requirement.
-- **harbor-house / harbor-house-l0 renamed**: `cr1`→`fr1`, `of`→`ao`,
-  `st1`→`gs1`, `st2`→`gs2`. Each new prefix is unused in harbor *and*
-  semantically neutral (`f`/`a`/`g` carry no adjacency meaning, unlike
-  `l`/`k`/`b`/`t`), and the two storage codes still share one prefix, so the
-  prefix-sharing structure `fitness.evaluate_building`'s per-code plot-ratio
-  term depends on is preserved. `name:` fields are unchanged.
-- **`experiments/migrate_ju3_rename.py`** rewrites `type:` lines in `.dom`
-  files produced before the rename (`--check` to dry-run). Any pre-rename
-  artefact — notably the `evolved-3M*.dom` harbor runs — **must** be migrated
-  or its affected leaves will read as unmatched generics.
+Two subtleties worth recording:
 
-**Re-baseline** (`homemaker-evolve init.dom --budget 20000 --workers 4
---seed 1`, same seed/budget/settings as §38's run, so the two are directly
-comparable):
+- **`S` is in both generic sets but takes the OUTSIDE parameter families.** The
+  original dispatch was `c0 == "c"` then `c0 in ("o", "s")`, so sahn fell to
+  outside. A first translation tested circulation first and silently gave `S`
+  the circulation params; `test_get_space_params_sahn_proportion` caught it.
+- **Generic adjacency references are lowercase in `patterns.config`** — every
+  corpus programme writes `adjacency: [c, o]`. `graph._adjacency_target` resolves
+  those to the generic set while leaving every other requirement on Perl's
+  prefix semantics (a requirement `t` still matches `t1`, `t2`, …). Previously a
+  room next to `cr1` "Common Room" counted as being next to circulation.
 
-| | effective programme | total fails | `fr1` area (declared 80) | `ao`/`gs1`/`gs2` |
+`programme.validate_codes` survives but is narrowed to what is still a genuine
+ambiguity: a code spelled **exactly** `C`, `O` or `S`. Codes merely starting
+with those letters are now fine — that was the bug, not the rule.
+
+**The invariant, asserted as a test.**
+`test_scoring_is_invariant_under_programme_code_spelling` builds one harbor
+layout, then relabels that exact tree *and* its config together and re-scores:
+same geometry, same topology, only the spelling differs. Bit-identical across
+12 comparisons (6 seeds × in-search collapse on/off). Renaming a room can no
+longer change what a layout scores.
+
+### 39.4 Re-baseline
+
+`homemaker-evolve init.dom --budget 20000 --workers 4 --seed 1` — same seed,
+budget and settings as §38's run, so the two are directly comparable. Harbor
+keeps its **original** code names throughout; only the matching rule changed.
+
+| | effective programme | fails | `cr1` (declared 80) | `of` ×2 / `st1` / `st2` |
 |---|---|---|---|---|
-| before | 32 instances | 57 | **32.9 and 17.1** (two leaves, `count: 1`, no too-many fail) | **absent, zero fails** |
-| after | **37 instances** | **55** (13 hard / 42 soft) | **87.2** | **all present: 14.2, 11.5, 24.6, 18.7** |
+| before §39 | 32 instances | 57 | **32.9 and 17.1** (two leaves against `count: 1`, and no too-many fail) | **absent, zero fails** |
+| after §39.3 | **37 instances** | 58 (15 hard / 43 soft) | **79.1** | **12.2, 11.0 / 22.5 / 20.1** |
 
-Every one of the five previously-lost room instances is now placed and sized
-inside its declared sigma band (`fr1` 80±10, `ao` 12.5±2.5, `gs1` 22±4,
-`gs2` 18±3.5), and **no failure in the result mentions any of the four codes**.
-The fail count did not rise despite the programme being 5 instances harder —
-though at one seed each, 57 vs 55 is within noise and the honest claim is
-"did not regress", not "improved". The robust result is the room placement.
+Every one of the five previously-lost room instances is placed and sized inside
+its declared sigma band, and exactly one failure in the whole result mentions
+any of the four codes (an adjacency miss on one office). The common room is
+within 1 m² of its brief, having previously converged to a fifth of it.
 
-**Historical numbers.** Every harbor-house fail count recorded before this
-section was measured against the 32-instance effective programme. They remain
-valid relative to each other but are not comparable to post-`ju3` numbers;
-treat §39.3's 55 as the new harbor reference point.
+Fail count 57 → 58 on a programme that is 5 instances harder: at one seed each
+that is within noise, and the honest claim is **"did not regress"**, not
+"improved". The robust result is the room placement. (An intermediate
+measurement taken with the codes renamed rather than the rule tightened gave 55
+on the same seed — the same picture.)
+
+**Historical numbers.** Every harbor-house fail count recorded before §39 was
+measured against the 32-instance effective programme. They remain valid relative
+to each other but are not comparable to post-§39.3 numbers; treat 58 as the new
+harbor reference point at this budget.
+
+### 39.5 Fallout: `2g7.5`'s CP-SAT seeder win does not survive the correction
+
+`§37.7` recorded a real, low-noise seeder-level win for `assign_solver="cpsat"`
+on harbor-house, guarded by
+`test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency`. That test now
+fails, and the cause is the corrected programme, not the solver. Measured over
+6 seeds:
+
+| programme | greedy | cpsat | |
+|---|---|---|---|
+| harbor, real 37-instance | 102 | 114 | cpsat loses |
+| harbor, old 32-instance effective | 98 | 99 | tie — the "win" was already marginal |
+| maple-court (namespace-clean, untouched by §39) | 156 | **144** | **cpsat wins** |
+
+maple-court is the control: CP-SAT's advantage is intact on a programme whose
+codes never collided, so nothing about the assignment solver regressed. On
+harbor the four restored codes — with real adjacency requirements that were
+previously dropped — change the assignment problem enough to flip an aggregate
+that was a tie to begin with. The harbor test is marked `xfail` with this
+reason and a companion test asserts the maple-court result; both
+`assign_solver` flags remain default off, as `§37.7` already concluded for
+independent reasons.
+
+The general lesson: **any harbor-house A/B decided by a small margin before §39
+was decided against a programme missing 14% of its rooms** and is worth
+re-checking if anything depends on it.
+

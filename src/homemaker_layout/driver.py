@@ -611,7 +611,7 @@ def search(
     # A fresh seed individual (used for the initial bootstrap and for §11.5
     # restart injections). Mirrors the construction order: custom seed_factory >
     # programme-aware construction > random divide-grown topology.
-    prog = {c: r for c, r in reqs.items() if c[0].lower() not in "cos"}
+    prog = {c: r for c, r in reqs.items() if not dom.is_generic(c)}
     n_target = bootstrap_n_leaves or max(len(reqs), 3)
 
     def _make_seed_task(tag: str) -> tuple:

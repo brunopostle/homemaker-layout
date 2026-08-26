@@ -155,7 +155,12 @@ def leaf_constraints(fit, leaf: dom_mod.Node) -> LeafBounds:
     hard bounds instead of evaluating a Gaussian against actual geometry.
     Ignores leaf-sharing/co_type target adjustment (see module docstring).
     """
-    t0 = leaf.type[0].lower() if leaf.type else ""
+    # §39.4: classify by the GENERIC type set, mirroring get_space_params --
+    # a programme code takes its declared params whatever letter it starts with.
+    # S is in both generic sets but takes the outside params, exactly as
+    # get_space_params does -- test outside FIRST so S lands there.
+    t0 = ("o" if leaf.type in dom_mod.GENERIC_OUTSIDE
+          else "c" if leaf.type == "C" else "")
 
     # --- size -> (amin, amax) ---
     if t0 in ("o", "s"):

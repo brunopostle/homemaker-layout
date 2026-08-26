@@ -73,7 +73,7 @@ def requirement_graph(reqs: dict[str, SpaceReq]) -> nx.Graph:
 
     instances: dict[str, list[str]] = {}
     for code, req in reqs.items():
-        if code[0].lower() in ("c", "o", "s"):
+        if dom.is_generic(code):
             continue
         ids = []
         for i in range(req.count):
@@ -83,7 +83,7 @@ def requirement_graph(reqs: dict[str, SpaceReq]) -> nx.Graph:
         instances[code] = ids
 
     for code, req in reqs.items():
-        if code[0].lower() in ("c", "o", "s") or code not in instances:
+        if dom.is_generic(code) or code not in instances:
             continue
         for node_id in instances[code]:
             for adj_code in req.adjacency:
@@ -236,7 +236,7 @@ def matched_leaves(root: Node, reqs: dict[str, SpaceReq]) -> dict[str, Node]:
     by_code: dict[str, list[Node]] = {}
     for lvl in levels(root):
         for leaf in lvl.leaves():
-            if not leaf.type or leaf.type[0].lower() in ("c", "o", "s"):
+            if not leaf.type or dom.is_generic(leaf.type):
                 continue
             by_code.setdefault(leaf.type, []).append(leaf)
 
@@ -245,7 +245,7 @@ def matched_leaves(root: Node, reqs: dict[str, SpaceReq]) -> dict[str, Node]:
 
     result: dict[str, Node] = {}
     for code, req in reqs.items():
-        if code[0].lower() in ("c", "o", "s"):
+        if dom.is_generic(code):
             continue
         leaves = by_code.get(code, [])
         for i in range(min(req.count, len(leaves))):

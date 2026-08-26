@@ -1,7 +1,8 @@
 """Parse a ``patterns.config`` programme into per-code space requirements.
 
-Only the ``spaces:`` section is read here. Generic codes (c/o/s) carry no
-explicit targets and are left unconstrained by the solver (they absorb slack).
+Only the ``spaces:`` section is read here. The generic structural types
+(``C``/``O``/``S``) carry no explicit targets and are left unconstrained by the
+solver (they absorb slack); they are never declared in ``spaces:``.
 """
 
 from __future__ import annotations
@@ -9,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import yaml
+
+from .dom import GENERIC_TYPES, is_generic
 
 # Urb::Dom::Fitness defaults for optional params (ProgrammeDriven.default_params).
 _DEFAULT_WIDTH = (4.0, 1.0)
@@ -59,44 +62,39 @@ def _pair(d: dict, key: str, default: tuple[float, float]) -> tuple[float, float
     return float(v[0]), float(v[1])
 
 
-# homemaker-py-ju3 (DESIGN.md §39.2): Urb's type system is prefix-based — a
-# leaf type starting with "c" is circulation, "o"/"s" is outside — and
-# programme room codes share that namespace. A code starting with one of these
-# letters is silently reinterpreted as a generic type, with three unannounced
-# consequences: ``graph.check_space_counts`` skips it entirely (so the room is
-# never required), ``Fitness.get_space_params`` returns the generic
-# ``*_circulation``/``*_outside`` parameters instead of the declared ones, and
-# ``dom.is_circulation``/``is_outside`` flip (changing value rate, crinkliness
-# treatment, and whether the leaf supplies daylight to neighbours).
+# homemaker-py-ju3 (DESIGN.md §39.4): Urb has exactly three GENERIC structural
+# types — ``C`` circulation, ``O`` outside, ``S`` sahn — which are the leaves the
+# SEARCH creates, canonically uppercase. Programme room codes are a separate,
+# lowercase namespace.
 #
-# harbor-house shipped four such codes for years — ``cr1`` "Common Room with
-# Fireplace" had its declared 80 m² read as circulation's 0-30 m², and 14% of
-# the programme was silently optional. Refusing the code at load turns a silent
-# misread into a loud one. The other prefixes with semantics (l/k/b/t) are NOT
-# reserved: they only flavour adjacency heuristics and never discard a
-# requirement, so programme codes may use them freely.
-RESERVED_PREFIXES = ("c", "o", "s")
+# These used to overlap: every generic test matched ``type[0].lower()``, a
+# case-insensitive PREFIX, so a programme code beginning with c/o/s was silently
+# reinterpreted as a generic type (harbor-house's ``cr1`` "Common Room with
+# Fireplace" was read as circulation, and 14% of the programme became optional).
+# That is fixed at the source — see the GENERIC_* note in ``dom.py`` — so a room
+# code may now start with ANY letter. The only remaining collision is a code
+# spelled EXACTLY like a generic type, which is a genuine ambiguity no matching
+# rule can resolve.
+RESERVED_CODES = ("C", "O", "S")
 
 
 def validate_codes(codes) -> None:
-    """Raise ``ValueError`` if any programme code collides with a generic type.
+    """Raise ``ValueError`` if a programme code IS a generic structural type.
 
-    Called from both parse paths (``_parse_spaces`` and
-    ``fitness.Fitness._load_programme``) so a colliding code cannot enter the
-    system through either door.
+    Only exact matches are rejected. Codes merely *starting* with c/o/s are fine
+    (§39.4) — that used to be the bug, not the rule. Called from both parse paths
+    (``_parse_spaces`` and ``fitness.Fitness._load_programme``), which read
+    ``conf["spaces"]`` independently.
     """
-    bad = sorted(c for c in codes if c and c[0].lower() in RESERVED_PREFIXES)
+    bad = sorted(c for c in codes if c in RESERVED_CODES)
     if not bad:
         return
     raise ValueError(
-        "programme code(s) collide with Urb's reserved generic type prefixes "
-        f"{RESERVED_PREFIXES} (c=circulation, o/s=outside): {bad}. "
-        "Such a code is silently treated as a generic type: it is dropped from "
-        "the required-space check, its declared size/width/proportion are "
-        "replaced by the generic circulation/outside parameters, and it is "
-        "valued at the circulation/outside rate. Rename the code to start with "
-        "another letter (the name: field is free text and need not change). "
-        "See DESIGN.md §39.2 / homemaker-py-ju3."
+        f"programme code(s) {bad} are Urb's generic structural types "
+        f"{RESERVED_CODES} (C=circulation, O=outside, S=sahn). These name the "
+        "leaves the search itself creates, so a programme room cannot also be "
+        "called one. Rename the room code (the name: field is free text and "
+        "need not change). See DESIGN.md §39.4 / homemaker-py-ju3."
     )
 
 
@@ -172,7 +170,7 @@ def interchangeable(a: SpaceReq, b: SpaceReq) -> bool:
     # S1 — both sized; generic circulation/outside never participate.
     if not (a.has_size and b.has_size) or a.size <= 0 or b.size <= 0:
         return False
-    if a.code[0].lower() in ("c", "o", "s") or b.code[0].lower() in ("c", "o", "s"):
+    if is_generic(a.code) or is_generic(b.code):
         return False
     # S2 — requirement similarity within bounded ratios (ALL three).
     if _ratio(a.size, b.size) > R_SIZE:
@@ -295,7 +293,7 @@ def partition_rooms_by_storey(
 
     free: list[str] = []
     for code, req in reqs.items():
-        if code[0].lower() in ("c", "o", "s"):
+        if is_generic(code):
             continue
         for _ in range(req.count):
             if req.level is not None and req.level < n_storeys:
@@ -343,7 +341,9 @@ def write_stage1_programme(
         adj = spec.get("adjacency")
         if adj is not None:
             spec["adjacency"] = [
-                r for r in adj if r in keep or r[0].lower() in ("c", "o", "s")
+                # generic adjacency references (lowercase "c"/"o"/"s" in
+                # patterns.config) always survive the stage-1 filter (§39.4)
+                r for r in adj if r in keep or r.upper() in GENERIC_TYPES
             ]
         new_spaces[code] = spec
 

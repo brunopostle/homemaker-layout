@@ -290,6 +290,24 @@ class StoreyEval:
     leaves: list[LeafEval] = field(default_factory=list)
 
 
+def _generic_class(n: Node) -> str:
+    """Generic-type class of a leaf: ``"c"`` circulation, ``"o"`` outside, or
+    ``""`` for a programme room (§39.4).
+
+    Replaces the old ``_t0(leaf)`` first-character dispatch in the quality terms
+    and value rate. ``_t0`` is still the right tool for the SEMANTIC prefixes
+    (``k`` kitchen, ``l`` living, …), which classify programme codes; this one
+    is for the generic structural types, which must match exactly. ``S`` (sahn)
+    belongs to both generic sets but takes the outside parameter families, so it
+    maps to ``"o"`` — exactly as ``get_space_params`` dispatches it.
+    """
+    if n.type in dom_mod.GENERIC_OUTSIDE:
+        return "o"
+    if n.type == "C":
+        return "c"
+    return ""
+
+
 def _t0(n: Node) -> str:
     """First char of the type, lowercased ('' if untyped) — Urb's /^x/i tests."""
     return n.type[0].lower() if n.type else ""
@@ -756,7 +774,7 @@ class Fitness:
         prog = self._programme or {}
         if not prog:
             return
-        room_codes = {c for c in prog if c[0].lower() not in ("c", "o", "s")}
+        room_codes = {c for c in prog if not dom_mod.is_generic(c)}
         if not room_codes:
             return
         lvls = dom_mod.levels(root)
@@ -866,8 +884,7 @@ class Fitness:
         for lvl in lvls:
             for lf in lvl.leaves():
                 if (
-                    lf.type
-                    and lf.type[0].lower() == "c"
+                    lf.type == "C"
                     and self._public_access(lf, root) is not None
                 ):
                     return set()
@@ -880,7 +897,7 @@ class Fitness:
                 if not self._public_access_outside(lf, G, root):
                     continue
                 nbs = list(G.neighbors(lf))
-                if any(nb.type and nb.type[0].lower() == "c" for nb in nbs):
+                if any(nb.type == "C" for nb in nbs):
                     continue  # circulation neighbour keeps access invariant
                 for nb in nbs:
                     if nb.type in room_codes and nb.type[0].lower() in ("l", "k"):
@@ -942,7 +959,7 @@ class Fitness:
             return
         for lvl in dom_mod.levels(root):
             for leaf in lvl.leaves():
-                if _t0(leaf) == "s":
+                if leaf.type == "S":
                     leaf.type = "O"
 
     # ------------------------------------------------------------------ #
@@ -950,12 +967,18 @@ class Fitness:
     # ------------------------------------------------------------------ #
 
     def get_space_params(self, code: str, param: str) -> list[float]:
-        c0 = code[0].lower() if code else ""
-        if c0 == "c":
+        # §39.4: only the GENERIC types take the circulation/outside parameter
+        # families. A programme code is looked up in ``spaces`` regardless of
+        # what letter it happens to start with.
+        # NB S (sahn) is a member of BOTH generic sets, and the parameter
+        # families split it the outside way: the circulation branch is exactly
+        # C, and S takes the *_outside params (preserved from the original
+        # c0 == "c" / c0 in ("o", "s") dispatch).
+        if code == "C":
             v = self.conf(f"{param}_circulation")
             if v is not None:
                 return v
-        if c0 in ("o", "s"):
+        if code in dom_mod.GENERIC_OUTSIDE:
             v = self.conf(f"{param}_outside")
             if v is not None:
                 return v
@@ -991,7 +1014,7 @@ class Fitness:
         return score
 
     def quality_proportion(self, leaf: Node) -> float:
-        t0 = _t0(leaf)
+        t0 = _generic_class(leaf)
         if t0 in ("o", "s"):
             params = self.conf("proportion_outside")
         elif t0 == "c":
@@ -1014,7 +1037,7 @@ class Fitness:
         return _clipped_gaussian(aspect, params[0], params[1], "below")
 
     def quality_size(self, leaf: Node) -> float:
-        t0 = _t0(leaf)
+        t0 = _generic_class(leaf)
         if t0 in ("o", "s"):
             return 1.0
         if t0 == "c":
@@ -1047,7 +1070,7 @@ class Fitness:
         return gaussian(geometry.area(leaf), 1.0, target, sigma)
 
     def quality_width(self, leaf: Node) -> float:
-        t0 = _t0(leaf)
+        t0 = _generic_class(leaf)
         if (
             t0 in ("o", "s")
             and not dom_mod.is_covered(leaf)
@@ -1147,10 +1170,13 @@ class Fitness:
         """Useful circulation/access neighbour types; ``Urb::Dom::Access``."""
         types = self.neighbour_types(leaf, G)
         if _t0(leaf) == "k":
-            return [t for t in types if t and t[0].lower() in ("l", "c", "s")]
+            # "l" is the SEMANTIC living-room prefix (a programme code); C/S are
+            # generic circulation. Two different namespaces, two different tests.
+            return [t for t in types
+                    if t in dom_mod.GENERIC_CIRCULATION or t[:1].lower() == "l"]
         if dom_mod.is_outside(leaf) or dom_mod.is_circulation(leaf):
             return types
-        return [t for t in types if t and t[0].lower() in ("c", "s")]
+        return [t for t in types if t in dom_mod.GENERIC_CIRCULATION]
 
     # ------------------------------------------------------------------ #
     # Leaf evaluation (Leaf.pm::evaluate_leaf)
@@ -1217,7 +1243,7 @@ class Fitness:
     # ------------------------------------------------------------------ #
 
     def value_rate(self, leaf: Node) -> float:
-        t0 = _t0(leaf)
+        t0 = _generic_class(leaf)
         if t0 in ("o", "s") and dom_mod.level_of(leaf) == 0:
             return self.conf("value_outside")
         if t0 in ("o", "s"):
@@ -1406,13 +1432,23 @@ class Fitness:
 
     def ratio_o(self, ratios: dict[str, float]) -> float:
         """Outside/sahn proportion gaussian; mirrors ``ProgrammeDriven::ratio_o``."""
-        proportion_o = sum(v for k, v in ratios.items() if k and k[0].lower() in ("o", "s"))
+        proportion_o = sum(v for k, v in ratios.items() if k in dom_mod.GENERIC_OUTSIDE)
         return gaussian(proportion_o, 1.0, *self.conf("ratio_outside"))
 
     def ratio_type(self, ratios: dict[str, float], code: str, ratio: float, sigma: float) -> float:
         """Type-class proportion gaussian; mirrors ``ProgrammeDriven::ratio_type``."""
-        proportion_type = sum(v for k, v in ratios.items() if k and k[0].lower() == code[0].lower())
-        proportion_non_o = 1.0 - sum(v for k, v in ratios.items() if k and k[0].lower() in ("o", "s"))
+        # §39.4: a generic code ("c" — the only caller) sums the GENERIC
+        # circulation types, not every type whose name starts with a "c". Under
+        # the old prefix rule a programme code like cr1 "Common Room" counted
+        # its whole floor area toward the building's circulation ratio.
+        if dom_mod.is_generic(code.upper()):
+            match = frozenset(dom_mod.GENERIC_CIRCULATION if code.lower() == "c"
+                              else (code.upper(),))
+            proportion_type = sum(v for k, v in ratios.items() if k in match)
+        else:
+            proportion_type = sum(
+                v for k, v in ratios.items() if k and k[0].lower() == code[0].lower())
+        proportion_non_o = 1.0 - sum(v for k, v in ratios.items() if k in dom_mod.GENERIC_OUTSIDE)
         if proportion_non_o <= 0.0:
             proportion_non_o = 1.0
         return gaussian(proportion_type / proportion_non_o, 1.0, ratio, sigma)
@@ -1489,7 +1525,7 @@ class Fitness:
         for other in level_root.leaves():
             if other is stair_leaf:
                 continue
-            if not other.type or other.type[0].lower() != "c":
+            if other.type != "C":
                 continue
             other_corners = graph_mod.stack_corners_in_use(other, graph_circ, all_lvls)
             if dom_mod.is_covered(other) and other_corners:
@@ -1497,14 +1533,14 @@ class Fitness:
             if self._public_access(other, root) is not None:
                 return None
             for nb in G.neighbors(other):
-                if nb.type and nb.type[0].lower() == "o" and self._public_access(nb, root) is not None:
+                if nb.type == "O" and self._public_access(nb, root) is not None:
                     return None
         # If the stair itself has via-outdoor access (Entrances priority 3.5), Perl's
         # Entrances maps it to a leaf id, not a boundary id.  Boundary_Id(edge) eq
         # leaf_id never matches → no entrance corners added.  Return None here so
         # Python matches that behaviour.
         for nb in G.neighbors(stair_leaf):
-            if nb.type and nb.type[0].lower() == "o" and self._public_access(nb, root) is not None:
+            if nb.type == "O" and self._public_access(nb, root) is not None:
                 return None
         return stair_bid
 
@@ -1611,7 +1647,7 @@ class Fitness:
             if graph_circ is not None and tracking is not None and lvls is not None and root is not None:
                 # Stair fit — ground floor circulation/covered only
                 stair_fit = 0.0
-                if level_id == 0 and leaf.type and leaf.type[0].lower() == "c" and dom_mod.is_covered(leaf):
+                if level_id == 0 and leaf.type == "C" and dom_mod.is_covered(leaf):
                     all_lvls = lvls
                     corners = graph_mod.stack_corners_in_use(leaf, graph_circ, all_lvls)
                     n_corners = len(corners)
@@ -1635,7 +1671,7 @@ class Fitness:
                     if self._public_access_outside(leaf, G, root):
                         tracking["has_public_access_outside"] = True
                     if (not stair_fit
-                            and leaf.type and leaf.type[0].lower() == "c"
+                            and leaf.type == "C"
                             and self._public_access(leaf, root) is not None):
                         tracking["has_public_access_inside"] = True
 
@@ -1683,7 +1719,7 @@ class Fitness:
 
         min_required = 0.0
         for req in (self._programme or {}).values():
-            if req.code and req.code[0].lower() in ("c", "o", "s"):
+            if dom_mod.is_generic(req.code):
                 continue
             if req.size > 0:
                 min_required += req.size * req.count
