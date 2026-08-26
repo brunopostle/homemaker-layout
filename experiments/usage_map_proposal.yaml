@@ -1,0 +1,122 @@
+# Proposed `usage:` assignments for every corpus room code (homemaker-py-sel).
+#
+# FOR REVIEW — nothing reads this yet. Once agreed it becomes the input to the
+# migration that writes `usage:` into each `patterns.config`.
+#
+# Usage is an ACCESS-REQUIREMENT class, not a room-name category (Bruno's
+# framing: "library corner and staff room are living rooms as they have the same
+# access requirements"). What each class actually does, in `graph.has_circulation`:
+#
+#   living   keeps its MOST popular circulation neighbour; not stripped from
+#            other rooms, so living spaces may chain to one another.
+#   kitchen  as living, plus `fitness.access` accepts living/circulation.
+#   bedroom  edges to living/kitchen/bedroom/toilet are REMOVED, so it is
+#            reachable only from circulation or outside — a terminal private
+#            room, never a route.
+#   toilet   edges to outside/living/kitchen/toilet removed.
+#   utility  NEW. Terminal, not a route — the same requirement as `bedroom`.
+#            See OPEN QUESTION 1 below.
+#   none     nothing is stripped: the room is fully permeable and the
+#            connectivity graph MAY ROUTE THROUGH IT. Correct only for spaces
+#            that genuinely are part of the circulation system.
+#
+# The `none` semantics are the reason this is a bigger change than it looks:
+# 34 of 52 corpus codes currently get no class, so a Dental Surgery, a Records
+# Room and a Utilities Closet can all serve as corridors today.
+
+living:
+  cr1: Common Room with Fireplace
+  da1: Dining Area
+  en1: TV / Media Room
+  gy1: Exercise Room
+  l1: Living/Dining/Kitchen
+  li1: Library Corner            # confirmed: same access requirements as a living room
+  lo1: Lounge
+  lr1: Common Living Room
+  br1: Staff Room                # confirmed: same access requirements as a living room
+  m: Meeting Room
+
+kitchen:
+  k1: Kitchen
+  kt1: Staff Kitchenette
+
+bedroom:                          # terminal private room, entered from circulation only
+  b1: Master Bedroom
+  b2: Second Bedroom
+  r: Individual Room
+  tr1: Treatment Room            # confirmed: access requirements of a bedroom
+  de1: Dental Surgery
+  gp1: GP Consulting Room
+  ms1: Minor Surgery Room
+  pt1: Physiotherapy Room
+  qr1: Counselling Room
+  py: Therapy Room
+  q1: Quiet Room
+  mo1: Manager's Office
+  ao1: Admin Office
+  em: Staff Office
+  of: Staff Office
+
+toilet:
+  t: Bathroom
+  t1: Ensuite Bathroom
+  t2: Guest Bathroom
+  t3: Ground Floor WC
+  t9: Public WC
+  t10: Staff WC
+  tt: Upper Bathroom
+
+utility:                          # terminal, never a circulation route
+  la1: Laundry Room              # confirmed: utility, not a circulation route
+  ut1: Utilities Closet
+  me1: Mechanical/Electrical Room  # "Plant / Mechanical Room" in health-centre
+  dp1: General Storage
+  st1: Ground Floor Storage
+  st2: First Floor Storage
+  ur1: Ground Floor Storage
+  ur2: First Floor Storage
+  ur3: Second Floor Storage
+  re1: Records Room
+
+none:                             # genuinely part of the circulation system
+  ef1: Entrance Foyer
+  rc1: Reception                 # "Reception Office" in maple-court — see Q3
+  wa1: Waiting Room
+
+# --------------------------------------------------------------------------- #
+# UNRESOLVED — please rule on these
+# --------------------------------------------------------------------------- #
+unresolved:
+  ws1: Workshop Space            # living (shared activity) or utility (terminal)?
+  zt1: Sterilisation Room        # utility, or bedroom-class off a surgery?
+  ph1: Pharmacy / Dispensary     # health-centre; bedroom-class? and see Q3
+  n: Neighborhood                # unclear what this models at all
+  gh1: Greenhouse                # utility, or outside-ish?
+
+# --------------------------------------------------------------------------- #
+# OPEN QUESTIONS
+# --------------------------------------------------------------------------- #
+#
+# Q1  Does `utility` need behaviour distinct from `bedroom`? Both are "terminal,
+#     not a route", and the engine has no term today that would tell them apart.
+#     Declaring it as a distinct name that maps onto bedroom's edge-stripping
+#     costs nothing and makes the config read truthfully, leaving somewhere to
+#     hang a real difference later. The alternative is to drop it and write
+#     `bedroom`, which reads badly for a bin store.
+#
+#     The "ground floor external access" cases (fuel stores, bins) do NOT need a
+#     class: `level: 0` plus `adjacency: [o]` already expresses that, and it is
+#     per-room programme data rather than an access class.
+#
+# Q2  A dedicated toilet off a bedroom-class room does NOT survive scoring.
+#     Verified: `has_circulation` runs its bedroom loop before its toilet loop,
+#     and the bedroom loop removes bedroom->toilet edges, so the ensuite is
+#     severed — for real bedrooms too, not just for treatment rooms. This is
+#     existing Urb behaviour that the usage key neither causes nor fixes; filed
+#     separately if it should change.
+#
+# Q3  Three codes mean different rooms in different programmes: `ph1`
+#     (Pharmacy/Dispensary in health-centre, Clinic Room in maple-court), `me1`
+#     (Mechanical/Electrical vs Plant/Mechanical), `rc1` (Reception vs Reception
+#     Office). Usage is declared per `patterns.config`, so they can differ — but
+#     it is worth confirming that is intended rather than a copy-paste drift.
