@@ -528,6 +528,67 @@ def test_crinkliness_exempt_circulation_only_exempts_circulation():
     assert f.quality_uncrinkliness(room, None, {}) == 0.0
 
 
+def test_crinkliness_compact_ok_scores_the_buried_limit_as_compact():
+    """Regression (§38.8): a zero-exposure leaf IS the compact limit.
+
+    The first `compact_ok` returned the floor here, i.e. it announced that
+    being compact is not a defect and then punished the most compact case of
+    all hardest -- which is why it measured inert on buried leaves.
+    """
+    f, leaf = _stub_fit("compact_ok", stub=0.0)
+    assert f.quality_uncrinkliness(leaf, None, {}) == 1.0
+
+
+def _usage_fit(mode, stub, code, usage):
+    """Stub Fitness carrying a one-space programme, so `usage_of` resolves."""
+    conf = dict(CONF_DEFAULTS)
+    conf["crinkliness_mode"] = mode
+    conf["spaces"] = {code: {"usage": usage, "size": [4.0, 1.0]}}
+    f = _StubCrink(conf, dict(COST_DEFAULTS))
+    f._stub = stub
+    return f, _leaf(code)
+
+
+@pytest.mark.parametrize("usage", ["toilet", "utility", "none"])
+def test_usage_daylight_exempts_uses_nobody_sits_in(usage):
+    """A buried store or toilet is ordinary architecture, not a failure."""
+    f, leaf = _usage_fit("usage_daylight", 0.0, "x1", usage)
+    assert f.needs_daylight(leaf) is False
+    assert f.quality_uncrinkliness(leaf, None, {}) == 1.0
+
+
+@pytest.mark.parametrize("usage", ["living", "kitchen", "bedroom"])
+def test_usage_daylight_still_fails_a_windowless_habitable_room(usage):
+    """The point of keying on usage: a bedroom with no daylight stays a hard
+    zero, exactly as stock. A mode that rescued this would be deleting the
+    fail category, not fixing the objective."""
+    f, leaf = _usage_fit("usage_daylight", 0.0, "x1", usage)
+    assert f.needs_daylight(leaf) is True
+    assert f.quality_uncrinkliness(leaf, None, {}) == 0.0
+
+
+def test_usage_daylight_exempts_generic_types():
+    """Generic `C`/`S` have no programme entry; a corridor needs no window."""
+    f, _ = _usage_fit("usage_daylight", 0.0, "x1", "living")
+    for code in ("C", "S"):
+        assert f.quality_uncrinkliness(_leaf(code), None, {}) == 1.0
+
+
+def test_usage_daylight_still_punishes_over_exposure():
+    """Exempt from needing daylight is not exempt from envelope cost: the
+    factor is clipped on the compact side only, never switched off."""
+    target = CONF_DEFAULTS["uncrinkliness"][0]
+    f, leaf = _usage_fit("usage_daylight", 1.0 / (target / 2), "x1", "utility")
+    assert f.quality_uncrinkliness(leaf, None, {}) < 1.0
+
+
+def test_usage_daylight_leaves_stock_urb_untouched():
+    """Same tree, mode off -> stock hard zero for every usage."""
+    for usage in ("living", "toilet", "none"):
+        f, leaf = _usage_fit("urb", 0.0, "x1", usage)
+        assert f.quality_uncrinkliness(leaf, None, {}) == 0.0
+
+
 def test_crinkliness_mode_unknown_raises():
     with pytest.raises(ValueError, match="crinkliness_mode"):
         _stub_fit("nonsense")

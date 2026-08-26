@@ -104,6 +104,12 @@ TOILET_STRIPS = ("living", "kitchen", "toilet")
 # Sociable rooms keep their MOST central circulation neighbour; terminal rooms
 # and toilets keep their LEAST central one.
 SOCIABLE_USAGES = ("living", "kitchen")
+# Uses a person OCCUPIES, and which therefore want a window. Everything else --
+# stores, toilets, plant, corridors, covered courtyards -- is ordinary buried
+# architecture, and `crinkliness_mode="usage_daylight"` stops the objective
+# demanding daylight for it (homemaker-py-ssz, DESIGN.md §38.8). A generic
+# `C`/`O`/`S` leaf has no programme usage and is exempt for the same reason.
+DAYLIGHT_USAGES = ("living", "kitchen", "bedroom")
 
 
 def validate_codes(codes) -> None:

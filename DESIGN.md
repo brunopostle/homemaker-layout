@@ -5075,10 +5075,16 @@ fails to move** — `homemaker-py-2v1` is the half that matters.
 rather than unmet") was aimed at the right target, and §38.3 supplies a cheap
 way to test it that does **not** need `2g7.1`'s traced human plans: the
 frontage bound is a pre-flight feasibility check computable from a plot and a
-programme alone. Two of the four corpus programmes fail it by ~3×, which means
-a share of the residual those runs are being judged on **is not reachable at
-all** — and any A/B measured against that residual has been measuring, in
-part, an unsatisfiable constraint.
+programme alone.
+
+*(As first written this paragraph continued "two of the four corpus programmes
+fail it by ~3×, which means a share of the residual those runs are being judged
+on is not reachable at all". **That is withdrawn** — see §39.11. The ~3× came
+from applying the bound to a fully built plot rather than to the area each
+programme demands; harbor-house and maple-court are frontage-feasible with room
+to spare. One programme is unsatisfiable, health-centre, and for a cruder
+reason: it demands 131% of its plot. So the residual the other runs are judged
+on is reachable, and the plateau is not explained by an unsatisfiable brief.)*
 
 Tracks 2 and 3 (cheaper evaluation, exact sub-solvers) remain sound but are
 orthogonal: making an evaluation 97× faster, or a labelling exact, does not
@@ -5089,6 +5095,12 @@ dominant mechanism, and the one the §38.6 A/B isolated) → `ssz`/`hxi`/`gvb`
 pre-flight bound and re-baseline the corpus), and only then resume
 `2g7.9`/`2g7.10`.
 
+*(Both halves of that ordering's rationale have since been measured and did not
+survive. `2v1` closed NULL — severing the spine is already punished, §38.2 is
+retracted — and `tdp`'s infeasibility claim is retracted above. What the
+ordering got right is that `ssz` comes before `2g7.7`; see §38.8 for what `ssz`
+turned out to be.)*
+
 **Acceptance test for the combined fix, stated up front so it cannot be
 moved:** harbor-house must reach its known 15-fail floor in materially fewer
 than 1.7 M evals, *and* `level 0 not connected` / `level 1 not connected` must
@@ -5098,6 +5110,87 @@ stagnation) is worth deferring until after `ssz`: an LLM asked to propose a
 valley-crossing multi-edit against an objective that pays ×85 to delete the
 corridor it just inserted will have its work reverted by the next selection
 step.
+
+### 38.8 What `ssz` actually was: the objective demands daylight for rooms that do not need it (`homemaker-py-ssz`)
+
+**First, why §38.6's A/B does not stand.** It measured the three modes against
+the §38.2 *deletion test*, and it did so with a script that predates §39.4:
+`experiments/ab_crinkliness_mode_ssz.py` selected "unpinned" leaves with
+`(leaf.type or "")[:1].upper() in ("C", "O")`, the first-character prefix rule,
+so every programme room whose code happens to begin with c or o — `cr1`, `of1`
+— was swept in as circulation. Both the premise (§38.2, retracted) and the
+selection were wrong. The script is kept, with the prefix rule fixed and a
+warning in its docstring, but nothing is decided on its numbers.
+
+**Second, and simpler: none of the three modes ever touched the leaves `ssz` is
+about.** `quality_uncrinkliness` reaches `if not crink: return ...` *before* any
+of the mode logic that matters, so for a zero-exposure leaf:
+
+| mode | buried leaves | rescued to ≥ `FAIL_THRESHOLD` | windowless habitable rooms still failing |
+|---|---|---|---|
+| `urb` (stock) | 33 / 46 / 18 | 0% | 11/11, 13/13, 9/9 |
+| `floor` | 33 / 46 / 18 | 0% | 11/11, 13/13, 9/9 |
+| `compact_ok` *(as measured in §38.6)* | 33 / 46 / 18 | 0% | 11/11, 13/13, 9/9 |
+| `exempt_circulation` | 33 / 46 / 18 | 21% / 24% / 33% | 11/11, 13/13, 9/9 |
+
+*(harbor-house / maple-court / health-centre, 3 constructed seeds each, full
+default stack.)*
+
+`floor` returns 0.01 — one percent of a unit quality, multiplied into a product
+and weighed against a whole leaf's cost, which is why it reads as inert.
+`compact_ok` is worse than inert, it is **self-contradictory**: it announces
+that being more compact than target is not a defect, and then returns the floor
+for the most compact case of all, because `if not crink` fires before its clip
+is ever reached. Only `exempt_circulation` moves anything, and it reaches at
+most a third of the population. So §38.6's "none of them removes the incentive"
+was reading a null that the modes' own implementation guaranteed.
+
+**What the buried leaves actually are.** §39.7 gave every space a declared
+`usage:`, which lets the question be asked properly for the first time — of the
+leaves scoring a hard zero for want of daylight, how many are rooms a person
+sits in?
+
+| programme | buried | habitable (`living`/`kitchen`/`bedroom`) | store, toilet, plant, corridor, covered court |
+|---|---|---|---|
+| harbor-house | 33 | 11 (33%) | **22 (67%)** |
+| maple-court | 46 | 13 (28%) | **33 (72%)** |
+| health-centre | 18 | 9 (50%) | 9 (50%) |
+
+**Roughly two thirds of the zero-value leaves are spaces that architecturally
+do not want a window at all** — a broom cupboard, a WC, a plant room, an
+internal corridor, a covered courtyard. The objective scores them identically
+with a windowless bedroom. That is the miscalibration, and it is not a gradient
+problem to be patched with an epsilon; it is the wrong requirement applied to
+the wrong rooms.
+
+**The repair: `crinkliness_mode="usage_daylight"`.** Daylight is required of
+the uses a person occupies (`programme.DAYLIGHT_USAGES` =
+`living`/`kitchen`/`bedroom`) and of nothing else. For every other usage, and
+for the generic `C`/`O`/`S` types which carry no programme entry, the factor is
+clipped on the **compact side only** — being buried stops being a defect, while
+over-exposure still costs, because a crinkly leaf costs envelope whatever it is
+used for. A windowless bedroom remains exactly the hard zero it is under stock.
+
+| programme | buried | rescued by `usage_daylight` | windowless habitable rooms still failing |
+|---|---|---|---|
+| harbor-house | 33 | 22 (67%) | 11/11 |
+| maple-court | 46 | 33 (72%) | 13/13 |
+| health-centre | 18 | 9 (50%) | 9/9 |
+
+`compact_ok` was also repaired to score the buried limit as compact (1.0), the
+behaviour its name always claimed; it now rescues 100% and is kept as the
+**upper-bound control** — the mode that deletes the daylight requirement
+outright, including for bedrooms. It is not a candidate.
+
+**How this is scored, stated before the result.** `compact_ok`,
+`exempt_circulation` and `usage_daylight` all return 1.0 where stock returns
+below `FAIL_THRESHOLD`, so scoring an arm under its own objective deletes a fail
+category for free and every arm "wins". Every arm below is therefore optimised
+under its own objective and **re-scored under stock `urb`** — the comparable
+yardstick, and the only one that answers *did optimising under this variant
+steer the search to a better building?* The arm's own-objective count is
+reported alongside solely to show the size of the definitional discount. A mode
+passes on the stock column. `experiments/ab_ssz_search.py`.
 
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 

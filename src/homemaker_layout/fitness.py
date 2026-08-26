@@ -438,7 +438,8 @@ class Fitness:
             self._connectivity_weight = float(cw)
         self._crinkliness_mode = str(self.conf("crinkliness_mode") or "urb")
         if self._crinkliness_mode not in (
-                "urb", "floor", "compact_ok", "exempt_circulation"):
+                "urb", "floor", "compact_ok", "exempt_circulation",
+                "usage_daylight"):
             raise ValueError(
                 f"unknown crinkliness_mode: {self._crinkliness_mode!r}")
         # The floored value stays BELOW FAIL_THRESHOLD, so a buried leaf still
@@ -462,6 +463,17 @@ class Fitness:
         """Access-requirement class of one leaf, ``""`` for a generic type."""
         req = (self._programme or {}).get(leaf.type)
         return req.usage if req else ""
+
+    def needs_daylight(self, leaf: Node) -> bool:
+        """Does this leaf's declared usage want a window? (homemaker-py-ssz)
+
+        True only for uses a person occupies (``programme.DAYLIGHT_USAGES``).
+        A generic ``C``/``O``/``S`` leaf has no programme entry and so is False,
+        which is the intended reading: a corridor or a covered courtyard is not
+        failing when it has no daylit wall.
+        """
+        from . import programme as _pr
+        return self.usage_of(leaf) in _pr.DAYLIGHT_USAGES
 
     # ------------------------------------------------------------------ #
     # Type superposition + collapse (homemaker-py-9o5)
@@ -1207,15 +1219,33 @@ class Fitness:
             # (c) internal corridors are ordinary architecture; stop requiring
             # every circulation leaf to reach daylight.
             return 1.0
+
+        # (b)/(d) one-sided: being MORE compact than target is not a defect the
+        # way over-exposure is. Over-exposure still is one -- a crinkly leaf
+        # costs envelope whatever it is used for -- so this clips the compact
+        # side only, it does not switch the factor off.
+        #
+        # `compact_ok` applies that to every leaf; `usage_daylight` applies it
+        # only where nobody is sitting -- a store, a toilet, plant, a corridor,
+        # a covered courtyard -- and leaves habitable rooms on stock behaviour,
+        # so a windowless bedroom is still the hard failure it should be.
+        one_sided = mode == "compact_ok" or (
+            mode == "usage_daylight" and not self.needs_daylight(leaf))
+
         if not crink:
+            # Zero exposure IS the compact limit (1/crink -> inf), so a
+            # one-sided factor has to score it 1.0. Reaching here and returning
+            # the floor instead was the flaw in the first `compact_ok`: it
+            # announced that compact is not a defect and then punished the most
+            # compact case of all hardest (§38.8).
+            if one_sided:
+                return 1.0
             # (a) floor: keep buried leaves rankable by their other factors
             # instead of collapsing the whole quality product to zero.
-            return self._crinkliness_floor if mode in ("floor", "compact_ok") else 0.0
+            return self._crinkliness_floor if mode == "floor" else 0.0
+
         q = gaussian(1 / crink, 1.0, distance, sigma)
-        if mode == "compact_ok" and 1 / crink > distance:
-            # (b) one-sided: being MORE compact than target is not a defect the
-            # way over-exposure is, so clip to 1.0 on the compact side rather
-            # than decaying symmetrically into a fail.
+        if one_sided and 1 / crink > distance:
             return 1.0
         return max(q, self._crinkliness_floor) if mode in ("floor", "compact_ok") else q
 

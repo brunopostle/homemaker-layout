@@ -16,6 +16,17 @@ buried or lit is what separates the two mechanisms:
   against a ×0.5 connectivity penalty (§38.2 refinement) — which no
   ``crinkliness_mode`` can touch.
 
+.. warning::
+
+   **The premise of this test is RETRACTED — see §38.2 and §38.8.** The ×6-vs-
+   ×0.5 arithmetic assumed severing the spine costs one connectivity fail;
+   measured, the connectivity count is unchanged in every rewarded deletion, so
+   this script is not measuring what its docstring says. It is kept because the
+   per-mode buried/lit split is still a useful description of what each mode
+   touches, but a mode does **not** pass or fail on these numbers. The A/B that
+   decides `ssz` is ``experiments/ab_ssz_search.py`` (fixed-budget search,
+   scored under the stock objective).
+
 Usage::
 
     python experiments/ab_crinkliness_mode_ssz.py
@@ -34,7 +45,8 @@ from homemaker_layout import driver, fitness, geometry
 from homemaker_layout import graph as graph_mod
 from homemaker_layout import operators, programme
 
-MODES = ("urb", "floor", "compact_ok", "exempt_circulation")
+MODES = ("urb", "floor", "compact_ok", "exempt_circulation",
+         "usage_daylight")
 
 
 def make_fitness(progdir: str, mode: str) -> fitness.Fitness:
@@ -74,7 +86,12 @@ def unpinned_leaves(fit: fitness.Fitness, root: dom_mod.Node) -> list[tuple]:
         for leaf in lvl.leaves():
             if dom_mod.is_outside(leaf) and not dom_mod.is_covered(leaf):
                 continue
-            if (leaf.type or "")[:1].upper() not in ("C", "O"):
+            # §39.4: generic structural types are EXACT `C`/`O`/`S`, never a
+            # first-character prefix -- `cr1` is a programme room. This script
+            # predates that rule and its original `type[:1].upper() in ("C","O")`
+            # test swept programme rooms into the "unpinned" set, which is one
+            # reason the §38.6 numbers do not reproduce.
+            if not dom_mod.is_generic(leaf.type):
                 continue
             out.append((li, leaf.id, leaf.type,
                         fit.area_outside(leaf, graphs[li], {})))
