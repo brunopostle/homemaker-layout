@@ -472,8 +472,7 @@ class Fitness:
         which is the intended reading: a corridor or a covered courtyard is not
         failing when it has no daylit wall.
         """
-        from . import programme as _pr
-        return self.usage_of(leaf) in _pr.DAYLIGHT_USAGES
+        return self.usage_of(leaf) in _programme.DAYLIGHT_USAGES
 
     # ------------------------------------------------------------------ #
     # Type superposition + collapse (homemaker-py-9o5)
