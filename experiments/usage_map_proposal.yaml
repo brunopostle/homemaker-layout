@@ -141,18 +141,44 @@ none:                             # genuinely part of the circulation system
 #    NB the assignments above are listed per CODE for review convenience; the
 #    migration writes them per FILE, so a code can differ between programmes.
 #
-# 5. Vocabulary: controlled but not closed.
-#    Ruled: "programmes are building specific, so it would be nice to have a
-#    controlled vocabulary, but not entirely necessary."
-#    So the earlier "closed enum, unknown value is an error" recommendation is
-#    withdrawn. Proposed instead: the six names above are the known vocabulary
-#    and drive engine behaviour directly; a programme may coin its own name
-#    (`usage: craft`) provided it binds it to a known class in the same file:
+# 5. `usage` is a plain ATTRIBUTE of the space definition. No mapping table.
+#    An earlier draft proposed a top-level `usage_classes:` table binding
+#    author-coined names to engine behaviour (`craft: living`). Withdrawn — it
+#    was wrong three ways:
 #
-#        usage_classes:
-#          craft: living
-#          bin_store: utility
+#    a) It is the same bug in another costume. An indirect name -> behaviour
+#       mapping, living apart from the thing it describes, is exactly what the
+#       first-character prefix rule was; §39 exists to remove that shape, not to
+#       relocate it into a table.
 #
-#    An unbound name is a load error. That keeps naming free and building-
-#    specific while never letting an unrecognised usage fall through to a silent
-#    default — the failure mode §39 exists to remove.
+#    b) It is inconsistent with the schema. Every other space property is a
+#       plain attribute — name, size, width, proportion, adjacency, level,
+#       requires_below, count, share, interchange, co_locate — and no key
+#       anywhere in patterns.config is an indirection table. `usage:` belongs
+#       beside them.
+#
+#    c) The need it was meant to serve is already met. "Programmes are building
+#       specific" is about what a room is CALLED, and `name:` is already free
+#       text: `name: Workshop Space`. What `usage:` records is the room's ACCESS
+#       REQUIREMENTS, which are not building-specific — a craft room and a
+#       lounge have the same ones, which is the whole reason this key exists.
+#       The earlier draft conflated the two.
+#
+#    So:
+#
+#        spaces:
+#          ws1:
+#            name: Workshop Space      # free text, building-specific
+#            usage: living             # controlled, drives engine behaviour
+#
+#    An alias would add nothing anyway: `craft: living` produces no behaviour
+#    that `usage: living` does not. The rule that falls out is worth stating —
+#    A USAGE VALUE EXISTS IF AND ONLY IF THE ENGINE TREATS IT DIFFERENTLY
+#    SOMEWHERE. Config selects among behaviours; it cannot invent them. Adding a
+#    genuinely new access class means writing code, not config, and at that
+#    point the value joins the controlled set for everyone.
+#
+#    `utility` passes that test — not on edge-stripping, which is identical to
+#    `bedroom` today, but because it is intended to drive
+#    derive_interchange_classes (NOTE 1). Distinct behaviour in a second
+#    subsystem is a real difference; an alias is not.
