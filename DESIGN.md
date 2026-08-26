@@ -5229,6 +5229,61 @@ A/B: the daylight requirement is applied to rooms that architecturally do not
 want daylight, in two thirds of the buried population, and §38.6's contrary
 null was an artefact of three modes that never touched those leaves.
 
+### 38.9 Two corrections to §38.8, and the measurement that matters (`homemaker-py-ssz`)
+
+**Correction 1 — the A/B yardstick above is wrong.** §38.8 scores every arm
+under stock `urb`, reasoning that a permissive mode must not be allowed to win
+by deleting a fail category. That is sound only if stock is ground truth, and
+stock is exactly what this section shows is miscalibrated. Scoring the repair
+under the objective it repairs penalises it for repairing: stock counts a
+windowless broom cupboard as a failure, and the repair's whole purpose is to
+stop counting it. *Does the fix score well on the broken yardstick* is not a
+question worth answering, and the §38.8 A/B result should not be read as
+evidence against `usage_daylight`.
+
+**The measurement that does matter** asks whether the emitted failures are
+*true*, and needs no search at all (`experiments/audit_crinkliness_truth.py`).
+Of the `crinkliness` failures the stock objective reports, classified by the
+leaf's declared usage:
+
+| layout | crinkliness fails | on spaces that want no daylight |
+|---|---|---|
+| harbor-house, 3 constructed seeds | 67 | 41 (61%) |
+| maple-court, 3 constructed seeds | 112 | 68 (61%) |
+| health-centre, 3 constructed seeds | 20 | 10 (50%) |
+| harbor-house `generated.dom` (evolved) | 5 | 2 (40%) |
+| maple-court `generated.dom` (evolved) | 67 | 43 (64%) |
+| **overall** | **271** | **164 (61%)** |
+
+**61% of the crinkliness failures the objective reports are not defects**, and
+it holds on evolved artefacts, not just seeds. Under
+`value *= 0.5 ** len(failures)` every one of them halves the fitness of a design
+that has done nothing wrong — a design is punished for putting the store in the
+middle of the plan, which is what a competent architect does. That is a
+correctness fault, and it is not contingent on any A/B.
+
+**Correction 2 — `usage:` is the wrong key, and `usage_daylight` as written in
+§38.8 mis-keys it.** §39.7 established `usage:` as an *access-requirement*
+class. "Needs no special access" and "needs no window" are different questions,
+and the corpus separates them plainly:
+
+- `usage: none` is **Waiting Room**, **Reception**, **Reception Office**,
+  **Entrance Foyer** — a waiting room is a space people sit in for long
+  stretches and plainly wants daylight, yet `DAYLIGHT_USAGES` exempts it;
+- `usage: bedroom` is where the GP consulting rooms, counselling rooms and
+  staff offices live — all of which do want daylight, so that half is right,
+  but it is right by luck of how the access axis happened to fall.
+
+The audit is robust to the error (reclassifying `none` as wanting daylight
+moves the headline 61% → 57%), so the finding stands; the *design* does not.
+Daylight needs its own declared axis, per space, decided by the programme
+author exactly as `usage:` was — not derived from a different question that
+happens to correlate.
+
+`usage_daylight` therefore stays default off and is **not** the shipping fix.
+It is retained as the mechanism — the compact-side clip is the right shape for
+the factor — pending a `daylight:` attribute to key it on.
+
 
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
