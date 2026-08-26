@@ -1554,7 +1554,9 @@ class Fitness:
         if self._public_access(leaf, root) is None:
             return False
         for nb in G.neighbors(leaf):
-            if nb.type and nb.type[0].lower() in ("l", "c", "k"):
+            # "l"/"k" are SEMANTIC programme-code prefixes; C is a generic
+            # circulation leaf. Two namespaces, two tests (§39.4).
+            if nb.type == "C" or (nb.type and nb.type[0].lower() in ("l", "k")):
                 return True
         return False
 

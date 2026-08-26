@@ -99,6 +99,39 @@ def audit_code(fit: fitness.Fitness, code: str, height: float,
     return result
 
 
+# The SEMANTIC (usage) prefixes. Unlike the generic types these classify
+# PROGRAMME CODES by first letter, and they are still prefix-based by design —
+# it is how Urb encodes room usage. graph.has_circulation strips edges based on
+# them (a "bedroom" loses its edges to living/kitchen/bedroom/toilet; a "toilet"
+# loses its edges to outside/living/kitchen/toilet), and fitness.access /
+# public-access read them too. So a code that picks one up by accident is
+# silently given another room's connectivity rules.
+USAGE_PREFIXES = {"b": "bedroom", "t": "toilet", "l": "living", "k": "kitchen"}
+
+
+def audit_usage(progdir: str) -> list[tuple[str, str, str]]:
+    """Report which programme codes acquire a usage class from their spelling."""
+    reqs = programme.load_programme_dir(progdir)
+    hits = [(c, USAGE_PREFIXES[c[:1].lower()], reqs[c].name)
+            for c in sorted(reqs) if c[:1].lower() in USAGE_PREFIXES]
+    if not hits:
+        print(f"=== {Path(progdir).name}: no code carries a usage prefix\n")
+        return []
+    print(f"=== {Path(progdir).name}: {len(hits)} code(s) carry a usage prefix")
+    for code, usage, name in hits:
+        # crude but useful: does the human-readable name agree with the usage?
+        agrees = usage[:3] in (name or "").lower() or {
+            "toilet": ("wc", "bathroom", "toilet", "ensuite"),
+            "bedroom": ("bedroom",), "living": ("living", "lounge"),
+            "kitchen": ("kitchen",)}.get(usage, ())
+        ok = any(w in (name or "").lower() for w in (
+            agrees if isinstance(agrees, tuple) else (usage,)))
+        flag = "" if ok else "   <-- name disagrees with the usage it is given"
+        print(f"  {code:<6} -> {usage:<8} (name: {name}){flag}")
+    print()
+    return hits
+
+
 def audit_namespace(progdir: str) -> int:
     """Report programme codes that collide with the generic type prefixes.
 
@@ -201,9 +234,12 @@ def main() -> None:
     dirs = [args.progdir] if args.progdir else [
         "examples/harbor-house", "examples/maple-court",
         "examples/health-centre", "examples/programme-house"]
-    print("### namespace collisions (generic c/o/s type prefixes)\n")
+    print("### namespace collisions (generic C/O/S structural types)\n")
     for d in dirs:
         audit_namespace(d)
+    print("### usage prefixes (b/t/l/k -- still prefix-based, by design)\n")
+    for d in dirs:
+        audit_usage(d)
     print("### per-room-spec satisfiability\n")
     for d in dirs:
         audit(d, args.verbose)

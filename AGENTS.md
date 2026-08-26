@@ -56,6 +56,24 @@ bd close <id>         # Complete work
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
 
+### Room-code namespaces (DESIGN.md §39.4/§39.6)
+
+Leaf types share a first character across three namespaces:
+
+- **`C` / `O` / `S`** — generic structural types (circulation / outside / sahn),
+  uppercase, reserved. A programme code spelled exactly one of these is rejected
+  at load.
+- **programme room codes** — lowercase, may start with *any* letter. The generic
+  tests match `C`/`O`/`S` exactly, so `cr1` is a room, not circulation.
+- **usage prefixes `b`/`t`/`l`/`k`** — bedroom / toilet / living / kitchen,
+  still matched by first letter *by design*. `graph.has_circulation` strips graph
+  edges from them, so a code beginning with one inherits that room's
+  connectivity rules whether or not intended (`homemaker-py-sel`).
+
+When adding or editing a programme, run
+`python experiments/audit_programme_config.py` — it reports reserved-name
+collisions, the usage class each code picks up, and per-room-spec satisfiability.
+
 ## Session Completion
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.

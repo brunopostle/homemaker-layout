@@ -426,6 +426,16 @@ def _codes_match_prefix(codes: list[str], tc) -> bool:
     return any(c.lower().startswith(tc) for c in codes)
 
 
+def code_matches_requirement(code: str, target_code: str) -> bool:
+    """True if one room ``code`` satisfies an ``adjacency:`` requirement.
+
+    The single place that answers "does this leaf count as the thing the
+    programme asked to be next to". Shared with :mod:`homemaker_layout.cpsat`
+    so the exact solver optimises the same relation the scorer checks.
+    """
+    return _codes_match_prefix([code], _adjacency_target(target_code))
+
+
 def _adjacency_target(target_code: str):
     """Resolve one ``adjacency:`` entry to a matcher.
 
@@ -775,7 +785,7 @@ def substrate_readiness(
     free_area = sum(
         req.size * req.count
         for code, req in reqs.items()
-        if code[0].lower() not in ("c", "o", "s") and req.level is None
+        if not is_generic(code) and req.level is None
     )
     upper_free = free_area * (n_storeys - 1) / n_storeys if n_storeys > 0 else 0.0
     required_upper_area = upper_levels + upper_free

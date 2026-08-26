@@ -513,16 +513,6 @@ def test_construction_assign_cpsat_yields_valid_seed():
         canonical(root)
 
 
-@pytest.mark.xfail(
-    reason="§39.5: this win was measured against harbor's pre-§39.4 EFFECTIVE "
-           "programme, which silently dropped cr1/of/st1/st2 (14% of the rooms). "
-           "With those restored the aggregate flips (measured greedy 102 / cpsat "
-           "114 over 6 seeds; it was 98/99 -- a tie -- on the 32-instance "
-           "programme). Not a regression in the solver: on namespace-clean "
-           "maple-court cpsat still wins, which the companion test asserts. "
-           "Both assign_solver flags remain default off (§37.7).",
-    strict=False,
-)
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
 def test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency():
     # homemaker-py-2g7.5: CP-SAT solves the same room-labelling decision the
@@ -554,9 +544,16 @@ def test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency():
     # the comparison is on the aggregate over several seeds, not every seed
     # individually — measured on harbor-house (10 seeds): cpsat wins on
     # most, ties on a few, loses on rare ones, net ~13% fewer total fails.
-    greedy = secondary_fails("greedy")
-    cpsat = secondary_fails("cpsat")
-    assert sum(cpsat) < sum(greedy)
+    # The cpsat path is not yet bit-reproducible (homemaker-py-fdp): the solver
+    # itself is deterministic, but something upstream of it in
+    # _assign_adjacency_aware still varies, so a single 10-seed aggregate can
+    # straddle greedy's (deterministic) value. Averaging three repeats asserts
+    # what is actually claimed -- better IN AGGREGATE -- instead of being flaky
+    # by construction. Measured after §39.4: greedy 189, cpsat 185/177/180/182.
+    greedy = sum(secondary_fails("greedy"))
+    cpsat_runs = [sum(secondary_fails("cpsat")) for _ in range(3)]
+    mean_cpsat = sum(cpsat_runs) / len(cpsat_runs)
+    assert mean_cpsat < greedy, f"cpsat {cpsat_runs} (mean {mean_cpsat}) vs greedy {greedy}"
 
 
 def test_reassign_noop_without_reqs():
@@ -909,12 +906,14 @@ def test_mutate_bridge_circulation_prefers_free_leaf_over_required_room():
 @pytest.mark.skipif(not (HARBOR.parent / "maple-court").is_dir(),
                     reason="maple-court not available")
 def test_assign_cpsat_beats_greedy_on_a_namespace_clean_programme():
-    """§39.5 companion: CP-SAT's seeder-level advantage is intact on a
-    programme whose codes never collided with the generic type prefixes.
+    """§39.5 companion: the same property on a second, namespace-clean
+    programme.
 
-    This is what shows the §39.4 tightening did not regress the solver — the
-    harbor result above moved because harbor's programme changed (4 codes it had
-    been silently dropping came back), not because assignment got worse.
+    Kept because it was this pair that caught an incomplete §39.4 sweep:
+    ``cpsat._matches`` was still matching adjacency by raw prefix after
+    ``graph.has_adjacency`` had been tightened, so the exact solver was
+    optimising a different relation than the scorer checked. Two programmes
+    make that class of drift visible instead of looking like noise.
     """
     import copy
 

@@ -4024,8 +4024,11 @@ FAIL_THRESHOLD inversions of `quality_size`/`quality_width`/
 formulas by construction, not reimplemented magic numbers: same `conf`/
 `get_space_params` lookups `fitness.py` uses, including the "any type code
 starting with 'c' or 's'/'o' hits the circulation/outside branch, not its own
-programme params" quirk — confirmed this is existing product behaviour, not a
-bug, by reading `get_space_params`/`quality_size` together). Regions compose
+programme params" quirk — confirmed at the time as existing product behaviour,
+not a bug, by reading `get_space_params`/`quality_size` together. **SUPERSEDED
+by §39.4**: that quirk was a real bug, it silently dropped 14% of harbor-house's
+programme, and the generic-type tests now match `C`/`O`/`S` exactly, so a
+programme code takes its declared params whatever letter it starts with). Regions compose
 bottom-up through the slicing tree: a node's cut ALWAYS sums its two
 children's contributions into the node's own "w" (`edge0+edge2`) dimension,
 with "h" (`edge1+edge3`) the shared/cross dimension — a fixed convention of
@@ -5240,30 +5243,107 @@ measured against the 32-instance effective programme. They remain valid relative
 to each other but are not comparable to post-§39.3 numbers; treat 58 as the new
 harbor reference point at this budget.
 
-### 39.5 Fallout: `2g7.5`'s CP-SAT seeder win does not survive the correction
+### 39.5 A false alarm on `2g7.5`, and the real bug underneath it — CORRECTED
 
-`§37.7` recorded a real, low-noise seeder-level win for `assign_solver="cpsat"`
-on harbor-house, guarded by
-`test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency`. That test now
-fails, and the cause is the corrected programme, not the solver. Measured over
-6 seeds:
+**This section previously concluded that `2g7.5`'s CP-SAT seeder win did not
+survive §39.4. That conclusion was wrong and is retracted.**
+
+The symptom was real: after tightening, the harbor A/B flipped to greedy 102 /
+cpsat 114, and a control on namespace-clean maple-court still showed cpsat
+winning — which looked like "harbor's programme changed, the solver is fine".
+It was not. **`cpsat._matches` was still matching adjacency by raw
+`startswith`** while `graph.has_adjacency` had been moved to the generic-aware
+matcher, so the exact solver was optimising a *different relation* than the
+scorer checked — it still believed a room next to `cr1` satisfied "adjacent to
+`c`". The failing test was correctly reporting an incomplete sweep, and it was
+misread as a baseline shift.
+
+Fix: `graph.code_matches_requirement` is now the single public answer to "does
+this leaf count as the thing the programme asked to be next to", and `cpsat`
+uses it for both its adjacency matcher and its symmetry-breaking grouping.
+Re-measured over 6 seeds:
 
 | programme | greedy | cpsat | |
 |---|---|---|---|
-| harbor, real 37-instance | 102 | 114 | cpsat loses |
-| harbor, old 32-instance effective | 98 | 99 | tie — the "win" was already marginal |
-| maple-court (namespace-clean, untouched by §39) | 156 | **144** | **cpsat wins** |
+| harbor-house | 102 | **92** | cpsat wins |
+| maple-court | 156 | **154** | cpsat wins |
 
-maple-court is the control: CP-SAT's advantage is intact on a programme whose
-codes never collided, so nothing about the assignment solver regressed. On
-harbor the four restored codes — with real adjacency requirements that were
-previously dropped — change the assignment problem enough to flip an aggregate
-that was a tie to begin with. The harbor test is marked `xfail` with this
-reason and a companion test asserts the maple-court result; both
-`assign_solver` flags remain default off, as `§37.7` already concluded for
-independent reasons.
+`2g7.5`'s seeder-level result stands. Both `assign_solver` flags remain default
+off for the independent reason §37.7 gives (it does not survive a full
+`driver.search` run).
 
-The general lesson: **any harbor-house A/B decided by a small margin before §39
-was decided against a programme missing 14% of its rooms** and is worth
-re-checking if anything depends on it.
+**The real bug underneath: CP-SAT was never deterministic.** Chasing the flip
+turned up that `solve_room_labels` returned different (equally optimal)
+assignments across identical runs — measured 194 / 180 / 171 / 182 over four
+identical 10-seed aggregates. `num_search_workers = 1` was set with the comment
+"determinism (same inputs -> same result)", but that is not sufficient:
+
+- `max_time_in_seconds` is a **wall-clock** cap, so a timeout returns whatever
+  branch-and-bound had reached — load-dependent by construction. Now paired
+  with `max_deterministic_time`, a load-independent work-unit budget. (Measured
+  aside: solves finish in ~124 ms mean / 305 ms max against a 2 s cap, so
+  nothing was actually timing out — this was a latent hazard, not the cause.)
+- The actual cause: `neighbors[slot]` is a **set of `dom.Node`**, and `Node` is
+  `@dataclass(eq=False)`, so it hashes by `id()` — a memory address. Iterating
+  it raw made the order the model was built in vary run to run, and among
+  several equally-optimal assignments CP-SAT returned a different one each
+  time. `sorted()` on the integer slot indices makes the model canonical. This
+  is the same id-keying hazard `geometry._cache` already carries a warning for.
+
+After both fixes `solve_room_labels` is reproducible on every captured
+instance, and cpsat beats greedy on 4 of 4 repeats. **`constructive_topology`
+as a whole is still not bit-reproducible on the cpsat path** — something
+upstream of the solver in `_assign_adjacency_aware` still varies (greedy *is*
+reproducible; the solver in isolation now is too). Filed as
+`homemaker-py-fdp`; it is a plausible contributor to `homemaker-py-b8g`
+(parallel-run non-determinism). The A/B test now averages three repeats rather
+than asserting on one, so it states what is actually claimed — better in
+aggregate — instead of being flaky by construction.
+
+**Lesson worth keeping:** when a matching rule is tightened, every consumer of
+that rule has to move at once. A solver optimising yesterday's relation against
+today's scorer looks exactly like a baseline shift.
+
+### 39.6 The second namespace: usage prefixes are still implicit — NOT clean
+
+§39.4 separated **programme codes** from the **generic structural types**
+(`C`/`O`/`S`). It did not touch the other namespace sharing the same first
+character: the **usage prefixes** `b` bedroom, `t` toilet, `l` living,
+`k` kitchen. These classify *programme codes* by first letter and are still
+prefix-based **by design** — it is how Urb encodes room usage, and unlike the
+generic rule they never discard a requirement.
+
+They are not inert, though. `graph.has_circulation` deletes graph edges from
+them: a "bedroom" loses its edges to living/kitchen/bedroom/toilet, a "toilet"
+loses its edges to outside/living/kitchen/toilet, and b/t keep their *least*
+popular circulation neighbour while l/k keep their *most* popular.
+`fitness.access` and the public-access check read them too. So a code that
+picks one up by accident is silently given another room's connectivity rules —
+and connectivity is exactly where §38 found the residual.
+
+`experiments/audit_programme_config.py` now reports this. Four corpus rooms are
+misclassified by spelling alone:
+
+| code | name | given usage |
+|---|---|---|
+| `la1` | Laundry Room | **living** (harbor-house, harbor-house-l0, maple-court) |
+| `li1` | Library Corner | **living** (harbor-house, maple-court) |
+| `br1` | Staff Room | **bedroom** (health-centre) |
+| `tr1` | Treatment Room | **toilet** (health-centre) |
+
+Measured consequences on a constructed health-centre seed: `tr1` "Treatment
+Room", treated as a toilet, has its edge to the adjacent outside space `O`
+stripped from the circulation graph; `br1` "Staff Room", treated as a bedroom,
+has its edge to `t10` "Staff WC" stripped. Both feed `has_circulation` and
+therefore the `N inaccessible usable space` / `level N not connected` fails.
+
+**So the honest answer to "is it clean now" is: the generic namespace is
+(zero violations across all ten example programmes, asserted by
+`test_scoring_is_invariant_under_programme_code_spelling`); the usage namespace
+is not.** Filed as `homemaker-py-sel`. The fix is the same shape as §39.4 — an
+explicit `usage:` key in `patterns.config` defaulting to the prefix rule for
+back-compatibility — but unlike §39.4 it changes fitness for programmes that
+are *currently spelled correctly* too, so it needs its own A/B and re-baseline
+rather than being folded in here.
+
 

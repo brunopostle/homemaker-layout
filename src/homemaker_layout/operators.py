@@ -338,10 +338,9 @@ def mutate_place_missing(root: dom.Node, rng: np.random.Generator,
         for leaf in lvls[li].leaves():
             if not leaf.type:
                 continue
-            t0 = leaf.type[0].lower()
-            if t0 == "o":
+            if leaf.type == "O":
                 pref = 0
-            elif t0 in ("c", "s"):
+            elif leaf.type in ("C", "S"):
                 pref = 2
             elif leaf.type in reqs:
                 continue
@@ -353,7 +352,7 @@ def mutate_place_missing(root: dom.Node, rng: np.random.Generator,
         best_pref = min(p for p, _, _ in cands)
         pool = [(a, lf) for p, a, lf in cands if p == best_pref]
         _, host = max(pool, key=lambda x: x[0])
-        keep = host.type if host.type and host.type[0].lower() != "o" else "O"
+        keep = host.type if host.type not in dom.GENERIC_OUTSIDE else "O"
     else:
         # No safe host on the required storey — split its largest leaf and
         # preserve that leaf's type on the large side.
@@ -469,7 +468,7 @@ def _shape_failing(leaf: dom.Node, fit) -> bool:
     passes. Generic circulation/outside/sahn leaves are never candidates —
     they absorb slack by design (solver.py ``min_width_generic``), not a
     repair target."""
-    if not leaf.type or leaf.type[0].lower() in "cos":
+    if dom.is_generic(leaf.type) or not leaf.type:
         return False
     from . import fitness as _fit_mod
 

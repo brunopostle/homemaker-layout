@@ -87,8 +87,8 @@ def requirement_graph(reqs: dict[str, SpaceReq]) -> nx.Graph:
             continue
         for node_id in instances[code]:
             for adj_code in req.adjacency:
-                low = adj_code[0].lower()
-                if low in ("c", "o", "s"):
+                low = adj_code.lower()
+                if low.upper() in dom.GENERIC_TYPES:
                     G.add_edge(node_id, hub(low), weight=1.0)
                 elif adj_code in instances:
                     targets = instances[adj_code]

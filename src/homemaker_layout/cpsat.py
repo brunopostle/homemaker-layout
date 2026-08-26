@@ -46,6 +46,7 @@ def solve_room_labels(
     neighbors: dict[Hashable, set],
     context_types: dict[Hashable, set[str]],
     time_limit_s: float = 2.0,
+    deterministic_limit: float = 4.0,
 ) -> dict[Hashable, str] | None:
     """Assign each of ``codes`` to one of ``slots``, maximising satisfied
     secondary adjacency requirements.
@@ -90,7 +91,12 @@ def solve_room_labels(
         model.Add(sum(x[i, s] for i in range(k)) <= 1)
 
     def _matches(code: str, prefix: str) -> bool:
-        return code.lower().startswith(prefix.lower())
+        # §39.4: shared with graph.has_adjacency so the exact solve optimises
+        # exactly what the scorer checks. A generic requirement ("c"/"o"/"s" —
+        # how programmes name circulation/outside) matches only the generic
+        # types, not every programme code that starts with that letter.
+        from .graph import code_matches_requirement
+        return code_matches_requirement(code, prefix)
 
     # Symmetry breaking (homemaker-py-2g7.5, measured necessary on
     # harbor-house: several unrelated same-requirement codes, e.g. four "t"
@@ -106,8 +112,8 @@ def solve_room_labels(
     referenced = {a.lower() for c in codes for a in (reqs.get(c).adjacency if reqs.get(c) else [])}
 
     def _is_referenced(code: str) -> bool:
-        cl = code.lower()
-        return any(cl.startswith(r) for r in referenced)
+        from .graph import code_matches_requirement
+        return any(code_matches_requirement(code, r) for r in referenced)
 
     groups: dict[tuple, list[int]] = {}
     for i, code in enumerate(codes):
@@ -138,7 +144,16 @@ def solve_room_labels(
         if any(_matches(t, adj_lower) for t in fixed):
             neighbor_ok_cache[key] = 1
             return 1
-        nbr_idxs = [idx[nb] for nb in neighbors.get(slot, ()) if nb in idx]
+        # sorted(): ``neighbors[slot]`` is a SET, and its members are usually
+        # ``dom.Node``s, which are ``@dataclass(eq=False)`` and therefore hash by
+        # id() -- a memory address. Iterating it raw makes the order the model is
+        # built in vary run to run, so among several equally-optimal assignments
+        # CP-SAT returns a different one each time. That, not the time limit, was
+        # the real source of the "non-deterministic, system-load dependent"
+        # behaviour §37.7 recorded (measured 194/180/171/182 over four identical
+        # 10-seed runs; solves finish in ~124 ms against a 2 s cap, so nothing was
+        # ever timing out). Sorting the integer indices makes the model canonical.
+        nbr_idxs = sorted(idx[nb] for nb in neighbors.get(slot, ()) if nb in idx)
         matches = [x[j, ns] for ns in nbr_idxs
                    for j, code in enumerate(codes) if _matches(code, adj_lower)]
         if not matches:
@@ -173,8 +188,18 @@ def solve_room_labels(
         model.Maximize(sum(sat_vars))
 
     solver = cp_model.CpSolver()
+    solver.parameters.num_search_workers = 1
+    # Determinism (homemaker-py-b8g / DESIGN.md §39.5). ``num_search_workers=1``
+    # alone does NOT give it: a WALL-CLOCK cap makes the returned solution
+    # load-dependent, because a timeout returns whatever branch-and-bound had
+    # reached by then. That is exactly the "non-deterministic, system-load
+    # dependent" behaviour §37.7 observed, and it made the seeder A/B flaky
+    # (10-seed aggregate measured 194/180/171/182 across four identical runs).
+    # ``max_deterministic_time`` is a work-unit budget, independent of machine
+    # speed and load, so the same inputs give the same answer; the wall-clock
+    # cap stays as a pathological-case backstop only.
+    solver.parameters.max_deterministic_time = deterministic_limit
     solver.parameters.max_time_in_seconds = time_limit_s
-    solver.parameters.num_search_workers = 1  # determinism (same inputs -> same result)
     status = solver.Solve(model)
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return None
