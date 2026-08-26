@@ -73,16 +73,16 @@ def test_level_constraint_never_assigns_wrong_level():
 # --------------------------------------------------------------------------- #
 
 def test_cos_prefixed_cells_are_not_relabelled():
-    # cr1 collides with the c* (circulation) convention the scorer counts against,
-    # so it is skeleton — never relabelled and never a demand slot.
-    conf = _conf({
-        "cr1": {"size": [20.0, 4.0]},
-        "b1": {"size": [16.0, 4.0]},
-    })
+    # A GENERIC circulation leaf is skeleton — never relabelled, never a demand
+    # slot. This used to be written with a programme code ("cr1") that collided
+    # with the c* prefix; programme codes can no longer do that at all, since
+    # programme.validate_codes rejects them at load (homemaker-py-ju3, DESIGN.md
+    # §39.2), so the exclusion is now tested with the generic type it is for.
+    conf = _conf({"b1": {"size": [16.0, 4.0]}})
     fit = Fitness(conf=conf)
-    root = _two_leaf_root("cr1", "b1")
+    root = _two_leaf_root("C", "b1")
     fit.collapse_global(root)
-    assert sorted(lf.type for lf in root.leaves()) == ["b1", "cr1"]
+    assert sorted(lf.type for lf in root.leaves()) == ["C", "b1"]
 
 
 # --------------------------------------------------------------------------- #

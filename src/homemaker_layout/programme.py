@@ -59,8 +59,50 @@ def _pair(d: dict, key: str, default: tuple[float, float]) -> tuple[float, float
     return float(v[0]), float(v[1])
 
 
+# homemaker-py-ju3 (DESIGN.md §39.2): Urb's type system is prefix-based — a
+# leaf type starting with "c" is circulation, "o"/"s" is outside — and
+# programme room codes share that namespace. A code starting with one of these
+# letters is silently reinterpreted as a generic type, with three unannounced
+# consequences: ``graph.check_space_counts`` skips it entirely (so the room is
+# never required), ``Fitness.get_space_params`` returns the generic
+# ``*_circulation``/``*_outside`` parameters instead of the declared ones, and
+# ``dom.is_circulation``/``is_outside`` flip (changing value rate, crinkliness
+# treatment, and whether the leaf supplies daylight to neighbours).
+#
+# harbor-house shipped four such codes for years — ``cr1`` "Common Room with
+# Fireplace" had its declared 80 m² read as circulation's 0-30 m², and 14% of
+# the programme was silently optional. Refusing the code at load turns a silent
+# misread into a loud one. The other prefixes with semantics (l/k/b/t) are NOT
+# reserved: they only flavour adjacency heuristics and never discard a
+# requirement, so programme codes may use them freely.
+RESERVED_PREFIXES = ("c", "o", "s")
+
+
+def validate_codes(codes) -> None:
+    """Raise ``ValueError`` if any programme code collides with a generic type.
+
+    Called from both parse paths (``_parse_spaces`` and
+    ``fitness.Fitness._load_programme``) so a colliding code cannot enter the
+    system through either door.
+    """
+    bad = sorted(c for c in codes if c and c[0].lower() in RESERVED_PREFIXES)
+    if not bad:
+        return
+    raise ValueError(
+        "programme code(s) collide with Urb's reserved generic type prefixes "
+        f"{RESERVED_PREFIXES} (c=circulation, o/s=outside): {bad}. "
+        "Such a code is silently treated as a generic type: it is dropped from "
+        "the required-space check, its declared size/width/proportion are "
+        "replaced by the generic circulation/outside parameters, and it is "
+        "valued at the circulation/outside rate. Rename the code to start with "
+        "another letter (the name: field is free text and need not change). "
+        "See DESIGN.md §39.2 / homemaker-py-ju3."
+    )
+
+
 def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
     spaces = conf.get("spaces") or {}
+    validate_codes(spaces)
     out: dict[str, SpaceReq] = {}
     for code, c in spaces.items():
         size = _pair(c, "size", (0.0, 1.0))

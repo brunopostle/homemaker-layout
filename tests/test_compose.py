@@ -38,7 +38,7 @@ GOOD_SVG = textwrap.dedent(
       <g inkscape:groupmode="layer" inkscape:label="storey-0">
         <path d="M 4,0 L 4,8"/>
         <path d="M 4,5 L 10,5"/>
-        <text x="2" y="4">cr1</text>
+        <text x="2" y="4">fr1</text>
         <text x="7" y="2.5">k1</text>
         <text x="7" y="6.5">b1</text>
       </g>
@@ -55,7 +55,7 @@ SLOPPY_SVG = textwrap.dedent(
       <g inkscape:groupmode="layer" inkscape:label="storey-0">
         <path d="M 4.06,-0.05 L 3.95,8.07"/>
         <path d="M 3.96,5.04 L 10.06,4.93"/>
-        <text x="2" y="4">cr1</text>
+        <text x="2" y="4">fr1</text>
         <text x="7" y="2.5">k1</text>
         <text x="7" y="6.5">b1</text>
       </g>
@@ -92,14 +92,14 @@ def test_composes_synthetic_partition_and_scores(tmp_path):
     root = compose(boundary, storeys)
 
     leaves = root.leaves()
-    assert sorted(leaf.type for leaf in leaves) == ["b1", "cr1", "k1"]
+    assert sorted(leaf.type for leaf in leaves) == ["b1", "fr1", "k1"]
 
     # round-trips through the .dom text format
     out_path = tmp_path / "plan.dom"
     dom.dump(root, str(out_path))
     reloaded = dom.load(str(out_path))
     reloaded_types = sorted(leaf.type for leaf in reloaded.leaves())
-    assert reloaded_types == ["b1", "cr1", "k1"]
+    assert reloaded_types == ["b1", "fr1", "k1"]
 
     # geometry is sane: leaf areas sum to the (wall-inset) plot area
     total = sum(geometry.area(leaf) for leaf in reloaded.leaves())
@@ -123,7 +123,7 @@ def test_snaps_sloppy_hand_traced_lines(tmp_path):
     storeys = parse_svg(str(svg_path))
     root = compose(boundary, storeys, tol=0.15)
 
-    assert sorted(leaf.type for leaf in root.leaves()) == ["b1", "cr1", "k1"]
+    assert sorted(leaf.type for leaf in root.leaves()) == ["b1", "fr1", "k1"]
 
     # a tighter tolerance than the sketch's slop should fail to find the cuts
     boundary2 = dom.load(str(boundary_path))

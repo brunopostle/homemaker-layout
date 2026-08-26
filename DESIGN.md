@@ -5156,11 +5156,62 @@ document was measured against a **32-instance effective programme, not the
 harbor-house (§13.9, §13.11, §17, §20, §23, §37.1, §37.7) are internally
 consistent but are not measuring the programme as written.
 
-**Fix direction** (`homemaker-py-ju3`): separate the namespaces — an explicit
-per-space `class:` key (`inside`/`circulation`/`outside`, defaulting to
-`inside`), with the prefix rule used *only* for the untyped generic leaves the
-search itself creates. A cheaper stopgap is a load-time validation error in
-`programme.load_programme_dir` refusing a code that starts with `c`/`o`/`s`,
-which at least converts a silent misread into a loud one. Renaming harbor's
-four codes fixes that one programme but leaves the trap armed for the next
-author.
+### 39.3 What shipped — loud validation + harbor rename, re-baselined
+
+**The `class:` key was NOT built, deliberately.** Auditing every use of the
+prefix rule first showed it runs far deeper than `c`/`o`/`s`: `l`/`k`/`b`/`t`
+carry real adjacency semantics too (`graph.py` builds bedroom↔toilet and
+kitchen↔living relations from first characters, `fitness.py` gates access and
+public-entrance checks on them). Re-plumbing that into a declared type system
+would invalidate the entire corpus and every baseline in this document, for a
+problem whose actual damage is the **silence**, not the prefix convention.
+
+Two facts made the smaller fix clearly sufficient:
+
+1. **No corpus programme has ever declared a bare `c`/`o`/`s` code** (checked
+   across all ten `examples/*/patterns.config`). So `check_space_counts`'
+   skip never protected a legitimate case — generic types are not in `spaces`
+   at all — and could only ever discard a declared room.
+2. **Nothing references the four harbor codes** in any `adjacency:` or
+   `co_locate:` list, so renaming them is local.
+
+Shipped instead:
+
+- **`programme.validate_codes`** (new, `RESERVED_PREFIXES = ("c", "o", "s")`)
+  raises with the full explanation and a pointer here. Called from **both**
+  parse paths — `programme._parse_spaces` *and*
+  `fitness.Fitness._load_programme`, which parse `conf["spaces"]`
+  independently, so validating only one would leave the other door open.
+  `l`/`k`/`b`/`t` are explicitly **not** reserved: they flavour heuristics but
+  never discard a requirement.
+- **harbor-house / harbor-house-l0 renamed**: `cr1`→`fr1`, `of`→`ao`,
+  `st1`→`gs1`, `st2`→`gs2`. Each new prefix is unused in harbor *and*
+  semantically neutral (`f`/`a`/`g` carry no adjacency meaning, unlike
+  `l`/`k`/`b`/`t`), and the two storage codes still share one prefix, so the
+  prefix-sharing structure `fitness.evaluate_building`'s per-code plot-ratio
+  term depends on is preserved. `name:` fields are unchanged.
+- **`experiments/migrate_ju3_rename.py`** rewrites `type:` lines in `.dom`
+  files produced before the rename (`--check` to dry-run). Any pre-rename
+  artefact — notably the `evolved-3M*.dom` harbor runs — **must** be migrated
+  or its affected leaves will read as unmatched generics.
+
+**Re-baseline** (`homemaker-evolve init.dom --budget 20000 --workers 4
+--seed 1`, same seed/budget/settings as §38's run, so the two are directly
+comparable):
+
+| | effective programme | total fails | `fr1` area (declared 80) | `ao`/`gs1`/`gs2` |
+|---|---|---|---|---|
+| before | 32 instances | 57 | **32.9 and 17.1** (two leaves, `count: 1`, no too-many fail) | **absent, zero fails** |
+| after | **37 instances** | **55** (13 hard / 42 soft) | **87.2** | **all present: 14.2, 11.5, 24.6, 18.7** |
+
+Every one of the five previously-lost room instances is now placed and sized
+inside its declared sigma band (`fr1` 80±10, `ao` 12.5±2.5, `gs1` 22±4,
+`gs2` 18±3.5), and **no failure in the result mentions any of the four codes**.
+The fail count did not rise despite the programme being 5 instances harder —
+though at one seed each, 57 vs 55 is within noise and the honest claim is
+"did not regress", not "improved". The robust result is the room placement.
+
+**Historical numbers.** Every harbor-house fail count recorded before this
+section was measured against the 32-instance effective programme. They remain
+valid relative to each other but are not comparable to post-`ju3` numbers;
+treat §39.3's 55 as the new harbor reference point.

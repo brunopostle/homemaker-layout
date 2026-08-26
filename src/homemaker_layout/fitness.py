@@ -1887,13 +1887,18 @@ class Fitness:
 
     def _load_programme(self, conf: dict) -> None:
         """Populate ``_programme_cache`` from spaces section of conf dict."""
-        from .programme import SpaceReq
+        from .programme import SpaceReq, validate_codes
         _DW = (4.0, 1.0)
         _DP = (1.5, 0.5)
         spaces = conf.get("spaces") or {}
         if not spaces:
             self._programme_cache = None
             return
+        # homemaker-py-ju3 (DESIGN.md §39.2): reject codes colliding with the
+        # generic c/o/s type prefixes here too — Fitness parses conf["spaces"]
+        # independently of programme._parse_spaces, so validating in only one
+        # of the two would leave the other door open.
+        validate_codes(spaces)
         reqs: dict = {}
         for code, c in spaces.items():
             sz = c.get("size") or [0.0, 1.0]
