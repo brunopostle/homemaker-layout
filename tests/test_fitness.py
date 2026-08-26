@@ -531,3 +531,29 @@ def test_crinkliness_exempt_circulation_only_exempts_circulation():
 def test_crinkliness_mode_unknown_raises():
     with pytest.raises(ValueError, match="crinkliness_mode"):
         _stub_fit("nonsense")
+
+
+# --------------------------------------------------------------------------- #
+# homemaker-py-2v1 / DESIGN.md §39.8 — connectivity_weight (EXPERIMENTAL, NULL)
+# --------------------------------------------------------------------------- #
+def test_connectivity_weight_defaults_to_flat_rule():
+    """Default must reproduce the flat 0.5^n penalty exactly."""
+    assert Fitness(conf={})._connectivity_weight == 1.0
+
+
+def test_connectivity_weight_auto_is_derived_from_the_value_gap():
+    """Not a magic number: the smallest w making 0.5^w < value_circulation /
+    value_inside, so it tracks the rates if either is retuned."""
+    from homemaker_layout.fitness import connectivity_weight_for
+    assert connectivity_weight_for(300.0, 50.0) == 3.0     # 0.5^3 < 1/6 < 0.5^2
+    assert connectivity_weight_for(100.0, 100.0) == 1.0    # no gap, no extra weight
+    assert connectivity_weight_for(400.0, 50.0) == 3.0     # 1/8 -> exactly 3
+    assert Fitness(conf={"connectivity_weight": "auto"})._connectivity_weight == 3.0
+
+
+def test_is_connectivity_fail_matches_both_strings():
+    from homemaker_layout.fitness import is_connectivity_fail
+    assert is_connectivity_fail("level 0 not connected")
+    assert is_connectivity_fail("1 inaccessible usable space")
+    assert not is_connectivity_fail("0/llr crinkliness")
+    assert not is_connectivity_fail("missing required space: b1")

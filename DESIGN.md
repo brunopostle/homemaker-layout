@@ -4929,10 +4929,18 @@ favour, against a measured ×4.06. **The connectivity fail is under-priced by
 roughly 3×, so the objective is net-positive on destroying the circulation
 spine even when the circulation is perfectly daylit.**
 
-That is the cleanest available explanation of why `level 0 not connected` and
-`level 1 not connected` are still present in the best layout found after
-1.7 M evals: the search is not failing to fix them, it is being paid ×3–4 to
-create them.
+**RETRACTED — see §39.8.** The inference above ("the objective is net-positive
+on severing the spine") does not survive measurement. It assumed severing costs
+exactly one failure; it does not. Every deletion that actually breaks
+connectivity is already punished — measured ×0.00 to ×0.58 across harbor-house
+and maple-court, not one rewarded. The ×4.06 figure above is real but was
+measured on a deletion that did **not** change the connectivity fail count, so
+it is not evidence for this mechanism. The deletions that are rewarded are
+rewarded because they remove the deleted leaf's OWN quality failures (7–9 of
+them), which is §38.1's zero-value finding, not a connectivity mispricing.
+
+Why `level 0/1 not connected` persist in the best layout is therefore still
+open, but it is not that the search is paid to create them.
 
 Together these retro-explain three prior results as one mechanism, and suggest
 two of them were measuring a broken gradient rather than a bad idea:
@@ -5422,3 +5430,67 @@ missed, because consulting rooms and storage stood in for them. With that
 substitution gone, `homemaker-py-2v1` (connectivity priced at ×0.5 against a ×6
 circulation→habitable value gap) is the remaining half of the same problem —
 and now measurable, because the fails it should be preventing actually fire.
+
+### 39.8 `homemaker-py-2v1` connectivity weighting — MEASURED NULL, premise retracted
+
+§38.2 concluded that the objective is net-positive on severing a level's
+circulation: merging a corridor into a habitable sibling gains
+`value_inside / value_circulation` = ×6, while `level N not connected` costs
+only ×0.5, so break-even needs `0.5^w < 50/300`, i.e. w > 2.58 — "severing must
+cost at least 3 fails and costs 1". **The arithmetic is right and the premise is
+wrong.**
+
+**What shipped anyway** (EXPERIMENTAL, default off, byte-identical):
+`fitness.connectivity_weight_for(value_inside, value_circulation)` returns the
+smallest weight making severing net-negative — 3.0 at the defaults, *derived*
+from the rates rather than hard-coded, so it tracks them if either is retuned.
+`conf["connectivity_weight"]` takes `1.0` (default, the flat rule), `"auto"`, or
+an explicit number, and counts each connectivity failure as w failures in the
+`0.5^n` penalty. `is_connectivity_fail` identifies the two strings.
+
+**The measurement.** At `auto` (=3) the §38.2 deletion test does not move at
+all: 5/25 deletions rewarded either way, median ×0.26 vs ×0.27. The reason is
+immediate once looked for — **the connectivity fail count is unchanged in every
+rewarded deletion**:
+
+| seed | deleted | | score | fails | connectivity fails |
+|---|---|---|---|---|---|
+| 0 | `rlrrr` `O` | buried | ×238 | 115 → 107 | 5 → **5** |
+| 0 | `rrrl` `O` | lit | ×346 | 115 → 106 | 5 → **5** |
+| 1 | `lrlll` `cr1` | lit | ×257 | 107 → 99 | 3 → **3** |
+| 2 | `rlrrl` `O` | buried | ×127 | 78 → 71 | 3 → **3** |
+
+Weighting a failure that never fires changes nothing. And when the deletion
+*does* break connectivity, the objective already punishes it — every such case
+across harbor-house and maple-court, 4 seeds each:
+
+| programme | deletions sampled | break connectivity | of those, rewarded |
+|---|---|---|---|
+| harbor-house | 32 | 2 | **0** (×0.00, ×0.01) |
+| maple-court | 32 | 5 | **0** (×0.58 … ×0.07) |
+
+So severing is already net-negative: it costs 1–2 connectivity failures *plus*
+the cascade that follows them (inaccessible space, broken adjacency), and that
+total already outweighs the ×6 value gain. The flat rule was never the problem.
+
+**Where §38.2 went wrong.** The ×4.06 "well-daylit circulation leaf" that
+motivated the whole bead was a deletion that did **not** change the
+connectivity fail count. It was rewarded for removing the leaf's own quality
+failures — §38.1's zero-value finding — and was misread as evidence for a
+pricing mechanism. Two lessons, both cheap to state and expensive to learn: a
+plausible closed-form arithmetic is not a measurement, and when a fix produces
+*exactly* no effect, suspect the premise before the implementation.
+
+**What is still true from §38.** §38.1 (buried leaves score a hard quality of
+zero and contribute no value) and §38.3 (the frontage budget) are direct
+measurements and stand. §39.7's finding — that the connectivity model was ~4×
+too permissive — also stands and is the more useful lever: it made the fails
+*fire*, where this bead would only have made them *cost more*.
+
+**Verdict: NULL.** The flag stays default off with this write-up, per house
+style for a measured-null lever. `homemaker-py-2v1` is closed. Why
+`level 0/1 not connected` survive in the best-known layout is re-opened as a
+question (`homemaker-py-yql`) — the evidence now says it is a reachability problem
+(connected topologies are hard to construct and hold onto), not an incentive
+one. It is newly measurable: §39.7 made the fails fire on constructed seeds
+instead of being hidden by routes through store cupboards.

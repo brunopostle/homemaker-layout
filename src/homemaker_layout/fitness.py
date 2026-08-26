@@ -118,6 +118,40 @@ _SOFT_FAIL_MARKERS = (
 )
 
 
+# homemaker-py-2v1 (DESIGN.md §39.8) — the fails that punish severing a level's
+# circulation. These are the ONLY counter-pressure against a structural x6 gain:
+# deleting a circulation leaf merges it into its sibling, converting corridor
+# into habitable area, and value_inside/value_circulation is 300/50.
+_CONNECTIVITY_FAIL_MARKERS = ("not connected", "inaccessible usable space")
+
+
+def is_connectivity_fail(fail: str) -> bool:
+    """True for a level-connectivity failure (``level N not connected`` /
+    ``N inaccessible usable space``)."""
+    return any(m in fail for m in _CONNECTIVITY_FAIL_MARKERS)
+
+
+def connectivity_weight_for(value_inside: float, value_circulation: float) -> float:
+    """Smallest integer weight at which severing circulation is net-NEGATIVE.
+
+    Merging a circulation leaf into a habitable sibling multiplies value by
+    ``value_inside / value_circulation`` (x6 at the defaults). One failure costs
+    x0.5. So the penalty only outweighs the gain once
+    ``0.5**w < value_circulation / value_inside``, i.e.
+    ``w > log(vc/vi) / log(0.5)`` — 2.58 at the defaults, hence 3.
+
+    Derived from the value rates rather than hard-coded, so the two stay in step
+    if either rate is ever retuned.
+    """
+    import math
+    if value_inside <= 0 or value_circulation <= 0:
+        return 1.0
+    ratio = value_circulation / value_inside
+    if ratio >= 1.0:                      # circulation already worth as much
+        return 1.0
+    return float(math.ceil(math.log(ratio) / math.log(0.5)))
+
+
 def classify_fail_tier(fail: str) -> str:
     """Return ``"hard"`` or ``"soft"`` for one failure string.
 
@@ -390,6 +424,18 @@ class Fitness:
         # leaf with no daylit wall. "urb" (default) = stock hard 0.0, byte-
         # identical to every prior run. "floor"/"compact_ok"/"exempt_circulation"
         # are the three candidate repairs — see quality_uncrinkliness.
+        # homemaker-py-2v1 (§39.8), EXPERIMENTAL: 1.0 (default) is the flat rule,
+        # byte-identical to every prior run. "auto" derives the smallest weight
+        # that makes severing circulation net-negative; a number sets it explicitly.
+        cw = self.conf("connectivity_weight")
+        if cw is None:
+            self._connectivity_weight = 1.0
+        elif isinstance(cw, str) and cw.lower() == "auto":
+            self._connectivity_weight = connectivity_weight_for(
+                float(self.conf("value_inside")),
+                float(self.conf("value_circulation")))
+        else:
+            self._connectivity_weight = float(cw)
         self._crinkliness_mode = str(self.conf("crinkliness_mode") or "urb")
         if self._crinkliness_mode not in (
                 "urb", "floor", "compact_ok", "exempt_circulation"):
@@ -1925,8 +1971,23 @@ class Fitness:
         building_factor = self.evaluate_building(root, tracking)
         value *= building_factor
 
-        # 0.5^n failure penalty (programme-driven mode, not 0.1^n)
-        value *= 0.5 ** len(failures)
+        # 0.5^n failure penalty (programme-driven mode, not 0.1^n).
+        #
+        # homemaker-py-2v1: connectivity failures may carry EXTRA weight. Under
+        # the flat rule every failure costs x0.5, but severing a level's
+        # circulation *gains* value_inside/value_circulation = x6 (the corridor
+        # becomes habitable area when it merges into its sibling), so the
+        # objective was net-positive on destroying the spine — measured x4.06 on
+        # a well-daylit circulation leaf. ``connectivity_weight`` counts each
+        # connectivity fail as w failures; ``"auto"`` derives the smallest w that
+        # makes severing net-negative from the value rates themselves.
+        w = self._connectivity_weight
+        if w != 1.0:
+            n_conn = sum(1 for f in failures if is_connectivity_fail(f))
+            n_other = len(failures) - n_conn
+            value *= 0.5 ** (n_other + w * n_conn)
+        else:
+            value *= 0.5 ** len(failures)
 
         score = value / cost if cost != 0.0 else 0.0
         return score, tuple(sorted(failures)), grade
