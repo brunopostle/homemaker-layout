@@ -468,3 +468,65 @@ def test_classify_fail_tier_covers_full_corpus():
             classify_fail_tier(line)  # raises on failure
             checked += 1
     assert checked > 0
+
+
+# --------------------------------------------------------------------------- #
+# homemaker-py-ssz / DESIGN.md §38.1 — crinkliness_mode (EXPERIMENTAL)
+# --------------------------------------------------------------------------- #
+class _StubCrink(Fitness):
+    """Fitness with ``crinkliness`` stubbed, so the modes can be tested without
+    building a real tree/graph (the value under test is the branch, not the
+    geometry)."""
+
+    _stub = 0.0
+
+    def crinkliness(self, leaf, G, groups):  # noqa: D102 - test stub
+        return self._stub
+
+
+def _stub_fit(mode=None, stub=0.0, type_="t1"):
+    conf = dict(CONF_DEFAULTS)
+    if mode is not None:
+        conf["crinkliness_mode"] = mode
+    f = _StubCrink(conf, dict(COST_DEFAULTS))
+    f._stub = stub
+    return f, _leaf(type_)
+
+
+def test_crinkliness_mode_defaults_to_urb_and_reproduces_hard_zero():
+    """Default must be byte-identical to stock Urb: buried leaf -> exactly 0.0."""
+    f, leaf = _stub_fit()
+    assert f._crinkliness_mode == "urb"
+    assert f.quality_uncrinkliness(leaf, None, {}) == 0.0
+
+
+def test_crinkliness_floor_restores_gradient_but_keeps_the_failure():
+    """The floor must stay BELOW FAIL_THRESHOLD: it restores a value gradient
+    without silently deleting a whole fail category."""
+    f, leaf = _stub_fit("floor")
+    q = f.quality_uncrinkliness(leaf, None, {})
+    assert q > 0.0, "buried leaf should no longer be worth exactly nothing"
+    assert q < FAIL_THRESHOLD, "buried leaf must still emit its crinkliness fail"
+
+
+def test_crinkliness_compact_ok_clips_on_the_compact_side_only():
+    """Being more compact than target is not a defect; being over-exposed is."""
+    target = CONF_DEFAULTS["uncrinkliness"][0]
+    # 1/crink > target  =>  more compact than target  =>  clipped to 1.0
+    f, leaf = _stub_fit("compact_ok", stub=1.0 / (target * 2))
+    assert f.quality_uncrinkliness(leaf, None, {}) == 1.0
+    # 1/crink < target  =>  over-exposed  =>  still decays
+    f, leaf = _stub_fit("compact_ok", stub=1.0 / (target / 2))
+    assert f.quality_uncrinkliness(leaf, None, {}) < 1.0
+
+
+def test_crinkliness_exempt_circulation_only_exempts_circulation():
+    f, circ = _stub_fit("exempt_circulation", type_="C")
+    assert f.quality_uncrinkliness(circ, None, {}) == 1.0
+    f, room = _stub_fit("exempt_circulation", type_="t1")
+    assert f.quality_uncrinkliness(room, None, {}) == 0.0
+
+
+def test_crinkliness_mode_unknown_raises():
+    with pytest.raises(ValueError, match="crinkliness_mode"):
+        _stub_fit("nonsense")

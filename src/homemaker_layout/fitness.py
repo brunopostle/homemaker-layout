@@ -372,6 +372,21 @@ class Fitness:
         # target combines both codes' area (quality_size).
         self._multi_use = bool(self.conf("multi_use"))
         self._colocate_pairs: list | None = None  # lazily derived
+        # homemaker-py-ssz (DESIGN.md §38.1): how quality_uncrinkliness treats a
+        # leaf with no daylit wall. "urb" (default) = stock hard 0.0, byte-
+        # identical to every prior run. "floor"/"compact_ok"/"exempt_circulation"
+        # are the three candidate repairs — see quality_uncrinkliness.
+        self._crinkliness_mode = str(self.conf("crinkliness_mode") or "urb")
+        if self._crinkliness_mode not in (
+                "urb", "floor", "compact_ok", "exempt_circulation"):
+            raise ValueError(
+                f"unknown crinkliness_mode: {self._crinkliness_mode!r}")
+        # The floored value stays BELOW FAIL_THRESHOLD, so a buried leaf still
+        # emits its crinkliness failure and the fail count is unchanged — only
+        # the value gradient is restored. Raising this above FAIL_THRESHOLD
+        # would silently delete a whole fail category.
+        self._crinkliness_floor = float(
+            self.conf("crinkliness_floor") or 0.01)
 
     # ------------------------------------------------------------------ #
     # Type superposition + collapse (homemaker-py-9o5)
@@ -1093,9 +1108,35 @@ class Fitness:
         key = "uncrinkliness_circulation" if dom_mod.is_circulation(leaf) else "uncrinkliness"
         distance, sigma = self.conf(key)
         crink = self.crinkliness(leaf, G, groups)
+
+        # homemaker-py-ssz (DESIGN.md §38.1), EXPERIMENTAL, all default OFF —
+        # `crinkliness_mode="urb"` reproduces the stock behaviour exactly.
+        #
+        # Stock Urb returns a hard 0.0 for a leaf with no daylit wall. That is
+        # the correct limit of the formula (1/crink -> inf, gaussian -> 0), but
+        # because evaluate_leaf MULTIPLIES factors into quality and
+        # process_storey accumulates `value += quality * rate * area`, such a
+        # leaf contributes EXACTLY ZERO value while still costing — so the
+        # objective cannot rank buried rooms at all, and buried circulation/
+        # outside leaves (which no missing-space cascade pins) are pure
+        # liabilities worth ~x60-x85 to delete. Measured: 45-56% of interior
+        # leaves are in this state. These modes restore a gradient there.
+        mode = self._crinkliness_mode
+        if mode == "exempt_circulation" and dom_mod.is_circulation(leaf):
+            # (c) internal corridors are ordinary architecture; stop requiring
+            # every circulation leaf to reach daylight.
+            return 1.0
         if not crink:
-            return 0.0
-        return gaussian(1 / crink, 1.0, distance, sigma)
+            # (a) floor: keep buried leaves rankable by their other factors
+            # instead of collapsing the whole quality product to zero.
+            return self._crinkliness_floor if mode in ("floor", "compact_ok") else 0.0
+        q = gaussian(1 / crink, 1.0, distance, sigma)
+        if mode == "compact_ok" and 1 / crink > distance:
+            # (b) one-sided: being MORE compact than target is not a defect the
+            # way over-exposure is, so clip to 1.0 on the compact side rather
+            # than decaying symmetrically into a fail.
+            return 1.0
+        return max(q, self._crinkliness_floor) if mode in ("floor", "compact_ok") else q
 
     # --- access --- #
 

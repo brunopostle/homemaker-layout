@@ -4835,7 +4835,7 @@ future effort on that plateau (`homemaker-py-2g7.7`'s LLM repair operator, or
 a level-connectivity-targeted operator) is better aimed than a graph-dual
 construction pass would have been.
 
-## 38. The plateau is an objective-gradient problem, not a search problem (`homemaker-py-ssz`/`hxi`/`tdp`/`gvb`/`1i8`) — measured 2026-08-25
+## 38. The plateau is an objective-gradient problem, not a search problem (`homemaker-py-2v1`/`ssz`/`hxi`/`tdp`/`gvb`/`1i8`) — measured 2026-08-25
 
 Independent review of why the search "finds solutions that are clearly not the
 best and gets stuck in local minima", prompted by the §37 scoreboard: *every*
@@ -4898,8 +4898,41 @@ Measured on a constructed harbor-house seed (`value` report):
 circulation spine.** Observed live: in the 20 000-eval harbor-house run above,
 `undivide`/`core_undivide` appear 16 times in the improvement log.
 
-This retro-explains three prior results as one mechanism, and suggests two of
-them were measuring a broken gradient rather than a bad idea:
+**Refinement (measured 2026-08-25, after the first draft of this section):
+zero-exposure is only half of it, and not the half that matters most.**
+Repeating the deletion test separately for *lit* and *buried* circulation:
+
+| leaf | exposed wall | `q_crink` | deleting it |
+|---|---|---|---|
+| `0/llll` `O` | buried | 0 | **×85.6 rewarded** |
+| `0/lllr` `C` | buried | 0 | **×61.6 rewarded** |
+| `1/rlrr` `C` | buried | 0 | **×6.9 rewarded** |
+| `0/rlll` `C` | 27.4 m² | 0.105 | ×0.01 kept |
+| `0/lrrl` `O` | 21.2 m² | 0.0004 | ×0.61 kept |
+| `0/rrll` `C` | 40.7 m² | **0.736** | **×4.1 rewarded** |
+
+The last row is the important one: a **well-lit** circulation leaf, scoring
+0.736 on the very factor §38.1 is about, is *still* worth ×4 to delete. So
+there is a second, independent mechanism, and it is the structural one:
+
+**Circulation is priced at `value_circulation = 50` against
+`value_inside = 300`** — one sixth the value per m² of the habitable space it
+could become. Deleting a circulation leaf merges it into its sibling, which
+converts corridor into room: a flat **×6 value gain**. The only thing pushing
+back is the `level N not connected` fail, worth **×0.5**. Break-even needs
+`0.5^k < 50/300`, i.e. **k > 2.58 — severing must cost at least 3 fails to be
+net-negative. It costs 1.** Net incentive to sever: `6 × 0.5 = ×3.0` in
+favour, against a measured ×4.06. **The connectivity fail is under-priced by
+roughly 3×, so the objective is net-positive on destroying the circulation
+spine even when the circulation is perfectly daylit.**
+
+That is the cleanest available explanation of why `level 0 not connected` and
+`level 1 not connected` are still present in the best layout found after
+1.7 M evals: the search is not failing to fix them, it is being paid ×3–4 to
+create them.
+
+Together these retro-explain three prior results as one mechanism, and suggest
+two of them were measuring a broken gradient rather than a bad idea:
 
 - **§18 graded circulation-connectivity — NEGATIVE.** A secondary comparator
   key cannot beat a ×60 primary-scalar gradient pulling the other way.
@@ -4917,16 +4950,33 @@ so every interior leaf needs exposed wall `L ≥ A/(1.6202·h)` — per storey,
 `fortified` perimeter edges, and harbor-house/maple-court mark **half their
 plot perimeter `private`**:
 
-| programme | daylit frontage | needed per built storey | verdict | observed floor |
-|---|---|---|---|---|
-| harbor-house | 54 m | 148 m | **2.7× short** | plateaus 30–40 fails |
-| maple-court | 56 m | 162 m | **2.9× short** | plateaus 74–84 fails |
-| health-centre | 43 m | 41 m | feasible | §32 clean null |
-| programme-house | 24 m | 12 m | 2× surplus | **1 fail** (12k evals) |
+| programme | daylit frontage | needed per built storey | verdict | floor @20k evals | best known |
+|---|---|---|---|---|---|
+| harbor-house | 54 m | 148 m | **2.7× short** | 30–40 fails (§13.11) | 15 (`evolved-3M-nols-3`, **1.7 M evals / 2.4 days**) |
+| maple-court | 56 m | 162 m | **2.9× short** | 74–84 fails (§13.11) | — |
+| health-centre | 43 m | 41 m | feasible | §32 clean null | — |
+| programme-house | 24 m | 12 m | 2× surplus | — | **1 fail @ 12k evals** |
 
-**The corpus fail-count plateau is predicted by frontage deficit alone.** The
-two programmes that are frontage-short are exactly the two that plateau; the
-two with surplus are the two that effectively solve. Causal check
+**Frontage deficit predicts the COST of solving, not impossibility.** An
+earlier draft of this section claimed the deficit predicts the plateau
+outright, quoting §13.11's 20k-budget figure as harbor's floor; that was
+wrong. Harbor-house *does* reach 15 fails — it just needs 1.7 M evals and 2.4
+days to get there, against programme-house's 1 fail in 12 k. That ~150×
+budget gap between a frontage-short and a frontage-surplus programme is the
+real signature, and it is what §38.1/§38.2 predict: the deficit forces the
+search to find a specific courtyard topology, and the objective punishes every
+intermediate step toward one.
+
+**The best-known harbor layout corroborates the mechanism directly.** Its
+residual (§37.8) is 8 geometry fails plus 4 structural — and two of those four
+are `level 0 not connected` and `level 1 not connected`. After 1.7 M evals,
+the best layout ever found still has a **severed circulation spine on both
+storeys**. That is not a search failure; it is §38.2 working as designed: the
+objective pays ×60 to delete buried circulation, so connectivity is the one
+thing that never survives to the end. Any fix to §38.1 should be judged first
+on whether those two fails disappear.
+
+Causal check
 (`experiments/diag_exposure_frontage.py`, 6 seeds): relabelling harbor's two
 `private` edges as open — identical geometry, identical programme, perimeter
 labels only — cuts zero-exposure leaves **52% → 19%** and seeder crinkliness
@@ -4971,7 +5021,36 @@ fitness weight between two single rooms**. In programme-house, missing `b1`
 3 fails = 1/8. The tiered comparator inherits it: `n_hard` is dominated by
 these cascades, so the primary search key is weighted by config verbosity.
 
-### 38.6 Consequences for the Phase 9 plan
+### 38.6 First repair attempt: three crinkliness modes — NOT SUFFICIENT ALONE
+
+`fitness.quality_uncrinkliness` gained `crinkliness_mode` (config key,
+EXPERIMENTAL, default `"urb"` = stock hard 0.0, byte-identical to all prior
+runs). Three candidate repairs, A/B'd on the §38.2 deletion test (harbor-house,
+3 constructed seeds, unpinned `C`/`O` leaves only):
+
+Splitting the deleted leaves by whether they were buried or lit is what makes
+the result legible (`experiments/ab_crinkliness_mode_ssz.py`):
+
+| mode | buried rewarded | **lit rewarded** | all | median × |
+|---|---|---|---|---|
+| `urb` (stock) | 5/8 | **3/8** | 8/16 | ×1.02 |
+| `floor` (clamp to 0.01, keep the fail) | 5/8 | **3/8** | 8/16 | ×1.02 |
+| `compact_ok` (one-sided: compact is not a defect) | 5/8 | **3/8** | 8/16 | ×1.00 |
+| `exempt_circulation` (corridors need no daylight) | **4/8** | **3/8** | 7/16 | ×0.61 |
+
+**None of them removes the incentive, and the `lit` column does not move at
+all — 3/8 under every mode, including stock.** That column is mechanism (2)
+in isolation: deleting a *well-daylit* corridor is rewarded for reasons that
+have nothing to do with crinkliness, so nothing written inside
+`quality_uncrinkliness` can ever reach it. `floor` is inert (0.01 of a unit
+quality is still ~zero against the cost saving); `exempt_circulation` removes
+exactly one buried case.
+
+The modes are kept, default off, as one half of a fix that needs both halves.
+**Do not ship any of them as a standalone lever and expect the connectivity
+fails to move** — `homemaker-py-2v1` is the half that matters.
+
+### 38.7 Consequences for the Phase 9 plan
 
 §37 track 1 ("no ground truth … the residual taxonomy may be miscalibrated
 rather than unmet") was aimed at the right target, and §38.3 supplies a cheap
@@ -4985,9 +5064,17 @@ part, an unsatisfiable constraint.
 Tracks 2 and 3 (cheaper evaluation, exact sub-solvers) remain sound but are
 orthogonal: making an evaluation 97× faster, or a labelling exact, does not
 change which direction the objective points. Recommended ordering is now
-`ssz` → `hxi`/`gvb` (restore a value gradient for interior space, re-tier),
-then `tdp` (ship the pre-flight bound and re-baseline the corpus), and only
-then resume `2g7.9`/`2g7.10`. In particular `2g7.7` (LLM repair operator at
+`2v1` (price connectivity above the ×6 circulation→habitable value gap — the
+dominant mechanism, and the one the §38.6 A/B isolated) → `ssz`/`hxi`/`gvb`
+(restore a value gradient for interior space, re-tier), then `tdp` (ship the
+pre-flight bound and re-baseline the corpus), and only then resume
+`2g7.9`/`2g7.10`.
+
+**Acceptance test for the combined fix, stated up front so it cannot be
+moved:** harbor-house must reach its known 15-fail floor in materially fewer
+than 1.7 M evals, *and* `level 0 not connected` / `level 1 not connected` must
+be absent from the result. Fail-count parity alone is not a pass — the whole
+claim of §38 is that those two fails are bought, not missed. In particular `2g7.7` (LLM repair operator at
 stagnation) is worth deferring until after `ssz`: an LLM asked to propose a
 valley-crossing multi-edit against an objective that pays ×85 to delete the
 corridor it just inserted will have its work reverted by the next selection
