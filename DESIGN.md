@@ -5079,3 +5079,88 @@ stagnation) is worth deferring until after `ssz`: an LLM asked to propose a
 valley-crossing multi-edit against an objective that pays ×85 to delete the
 corridor it just inserted will have its work reverted by the next selection
 step.
+
+## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
+
+The corpus `patterns.config` targets and `costs.config` values were estimated
+years ago, on the principle that exact values are irrelevant to getting the
+evolution engine working. This section asks the inverse question — *do any of
+them actively work against it?* — and finds that one does, badly.
+
+Reproduce with `experiments/audit_programme_config.py` (two reports:
+namespace collisions, and per-room-spec satisfiability).
+
+### 39.1 Per-room-spec satisfiability — CLEAN (negative result, recorded)
+
+Modelling each leaf as a rectangle of area `A` and aspect `r = w/h ≥ 1`, and
+taking the FAIL_THRESHOLD-inverted bounds from the already-validated
+`shapecurve.leaf_constraints` (§37.2), no room spec in any of the four corpus
+programmes is internally contradictory: for every code there exists an `(A, r)`
+satisfying size, width, proportion *and* crinkliness simultaneously, and none
+needs more than one exposed side (i.e. none secretly demands a corner). The
+hypothesis that the estimated targets are mutually unsatisfiable is
+**falsified**, and the audit is kept so the question stays answered.
+
+(One instance of exactly this class was already known and handled:
+`get_space_params` derives a width from size and proportion for small
+programme spaces rather than falling back to `width_inside` `[4.0, 1.0]`,
+"which is impossible for small programme spaces (e.g. a 3 m² WC)".)
+
+### 39.2 Programme codes collide with the generic type namespace — SEVERE
+
+Urb's type system is **prefix-based** — a type starting with `c` is
+circulation, `o`/`s` is outside — and programme room codes live in the **same
+namespace**. Any code whose name happens to begin with one of those letters is
+silently reinterpreted as a generic type. Three independent consequences, none
+of them announced anywhere in the output:
+
+1. **`graph.check_space_counts` skips the code entirely** —
+   `if code[0].lower() in ("c", "o", "s"): continue`. The room is never
+   required, never counted, and produces neither a missing nor a too-many
+   failure. **It is optional, silently.**
+2. **`Fitness.get_space_params` returns the generic `*_circulation` /
+   `*_outside` parameters *before* consulting `self.spaces`**, so the declared
+   size/width/proportion are overridden.
+3. **`dom.is_circulation` / `is_outside` become true**, changing the leaf's
+   value rate, exempting it from crinkliness, and making it supply daylight to
+   its neighbours.
+
+`harbor-house` — the project's primary benchmark — is affected;
+`maple-court`, `health-centre` and `programme-house` are namespace-clean.
+
+| code | name | declared → effective | flags | value rate |
+|---|---|---|---|---|
+| `cr1` | Common Room with Fireplace | size **80.0 → 0.0/14.0**, width **6.0 → 2.4**, proportion **2.0 → 1.5** (all three) | `is_circulation` | **50** (vs 300) |
+| `of` ×2 | Staff Office | width 2.5 → 3.0, proportion — → 1.5/50 | `is_outside` | 100 |
+| `st1` | Ground Floor Storage | width 3.0 → 3.0/0.3, proportion — → 1.5/50 | `is_outside` **and** `is_circulation` | 100 |
+| `st2` | First Floor Storage | width 3.0 → 3.0/0.3, proportion — → 1.5/50 | `is_outside` **and** `is_circulation` | 100 |
+
+**5 of harbor-house's 37 room instances (14%) are silently optional.**
+
+**Measured consequences**, on the 20 000-eval run of §38:
+
+- The two `cr1` leaves converged to **32.9 m² and 17.1 m² against a declared
+  80 m²** — and produced **no `too many spaces` failure despite `count: 1`**,
+  because the count check skips the code.
+- `of`, `st1` and `st2` are **absent from the result entirely, with zero
+  failures**, because nothing ever asked for them.
+
+This compounds directly with §38.2: `cr1` is the single largest room in the
+programme, and classifying it as circulation puts it on the wrong side of the
+×6 `value_circulation`/`value_inside` gap — so the objective is paid to shrink
+the common room, which is exactly what it did.
+
+**Benchmark-validity consequence.** Every harbor-house fail count in this
+document was measured against a **32-instance effective programme, not the
+37-instance one its config declares**. Cross-programme comparisons involving
+harbor-house (§13.9, §13.11, §17, §20, §23, §37.1, §37.7) are internally
+consistent but are not measuring the programme as written.
+
+**Fix direction** (`homemaker-py-ju3`): separate the namespaces — an explicit
+per-space `class:` key (`inside`/`circulation`/`outside`, defaulting to
+`inside`), with the prefix rule used *only* for the untyped generic leaves the
+search itself creates. A cheaper stopgap is a load-time validation error in
+`programme.load_programme_dir` refusing a code that starts with `c`/`o`/`s`,
+which at least converts a silent misread into a loud one. Renaming harbor's
+four codes fixes that one programme but leaves the trap armed for the next
+author.
