@@ -1,11 +1,11 @@
-# Proposed `usage:` assignments for every corpus room code (homemaker-py-sel).
+# `usage:` assignments for every corpus room code (homemaker-py-sel).
 #
 # FOR REVIEW — nothing reads this yet. Once agreed it becomes the input to the
 # migration that writes `usage:` into each `patterns.config`.
 #
-# Usage is an ACCESS-REQUIREMENT class, not a room-name category (Bruno's
-# framing: "library corner and staff room are living rooms as they have the same
-# access requirements"). What each class actually does, in `graph.has_circulation`:
+# Usage is an ACCESS-REQUIREMENT class, not a room-name category (Bruno:
+# "library corner and staff room are living rooms as they have the same access
+# requirements"). What each class does today, in `graph.has_circulation`:
 #
 #   living   keeps its MOST popular circulation neighbour; not stripped from
 #            other rooms, so living spaces may chain to one another.
@@ -14,15 +14,15 @@
 #            reachable only from circulation or outside — a terminal private
 #            room, never a route.
 #   toilet   edges to outside/living/kitchen/toilet removed.
-#   utility  NEW. Terminal, not a route — the same requirement as `bedroom`.
-#            See OPEN QUESTION 1 below.
+#   utility  NEW. Same access requirements as `bedroom` today (terminal, never a
+#            route) but a DISTINCT declared use — see DESIGN NOTE 1.
 #   none     nothing is stripped: the room is fully permeable and the
 #            connectivity graph MAY ROUTE THROUGH IT. Correct only for spaces
 #            that genuinely are part of the circulation system.
 #
-# The `none` semantics are the reason this is a bigger change than it looks:
-# 34 of 52 corpus codes currently get no class, so a Dental Surgery, a Records
-# Room and a Utilities Closet can all serve as corridors today.
+# `none` is why this is a bigger change than it looks: 34 of 52 corpus codes
+# currently have no class, so a Dental Surgery, a Records Room and a Utilities
+# Closet can all serve as corridors today.
 
 living:
   cr1: Common Room with Fireplace
@@ -30,11 +30,13 @@ living:
   en1: TV / Media Room
   gy1: Exercise Room
   l1: Living/Dining/Kitchen
-  li1: Library Corner            # confirmed: same access requirements as a living room
+  li1: Library Corner            # ruled: same access requirements as a living room
   lo1: Lounge
   lr1: Common Living Room
-  br1: Staff Room                # confirmed: same access requirements as a living room
+  br1: Staff Room                # ruled: same access requirements as a living room
   m: Meeting Room
+  gh1: Greenhouse                # ruled: grows plants, but a living area like a conservatory
+  ws1: Workshop Space            # ruled CONDITIONALLY — see DESIGN NOTE 3
 
 kitchen:
   k1: Kitchen
@@ -44,7 +46,8 @@ bedroom:                          # terminal private room, entered from circulat
   b1: Master Bedroom
   b2: Second Bedroom
   r: Individual Room
-  tr1: Treatment Room            # confirmed: access requirements of a bedroom
+  n: Neighborhood                # ruled: a communal sleeping area, much like a dormitory
+  tr1: Treatment Room            # ruled: access requirements of a bedroom
   de1: Dental Surgery
   gp1: GP Consulting Room
   ms1: Minor Surgery Room
@@ -56,6 +59,7 @@ bedroom:                          # terminal private room, entered from circulat
   ao1: Admin Office
   em: Staff Office
   of: Staff Office
+  ph1: Pharmacy / Dispensary     # ruled: a private room, not public, like an office
 
 toilet:
   t: Bathroom
@@ -67,7 +71,7 @@ toilet:
   tt: Upper Bathroom
 
 utility:                          # terminal, never a circulation route
-  la1: Laundry Room              # confirmed: utility, not a circulation route
+  la1: Laundry Room              # ruled: utility, not a circulation route
   ut1: Utilities Closet
   me1: Mechanical/Electrical Room  # "Plant / Mechanical Room" in health-centre
   dp1: General Storage
@@ -77,46 +81,78 @@ utility:                          # terminal, never a circulation route
   ur2: First Floor Storage
   ur3: Second Floor Storage
   re1: Records Room
+  zt1: Sterilisation Room        # ruled: utility — a room for sterilising tools and machinery
 
 none:                             # genuinely part of the circulation system
   ef1: Entrance Foyer
-  rc1: Reception                 # "Reception Office" in maple-court — see Q3
+  rc1: Reception                 # "Reception Office" in maple-court — see DESIGN NOTE 4
   wa1: Waiting Room
 
 # --------------------------------------------------------------------------- #
-# UNRESOLVED — please rule on these
-# --------------------------------------------------------------------------- #
-unresolved:
-  ws1: Workshop Space            # living (shared activity) or utility (terminal)?
-  zt1: Sterilisation Room        # utility, or bedroom-class off a surgery?
-  ph1: Pharmacy / Dispensary     # health-centre; bedroom-class? and see Q3
-  n: Neighborhood                # unclear what this models at all
-  gh1: Greenhouse                # utility, or outside-ish?
-
-# --------------------------------------------------------------------------- #
-# OPEN QUESTIONS
+# DESIGN NOTES
 # --------------------------------------------------------------------------- #
 #
-# Q1  Does `utility` need behaviour distinct from `bedroom`? Both are "terminal,
-#     not a route", and the engine has no term today that would tell them apart.
-#     Declaring it as a distinct name that maps onto bedroom's edge-stripping
-#     costs nothing and makes the config read truthfully, leaving somewhere to
-#     hang a real difference later. The alternative is to drop it and write
-#     `bedroom`, which reads badly for a bin store.
+# 1. `utility` IS a distinct value, not an alias for `bedroom`.
+#    Ruled: "a utility may have similar requirements to a bedroom, and it may be
+#    useful during evolution superposition to treat them as interchangeable
+#    before wave function collapse, but they are very different uses."
+#    So it maps onto bedroom's edge-stripping today (identical access
+#    requirements) while staying separately declared, which gives two things:
+#    the config reads truthfully for a bin store, and `usage` becomes a natural
+#    axis for `programme.derive_interchange_classes` (§13/§26, homemaker-py-9o5)
+#    — bedroom-class and utility-class leaves could be declared interchangeable
+#    DURING search and collapse to their real use at scoring time, which is
+#    exactly the superposition relaxation that machinery already implements.
 #
-#     The "ground floor external access" cases (fuel stores, bins) do NOT need a
-#     class: `level: 0` plus `adjacency: [o]` already expresses that, and it is
-#     per-room programme data rather than an access class.
+# 2. Adjacency value survives the connectivity stripping — VERIFIED, no bug.
+#    Ruled: "a toilet adjacent to a bedroom or treatment room is a positive even
+#    if there is no door, see How Buildings Learn by Stewart Brand, at some point
+#    there may be a need to knock it through."
+#    `fitness._evaluate_full` runs `check_adjacency` against `graph_base_pre`,
+#    the UNFILTERED graph, so a declared `adjacency:` requirement is satisfied by
+#    a neighbouring room regardless of what `has_circulation` later strips. The
+#    stripping only denies ROUTING (you cannot walk through a bedroom to reach
+#    the loo), which is correct. Brand's adaptability positive is therefore
+#    already expressible.
 #
-# Q2  A dedicated toilet off a bedroom-class room does NOT survive scoring.
-#     Verified: `has_circulation` runs its bedroom loop before its toilet loop,
-#     and the bedroom loop removes bedroom->toilet edges, so the ensuite is
-#     severed — for real bedrooms too, not just for treatment rooms. This is
-#     existing Urb behaviour that the usage key neither causes nor fixes; filed
-#     separately if it should change.
+#    BUT it is only ever scored where a programme DECLARES it, and three of the
+#    four real programmes do not:
+#      programme-house  t1 -> adjacency: [b1]   declared
+#      harbor-house     t (Bathroom, count 6) vs r / n (sleeping)  NOT declared
+#      maple-court      t, tt vs r / n                             NOT declared
+#      health-centre    t9 / t10 vs tr1 (Treatment Room)           NOT declared
+#    Adding those declarations is programme authoring, independent of this bead
+#    (filed as homemaker-py-3qj), and would let the search earn the adaptability credit it
+#    currently cannot.
 #
-# Q3  Three codes mean different rooms in different programmes: `ph1`
-#     (Pharmacy/Dispensary in health-centre, Clinic Room in maple-court), `me1`
-#     (Mechanical/Electrical vs Plant/Mechanical), `rc1` (Reception vs Reception
-#     Office). Usage is declared per `patterns.config`, so they can differ — but
-#     it is worth confirming that is intended rather than a copy-paste drift.
+# 3. `ws1` Workshop Space is building-specific.
+#    Ruled: "could be a communal craft room, a living space, or it could be a
+#    maintenance area, a utility room, it depends on the building."
+#    Both corpus programmes carrying it (harbor-house, maple-court) are communal
+#    living facilities, so `living` is the reading here — but this is exactly the
+#    case that argues for per-programme declaration rather than a global map.
+#    Flip it to `utility` in either file if the intent was a maintenance shop.
+#
+# 4. Three codes mean different rooms in different programmes: `ph1`
+#    (Pharmacy/Dispensary in health-centre, Clinic Room in maple-court), `me1`
+#    (Mechanical/Electrical vs Plant/Mechanical), `rc1` (Reception vs Reception
+#    Office). Usage is declared per `patterns.config`, so they may legitimately
+#    differ — worth confirming it is intended rather than copy-paste drift.
+#    NB the assignments above are listed per CODE for review convenience; the
+#    migration writes them per FILE, so a code can differ between programmes.
+#
+# 5. Vocabulary: controlled but not closed.
+#    Ruled: "programmes are building specific, so it would be nice to have a
+#    controlled vocabulary, but not entirely necessary."
+#    So the earlier "closed enum, unknown value is an error" recommendation is
+#    withdrawn. Proposed instead: the six names above are the known vocabulary
+#    and drive engine behaviour directly; a programme may coin its own name
+#    (`usage: craft`) provided it binds it to a known class in the same file:
+#
+#        usage_classes:
+#          craft: living
+#          bin_store: utility
+#
+#    An unbound name is a load error. That keeps naming free and building-
+#    specific while never letting an unrecognised usage fall through to a silent
+#    default — the failure mode §39 exists to remove.
