@@ -5408,8 +5408,7 @@ genuinely unoccupied:
 | health-centre | General Storage, Plant / Mechanical Room, Records Room |
 | maple-court | Ground/First/Second Floor Storage, Mechanical/Electrical Room, Utilities Closet |
 
-*(Records Room is the one debatable entry — a store you fetch a file from, not a
-desk. Flip it to a declared target if it is meant to be worked in.)*
+*(Records Room was queried and ruled on: it is a store, and stays exempt.)*
 
 **What survives §38.8/§38.9 unchanged**, because none of it depended on the
 classification:
