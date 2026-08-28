@@ -7,7 +7,7 @@ been measured against what `ssz`'s acceptance criteria actually asks for: a
 fixed-budget search, hard/soft fail split, on harbor-house and maple-court.
 
 **The scoring discipline is the point of this script.** `compact_ok`,
-`exempt_circulation` and `usage_daylight` all return 1.0 for leaves that stock
+`exempt_circulation` and `compact_ok` all return 1.0 for leaves that stock
 scores below FAIL_THRESHOLD, so scoring an arm under its own objective deletes
 a fail category for free and every arm "wins". Two numbers are therefore
 reported per arm:
@@ -24,7 +24,7 @@ A mode passes on `urb`, not on `own`.
 Usage::
 
     python experiments/ab_ssz_search.py --budget 3000 --seeds 3
-    python experiments/ab_ssz_search.py --modes urb usage_daylight --seeds 2
+    python experiments/ab_ssz_search.py --modes urb compact_ok --seeds 2
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ from homemaker_layout import dom as dom_mod
 from homemaker_layout import driver, fitness
 
 CORPUS = ["examples/harbor-house", "examples/maple-court"]
-MODES = ["urb", "floor", "compact_ok", "exempt_circulation", "usage_daylight"]
+MODES = ["urb", "floor", "compact_ok", "exempt_circulation"]
 
 
 def _with_mode(mode: str):

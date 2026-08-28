@@ -539,54 +539,84 @@ def test_crinkliness_compact_ok_scores_the_buried_limit_as_compact():
     assert f.quality_uncrinkliness(leaf, None, {}) == 1.0
 
 
-def _usage_fit(mode, stub, code, usage):
-    """Stub Fitness carrying a one-space programme, so `usage_of` resolves."""
+# --------------------------------------------------------------------------- #
+# homemaker-py-ssz / DESIGN.md §38.10 — per-space crinkliness (the SHIPPING fix)
+#
+# The compact side of the crinkliness gaussian IS the daylight requirement, so
+# a space declares it in its own `crinkliness:` target, like `size:` or
+# `width:`. There is no separate daylight attribute -- see §38.9 for why
+# keying it off `usage:` (an ACCESS class) was wrong.
+# --------------------------------------------------------------------------- #
+def _declared_fit(stub, space=None, conf_extra=None, code="x1"):
+    """Stub Fitness with a one-space programme, optionally declaring
+    `crinkliness:`, so `crinkliness_params` resolves off real config."""
     conf = dict(CONF_DEFAULTS)
-    conf["crinkliness_mode"] = mode
-    conf["spaces"] = {code: {"usage": usage, "size": [4.0, 1.0]}}
+    conf["spaces"] = {code: dict({"usage": "living", "size": [4.0, 1.0]},
+                                 **(space or {}))}
+    conf.update(conf_extra or {})
     f = _StubCrink(conf, dict(COST_DEFAULTS))
     f._stub = stub
     return f, _leaf(code)
 
 
-@pytest.mark.parametrize("usage", ["toilet", "utility", "none"])
-def test_usage_daylight_exempts_uses_nobody_sits_in(usage):
-    """A buried store or toilet is ordinary architecture, not a failure."""
-    f, leaf = _usage_fit("usage_daylight", 0.0, "x1", usage)
-    assert f.needs_daylight(leaf) is False
-    assert f.quality_uncrinkliness(leaf, None, {}) == 1.0
+def test_declared_crinkliness_absent_keeps_stock_behaviour():
+    """No `crinkliness:` key -> the global target, unchanged: buried = 0.0.
 
-
-@pytest.mark.parametrize("usage", ["living", "kitchen", "bedroom"])
-def test_usage_daylight_still_fails_a_windowless_habitable_room(usage):
-    """The point of keying on usage: a bedroom with no daylight stays a hard
-    zero, exactly as stock. A mode that rescued this would be deleting the
-    fail category, not fixing the objective."""
-    f, leaf = _usage_fit("usage_daylight", 0.0, "x1", usage)
-    assert f.needs_daylight(leaf) is True
+    This is what makes the mechanism backward compatible -- shipping it
+    changes no score until a config actually declares something.
+    """
+    f, leaf = _declared_fit(0.0)
+    assert f.crinkliness_params(leaf) == tuple(CONF_DEFAULTS["uncrinkliness"])
     assert f.quality_uncrinkliness(leaf, None, {}) == 0.0
 
 
-def test_usage_daylight_exempts_generic_types():
-    """Generic `C`/`S` have no programme entry; a corridor needs no window."""
-    f, _ = _usage_fit("usage_daylight", 0.0, "x1", "living")
-    for code in ("C", "S"):
-        assert f.quality_uncrinkliness(_leaf(code), None, {}) == 1.0
+def test_declared_crinkliness_none_lets_a_space_be_buried():
+    """`crinkliness: none` says this space needs no window. Fully buried --
+    the compact limit -- is then not a defect."""
+    f, leaf = _declared_fit(0.0, {"crinkliness": None})
+    assert f.crinkliness_params(leaf) is None
+    assert f.quality_uncrinkliness(leaf, None, {}) == 1.0
 
 
-def test_usage_daylight_still_punishes_over_exposure():
-    """Exempt from needing daylight is not exempt from envelope cost: the
-    factor is clipped on the compact side only, never switched off."""
+def test_declared_crinkliness_none_accepts_the_literal_string():
+    """`crinkliness: none` reads the same as a YAML null, so the corpus can
+    spell it the way it spells `usage: none`."""
+    f, leaf = _declared_fit(0.0, {"crinkliness": "none"})
+    assert f.crinkliness_params(leaf) is None
+    assert f.quality_uncrinkliness(leaf, None, {}) == 1.0
+
+
+def test_declared_crinkliness_none_still_penalises_over_exposure():
+    """Needing no window is not exemption from envelope cost. The factor is
+    clipped on the compact side only, never switched off -- a crinkly store
+    still costs wall."""
     target = CONF_DEFAULTS["uncrinkliness"][0]
-    f, leaf = _usage_fit("usage_daylight", 1.0 / (target / 2), "x1", "utility")
+    f, leaf = _declared_fit(1.0 / (target / 2), {"crinkliness": None})
     assert f.quality_uncrinkliness(leaf, None, {}) < 1.0
 
 
-def test_usage_daylight_leaves_stock_urb_untouched():
-    """Same tree, mode off -> stock hard zero for every usage."""
-    for usage in ("living", "toilet", "none"):
-        f, leaf = _usage_fit("urb", 0.0, "x1", usage)
-        assert f.quality_uncrinkliness(leaf, None, {}) == 0.0
+def test_declared_crinkliness_pair_is_used_verbatim():
+    """A space may instead ask for its own target, as it does for size."""
+    f, leaf = _declared_fit(0.0, {"crinkliness": [2.0, 0.5]})
+    assert f.crinkliness_params(leaf) == (2.0, 0.5)
+    assert f.quality_uncrinkliness(leaf, None, {}) == 0.0  # still wants light
+
+
+def test_circulation_target_is_separately_declarable():
+    """A generic corridor takes `uncrinkliness_circulation`, and that key can
+    say `none` -- an internal corridor with no windows is ordinary
+    architecture, not a failure (this was 63% of the phantom fails, §38.10)."""
+    f, _ = _declared_fit(0.0, conf_extra={"uncrinkliness_circulation": None})
+    assert f.crinkliness_params(_leaf("C")) is None
+    assert f.quality_uncrinkliness(_leaf("C"), None, {}) == 1.0
+    # a room is untouched by the circulation key
+    f2, room = _declared_fit(0.0, conf_extra={"uncrinkliness_circulation": None})
+    assert f2.quality_uncrinkliness(room, None, {}) == 0.0
+
+
+def test_circulation_keeps_its_pair_when_declared():
+    f, _ = _declared_fit(0.0, conf_extra={"uncrinkliness_circulation": [1.0, 0.3]})
+    assert f.crinkliness_params(_leaf("C")) == (1.0, 0.3)
 
 
 def test_crinkliness_mode_unknown_raises():

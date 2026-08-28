@@ -36,6 +36,13 @@ from homemaker_layout import operators, programme
 
 CORPUS = ["examples/harbor-house", "examples/maple-court", "examples/health-centre"]
 
+# Ruled by the project owner: everything a person occupies wants a window --
+# WCs and bathrooms included, reception/waiting/foyer included, offices and
+# consulting rooms included. Only stores, plant, records and laundry do not,
+# together with the generic structural types (a corridor has its own
+# `uncrinkliness_circulation` target; a courtyard is not a room).
+NO_DAYLIGHT = {"utility"}
+
 
 def stock_fitness(progdir: str) -> fitness.Fitness:
     """Stock objective -- `crinkliness_mode` left at its "urb" default."""
@@ -80,14 +87,16 @@ def audit(fit: fitness.Fitness, root: dom_mod.Node) -> collections.Counter:
 
 def report(label: str, tally: collections.Counter) -> tuple[int, int]:
     total = sum(tally.values())
-    real = sum(n for u, n in tally.items() if u in programme.DAYLIGHT_USAGES)
+    real = sum(n for u, n in tally.items() if u not in NO_DAYLIGHT
+               and not u.startswith("<generic"))
     print(f"=== {label}: {total} crinkliness fails")
     if not total:
         print("    none\n")
         return 0, 0
     for usage, n in tally.most_common():
-        verdict = ("REAL DEFECT" if usage in programme.DAYLIGHT_USAGES
-                   else "not a defect -- no daylight wanted")
+        exempt = usage in NO_DAYLIGHT or usage.startswith("<generic")
+        verdict = ("not a defect -- no daylight wanted" if exempt
+                   else "REAL DEFECT")
         print(f"    {usage:<18}{n:>4}   {verdict}")
     print(f"    -> {total - real}/{total} ({100 * (total - real) / total:.0f}%) "
           f"are reported against spaces that do not want daylight\n")

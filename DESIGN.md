@@ -5285,6 +5285,75 @@ It is retained as the mechanism — the compact-side clip is the right shape for
 the factor — pending a `daylight:` attribute to key it on.
 
 
+### 38.10 The shipping fix: crinkliness is declared per space (`homemaker-py-ssz`)
+
+Owner's ruling, and it is the design as well as the classification: **there is
+no daylight attribute, because the daylight requirement is already defined in
+the crinkliness.** The crinkliness gaussian's two sides are two real
+requirements — the *compact* side is "too little exposed wall per unit floor",
+which is exactly a daylight requirement, and the *exposed* side is "too much
+envelope for the area", which is cost. §38.9's proposed `daylight:` axis was
+redundant, and keying it off `usage:` was worse than redundant.
+
+What was actually missing is that **crinkliness is the only leaf quality factor
+with no per-space target**. `size`, `width` and `proportion` are all declared by
+the space; crinkliness was one global number for every room in every building.
+So a space now states its own:
+
+```yaml
+  st1:
+    usage: utility
+    crinkliness: none   # no window needed
+```
+
+Three states, resolved exactly as `size`/`width`/`proportion` resolve:
+
+| in `patterns.config` | meaning |
+|---|---|
+| key absent | the global `uncrinkliness` target — today's behaviour |
+| `crinkliness: none` (or a YAML null) | **no minimum-exposure requirement**: this space may be fully buried |
+| `crinkliness: [target, sigma]` | that gaussian, this space's own target |
+
+`none` **clips the factor on the compact side, it does not switch it off**.
+Over-exposure is still penalised, because a crinkly leaf costs envelope whatever
+it holds. A store may be buried; a store may not be a starfish.
+
+**The mechanism is backward compatible.** An absent key resolves to the global
+target, so shipping it changes no score anywhere. Behaviour changes only where a
+config declares something — which makes the objective change visible, per
+programme, in the config, rather than hidden in a default.
+
+**Owner's classification.** Everything a person occupies wants a window — WCs
+and bathrooms included, reception/waiting/foyer included, offices and consulting
+rooms included. Only stores, plant, records and laundry (`usage: utility`) do
+not. `experiments/migrate_crinkliness_key.py` declared `crinkliness: none` on 18
+spaces across the corpus (harbor 5, harbor-l0 3, health-centre 4, maple 6;
+programme-house has no utility spaces).
+
+**Effect so far**, from `experiments/audit_crinkliness_truth.py`:
+
+| | crinkliness fails | not defects |
+|---|---|---|
+| before | 271 | 136 (50%) |
+| after the utility declarations | **243** | 108 (44%) |
+
+The 28 that went are exactly the utility fails. What remains is two populations
+the corpus cannot reach, because neither is a `spaces:` entry:
+
+| remaining phantom | count | key |
+|---|---|---|
+| generic `C` — internal circulation | **85** | `uncrinkliness_circulation` |
+| generic `O`/`S` — covered outside, sahn | 23 | falls through to `uncrinkliness` |
+
+`uncrinkliness_circulation` already exists as its own config key and holds
+`[5/6, 1.1/3]` — **byte-identical to the habitable target**, which is the
+"estimated years ago and never changed" case in its purest form: a key created
+precisely so corridors could differ, never given a different value. It is now
+settable to `none` like any space (tested), but the default is deliberately
+**left unchanged pending a ruling** — corridors were not among the groups ruled
+on, and this is 63% of the remaining phantom fails, so it is not a call to make
+by inference.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated

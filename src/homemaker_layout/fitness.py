@@ -32,6 +32,7 @@ from . import programme as _programme
 from .dom import Node
 
 FAIL_THRESHOLD = 0.1  # Urb::Dom::Fitness::Base
+_MISSING = object()  # tells an absent config key from one declared null
 
 # Per-leaf quality factors that emit a failure when they drop below
 # FAIL_THRESHOLD (evaluate_leaf, in emission order). The graded objective
@@ -438,8 +439,7 @@ class Fitness:
             self._connectivity_weight = float(cw)
         self._crinkliness_mode = str(self.conf("crinkliness_mode") or "urb")
         if self._crinkliness_mode not in (
-                "urb", "floor", "compact_ok", "exempt_circulation",
-                "usage_daylight"):
+                "urb", "floor", "compact_ok", "exempt_circulation"):
             raise ValueError(
                 f"unknown crinkliness_mode: {self._crinkliness_mode!r}")
         # The floored value stays BELOW FAIL_THRESHOLD, so a buried leaf still
@@ -463,16 +463,6 @@ class Fitness:
         """Access-requirement class of one leaf, ``""`` for a generic type."""
         req = (self._programme or {}).get(leaf.type)
         return req.usage if req else ""
-
-    def needs_daylight(self, leaf: Node) -> bool:
-        """Does this leaf's declared usage want a window? (homemaker-py-ssz)
-
-        True only for uses a person occupies (``programme.DAYLIGHT_USAGES``).
-        A generic ``C``/``O``/``S`` leaf has no programme entry and so is False,
-        which is the intended reading: a corridor or a covered courtyard is not
-        failing when it has no daylit wall.
-        """
-        return self.usage_of(leaf) in _programme.DAYLIGHT_USAGES
 
     # ------------------------------------------------------------------ #
     # Type superposition + collapse (homemaker-py-9o5)
@@ -1194,53 +1184,74 @@ class Fitness:
             return 9999999999
         return self.area_outside(leaf, G, groups) / area
 
+    def crinkliness_params(self, leaf: Node) -> "tuple[float, float] | None":
+        """``(target, sigma)`` for this leaf's crinkliness, or ``None`` when the
+        space declares no minimum-exposure requirement (homemaker-py-ssz).
+
+        The COMPACT side of the crinkliness gaussian is the daylight
+        requirement -- too little exposed wall per unit floor -- so a space
+        declaring `crinkliness: none` is declaring that it does not need a
+        window. There is no separate daylight attribute; see DESIGN.md §38.10.
+
+        Resolution order, mirroring how size/width/proportion resolve:
+        a programme space's own declaration wins; a generic circulation leaf
+        takes `uncrinkliness_circulation`; everything else takes the global
+        `uncrinkliness`.
+        """
+        req = (self._programme or {}).get(leaf.type)
+        if req is not None and req.has_crinkliness:
+            if req.crinkliness is None:
+                return None
+            return req.crinkliness, req.crinkliness_sigma
+        key = ("uncrinkliness_circulation" if dom_mod.is_circulation(leaf)
+               else "uncrinkliness")
+        # An explicit null/`none` in the config means "no minimum-exposure
+        # requirement". `conf()` cannot express that -- it collapses None to the
+        # default -- so the raw dict is read here, the same way `_optional_pair`
+        # tells an absent per-space key from a declared-empty one.
+        raw = self._conf.get(key, _MISSING)
+        if raw is None or (isinstance(raw, str) and raw.strip().lower() == "none"):
+            return None
+        params = self.conf(key)
+        if params is None:
+            return None
+        return params[0], params[1]
+
     def quality_uncrinkliness(self, leaf: Node, G: nx.Graph, groups: dict) -> float:
         if dom_mod.is_outside(leaf) and not dom_mod.is_covered(leaf):
             return 1.0
-        key = "uncrinkliness_circulation" if dom_mod.is_circulation(leaf) else "uncrinkliness"
-        distance, sigma = self.conf(key)
+        params = self.crinkliness_params(leaf)
         crink = self.crinkliness(leaf, G, groups)
 
-        # homemaker-py-ssz (DESIGN.md §38.1), EXPERIMENTAL, all default OFF —
-        # `crinkliness_mode="urb"` reproduces the stock behaviour exactly.
-        #
-        # Stock Urb returns a hard 0.0 for a leaf with no daylit wall. That is
-        # the correct limit of the formula (1/crink -> inf, gaussian -> 0), but
-        # because evaluate_leaf MULTIPLIES factors into quality and
-        # process_storey accumulates `value += quality * rate * area`, such a
-        # leaf contributes EXACTLY ZERO value while still costing — so the
-        # objective cannot rank buried rooms at all, and buried circulation/
-        # outside leaves (which no missing-space cascade pins) are pure
-        # liabilities worth ~x60-x85 to delete. Measured: 45-56% of interior
-        # leaves are in this state. These modes restore a gradient there.
+        if params is None:
+            # No minimum-exposure requirement: this space does not need a
+            # window, so being buried -- the fully compact limit -- is not a
+            # defect. Over-exposure still is: a crinkly leaf costs envelope
+            # whatever it holds. So the factor is CLIPPED on the compact side,
+            # never switched off, and the over-exposed side keeps the global
+            # bound.
+            if not crink:
+                return 1.0
+            distance, sigma = self.conf("uncrinkliness")
+            if 1 / crink > distance:
+                return 1.0
+            return gaussian(1 / crink, 1.0, distance, sigma)
+
+        distance, sigma = params
+
+        # homemaker-py-ssz (DESIGN.md §38.1), EXPERIMENTAL, all default OFF --
+        # `crinkliness_mode="urb"` reproduces the stock behaviour exactly. These
+        # were the first attempt at the problem and are SUPERSEDED by the
+        # declared per-space target above (§38.10); they are kept only so the
+        # §38.6/§38.8 measurements remain reproducible. Do not build on them.
         mode = self._crinkliness_mode
         if mode == "exempt_circulation" and dom_mod.is_circulation(leaf):
-            # (c) internal corridors are ordinary architecture; stop requiring
-            # every circulation leaf to reach daylight.
             return 1.0
-
-        # (b)/(d) one-sided: being MORE compact than target is not a defect the
-        # way over-exposure is. Over-exposure still is one -- a crinkly leaf
-        # costs envelope whatever it is used for -- so this clips the compact
-        # side only, it does not switch the factor off.
-        #
-        # `compact_ok` applies that to every leaf; `usage_daylight` applies it
-        # only where nobody is sitting -- a store, a toilet, plant, a corridor,
-        # a covered courtyard -- and leaves habitable rooms on stock behaviour,
-        # so a windowless bedroom is still the hard failure it should be.
-        one_sided = mode == "compact_ok" or (
-            mode == "usage_daylight" and not self.needs_daylight(leaf))
+        one_sided = mode == "compact_ok"
 
         if not crink:
-            # Zero exposure IS the compact limit (1/crink -> inf), so a
-            # one-sided factor has to score it 1.0. Reaching here and returning
-            # the floor instead was the flaw in the first `compact_ok`: it
-            # announced that compact is not a defect and then punished the most
-            # compact case of all hardest (§38.8).
             if one_sided:
                 return 1.0
-            # (a) floor: keep buried leaves rankable by their other factors
-            # instead of collapsing the whole quality product to zero.
             return self._crinkliness_floor if mode == "floor" else 0.0
 
         q = gaussian(1 / crink, 1.0, distance, sigma)
@@ -2046,6 +2057,7 @@ class Fitness:
             sz = c.get("size") or [0.0, 1.0]
             w = c.get("width") or _DW
             pr = c.get("proportion") or _DP
+            _crink = _programme._optional_pair(c, "crinkliness")
             reqs[code] = SpaceReq(
                 code=code,
                 usage=c["usage"],
@@ -2064,5 +2076,8 @@ class Fitness:
                 has_size="size" in c,
                 has_width="width" in c,
                 has_proportion="proportion" in c,
+                has_crinkliness="crinkliness" in c,
+                crinkliness=_crink[0],
+                crinkliness_sigma=_crink[1],
             )
         self._programme_cache = reqs

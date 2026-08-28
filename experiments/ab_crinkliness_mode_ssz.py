@@ -45,8 +45,7 @@ from homemaker_layout import driver, fitness, geometry
 from homemaker_layout import graph as graph_mod
 from homemaker_layout import operators, programme
 
-MODES = ("urb", "floor", "compact_ok", "exempt_circulation",
-         "usage_daylight")
+MODES = ("urb", "floor", "compact_ok", "exempt_circulation")
 
 
 def make_fitness(progdir: str, mode: str) -> fitness.Fitness:

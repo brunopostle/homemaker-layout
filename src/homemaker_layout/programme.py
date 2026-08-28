@@ -30,6 +30,24 @@ class SpaceReq:
     width_sigma: float = _DEFAULT_WIDTH[1]
     proportion: float = _DEFAULT_PROPORTION[0]  # max length/width ratio
     proportion_sigma: float = _DEFAULT_PROPORTION[1]
+    # homemaker-py-ssz (DESIGN.md §38.10) — this space's own crinkliness target,
+    # i.e. how much exposed wall it wants per unit floor area. The COMPACT side
+    # of this gaussian IS the daylight requirement; there is no separate
+    # daylight attribute. Three states, matching how the key appears in
+    # patterns.config:
+    #
+    #   key absent      -> `crinkliness` is None and `has_crinkliness` False:
+    #                      fall back to the global `uncrinkliness` target
+    #   `crinkliness: none` (or a YAML null)
+    #                   -> `crinkliness` is None and `has_crinkliness` True:
+    #                      NO minimum-exposure requirement. A store or a records
+    #                      room may be fully buried. Over-exposure is still
+    #                      penalised -- a crinkly leaf costs envelope whatever
+    #                      it holds -- so the factor is clipped, not switched off.
+    #   `crinkliness: [t, s]`
+    #                   -> that gaussian, as size/width/proportion work.
+    crinkliness: float | None = None
+    crinkliness_sigma: float | None = None
     adjacency: list[str] = field(default_factory=list)
     level: int | None = None
     requires_below: str | None = None
@@ -55,12 +73,27 @@ class SpaceReq:
     has_width: bool = False
     has_proportion: bool = False
     has_share: bool = False
+    has_crinkliness: bool = False
 
 
 def _pair(d: dict, key: str, default: tuple[float, float]) -> tuple[float, float]:
     v = d.get(key)
     if v is None:
         return default
+    return float(v[0]), float(v[1])
+
+
+def _optional_pair(d: dict, key: str) -> tuple[float | None, float | None]:
+    """A pair that may be explicitly declared absent.
+
+    Returns ``(None, None)`` both when the key is missing and when it is
+    present but null/``none``; the caller distinguishes the two by ``key in d``.
+    """
+    if key not in d:
+        return None, None
+    v = d[key]
+    if v is None or (isinstance(v, str) and v.strip().lower() == "none"):
+        return None, None
     return float(v[0]), float(v[1])
 
 
@@ -104,12 +137,13 @@ TOILET_STRIPS = ("living", "kitchen", "toilet")
 # Sociable rooms keep their MOST central circulation neighbour; terminal rooms
 # and toilets keep their LEAST central one.
 SOCIABLE_USAGES = ("living", "kitchen")
-# Uses a person OCCUPIES, and which therefore want a window. Everything else --
-# stores, toilets, plant, corridors, covered courtyards -- is ordinary buried
-# architecture, and `crinkliness_mode="usage_daylight"` stops the objective
-# demanding daylight for it (homemaker-py-ssz, DESIGN.md §38.8). A generic
-# `C`/`O`/`S` leaf has no programme usage and is exempt for the same reason.
-DAYLIGHT_USAGES = ("living", "kitchen", "bedroom")
+# There is deliberately NO daylight vocabulary here. Daylight is not a separate
+# axis: the COMPACT side of the crinkliness gaussian -- too little exposed wall
+# per unit floor -- IS the daylight requirement, so a space states it in its own
+# `crinkliness:` target like it states `size:` or `width:` (DESIGN.md §38.10).
+# An earlier attempt keyed daylight off `usage:` instead; that was wrong, since
+# `usage:` is an ACCESS class and the two questions come apart (a waiting room
+# has no special access requirement and very much wants a window). See §38.9.
 
 
 def validate_codes(codes) -> None:
@@ -169,6 +203,7 @@ def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
         size = _pair(c, "size", (0.0, 1.0))
         width = _pair(c, "width", _DEFAULT_WIDTH)
         prop = _pair(c, "proportion", _DEFAULT_PROPORTION)
+        crink = _optional_pair(c, "crinkliness")
         out[code] = SpaceReq(
             code=code,
             name=c.get("name", ""),
@@ -179,6 +214,8 @@ def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
             width_sigma=width[1],
             proportion=prop[0],
             proportion_sigma=prop[1],
+            crinkliness=crink[0],
+            crinkliness_sigma=crink[1],
             adjacency=list(c.get("adjacency") or []),
             level=c.get("level"),
             requires_below=c.get("requires_below"),
@@ -190,6 +227,7 @@ def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
             has_width="width" in c,
             has_proportion="proportion" in c,
             has_share="share" in c,
+            has_crinkliness="crinkliness" in c,
         )
     return out
 
