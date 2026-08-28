@@ -5156,8 +5156,9 @@ sits in?
 | maple-court | 46 | 13 (28%) | **33 (72%)** |
 | health-centre | 18 | 9 (50%) | 9 (50%) |
 
-**Roughly two thirds of the zero-value leaves are spaces that architecturally
-do not want a window at all** — a broom cupboard, a WC, a plant room, an
+**RETRACTED, see §38.11 — the real share is under a tenth.** As written this
+claimed that roughly two thirds of the zero-value leaves are spaces that
+architecturally do not want a window at all — a broom cupboard, a WC, a plant room, an
 internal corridor, a covered courtyard. The objective scores them identically
 with a windowless bedroom. That is the miscalibration, and it is not a gradient
 problem to be patched with an epsilon; it is the wrong requirement applied to
@@ -5255,8 +5256,14 @@ leaf's declared usage:
 | maple-court `generated.dom` (evolved) | 67 | 43 (64%) |
 | **overall** | **271** | **164 (61%)** |
 
-**61% of the crinkliness failures the objective reports are not defects**, and
-it holds on evolved artefacts, not just seeds. Under
+**RETRACTED — the true figure is 9%, see §38.11.** The table above classifies a
+fail as a non-defect using `usage:`, exempting corridors, WCs, laundries and
+reception; the owner exempts none of those. Only rooms not occupied from day to
+day — a cupboard, a store, a plant room — do without daylight. The paragraph as
+written said:
+
+> **61% of the crinkliness failures the objective reports are not defects**, and
+> it holds on evolved artefacts, not just seeds. Under
 `value *= 0.5 ** len(failures)` every one of them halves the fitness of a design
 that has done nothing wrong — a design is punished for putting the store in the
 middle of the plan, which is what a competent architect does. That is a
@@ -5334,8 +5341,8 @@ programme-house has no utility spaces).
 
 | | crinkliness fails | not defects |
 |---|---|---|
-| before | 271 | 136 (50%) |
-| after the utility declarations | **243** | 108 (44%) |
+| before | 271 | ~~136 (50%)~~ **24 (9%)** — see §38.11 |
+| after the declarations | **247** | **0** |
 
 The 28 that went are exactly the utility fails. What remains is two populations
 the corpus cannot reach, because neither is a `spaces:` entry:
@@ -5353,6 +5360,79 @@ settable to `none` like any space (tested), but the default is deliberately
 **left unchanged pending a ruling** — corridors were not among the groups ruled
 on, and this is 63% of the remaining phantom fails, so it is not a call to make
 by inference.
+
+### 38.11 Owner's ruling on daylight, and the retraction of §38.8's headline
+
+**Ruling: corridors need daylight. Only rooms that are not occupied from day to
+day — a cupboard, a store, a plant room — do without it.**
+
+That overturns the classification §38.8 and §38.9 were built on, and with it
+their headline number. Those sections exempted, on my inference rather than any
+ruling: internal circulation, covered courtyards, WCs and bathrooms, laundries,
+and reception/waiting/foyer. **None of those are exempt.** A corridor is
+occupied all day, every day; so is a waiting room; a laundry is a room people
+spend time in; a sterilisation room is a workplace.
+
+Re-measured against the ruling, with the classification read from the corpus
+(a space is exempt exactly when its own `patterns.config` declares
+`crinkliness: none`) rather than inferred:
+
+| layout | crinkliness fails | not defects |
+|---|---|---|
+| harbor-house, 3 constructed seeds | 67 | 8 (12%) |
+| maple-court, 3 constructed seeds | 112 | 9 (8%) |
+| health-centre, 3 constructed seeds | 20 | 2 (10%) |
+| harbor-house `generated.dom` (evolved) | 5 | 1 (20%) |
+| maple-court `generated.dom` (evolved) | 67 | 4 (6%) |
+| **overall** | **271** | **24 (9%)** |
+
+**9%, not 61%.** The objective's daylight requirement was mildly miscalibrated,
+not massively so, and I overstated it by a factor of about six by inventing a
+classification instead of asking for one.
+
+**`uncrinkliness_circulation` is therefore left at `[5/6, 1.1/3]`.** §38.10
+called its equality with the habitable target "the purest case of a value never
+tuned". It is not a bug: corridors want daylight on the same terms as rooms, so
+the two targets agreeing is the correct answer, arrived at by default. The key
+stays available for a programme that wants to differ.
+
+**The corpus declarations are narrowed to match.** `usage: utility` was too
+coarse a proxy — it swept in Laundry Rooms and a Sterilisation Room, all of
+which are occupied. 14 spaces now declare `crinkliness: none`, and every one is
+genuinely unoccupied:
+
+| programme | declared `crinkliness: none` |
+|---|---|
+| harbor-house | Ground/First Floor Storage, Mechanical/Electrical Room, Utilities Closet |
+| harbor-house-l0 | Ground Floor Storage, Mechanical/Electrical Room |
+| health-centre | General Storage, Plant / Mechanical Room, Records Room |
+| maple-court | Ground/First/Second Floor Storage, Mechanical/Electrical Room, Utilities Closet |
+
+*(Records Room is the one debatable entry — a store you fetch a file from, not a
+desk. Flip it to a declared target if it is meant to be worked in.)*
+
+**What survives §38.8/§38.9 unchanged**, because none of it depended on the
+classification:
+
+- the §38.6 critique. `floor` returns 0.01 for a buried leaf, `compact_ok`
+  contradicted itself, and `exempt_circulation` reached a third at most. Those
+  are facts about the code, and they are why §38.6 measured a null;
+- `usage_daylight` was mis-keyed. §38.9's reasoning for that was right even
+  though its numbers were not — `usage:` is an access axis;
+- the §38.8 A/B's yardstick was wrong: scoring the repair under the objective
+  it repairs penalises it for repairing;
+- the mechanism. Crinkliness was the only leaf quality factor with no per-space
+  target, and §38.10's fix stands on the owner's design, not on my numbers.
+
+**What this does to `ssz` as a whole.** The issue opened on "45–56% of interior
+leaves are zero-exposure and score a hard zero, so the objective assigns no
+value to any interior room". That measurement was right, but the reading was
+wrong: under this ruling **a buried leaf usually IS a defect**, corridors and
+WCs included, so scoring it zero is largely *correct*. What remains of the
+complaint is narrower and is about search mechanics rather than truth — a hard
+`0.0` cannot rank two bad layouts against each other, so the objective is
+flat where it should be merely low. That is worth a separate issue; it is not
+the calibration fault this section spent its length chasing.
 
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 

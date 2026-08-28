@@ -1,17 +1,20 @@
 """Are the crinkliness failures the objective emits real defects? (`homemaker-py-ssz`)
 
 Not an A/B. This asks a correctness question the search cannot answer: of the
-`crinkliness` failures the STOCK objective reports, how many are on a space
-that architecturally wants daylight at all?
+`crinkliness` failures the GLOBAL-target objective reports -- one daylight
+requirement for every space, which is what the engine did before §38.10 -- how
+many are on a space that does not want daylight at all?
 
 A `crinkliness` fail says "this leaf has too little exposed wall for its area".
-For a bedroom or a living room that is a real defect. For a broom cupboard, a
-WC, a plant room, an internal corridor or a covered courtyard it is not -- those
-are ordinary buried architecture, and the fail is an artefact of applying one
-daylight requirement to every space regardless of use (DESIGN.md §38.8).
+For anything occupied day to day that is a real defect. For a cupboard, a store
+or a plant room it is not.
 
-Every fail is classified by the leaf's DECLARED `usage:` (§39.7), so nothing
-here rests on how a code is spelled.
+**The classification is read from the corpus, not guessed here.** A fail counts
+as a non-defect exactly when that space declares `crinkliness: none` in its own
+`patterns.config`. An earlier version of this script inferred it from `usage:`
+instead and got a much larger, wrong answer -- it exempted corridors, WCs,
+laundries and reception, none of which the owner exempts (DESIGN.md §38.11).
+Corridors, courtyards and every occupied room want daylight.
 
 Usage::
 
@@ -36,12 +39,11 @@ from homemaker_layout import operators, programme
 
 CORPUS = ["examples/harbor-house", "examples/maple-court", "examples/health-centre"]
 
-# Ruled by the project owner: everything a person occupies wants a window --
-# WCs and bathrooms included, reception/waiting/foyer included, offices and
-# consulting rooms included. Only stores, plant, records and laundry do not,
-# together with the generic structural types (a corridor has its own
-# `uncrinkliness_circulation` target; a courtyard is not a room).
-NO_DAYLIGHT = {"utility"}
+# Ruled by the project owner: only rooms that are not occupied from day to day
+# -- a cupboard, a store, a plant room -- do without daylight. Corridors need
+# it. So does everything else: WCs, laundries, reception, waiting rooms,
+# offices, consulting rooms. Which spaces those are is read from the configs
+# themselves (a declared `crinkliness: none`), never inferred here.
 
 
 def stock_fitness(progdir: str) -> fitness.Fitness:
@@ -64,7 +66,12 @@ def constructed(progdir: str, s: int) -> dom_mod.Node:
 
 
 def audit(fit: fitness.Fitness, root: dom_mod.Node) -> collections.Counter:
-    """usage -> count, over the leaves that emit a stock `crinkliness` fail."""
+    """label -> count over the leaves that fail under ONE GLOBAL daylight target.
+
+    Each is labelled with the leaf's usage, and marked exempt when that space
+    declares `crinkliness: none` -- i.e. when the failure the old objective
+    emitted was not a defect.
+    """
     tree = copy.deepcopy(root)
     geometry.clear_cache()
     dom_mod.canonicalize_shares(tree)
@@ -79,25 +86,33 @@ def audit(fit: fitness.Fitness, root: dom_mod.Node) -> collections.Counter:
         for leaf in lvl.leaves():
             if dom_mod.is_outside(leaf) and not dom_mod.is_covered(leaf):
                 continue
-            if fit.quality_uncrinkliness(leaf, graphs[li], groups) >= fitness.FAIL_THRESHOLD:
-                continue                       # not a failure
-            out[fit.usage_of(leaf) or f"<generic {leaf.type}>"] += 1
+            # the PRE-§38.10 objective: one global target for every leaf
+            crink = fit.crinkliness(leaf, graphs[li], groups)
+            if crink:
+                distance, sigma = fit.conf("uncrinkliness")
+                q = fitness.gaussian(1 / crink, 1.0, distance, sigma)
+            else:
+                q = 0.0
+            if q >= fitness.FAIL_THRESHOLD:
+                continue                       # not a failure even then
+            label = fit.usage_of(leaf) or f"<generic {leaf.type}>"
+            if fit.crinkliness_params(leaf) is None:
+                label += "  [declares crinkliness: none]"
+            out[label] += 1
     return out
 
 
 def report(label: str, tally: collections.Counter) -> tuple[int, int]:
     total = sum(tally.values())
-    real = sum(n for u, n in tally.items() if u not in NO_DAYLIGHT
-               and not u.startswith("<generic"))
+    real = sum(n for u, n in tally.items() if "crinkliness: none" not in u)
     print(f"=== {label}: {total} crinkliness fails")
     if not total:
         print("    none\n")
         return 0, 0
     for usage, n in tally.most_common():
-        exempt = usage in NO_DAYLIGHT or usage.startswith("<generic")
-        verdict = ("not a defect -- no daylight wanted" if exempt
-                   else "REAL DEFECT")
-        print(f"    {usage:<18}{n:>4}   {verdict}")
+        verdict = ("not a defect -- not occupied day to day"
+                   if "crinkliness: none" in usage else "REAL DEFECT")
+        print(f"    {usage:<44}{n:>4}   {verdict}")
     print(f"    -> {total - real}/{total} ({100 * (total - real) / total:.0f}%) "
           f"are reported against spaces that do not want daylight\n")
     return real, total
