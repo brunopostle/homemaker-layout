@@ -1,0 +1,22 @@
+WARNING: programme demands 240 m2 per storey on a 183 m2 plot (131%). Every room will be squeezed below its target however long the search runs. (DESIGN.md §39.11)
+WARNING: 240 m2 per storey needs ~49 m of daylit wall; the plot's non-private perimeter gives 41 m. Roughly 12 m2 of courtyard closes the gap, but only -57 m2 of plot is spare. (DESIGN.md §38.3)
+seed         : /home/user/homemaker-layout/examples/health-centre/init.dom
+programme    : health-centre
+budget       : 500000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/user/homemaker-layout/examples/health-centre/coldstart-500000-s0.dom
+[    80 evals] best 7.05564e-20 (fails 53) via construct/0
+[   400 evals] best 1.03209e-17 (fails 47) via construct/4

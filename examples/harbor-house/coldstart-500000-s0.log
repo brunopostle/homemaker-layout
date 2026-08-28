@@ -1,0 +1,23 @@
+WARNING: 418 m2 per storey needs ~86 m of daylit wall; the plot's non-private perimeter gives 53 m. Roughly 49 m2 of courtyard closes the gap. (DESIGN.md §38.3)
+seed         : /home/user/homemaker-layout/examples/harbor-house/init.dom
+programme    : harbor-house
+budget       : 500000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/user/homemaker-layout/examples/harbor-house/coldstart-500000-s0.dom
+[    80 evals] best 2.04467e-27 (fails 79) via construct/0
+[   240 evals] best 6.52063e-20 (fails 55) via construct/2
+[  1280 evals] best 3.07967e-20 (fails 54) via construct/15
+[  1760 evals] best 1.59184e-19 (fails 54) via swap 0/lrr

@@ -1,0 +1,32 @@
+seed         : /home/user/homemaker-layout/examples/programme-house/init.dom
+programme    : programme-house
+budget       : 500000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/user/homemaker-layout/examples/programme-house/coldstart-500000-s0.dom
+[    80 evals] best 9.96032e-11 (fails 17) via construct/0
+[   160 evals] best 5.18243e-09 (fails 16) via construct/1
+[   320 evals] best 9.65534e-06 (fails 7) via construct/3
+[  1920 evals] best 1.96478e-05 (fails 7) via place_missing noop
+[  2480 evals] best 1.9751e-05 (fails 7) via place_missing noop
+[  2880 evals] best 1.99208e-05 (fails 7) via place_missing noop
+[  3120 evals] best 2.00298e-05 (fails 7) via core_undivide noop
+[  4640 evals] best 7.04607e-05 (fails 5) via crossover rl<->ll
+[  6000 evals] best 7.06394e-05 (fails 5) via level_fix noop
+[  7280 evals] best 7.07633e-05 (fails 5) via level_retype 0/rrl<->1/rl
+[  7680 evals] best 7.11015e-05 (fails 5) via core_undivide noop
+[  7840 evals] best 7.11352e-05 (fails 5) via core_divide noop
+[  8400 evals] best 0.000111875 (fails 5) via undivide 0/rr
+[  8480 evals] best 0.000114961 (fails 5) via core_undivide noop
