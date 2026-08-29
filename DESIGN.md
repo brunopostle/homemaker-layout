@@ -2773,7 +2773,7 @@ path):
 
 **Re-validated under the current objective (`homemaker-py-ioe`, §38.19):** the default still
 stands, but the margin is about a third smaller (+0.57 fails/seed against the +0.85 below) and is
-**no longer detectable at this section's N=20** (p ≈ 0.069 there); it takes N=60 to reach
+**no longer detectable at this section's N=20** (p = 0.085 there); it takes N=60 to reach
 p = 0.017. Do not re-check this default at N=20.
 
 Confirms the qpk verdict holds at both example scales tested. `collapse_insearch` default flipped
@@ -5862,9 +5862,16 @@ programme-house, budget 3000, 4 workers, ON vs OFF, both arms finished with
 |---|---|---|---|---|---|---|---|
 | published `1ph` (2026-07-24) | 20 | 7.95 | 7.10 | 11/6/3 | +0.85 | 2.38 | 0.028 |
 | historical re-run (§38.18) | 20 | 8.05 | 7.10 | 11/6/3 | +0.95 | 2.59 | — |
-| **current objective** | 20 | 7.85 | 7.15 | 10/7/3 | +0.70 | 1.82 | **0.069** |
-| current objective | 40 | 7.60 | 7.03 | 21/14/5 | +0.57 | 2.01 | 0.045 |
+| **current objective** | 20 | 7.85 | 7.15 | 10/7/3 | +0.70 | 1.82 | **0.085** |
+| current objective | 40 | 7.60 | 7.03 | 21/14/5 | +0.57 | 2.01 | **0.052** |
 | **current objective** | **60** | **7.58** | **7.02** | **29/19/12** | **+0.57** | **2.45** | **0.017** |
+
+*(**Corrected.** The N=20 and N=40 p-values first published here were 0.069 and
+0.045, from a normal approximation. The exact paired t-test gives **0.085** and
+**0.052** — so **N=40 did not reach significance either**; it took N=60. The
+approximation was anti-conservative, i.e. it made results look *more* significant
+than they are, which is the same direction of error this section is about.
+`experiments/ab_report.py` computes it exactly now, per `homemaker-py-tco`.)*
 
 **Verdict: the default stands.** At N=60, mean diff **+0.567 fails/seed**,
 paired t = 2.454 (df=59), **p = 0.0171** exact, 95% CI **[+0.105, +1.029]**
@@ -5881,12 +5888,13 @@ have been redefined out of existence or made harder by the objective work.
 
 Second, and more usefully: **the published protocol's N=20 can no longer detect
 its own effect.** At exactly the published sample size the current answer is
-p ≈ 0.069 — a null by the conventional threshold. Had this been re-run at N=20
+p = 0.085 — a null by the conventional threshold. Had this been re-run at N=20
 and stopped there, the honest report would have been "the 1ph verdict no longer
 reproduces", and the default would have looked unjustified. It took N=60 to
 resolve. That is precisely the "8sh/1ph/qi6/lj3 pattern" this document already
 warns about, now biting the flagship result itself: **any future re-validation
-of this default needs N ≥ 40, and N=20 should not be trusted to settle it either
+of this default needs N ≥ 60 (not the "≥ 40" first written here — N=40 gives
+p = 0.052), and N=20 should not be trusted to settle it either
 way.**
 
 ### 38.20 CP-SAT seeding re-measured deterministically: it loses (`homemaker-py-vjd`)
@@ -6033,6 +6041,46 @@ to resolve an effect its own protocol claimed at N=20: *harbor at n=3 resolves
 nothing finer than ~15 fails, and programme-house at N=20 resolves nothing
 finer than ~1 fail.* Any future A/B on these programmes should state its
 detectable difference before running, not after.
+
+### 38.22 A/Bs now report what their sample could resolve (`homemaker-py-tco`)
+
+Three times in this log a verdict turned out to rest on a sample that could not
+have produced it: §38.19 (programme-house claimed at N=20, resolves at N=60),
+§38.21 (harbor at n=3 resolves nothing finer than ~15 fails, yet every recorded
+margin is smaller), and §39.5/§38.20 (a 10-fail cpsat margin inside a ±23-fail
+noise band). Each was found years later. `experiments/ab_report.py` makes it
+visible at the point the verdict is made:
+
+```
+minimum detectable difference (MDD) = t_crit(0.975, N-1) * sd / sqrt(N)
+```
+
+A margin below the MDD is not a *weak* result, it is an **absent** one — the
+experiment could not have distinguished it from zero however it came out. The
+report flags that, refuses to endorse a winner, and states the N that would be
+needed. Validated against both datasets measured this session:
+
+| dataset | verdict | MDD | reported |
+|---|---|---|---|
+| programme-house N=60 | +0.567, p=0.017 | 0.462 | margin exceeds MDD — verdict supported |
+| programme-house N=20 | +0.700, p=0.085 | 0.805 | **UNDERPOWERED**, N ≈ 26 needed |
+| harbor N=24 | +1.208, p=0.502 | 3.669 | **UNDERPOWERED**, N ≈ **202** needed |
+
+That last row is worth reading twice: harbor's `collapse_insearch` margin would
+need ~200 seeds to resolve. At the 3 seeds it was published with, and at any N
+this project would realistically run, harbor cannot answer that question at all.
+
+**Degenerate cases are handled explicitly**, because the first version got one
+wrong: with all-ties (`sd = 0`) the MDD collapses to zero and the naive test
+`abs(mean) < mdd` reported "margin exceeds the MDD — verdict supported" for a
+margin of 0.000, with `t = nan`. A reporter that endorses a zero margin is worse
+than none. It now says "NO DIFFERENCE: identical on every seed — nothing to
+test", and distinguishes that from a constant non-zero difference, where a
+t-test is undefined but the result is real.
+
+Wired into `experiments/ab_ssz_search.py`, which prints a power report per arm
+before its summary table. `rerun_1ph_protocol.sh` writes a TSV the CLI reads
+directly: `python experiments/ab_report.py <results.tsv> off on`.
 
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 

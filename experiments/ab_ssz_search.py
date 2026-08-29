@@ -126,6 +126,26 @@ def main() -> None:
                     w.writeheader()
                     w.writerows(rows)
 
+    # homemaker-py-tco: report what this N could actually resolve, beside the
+    # result, so an underpowered verdict is visible when it is made. §38.19 and
+    # §38.21 are both cases where that was only noticed years later.
+    from ab_report import format_report, paired_report
+
+    base = args.modes[0]
+    for progdir in args.corpus:
+        name = Path(progdir).name
+        for mode in args.modes[1:]:
+            by = {}
+            for r in rows:
+                if r["programme"] == name and r["mode"] in (base, mode):
+                    by.setdefault(r["seed"], {})[r["mode"]] = r["urb_hard"] + r["urb_soft"]
+            seeds = sorted(s for s, v in by.items() if base in v and mode in v)
+            if len(seeds) < 2:
+                continue
+            print(f"\n--- {name}: {mode} vs {base} (stock-scored total fails) ---")
+            print(format_report(paired_report(
+                [by[s][base] for s in seeds], [by[s][mode] for s in seeds], base, mode)))
+
     print(f"\n=== stock-objective (urb) fail counts, budget {args.budget} ===")
     print(f"  {'programme':<14}{'mode':<22}{'hard':<14}{'soft':<14}total")
     print("  " + "-" * 70)
