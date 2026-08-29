@@ -1044,3 +1044,42 @@ def test_preserve_circulation_default_off_reproduces_prior_seeds():
     assert sig() == sig(preserve_circulation=False)
     # ...and it does change something when enabled, or the A/B measured nothing
     assert sig() != sig(preserve_circulation=True)
+
+
+# --------------------------------------------------------------------------- #
+# homemaker-py-fdp / DESIGN.md §38.15 — constructive_topology must be
+# bit-reproducible on BOTH assignment solvers.
+# --------------------------------------------------------------------------- #
+@pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
+@pytest.mark.parametrize("solver", ["greedy", "cpsat"])
+def test_constructive_topology_is_bit_reproducible(solver):
+    """Same seed, same signature -- every time, on either solver.
+
+    `assignable` is a set of dom.Node, which hashes by id(), so deriving the
+    room-slot list by iterating it ordered the slots by memory address. That
+    varies between calls in ONE process, and cpsat consumes the slot order as
+    its model's variable order, so it returned a different equally-optimal
+    labelling each run. Greedy never noticed because it re-sorts with `-idx[L]`
+    as a unique tiebreak.
+
+    Repetition in-process is what catches this class: allocation patterns
+    differ between calls, so id()-derived order changes without any seed
+    changing.
+    """
+    from homemaker_layout import programme
+
+    reqs = programme.load_programme_dir(str(HARBOR))
+    types = sorted(reqs) + ["C", "O"]
+    seed = dom.load(str(HARBOR / "init.dom"))
+
+    sigs = {
+        tuple(lf.type for lf in operators.constructive_topology(
+            seed, reqs, np.random.default_rng(0), types,
+            min_storeys=programme.storey_minimum(str(HARBOR)),
+            adjacency_aware=True, proportion_aware=True, circ_divisor=3,
+            assign_solver=solver).leaves())
+        for _ in range(4)
+    }
+    assert len(sigs) == 1, (
+        f"assign_solver={solver!r} produced {len(sigs)} distinct leaf-type "
+        f"signatures from one seed")

@@ -1209,7 +1209,17 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
         if s in assignable:  # never retype a fixed_circ seed outside scope
             s.type = "C"
 
-    noncirc = [L for L in assignable if L not in circ]
+    # homemaker-py-fdp: iterate `leaves` (tree order) and use `assignable` only
+    # for MEMBERSHIP. `assignable` is a set of dom.Node, which hashes by id() --
+    # a memory address -- so iterating it directly ordered `noncirc`, and hence
+    # `room_slots`, by where the objects happened to land in memory. That varies
+    # between runs in one process, so `assign_solver="cpsat"` returned a
+    # different (equally optimal) labelling every time.
+    #
+    # The greedy path never noticed: it re-sorts every slot list with `-idx[L]`
+    # as a unique tiebreak, which is immune to the incoming order. cpsat consumes
+    # `room_slots` order as the model's variable order, so it exposed it.
+    noncirc = [L for L in leaves if L in assignable and L not in circ]
     if interior_outside:
         # ld2 (§13.6): seed ``O`` as INTERIOR light wells instead of one
         # peripheral leaf. A landlocked room (no plot facade, no uncovered-O

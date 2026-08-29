@@ -5610,6 +5610,62 @@ pass:
   25% → 92%, stable across 6 and 12 seeds. It now asserts the real claim (repair
   strictly helps) plus a ≥85% regression bar.
 
+### 38.15 `constructive_topology` was ordered by memory address (`homemaker-py-fdp`)
+
+`assign_solver="cpsat"` gave a different leaf-type signature on every run from
+an identical seed, **in the same process**. Narrowed to one line:
+
+```python
+assignable = scope if scope is not None else set(leaves)
+...
+noncirc = [L for L in assignable if L not in circ]      # <-- id() order
+room_slots = [L for L in noncirc if L not in o_set]
+```
+
+`assignable` is a `set` of `dom.Node`, and `Node` hashes by `id()` — a memory
+address. Iterating it ordered `noncirc`, and therefore `room_slots`, by where
+the objects happened to land in memory. That changes between calls within one
+process as allocation patterns shift, with no seed involved at all.
+
+**Why only cpsat showed it.** The greedy path re-sorts every slot list with
+`-idx[L]` as a unique tiebreak, so it is immune to whatever order arrives.
+CP-SAT consumes `room_slots` order as its model's variable order, and since the
+labelling problem has many equally-optimal solutions, a different variable order
+returns a different one. Greedy was not more correct — it was masking a defect
+that had been there all along.
+
+**Method note.** Guessing at candidate `set`s would have been slow and
+unreliable — there are several, and most are harmless because they feed a `max()`
+with a unique tiebreak. What settled it was instrumenting `solve_room_labels`
+with an id-free fingerprint of its inputs and outputs, then isolating the
+*first* call (later calls legitimately depend on earlier ones through leaf
+types). Five runs gave five distinct inputs to the first call, which located the
+fault upstream of the solver in one step.
+
+**Fix:** iterate the tree-ordered list, use the set only for membership.
+
+```python
+noncirc = [L for L in leaves if L in assignable and L not in circ]
+```
+
+**Verified** on programme-house, harbor-house and maple-court: one distinct
+signature over 5 runs on both solvers, and — a stronger result than the issue
+asked for — one distinct signature across 4 processes started with different
+`PYTHONHASHSEED`, so the string-keyed `context_types` sets are not a second
+source.
+
+`test_constructive_topology_is_bit_reproducible` guards both solvers. Repetition
+*in one process* is what catches this class: allocation order changes without
+any seed changing.
+
+**Why this mattered beyond cpsat.** Every A/B in this document rests on being
+able to re-run a configuration and get the same answer. A/Bs on the cpsat path
+were comparing arms that differed partly by memory layout — §39.5's
+cpsat-versus-greedy verdict among them, which is already down for re-measurement
+under `homemaker-py-vjd`. This is the same `id()`-keying hazard as the
+documented `geometry._cache` issue and a plausible contributor to
+`homemaker-py-b8g`.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated
