@@ -5495,6 +5495,51 @@ priorities under cover of a bug fix. The magnitude is left exactly where it was.
 §39.4 and §38.10/§38.11. This is why the cold-start re-baseline is worth running
 *after* the objective work rather than before it.
 
+### 38.13 health-centre's plot enlarged for a courtyard typology (`homemaker-py-7b7`)
+
+§39.11 found health-centre demanding **240 m² of floor on a 183 m² plot — 131%**,
+single storey, with nowhere for the overflow to go. Every room came out at
+**0.60× its declared target**, 100% of them undersized, uniformly, and no amount
+of searching could fix it.
+
+**Owner's ruling: enlarge the plot, sized on the assumption that the building
+has a courtyard.** The plot is a quadrilateral in this engine, so the courtyard
+is interior space the search carves out (`interior_outside`), not a hole in the
+site. What that means for sizing is that the plot must hold three things, only
+one of which the programme declares:
+
+| | m² | in `patterns.config`? |
+|---|---|---|
+| rooms | 240 | yes |
+| circulation | ~65 (≈27%) | **no — the search creates `C` leaves** |
+| courtyard | ~36 (6×6, usable) | no |
+| | **~341 + slack** | |
+
+The plot is scaled about its polygon centroid by **k = 1.4606**, chosen so the
+*inset* area (what the leaves actually get, after `wall_outer`) lands on
+**400 m²**. Scaling about the centroid preserves the site's irregular shape and
+its one `private` edge — this is the same site, larger, not a new one.
+
+| | before | after |
+|---|---|---|
+| plot (inset) | 183.2 m² | **400.0 m²** |
+| rooms / plot | **131%** | **60%** |
+| daylit perimeter | 41.5 m | 61.3 m (49.4 needed) |
+| median room area / (target × share) | **0.60×** | **1.00×** |
+
+60% is harbor-house's ratio exactly, and harbor works. The room-sizing figure is
+the one that matters: it was the unmistakable geometric signature of the
+infeasibility, and it is now level with harbor and maple's 1.01×.
+
+**The courtyard is required by the geometry, not merely permitted.** A room can
+be at most `1.6202·h` = 4.86 m deep before it fails crinkliness, so a ~20×20 m
+plot with a daylit ring around its edge leaves a **10.3 × 10.3 m, 106 m² core
+that cannot reach an external wall at all**. That core has to be courtyard or
+lightwell. Enlarging the plot did not remove the pressure that produces a
+courtyard — it made room for one.
+
+`evolve._preflight` is now silent on health-centre; both its checks pass.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated
