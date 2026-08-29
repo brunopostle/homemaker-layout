@@ -109,6 +109,12 @@ def main() -> int:
         conf = dict(conf)
         conf["leaf_sharing"] = True
         conf["max_share"] = 3
+        # homemaker-py-4ok: driver.search_staged runs its inner evaluator with
+        # collapse_insearch=True (its default), and no example patterns.config
+        # sets the key, so without pinning it here the re-score below silently
+        # used a DIFFERENT objective than the search it is reporting on -- the
+        # same MISMATCH class fixed in run_staged_search.py.
+        conf["collapse_insearch"] = True
         return conf, cost
 
     fitness.load_config = _load_with_sharing

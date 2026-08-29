@@ -5666,6 +5666,57 @@ under `homemaker-py-vjd`. This is the same `id()`-keying hazard as the
 documented `geometry._cache` issue and a plausible contributor to
 `homemaker-py-b8g`.
 
+### 38.16 The staged harness re-scored under a different objective than it searched (`homemaker-py-4ok`)
+
+`run_staged_search.py` reported `MISMATCH` on its **baseline** arm — the
+`LEAFSHARE=0/MULTIUSE=0` control that every A/B in this document compares
+against. Two facts combined:
+
+- `driver.search_staged` had **no `collapse_insearch` parameter at all**, so
+  every inner `search()` call inherited `search()`'s `collapse_insearch=True`
+  default, unconditionally;
+- no example `patterns.config` sets the key, so the final `_native_score`
+  re-score got `False` from a bare `load_config`.
+
+Search optimised one objective; the rescore graded a different one. The
+`homemaker-py-7ua` fix pinned the key inside a `fitness.load_config` monkeypatch
+— but that patch was installed only `if leaf_share or multi_use`, so it fixed
+every arm *except* the control.
+
+**Fix, in the right place: give `search_staged` the parameter it was missing**
+(default `True`, byte-identical to the inherited default) and thread it into all
+three internal `search()` calls. The harness then chooses the arm explicitly
+(`COLLAPSE`, default 1), passes it to the search, and passes **the same value**
+to `_native_score`, which now overrides the key rather than hoping the config
+carries it. The rescore mirrors the search by construction instead of by
+coincidence of which monkeypatch happened to be installed.
+
+Verified on programme-house, budget 150, all four arms:
+
+| arm | before | after |
+|---|---|---|
+| baseline (no env) | **MISMATCH** 1.56663e-08 vs 1.51708e-08 | **OK** |
+| `COLLAPSE=0` | n/a (no knob existed) | **OK**, 1.66216e-08 |
+| `LEAFSHARE=1` | OK | **OK** |
+| `MULTIUSE=1` | OK | **OK** |
+
+`COLLAPSE=0` scoring differently from `COLLAPSE=1` (1.66216e-08 vs 1.56663e-08)
+confirms the knob does real work rather than being a no-op, and the search
+result itself is unchanged on the default arm, so no prior staged number moves.
+
+**One sibling had the same bug.** Auditing the other three `search_staged`
+callers: `run_and_capture_91f.py` already pins `collapse_insearch: True` in its
+overrides and is correct; `run_island_ab.py` never re-scores, so it cannot
+mismatch; **`probe_harbor_floor.py` did not pin it** and so re-scored under a
+different objective than it searched — and that is the harness which produced
+"every §13.x floor number". Now pinned.
+
+**Why a P3 was worth doing.** The mitigating factor recorded on the issue was
+that the fail *count* matched and only the continuous score moved, which the
+`run_*_ab.sh` greps do not read. That is true and it is also exactly what makes
+this dangerous: a harness that reports MISMATCH on its own control, in a way the
+metric-of-record cannot see, trains everyone to ignore the warning.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated

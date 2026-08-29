@@ -1110,6 +1110,7 @@ def search_staged(
     construction_beam_width: int = 1,
     assign_solver: str = "greedy",
     enable_reassign: bool = False,
+    collapse_insearch: bool = True,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
 
@@ -1157,6 +1158,7 @@ def search_staged(
                       seed_proportion_aware=seed_proportion_aware,
                       enable_reassociate=enable_reassociate,
                       enable_shape_repair=enable_shape_repair,
+                      collapse_insearch=collapse_insearch,
                       enable_bridge_circulation=enable_bridge_circulation,
                       enable_ruin_recreate=enable_ruin_recreate,
                       feasibility_filter=feasibility_filter,
@@ -1191,6 +1193,7 @@ def search_staged(
             child_budget=child_budget, seed_budget=seed_budget,
             p_crossover=p_crossover, seed=seed, types=None,
             inner_kw=inner_kw, log=log, n_workers=n_workers,
+            collapse_insearch=collapse_insearch,
             rank_bonus_fn=lambda root: graph.substrate_readiness(root, reqs, n_storeys),
             rank_bonus_weight=rank_bonus_weight,
             tournament_k=tournament_k,
@@ -1245,6 +1248,7 @@ def search_staged(
         child_budget=child_budget, seed_budget=seed_budget,
         p_crossover=p_crossover, seed=seed, types=types,
         inner_kw=inner_kw, log=log, n_workers=n_workers,
+        collapse_insearch=collapse_insearch,
         bootstrap=True, seed_factory=_seed_factory, base_p=base_p,
         # §11.4: the graded objective targets the dense two-floor quality-fail
         # regime, which is Stage 2. Stage 1 keeps its readiness-biased key so the

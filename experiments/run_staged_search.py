@@ -29,10 +29,23 @@ REPO = Path(__file__).resolve().parents[1]
 HARBOR = REPO / "examples" / "harbor-house"
 
 
-def _native_score(root: dom.Node, programme_dir: Path) -> tuple[float, int]:
+def _native_score(root: dom.Node, programme_dir: Path,
+                  collapse_insearch: bool) -> tuple[float, int]:
+    """Re-score under the SAME objective the search optimised (homemaker-py-4ok).
+
+    `collapse_insearch` must be passed explicitly, not left to the config file.
+    No example `patterns.config` sets it, so a bare `load_config` here yields
+    False while `driver.search_staged` was running its inner evaluator with
+    True -- the search and the rescore then disagree, which is exactly the
+    MISMATCH this script reports. The old code only avoided that on
+    leaf_sharing/multi_use arms, because the conf-patch that pinned it was
+    installed only for those; the default baseline arm, which every A/B uses as
+    its control, mismatched silently.
+    """
     import copy
 
-    conf, cost = fitness.load_config(programme_dir)
+    conf, cost = fitness.load_config(
+        programme_dir, overrides={"collapse_insearch": collapse_insearch})
     fit = fitness.Fitness(conf, cost)
     score, fails = fit.score_with_fails(copy.deepcopy(root))
     return score, len(fails)
@@ -71,6 +84,10 @@ def main() -> int:
     out_div = int(os.environ.get("ODIV", "6"))  # ld2 outside-leaf-per-room divisor
     multi_use = os.environ.get("MULTIUSE", "0") == "1"  # 1s3 §26 path b multi-use A/B
     workers = int(os.environ.get("WORKERS", "1"))  # parallel child evaluation
+    # 4ok: search_staged now has a real collapse_insearch parameter, so the arm
+    # is chosen here rather than inherited from search()'s default and then
+    # contradicted by the rescore. Default 1 == the previous behaviour.
+    collapse = os.environ.get("COLLAPSE", "1") == "1"
 
     if leaf_share or multi_use:
         # erc.3 §13.3 / 1s3 §26: the FINAL re-score below (`_native_score`) loads
@@ -92,12 +109,10 @@ def main() -> int:
                 conf["share_edge_cap"] = share_edge
             if multi_use:
                 conf["multi_use"] = True
-            # 7ua: driver.search_staged has no param to disable collapse_insearch,
-            # so its inner evaluator always runs with search()'s collapse_insearch=
-            # True default. Pin it here too or this rescore silently diverges from
-            # search-time conf whenever leaf_sharing is on, producing a false
-            # MISMATCH against the search-reported fail count.
-            conf["collapse_insearch"] = True
+            # 7ua/4ok: pin the dir-level default to the arm actually being run.
+            # search_staged now takes collapse_insearch directly, so this mirrors
+            # that choice rather than hardcoding True.
+            conf["collapse_insearch"] = collapse
             return conf, cost
 
         fitness.load_config = _load_with_flags
@@ -120,6 +135,7 @@ def main() -> int:
     print(f"interior_o: {interior_o} (odiv={out_div})")
     print(f"multi_use : {multi_use}")
     print(f"workers   : {workers}")
+    print(f"collapse  : {collapse}")
     print(flush=True)
 
     seed_root = dom.load(str(seed_file))
@@ -137,6 +153,7 @@ def main() -> int:
         p_crossover=0.2,
         seed=rng_seed,
         n_workers=workers,
+        collapse_insearch=collapse,
         log=lambda m: print(m, flush=True),
         use_grade=use_grade,
         tournament_k=tournament_k,
@@ -177,7 +194,7 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     dom.dump(r.best.root, str(out))
 
-    rs, rf = _native_score(r.best.root, programme_dir)
+    rs, rf = _native_score(r.best.root, programme_dir, collapse)
     ok = math.isclose(rs, r.best.fitness, rel_tol=1e-9)
     print(f"\n{out.name} re-scored (native): {rs:.6g} ({rf} fails) "
           f"→ {'OK' if ok else 'MISMATCH'}")
