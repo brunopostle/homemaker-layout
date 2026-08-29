@@ -2727,6 +2727,9 @@ finish-time `--collapse` (94g) so the comparison is apples-to-apples on the fina
 4 workers:
 
 - **harbor-house** (`init.dom`, budget 2500, seeds 1–3): **ON wins 3/3**, mean fails 80.3 → 72.0
+  — **WITHDRAWN, see §38.21.** Re-measured at n=24 this arm is null (+1.21 fails, p = 0.50,
+  13W/10L/1T). Harbor's paired σ ≈ 6.2 fails means n=3 could only resolve a margin above ~15,
+  and 25% of 3-seed subsets show a 3/3 sweep by chance. The default rests on programme-house.
   (s1 85→74, s2 76→65, s3 80→77) — a consistent ~10% fail reduction, no losses.
 - **programme-house** (`init.dom`, budget 3000, seeds 1–5): ON wins 3/5, mean fails 8.4 → 7.8
   (s1 8→5, s2 8→7, s4 10→9 win; s3 8→9, s5 8→9 loss by one fail) — a weaker, noisier signal on
@@ -5977,6 +5980,59 @@ the honest price of solves that now reach optimality deterministically.
 independent reason §37.7 gives, and this reinforces it. What changes is that the
 "cpsat wins the seeder A/B" claim should no longer be cited as a reason to
 pursue it.
+
+### 38.21 Harbor A/Bs at n=3 could never have resolved their own margins (`homemaker-py-0wr`)
+
+`0wr` asked which harbor results decided by a narrow margin should be
+re-checked after §39.4. Measuring harbor's actual variance answers a broader
+question than the issue posed.
+
+**Harbor's paired seed-to-seed spread is σ ≈ 6.2 fails** (24 paired ON/OFF runs,
+budget 2500). At n=3 that gives a **minimum detectable difference of ~15.4
+fails**. Every recorded harbor margin is below it:
+
+| section | harbor margin | resolvable at n=3? |
+|---|---|---|
+| §13.9 `share_edge_cap` | 34.7 → 31.0 = 3.7 | no |
+| §20 `qpk` collapse | 80.3 → 72.0 = 8.3 | no |
+| §23 `f1d` ruin-recreate | mixed (1W/1L/1T) | no |
+| §37.1 tiering | hard 11.67 → 5.33 = 6.3 | no |
+| §17 `94g` | byte-identical | n/a — no margin claimed |
+
+So the finding is not "some harbor results were narrow". It is that **no harbor
+A/B run at three seeds could resolve the margin it reported**, whatever §39.4
+did to the programme. Of the 220 possible 3-seed subsets of the 24 measured
+below, **56 (25%) show a clean 3/3 sweep for ON** — a 3/3 result on this
+programme is close to a coin-flip artefact, not evidence.
+
+**§20's harbor arm, re-measured.** Same protocol (budget 2500, ON vs OFF, both
+finished with `--collapse`), taken to n=24:
+
+| N | OFF | ON | W/L/T | mean diff | p | 95% CI |
+|---|---|---|---|---|---|---|
+| 3 | 92.00 | 89.33 | 2/1/0 | +2.67 | 0.560 | [−13.87, +19.21] |
+| 12 | 92.75 | 89.25 | 8/3/1 | +3.50 | 0.076 | [−0.43, +7.43] |
+| **24** | 88.92 | 87.71 | 13/10/1 | **+1.21** | **0.502** | **[−2.46, +4.88]** |
+
+**Null.** 13W/10L/1T is a coin flip, and the CI comfortably spans zero. The
+published "harbor-house: ON wins 3/3, mean 80.3 → 72.0" was a lucky draw — note
+even seeds 1–3 measured here give 2W/1L, not a sweep. (Absolute levels differ
+from the published ones because the objective has changed; the ON/OFF comparison
+within this measurement is like-for-like.)
+
+**Consequence for the `collapse_insearch` default.** §20 concluded "the qpk
+verdict holds at **both** example scales tested". That claim is **withdrawn** —
+harbor is null at adequate N. What survives is §38.19's programme-house result
+(N=60, +0.57 fails/seed, p = 0.017, Wilcoxon 0.014). The default stands on one
+programme, not two. It is not refuted on harbor either — the direction is
+positive, just indistinguishable from zero — but harbor should no longer be
+cited as corroboration.
+
+**The standing lesson.** Combined with §38.19, where programme-house needed N=60
+to resolve an effect its own protocol claimed at N=20: *harbor at n=3 resolves
+nothing finer than ~15 fails, and programme-house at N=20 resolves nothing
+finer than ~1 fail.* Any future A/B on these programmes should state its
+detectable difference before running, not after.
 
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
