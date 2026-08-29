@@ -1111,7 +1111,9 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
                             n_outside: int = 1,
                             scope: "set[dom.Node] | None" = None,
                             beam_width: int = 1,
-                            assign_solver: str = "greedy") -> None:
+                            assign_solver: str = "greedy",
+                            cpsat_limits: "tuple[float, float] | None" = None,
+                            ) -> None:
     """Assign leaf types so rooms cluster around a connected circulation spine.
 
     s44 (DESIGN.md §11.2 follow-up): random type assignment leaves rooms stranded
@@ -1162,6 +1164,12 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     unaffected either way. Falls through to the greedy/beam path on any
     solver failure (OR-Tools unavailable, infeasible, or timeout), so
     behaviour is always defined.
+
+    ``cpsat_limits`` (homemaker-py-7t1): optional ``(time_limit_s,
+    deterministic_limit)`` forwarded to :func:`cpsat.solve_room_labels`. ``None``
+    keeps that function's defaults, which is what production uses -- solves run
+    to optimality under a load-independent work-unit budget (§38.20). It exists
+    so a TEST can ask for a cheaper solve; it is not a tuning knob.
     """
     from . import geometry
 
@@ -1278,7 +1286,10 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
         neighbors = {L: {nb for nb in _nbrs(L) if nb in room_set} for L in room_slots}
         context_types = {L: {nb.type for nb in _nbrs(L) if nb.type and nb not in room_set}
                          for L in room_slots}
-        placed = cpsat.solve_room_labels(room_slots, codes, reqs, neighbors, context_types)
+        _lim = {} if cpsat_limits is None else dict(
+            zip(("time_limit_s", "deterministic_limit"), cpsat_limits))
+        placed = cpsat.solve_room_labels(room_slots, codes, reqs, neighbors,
+                                         context_types, **_lim)
 
     if placed is not None:
         for leaf, code in placed.items():
@@ -1415,6 +1426,7 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
                           construction_beam_width: int = 1,
                           multi_use: bool = False,
                           assign_solver: str = "greedy",
+                          cpsat_limits: "tuple[float, float] | None" = None,
                           repair_circulation: bool = False,
                           preserve_circulation: bool = False) -> dom.Node:
     """Build a seed that instantiates every required space by construction.
@@ -1502,7 +1514,8 @@ def constructive_topology(seed_root: dom.Node, reqs, rng: np.random.Generator,
             _assign_adjacency_aware(lvl, rooms, reqs, rng,
                                     interior_outside=interior_outside, n_outside=n_o,
                                     beam_width=construction_beam_width,
-                                    assign_solver=assign_solver)
+                                    assign_solver=assign_solver,
+                                    cpsat_limits=cpsat_limits)
         else:
             assign = rooms + ["C", "O"]  # +core circulation, +outside
             _grow_leaves(lvl, len(assign), rng, balance=depth_balanced)

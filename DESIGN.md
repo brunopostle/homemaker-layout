@@ -5946,13 +5946,32 @@ changed — §39.4, §38.10–§38.12 — so these numbers are not directly comp
 that table. The greedy-vs-cpsat comparison within this measurement is
 like-for-like and is what the verdict rests on.)*
 
-**Cost of the cap fix.** The two harbor solves that used to be cut off at 2 s now
-run to optimality, and the full test suite goes from ~4.5 min to ~10 min because
-the `assign_cpsat` tests dominate it. That is correctness bought with wall time,
-and it is the right trade for a default, but the tests should not be paying it —
-they cannot currently pass a smaller `deterministic_limit` because
-`constructive_topology` does not thread the solver's limits through
-(`homemaker-py-7t1`).
+**Cost of the cap fix, and what was recovered** (`homemaker-py-7t1`). The two
+harbor solves that used to be cut off at 2 s now run to optimality, which took
+the suite from ~4.5 min to ~10 min — the `assign_cpsat` tests dominate it. Two
+things recovered most of that, and one deliberately was not:
+
+- `test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency` ran the cpsat
+  arm **three times and averaged**, for a reason its own comment gives: the
+  cpsat path "is not yet bit-reproducible (`homemaker-py-fdp`)", so one 10-seed
+  aggregate could straddle greedy's deterministic value and the test was flaky
+  by construction. **`fdp` is fixed** (§38.15), so one pass now says exactly what
+  three did. The repeat was work spent papering over a bug that no longer exists.
+- `constructive_topology` and `_assign_adjacency_aware` now forward an optional
+  `cpsat_limits=(time_limit_s, deterministic_limit)`. It is **not a tuning
+  knob** — production keeps the defaults so solves stay optimal and
+  deterministic. It exists so a test whose claim does not depend on optimality
+  can buy its runtime back. `test_construction_assign_cpsat_yields_valid_seed`
+  asserts invariants (every required space present, canonical genome) and uses
+  it: 91 s → 53 s. The trap there is that too small a budget makes
+  `solve_room_labels` return `None`, `_assign_adjacency_aware` falls back to
+  **greedy**, and the test passes while exercising nothing — so it counts
+  fallbacks and fails if any occur.
+- The two *quality* comparisons keep the full budget. Their claims are about
+  the optimum, and cheapening them would weaken what they assert.
+
+Net: ~10 min → ~6.8 min. Still above the pre-§38.20 4.5 min, and that residue is
+the honest price of solves that now reach optimality deterministically.
 
 **No default changes.** `assign_solver` was already default `greedy` for the
 independent reason §37.7 gives, and this reinforces it. What changes is that the

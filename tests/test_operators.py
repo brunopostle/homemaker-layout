@@ -501,16 +501,47 @@ def test_construction_assign_cpsat_yields_valid_seed():
     # present, canonical genome.
     from homemaker_layout import graph, programme
 
+    from homemaker_layout import cpsat as cpsat_mod
+
     reqs = programme.load_programme_dir(str(HARBOR))
     types = sorted(reqs) + ["C", "O"]
     seed = dom.load(str(HARBOR / "init.dom"))
-    for trial in range(5):
-        root = operators.constructive_topology(
-            seed, reqs, np.random.default_rng(trial), types,
-            assign_solver="cpsat")
-        _, missing = graph.check_space_counts(root, reqs)
-        assert missing == [], f"trial {trial} left {missing}"
-        canonical(root)
+
+    # This test asserts INVARIANTS -- every required space present, canonical
+    # genome -- which do not depend on the labelling being optimal. So it buys
+    # its runtime back with a reduced deterministic budget (homemaker-py-7t1);
+    # harbor's model needs ~3.6 work units for optimality since §38.14's added
+    # adjacency, and paying that here dominated the suite for no extra coverage.
+    #
+    # The trap: too small a budget makes solve_room_labels return None, and
+    # _assign_adjacency_aware then falls back to GREEDY -- the test would pass
+    # while exercising nothing. Guarded by counting fallbacks and requiring the
+    # solver to have answered every time.
+    fell_back = []
+    orig = cpsat_mod.solve_room_labels
+
+    def counting(*a, **k):
+        r = orig(*a, **k)
+        fell_back.append(r is None)
+        return r
+
+    cpsat_mod.solve_room_labels = counting
+    operators.cpsat = cpsat_mod
+    try:
+        for trial in range(5):
+            root = operators.constructive_topology(
+                seed, reqs, np.random.default_rng(trial), types,
+                assign_solver="cpsat", cpsat_limits=(30.0, 0.25))
+            _, missing = graph.check_space_counts(root, reqs)
+            assert missing == [], f"trial {trial} left {missing}"
+            canonical(root)
+    finally:
+        cpsat_mod.solve_room_labels = orig
+        operators.cpsat = cpsat_mod
+
+    assert fell_back and not any(fell_back), (
+        f"cpsat fell back to greedy on {sum(fell_back)}/{len(fell_back)} solves "
+        f"-- the reduced budget is too small and this test stopped testing cpsat")
 
 
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house not available")
@@ -542,18 +573,22 @@ def test_assign_cpsat_matches_or_beats_greedy_secondary_adjacency():
     # Per-seed outcomes are noisy (both solvers depend on the same random
     # room-order shuffle before falling into their own placement logic), so
     # the comparison is on the aggregate over several seeds, not every seed
-    # individually — measured on harbor-house (10 seeds): cpsat wins on
-    # most, ties on a few, loses on rare ones, net ~13% fewer total fails.
-    # The cpsat path is not yet bit-reproducible (homemaker-py-fdp): the solver
-    # itself is deterministic, but something upstream of it in
-    # _assign_adjacency_aware still varies, so a single 10-seed aggregate can
-    # straddle greedy's (deterministic) value. Averaging three repeats asserts
-    # what is actually claimed -- better IN AGGREGATE -- instead of being flaky
-    # by construction. Measured after §39.4: greedy 189, cpsat 185/177/180/182.
+    # individually.
+    #
+    # This used to run the cpsat arm THREE times and compare the mean, because
+    # `homemaker-py-fdp` left the cpsat path non-bit-reproducible -- a single
+    # 10-seed aggregate could straddle greedy's deterministic value, so the test
+    # was flaky by construction. fdp is fixed (§38.15: `noncirc` was ordered by
+    # `id()`), so cpsat is now deterministic and one pass says exactly as much
+    # as three did, at a third of the cost -- this test dominated the suite.
+    #
+    # NOTE this measures ONLY secondary-adjacency fails ("not adjacent to"),
+    # which is the decision cpsat actually solves. It is not a claim that cpsat
+    # seeds better overall: measured over 12 seeds it is markedly WORSE on total
+    # fails (§38.20), which is why `assign_solver` stays default greedy.
     greedy = sum(secondary_fails("greedy"))
-    cpsat_runs = [sum(secondary_fails("cpsat")) for _ in range(3)]
-    mean_cpsat = sum(cpsat_runs) / len(cpsat_runs)
-    assert mean_cpsat < greedy, f"cpsat {cpsat_runs} (mean {mean_cpsat}) vs greedy {greedy}"
+    cpsat = sum(secondary_fails("cpsat"))
+    assert cpsat < greedy, f"cpsat {cpsat} vs greedy {greedy}"
 
 
 def test_reassign_noop_without_reqs():
