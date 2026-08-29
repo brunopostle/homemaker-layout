@@ -5952,7 +5952,7 @@ the `assign_cpsat` tests dominate it. That is correctness bought with wall time,
 and it is the right trade for a default, but the tests should not be paying it —
 they cannot currently pass a smaller `deterministic_limit` because
 `constructive_topology` does not thread the solver's limits through
-(`homemaker-py-2xk`).
+(`homemaker-py-7t1`).
 
 **No default changes.** `assign_solver` was already default `greedy` for the
 independent reason §37.7 gives, and this reinforces it. What changes is that the
