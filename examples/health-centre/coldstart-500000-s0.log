@@ -1,6 +1,4 @@
-WARNING: programme demands 240 m2 per storey on a 183 m2 plot (131%). Every room will be squeezed below its target however long the search runs. (DESIGN.md §39.11)
-WARNING: 240 m2 per storey needs ~49 m of daylit wall; the plot's non-private perimeter gives 41 m. Roughly 12 m2 of courtyard closes the gap, but only -57 m2 of plot is spare. (DESIGN.md §38.3)
-seed         : /home/user/homemaker-layout/examples/health-centre/init.dom
+seed         : /home/bruno/src/homemaker-layout/examples/health-centre/init.dom
 programme    : health-centre
 budget       : 500000
 pop          : 16
@@ -17,42 +15,72 @@ ruin recreate      : False
 collapse in-search : True
 shapecurve warmstart : False
 shapecurve prune     : False
-output       : /home/user/homemaker-layout/examples/health-centre/coldstart-500000-s0.dom
-[    80 evals] best 7.05564e-20 (fails 53) via construct/0
-[   400 evals] best 1.03209e-17 (fails 47) via construct/4
-[  2160 evals] best 8.5085e-17 (fails 44) via level_compound_fix noop
-[  2800 evals] best 8.71761e-17 (fails 44) via level_retype noop
-[  3280 evals] best 1.01747e-16 (fails 44) via place_missing t9 -> llrrr
-[  3760 evals] best 1.07254e-16 (fails 44) via core_divide noop
-[  3840 evals] best 1.94754e-16 (fails 43) via retype 0/llrrl->ph1
-[  4800 evals] best 2.09073e-16 (fails 42) via core_divide noop
-[  4960 evals] best 2.709e-16 (fails 42) via crossover lrlll<->rrrrr
-[  5840 evals] best 2.7669e-16 (fails 42) via crossover lllll<->rllll
-[  5920 evals] best 9.22724e-16 (fails 41) via place_missing t9 -> rrrlr
-[  6480 evals] best 9.45485e-16 (fails 41) via place_missing noop
-[  6960 evals] best 3.7158e-15 (fails 39) via place_missing t9 -> rrrlr
-[  8320 evals] best 4.98363e-15 (fails 39) via level_compound_fix noop
-[  9680 evals] best 5.20512e-15 (fails 39) via crossover lrlll<->rlrrl
-[  9840 evals] best 5.48608e-15 (fails 39) via place_missing noop
-[ 10080 evals] best 5.67651e-15 (fails 39) via crossover rrrrr<->rllrl
-[ 10640 evals] best 6.58735e-15 (fails 38) via retype 0/rrllr->O
-[ 12320 evals] best 7.02146e-15 (fails 38) via level_fix noop
-[ 12880 evals] best 7.53327e-15 (fails 38) via level_compound_fix noop
-[ 14240 evals] best 8.06389e-15 (fails 38) via level_compound_fix noop
-[ 14480 evals] best 1.56759e-14 (fails 37) via swap 0/llrl
-[ 14560 evals] best 1.59668e-14 (fails 37) via crossover rrlrl<->llrlr
-[ 14880 evals] best 1.62722e-14 (fails 37) via core_undivide noop
-[ 15360 evals] best 3.83618e-14 (fails 36) via level_retype noop
-[ 16320 evals] best 3.97387e-14 (fails 36) via level_fix noop
-[ 16560 evals] best 4.10139e-14 (fails 36) via level_fix noop
-[ 17040 evals] best 4.70405e-14 (fails 35) via swap 0/llrl
-[ 17600 evals] best 5.08607e-14 (fails 35) via level_compound_fix noop
-[ 20320 evals] best 9.45373e-14 (fails 35) via crossover rllr<->rlrll
-[ 21040 evals] best 9.66604e-14 (fails 35) via level_compound_fix noop
-[ 21600 evals] best 9.92079e-14 (fails 35) via level_fix noop
-[ 21840 evals] best 1.24031e-13 (fails 35) via level_retype noop
-[ 22000 evals] best 1.45873e-13 (fails 35) via crossover lrrl<->lrlrl
-[ 23440 evals] best 1.48115e-13 (fails 35) via retype 0/rrlrr->pt1
-[ 23840 evals] best 1.51872e-13 (fails 35) via level_compound_fix noop
-[ 25200 evals] best 5.3306e-13 (fails 33) via undivide 0/llll
-[ 25920 evals] best 5.46749e-13 (fails 33) via level_fix noop
+output       : /home/bruno/src/homemaker-layout/examples/health-centre/coldstart-500000-s0.dom
+[    80 evals] best 8.18513e-10 (fails 22) via construct/0
+[  1920 evals] best 1.44035e-09 (fails 21) via level_compound_fix noop
+[  2720 evals] best 2.97297e-09 (fails 21) via place_missing t9 -> rlrll
+[  2880 evals] best 3.17196e-09 (fails 21) via crossover rrlrr<->llrrl
+[  2960 evals] best 3.38093e-09 (fails 21) via level_retype noop
+[  3280 evals] best 3.95337e-08 (fails 18) via place_missing me1 -> lrrrr
+[  3440 evals] best 1.55555e-07 (fails 16) via place_missing mo1 -> lrrrr
+[  4480 evals] best 1.63054e-07 (fails 16) via level_delete noop
+[  4960 evals] best 1.68058e-07 (fails 16) via core_divide noop
+[  5200 evals] best 1.73172e-07 (fails 16) via level_compound_fix noop
+[  6480 evals] best 1.32598e-05 (fails 9) via crossover rrll<->lllr
+[  8160 evals] best 1.5086e-05 (fails 9) via core_divide noop
+[  8800 evals] best 1.59072e-05 (fails 9) via swap 0/rrlr
+[  9280 evals] best 1.68254e-05 (fails 9) via core_divide noop
+[  9360 evals] best 1.79867e-05 (fails 9) via swap 0/rllr
+[ 11280 evals] best 1.9237e-05 (fails 8) via level_delete noop
+[ 12800 evals] best 3.78619e-05 (fails 8) via retype 0/rrlrr->tr1
+[ 13040 evals] best 0.000117921 (fails 6) via swap 0/llll
+[ 13360 evals] best 0.000135727 (fails 6) via level_compound_fix noop
+[ 14080 evals] best 0.0002732 (fails 5) via crossover rrrr<->rllr
+[ 15040 evals] best 0.000306904 (fails 5) via level_retype noop
+[ 15840 evals] best 0.000324217 (fails 5) via retype 0/lllrl->qr1
+[ 16160 evals] best 0.000342695 (fails 5) via level_fix noop
+[ 20400 evals] best 0.000360157 (fails 5) via level_delete noop
+[ 20960 evals] best 0.000378411 (fails 5) via level_compound_fix noop
+[ 21360 evals] best 0.000141908 (fails 4) via crossover rrll<->llll
+[ 22080 evals] best 0.000169723 (fails 4) via core_undivide noop
+[ 22400 evals] best 0.000170498 (fails 4) via rotate 0/lrrrr
+[ 23200 evals] best 0.000181366 (fails 4) via level_compound_fix noop
+[ 26560 evals] best 0.000182185 (fails 4) via level_compound_fix noop
+[ 27520 evals] best 0.000194431 (fails 4) via level_fix noop
+[ 28320 evals] best 0.000206958 (fails 4) via core_divide noop
+[ 29120 evals] best 0.000220107 (fails 4) via level_retype noop
+[ 31760 evals] best 0.000230833 (fails 4) via core_divide noop
+[ 32000 evals] best 0.000395146 (fails 3) via crossover rllrl<->rrlrr
+[ 32320 evals] best 0.000420102 (fails 3) via swap 0/rrlr
+[ 32960 evals] best 0.000439878 (fails 3) via crossover rrrrr<->llllrr
+[ 33120 evals] best 0.000458971 (fails 3) via level_fix noop
+[ 34160 evals] best 0.000478749 (fails 3) via level_fix noop
+[ 34640 evals] best 0.000744 (fails 3) via undivide 0/lrlr
+[ 39280 evals] best 0.000770381 (fails 3) via level_fix noop
+[ 40800 evals] best 0.00079688 (fails 3) via level_compound_fix noop
+[ 40880 evals] best 0.000821741 (fails 3) via core_undivide noop
+[ 41200 evals] best 0.000841435 (fails 3) via core_undivide noop
+[ 46480 evals] best 0.000867499 (fails 3) via level_delete noop
+[ 47360 evals] best 0.00127332 (fails 3) via crossover rlrrr<->rrllrl
+[ 50880 evals] best 0.00131277 (fails 3) via crossover rrrlr<->rrllrl
+[ 52240 evals] best 0.0013505 (fails 3) via core_undivide noop
+[ 53120 evals] best 0.00137937 (fails 3) via level_retype noop
+[ 53840 evals] best 0.00139966 (fails 3) via level_retype noop
+[ 57040 evals] best 0.00142768 (fails 3) via core_divide noop
+[ 59920 evals] best 0.00145592 (fails 3) via level_compound_fix noop
+[ 60080 evals] best 0.00148344 (fails 3) via level_fix noop
+[ 65920 evals] best 0.00151078 (fails 3) via level_retype noop
+[ 68720 evals] best 0.00154496 (fails 3) via core_undivide noop
+[ 68880 evals] best 0.00157101 (fails 3) via retype 0/rrrrr->dp1
+[ 70480 evals] best 0.00159557 (fails 3) via crossover lrlll<->lrlll
+[ 70640 evals] best 0.00161909 (fails 3) via level_fix noop
+[ 70880 evals] best 0.00164187 (fails 3) via core_divide noop
+[ 75200 evals] best 0.0016633 (fails 3) via crossover rlrlr<->rlrlr
+[ 75760 evals] best 0.00168434 (fails 3) via core_undivide noop
+[ 76080 evals] best 0.00172043 (fails 3) via level_compound_fix noop
+[ 77360 evals] best 0.00174777 (fails 3) via level_fix noop
+[ 77440 evals] best 0.00175949 (fails 3) via core_undivide noop
+[ 81360 evals] best 0.00178352 (fails 3) via crossover rrll<->llll
+[ 81440 evals] best 0.00181117 (fails 3) via level_fix noop
+[ 84000 evals] best 0.00181757 (fails 3) via crossover lllll<->llrlr
+[ 87920 evals] best 0.00181815 (fails 3) via core_divide noop

@@ -1,0 +1,114 @@
+15s [   200 evals] best 2.78368e-25 (fails 78) via seed
+24s [   280 evals] best 2.81966e-25 (fails 78) via place_missing noop
+32s [   840 evals] best 2.83081e-25 (fails 78) via level_fix noop
+49s [  1240 evals] best 2.85681e-25 (fails 78) via undivide 1/rlrll
+66s [  1880 evals] best 2.86707e-25 (fails 78) via place_missing noop
+66s [  1960 evals] best 4.17745e-25 (fails 77) via crossover rlll<->llr
+74s [  2280 evals] best 1.76161e-24 (fails 75) via rotate 0/ll
+90s [  3080 evals] best 4.67378e-24 (fails 74) via undivide 0/rllll
+118s [  4120 evals] best 1.46076e-23 (fails 72) via level_retype 1/lrll<->0/lrlrr
+144s [  5160 evals] best 1.36798e-22 (fails 69) via place_missing n -> rllrr
+309s [  9880 evals] best 1.43611e-22 (fails 69) via crossover rlrr<->rlrr
+345s [ 11000 evals] best 5.37852e-22 (fails 67) via place_missing n -> rllrrr
+359s [ 11160 evals] best 5.45342e-22 (fails 67) via place_missing noop
+359s [ 11400 evals] best 7.04364e-22 (fails 67) via crossover lrrlr<->lrrr
+398s [ 12520 evals] best 2.63914e-21 (fails 65) via place_missing t -> rllrrrr
+514s [ 16360 evals] best 1.955e-20 (fails 62) via undivide 1/lrrlr
+533s [ 17000 evals] best 1.99161e-20 (fails 62) via crossover rrrr<->rrrr
+542s [ 17320 evals] best 2.02902e-20 (fails 62) via core_undivide noop
+543s [ 17400 evals] best 4.31819e-20 (fails 61) via rotate 0/lrrl
+582s [ 18760 evals] best 1.53608e-19 (fails 59) via place_missing r -> llrll
+599s [ 19160 evals] best 1.54019e-19 (fails 59) via core_undivide noop
+646s [ 20840 evals] best 1.55586e-19 (fails 59) via level_compound_fix noop
+700s [ 22840 evals] best 1.55593e-19 (fails 59) via level_compound_fix noop
+719s [ 23320 evals] best 1.55798e-19 (fails 59) via level_fix noop
+728s [ 23720 evals] best 1.5615e-19 (fails 59) via core_undivide noop
+747s [ 24280 evals] best 1.57193e-19 (fails 59) via rotate 0/lrlr
+769s [ 24920 evals] best 1.57705e-19 (fails 59) via level_compound_fix noop
+780s [ 25400 evals] best 6.03009e-19 (fails 57) via place_missing t -> rllrrrr
+807s [ 26200 evals] best 6.03785e-19 (fails 57) via level_fix noop
+827s [ 27000 evals] best 6.0458e-19 (fails 57) via core_undivide noop
+837s [ 27240 evals] best 6.0913e-19 (fails 57) via place_missing t -> rllrrrr
+846s [ 27560 evals] best 6.11018e-19 (fails 57) via crossover rllrrrr<->rllrrrr
+866s [ 28120 evals] best 6.13019e-19 (fails 57) via core_undivide noop
+879s [ 28680 evals] best 6.50627e-19 (fails 57) via retype 1/llrlrl->st1
+928s [ 30200 evals] best 6.52736e-19 (fails 57) via core_undivide noop
+960s [ 31160 evals] best 6.55054e-19 (fails 57) via place_missing noop
+980s [ 31720 evals] best 6.57339e-19 (fails 57) via crossover rllrr<->rllrr
+1032s [ 33320 evals] best 6.59183e-19 (fails 57) via place_missing noop
+1064s [ 34200 evals] best 6.60911e-19 (fails 57) via core_undivide noop
+1080s [ 34600 evals] best 6.62724e-19 (fails 57) via place_missing noop
+1101s [ 35160 evals] best 1.34695e-18 (fails 56) via level_retype 1/lrrrr<->0/rllrrl
+1130s [ 36200 evals] best 1.35084e-18 (fails 56) via swap 1/llrr
+1222s [ 39080 evals] best 1.3536e-18 (fails 56) via core_undivide noop
+1263s [ 40280 evals] best 1.35887e-18 (fails 56) via retype 0/rrl->O
+1296s [ 41240 evals] best 1.37684e-18 (fails 56) via place_missing noop
+1317s [ 41960 evals] best 2.75612e-18 (fails 55) via core_undivide noop
+1336s [ 42520 evals] best 2.76622e-18 (fails 55) via crossover llllrr<->llllrr
+1354s [ 43160 evals] best 2.76719e-18 (fails 55) via core_undivide noop
+1362s [ 43480 evals] best 2.7673e-18 (fails 55) via place_missing noop
+1371s [ 44040 evals] best 2.76773e-18 (fails 55) via place_missing noop
+1418s [ 45480 evals] best 2.89565e-18 (fails 55) via undivide 0/lrlr
+1458s [ 46920 evals] best 2.89592e-18 (fails 55) via core_undivide noop
+1478s [ 47480 evals] best 2.91016e-18 (fails 55) via divide 1/rlrlr
+1688s [ 52600 evals] best 4.62272e-17 (fails 51) via place_missing n -> rllrl
+1861s [ 56680 evals] best 4.63445e-17 (fails 51) via place_missing noop
+1909s [ 58120 evals] best 4.736e-17 (fails 51) via crossover lrlrr<->lrll
+1957s [ 58840 evals] best 4.75383e-17 (fails 51) via place_missing noop
+1998s [ 60040 evals] best 4.77234e-17 (fails 51) via level_retype 0/rllrrrrr<->1/llrllrr
+2024s [ 60680 evals] best 4.78944e-17 (fails 51) via place_missing noop
+2094s [ 62200 evals] best 4.81054e-17 (fails 51) via core_undivide noop
+2161s [ 63560 evals] best 7.68517e-16 (fails 47) via rotate 0/lrrl
+2176s [ 63800 evals] best 7.7191e-16 (fails 47) via place_missing noop
+2218s [ 64600 evals] best 7.75426e-16 (fails 47) via place_missing noop
+2236s [ 64920 evals] best 7.79234e-16 (fails 47) via place_missing noop
+2273s [ 65800 evals] best 7.82619e-16 (fails 47) via place_missing noop
+2387s [ 67960 evals] best 7.86104e-16 (fails 47) via core_undivide noop
+2485s [ 69560 evals] best 7.89754e-16 (fails 47) via swap 1/rlllr
+2669s [ 72600 evals] best 7.9387e-16 (fails 47) via place_missing noop
+2740s [ 74040 evals] best 1.09506e-15 (fails 46) via retype 0/rllll->st1
+2755s [ 74440 evals] best 1.10394e-15 (fails 46) via crossover lr<->lr
+2784s [ 74840 evals] best 1.11372e-15 (fails 46) via place_missing noop
+2819s [ 75480 evals] best 1.12392e-15 (fails 46) via place_missing noop
+2840s [ 75800 evals] best 1.13127e-15 (fails 46) via core_undivide noop
+2948s [ 78040 evals] best 1.14356e-15 (fails 46) via place_missing noop
+2965s [ 78600 evals] best 1.14876e-15 (fails 46) via place_missing noop
+2977s [ 78760 evals] best 1.15416e-15 (fails 46) via core_undivide noop
+3017s [ 79720 evals] best 1.15977e-15 (fails 46) via place_missing noop
+3081s [ 81400 evals] best 1.16386e-15 (fails 46) via rotate 0/rr
+3096s [ 81640 evals] best 1.16556e-15 (fails 46) via level_retype 0/rlllr<->1/llrlrr
+3121s [ 82360 evals] best 1.17153e-15 (fails 46) via swap 0/rlrlr
+3184s [ 84040 evals] best 1.17767e-15 (fails 46) via core_undivide noop
+3222s [ 85000 evals] best 1.18184e-15 (fails 46) via core_undivide noop
+3245s [ 85480 evals] best 1.18814e-15 (fails 46) via place_missing noop
+3301s [ 86840 evals] best 1.19454e-15 (fails 46) via crossover lrrr<->lrrr
+3313s [ 87080 evals] best 1.201e-15 (fails 46) via place_missing noop
+3365s [ 88360 evals] best 1.20745e-15 (fails 46) via place_missing noop
+3467s [ 90520 evals] best 1.2138e-15 (fails 46) via crossover rlrlrl<->rlrlrr
+3481s [ 91000 evals] best 1.21994e-15 (fails 46) via core_undivide noop
+3508s [ 91560 evals] best 1.22574e-15 (fails 46) via core_undivide noop
+3508s [ 91640 evals] best 8.63614e-15 (fails 43) via level_retype 1/llll<->0/rrl
+3730s [ 97080 evals] best 8.69346e-15 (fails 43) via swap 0/llllr
+3756s [ 97720 evals] best 8.7509e-15 (fails 43) via place_missing noop
+3858s [100360 evals] best 8.80776e-15 (fails 43) via rotate 0/llllr
+3882s [100760 evals] best 8.86311e-15 (fails 43) via core_undivide noop
+3896s [101080 evals] best 1.70808e-14 (fails 42) via crossover lrrrr<->lrll
+3921s [101880 evals] best 1.71667e-14 (fails 42) via place_missing noop
+4057s [105240 evals] best 1.72459e-14 (fails 42) via crossover lrlr<->lrlr
+4132s [107320 evals] best 1.73156e-14 (fails 42) via place_missing noop
+4145s [107720 evals] best 1.73708e-14 (fails 42) via place_missing noop
+4196s [109000 evals] best 1.74162e-14 (fails 42) via place_missing noop
+4233s [109800 evals] best 1.74389e-14 (fails 42) via place_missing noop
+4272s [110760 evals] best 1.74447e-14 (fails 42) via place_missing noop
+4336s [112520 evals] best 1.75219e-14 (fails 42) via rotate 0/rlrlr
+4361s [112920 evals] best 1.75253e-14 (fails 42) via undivide 1/llrllr
+4415s [114440 evals] best 1.76097e-14 (fails 42) via core_undivide noop
+4451s [115320 evals] best 1.76189e-14 (fails 42) via crossover rlr<->rlr
+4489s [116200 evals] best 1.77166e-14 (fails 42) via place_missing noop
+4514s [116840 evals] best 1.78312e-14 (fails 42) via place_missing noop
+4576s [118360 evals] best 1.78941e-14 (fails 42) via place_missing noop
+4740s [122600 evals] best 1.79859e-14 (fails 42) via rotate 1/llrlr
+4792s [123880 evals] best 3.50161e-14 (fails 41) via divide 1/llrlrl
+4815s [124440 evals] best 3.51369e-14 (fails 41) via place_missing noop
+4827s [124840 evals] best 3.5156e-14 (fails 41) via core_undivide noop
+5698s [146680 evals] best 3.52342e-14 (fails 41) via swap 1/llrlrl

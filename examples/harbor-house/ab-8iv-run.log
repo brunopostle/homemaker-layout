@@ -1,0 +1,8 @@
+seed=evolved-3M.dom budget=150000 pop=8 workers=4 rng_seeds=[0]
+[rng 0] slice: fitness=3.523e-14 fails=41 evals=150040 created=15 5835.9s
+[rng 0] grid : fitness=2.358e-09 fails=25 evals=150040 created=15 5916.8s
+
+=== SUMMARY (higher fitness = better; fewer fails = better) ===
+slice: fitness 3.523e-14..3.523e-14 (mean 3.523e-14)  fails 41..41 (mean 41.0)
+grid : fitness 2.358e-09..2.358e-09 (mean 2.358e-09)  fails 25..25 (mean 25.0)
+head-to-head (fails then fitness): {'slice': 0, 'grid': 1, 'tie': 0}

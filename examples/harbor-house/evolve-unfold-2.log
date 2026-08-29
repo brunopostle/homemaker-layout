@@ -1,0 +1,102 @@
+seed         : /home/bruno/src/homemaker-layout/examples/harbor-house/evolved-unfold.dom
+programme    : harbor-house
+budget       : 2200000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : False (factor=3)
+superpose    : False
+output       : /home/bruno/src/homemaker-layout/examples/harbor-house/evolved-unfold.dom
+[   200 evals] best 4.51297e-07 (fails 18) via seed
+[116920 evals] best 4.58937e-07 (fails 18) via level_retype 0/rrl<->1/rrrr
+[117400 evals] best 4.59593e-07 (fails 18) via place_missing noop
+[118680 evals] best 4.59745e-07 (fails 18) via crossover rl<->rl
+[118840 evals] best 4.59956e-07 (fails 18) via crossover lrrlrrl<->rlrlr
+[119080 evals] best 4.60039e-07 (fails 18) via level_compound_fix st2: lvl0 → lvl1/rllr + insert st2 into llrlll/lvl1
+[119320 evals] best 4.6052e-07 (fails 18) via crossover rlllrrl<->rrrll
+[121800 evals] best 4.607e-07 (fails 18) via crossover lrrlrl<->rlrr
+[122440 evals] best 4.60858e-07 (fails 18) via core_undivide noop
+[122840 evals] best 4.60995e-07 (fails 18) via core_undivide noop
+[155800 evals] best 4.60996e-07 (fails 18) via core_undivide noop
+[208680 evals] best 4.62556e-07 (fails 18) via rotate 0/lrrlrr
+[212120 evals] best 4.62561e-07 (fails 18) via core_undivide noop
+[219960 evals] best 4.62609e-07 (fails 18) via rotate 0/lrlr
+[293960 evals] best 4.62609e-07 (fails 18) via divide 0/rllr
+[394120 evals] best 4.64255e-07 (fails 18) via crossover lrr<->lrr
+[724200 evals] best 4.64744e-07 (fails 18) via level_retype 1/lrrlrr<->0/rrl
+[761640 evals] best 4.64933e-07 (fails 18) via divide 0/lrrlrl
+[766280 evals] best 4.64992e-07 (fails 18) via place_missing noop
+[769560 evals] best 4.65067e-07 (fails 18) via place_missing noop
+[770920 evals] best 4.65088e-07 (fails 18) via level_fix st2: lvl0/llrr → lvl1/rllr
+[822680 evals] best 4.77975e-07 (fails 18) via level_retype 0/llrr<->1/llll
+[826280 evals] best 9.39855e-07 (fails 17) via level_retype 1/lrrll<->0/rrl
+[835400 evals] best 9.4021e-07 (fails 17) via rotate 0/rlrl
+[856520 evals] best 1.12377e-06 (fails 17) via swap 0/llr
+[858120 evals] best 1.12983e-06 (fails 17) via divide 1/llrlllr
+[862600 evals] best 1.13527e-06 (fails 17) via core_undivide noop
+[868600 evals] best 1.13594e-06 (fails 17) via level_retype 0/rllr<->1/llll
+[942600 evals] best 1.15623e-06 (fails 17) via swap 0/rlllrr
+[1054920 evals] best 1.15695e-06 (fails 17) via swap 1/lrrrl
+[1200760 evals] best 1.20729e-06 (fails 17) via level_retype 1/lrll<->0/rrl
+[1209240 evals] best 1.20801e-06 (fails 17) via crossover rlllr<->rlllr
+[1495480 evals] best 2.38115e-06 (fails 16) via divide 0/rllr
+[1571720 evals] best 2.38261e-06 (fails 16) via crossover rlllrr<->rlllrr
+[1606120 evals] best 2.38363e-06 (fails 16) via rotate 0/rlrl
+[1702040 evals] best 4.04178e-06 (fails 15) via divide 0/llrr
+[1704520 evals] best 4.08878e-06 (fails 15) via divide 0/llllrll
+[1706040 evals] best 4.13629e-06 (fails 15) via place_missing noop
+[1706600 evals] best 4.18784e-06 (fails 15) via place_missing noop
+[1707480 evals] best 4.19055e-06 (fails 15) via core_undivide noop
+[1731800 evals] best 4.19125e-06 (fails 15) via core_undivide noop
+[1791400 evals] best 4.19234e-06 (fails 15) via rotate 0/rlrl
+
+--- done ---
+elapsed      : 155812.8s
+evals        : 2200040 across 27499 topologies
+best         : 4.19234e-06 (15 fails) via rotate 0/rlrl
+
+improvement history:
+  [   200] 4.51297e-07  (seed)
+  [116920] 4.58937e-07  (level_retype 0/rrl<->1/rrrr)
+  [117400] 4.59593e-07  (place_missing noop)
+  [118680] 4.59745e-07  (crossover rl<->rl)
+  [118840] 4.59956e-07  (crossover lrrlrrl<->rlrlr)
+  [119080] 4.60039e-07  (level_compound_fix st2: lvl0 → lvl1/rllr + insert st2 into llrlll/lvl1)
+  [119320] 4.6052e-07  (crossover rlllrrl<->rrrll)
+  [121800] 4.607e-07  (crossover lrrlrl<->rlrr)
+  [122440] 4.60858e-07  (core_undivide noop)
+  [122840] 4.60995e-07  (core_undivide noop)
+  [155800] 4.60996e-07  (core_undivide noop)
+  [208680] 4.62556e-07  (rotate 0/lrrlrr)
+  [212120] 4.62561e-07  (core_undivide noop)
+  [219960] 4.62609e-07  (rotate 0/lrlr)
+  [293960] 4.62609e-07  (divide 0/rllr)
+  [394120] 4.64255e-07  (crossover lrr<->lrr)
+  [724200] 4.64744e-07  (level_retype 1/lrrlrr<->0/rrl)
+  [761640] 4.64933e-07  (divide 0/lrrlrl)
+  [766280] 4.64992e-07  (place_missing noop)
+  [769560] 4.65067e-07  (place_missing noop)
+  [770920] 4.65088e-07  (level_fix st2: lvl0/llrr → lvl1/rllr)
+  [822680] 4.77975e-07  (level_retype 0/llrr<->1/llll)
+  [826280] 9.39855e-07  (level_retype 1/lrrll<->0/rrl)
+  [835400] 9.4021e-07  (rotate 0/rlrl)
+  [856520] 1.12377e-06  (swap 0/llr)
+  [858120] 1.12983e-06  (divide 1/llrlllr)
+  [862600] 1.13527e-06  (core_undivide noop)
+  [868600] 1.13594e-06  (level_retype 0/rllr<->1/llll)
+  [942600] 1.15623e-06  (swap 0/rlllrr)
+  [1054920] 1.15695e-06  (swap 1/lrrrl)
+  [1200760] 1.20729e-06  (level_retype 1/lrll<->0/rrl)
+  [1209240] 1.20801e-06  (crossover rlllr<->rlllr)
+  [1495480] 2.38115e-06  (divide 0/rllr)
+  [1571720] 2.38261e-06  (crossover rlllrr<->rlllrr)
+  [1606120] 2.38363e-06  (rotate 0/rlrl)
+  [1702040] 4.04178e-06  (divide 0/llrr)
+  [1704520] 4.08878e-06  (divide 0/llllrll)
+  [1706040] 4.13629e-06  (place_missing noop)
+  [1706600] 4.18784e-06  (place_missing noop)
+  [1707480] 4.19055e-06  (core_undivide noop)
+  [1731800] 4.19125e-06  (core_undivide noop)
+  [1791400] 4.19234e-06  (rotate 0/rlrl)
+written      : /home/bruno/src/homemaker-layout/examples/harbor-house/evolved-unfold.dom

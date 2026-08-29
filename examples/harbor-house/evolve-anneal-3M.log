@@ -1,0 +1,463 @@
+seed         : /home/bruno/src/homemaker-layout/examples/harbor-house/init.dom
+programme    : harbor-house
+budget       : 1500000
+pop          : 16
+child_budget : 80
+workers      : 4
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+output       : /home/bruno/src/homemaker-layout/examples/harbor-house/evolved-anneal-3M.dom
+anneal grain : (4, 3, 2) → off (polish 1500000)
+[anneal] phase 1/3: grain 4, budget 500000 (construct population)
+[    80 evals] best 2.08665e-19 (fails 51) via construct/0
+[   560 evals] best 5.36487e-16 (fails 41) via construct/6
+[   880 evals] best 8.24937e-16 (fails 40) via construct/10
+[  1920 evals] best 3.40701e-15 (fails 38) via level_fix noop
+[  2560 evals] best 3.54792e-15 (fails 38) via level_retype 1/rlr<->0/rrlr
+[  5600 evals] best 7.10621e-15 (fails 37) via divide 1/lllr
+[  5840 evals] best 7.22073e-15 (fails 37) via core_divide noop
+[  8720 evals] best 8.05574e-15 (fails 37) via core_divide noop
+[  9520 evals] best 9.60644e-15 (fails 37) via level_compound_fix noop
+[  9760 evals] best 9.70633e-15 (fails 37) via core_divide noop
+[ 10240 evals] best 9.7388e-15 (fails 37) via crossover rrl<->rrl
+[ 11360 evals] best 9.73885e-15 (fails 37) via core_undivide noop
+[ 11440 evals] best 9.76347e-15 (fails 37) via core_undivide noop
+[ 12560 evals] best 9.76353e-15 (fails 37) via level_fix noop
+[ 13120 evals] best 9.80676e-15 (fails 37) via core_divide noop
+[ 13200 evals] best 9.81434e-15 (fails 37) via core_undivide noop
+[ 13760 evals] best 2.19875e-14 (fails 36) via swap 0/rrl
+[ 14640 evals] best 2.21351e-14 (fails 36) via core_undivide noop
+[ 16640 evals] best 3.12145e-14 (fails 35) via swap 0/lrl
+[ 20080 evals] best 6.11965e-14 (fails 34) via rotate 0/lrr
+[ 24560 evals] best 6.12446e-14 (fails 34) via core_undivide noop
+[ 27280 evals] best 9.09789e-14 (fails 34) via undivide 0/llr
+[ 29200 evals] best 9.09792e-14 (fails 34) via core_undivide noop
+[ 31120 evals] best 9.09795e-14 (fails 34) via core_divide noop
+[ 33120 evals] best 9.09799e-14 (fails 34) via core_divide noop
+[ 33360 evals] best 9.09802e-14 (fails 34) via core_divide noop
+[ 34640 evals] best 1.59113e-13 (fails 33) via crossover r<->r
+[ 36720 evals] best 1.59546e-13 (fails 33) via core_divide noop
+[ 45520 evals] best 1.98045e-13 (fails 33) via swap 0/rl
+[ 47360 evals] best 1.98703e-13 (fails 33) via swap 0/rrl
+[ 49520 evals] best 1.99037e-13 (fails 33) via core_divide noop
+[ 50240 evals] best 7.31388e-13 (fails 31) via swap 0/rll
+[ 50480 evals] best 7.31391e-13 (fails 31) via crossover rr<->rr
+[ 52240 evals] best 7.31395e-13 (fails 31) via core_undivide noop
+[ 58560 evals] best 7.31891e-13 (fails 31) via undivide 1/lllr
+[ 58960 evals] best 7.31896e-13 (fails 31) via undivide 1/lllr
+[ 65600 evals] best 7.31896e-13 (fails 31) via core_undivide noop
+[ 67680 evals] best 7.31897e-13 (fails 31) via core_divide noop
+[ 68160 evals] best 7.31897e-13 (fails 31) via retype 1/lllr->st2
+[ 95360 evals] best 8.30056e-12 (fails 29) via divide 1/rrl
+[ 99440 evals] best 8.30058e-12 (fails 29) via core_divide noop
+[101840 evals] best 8.39142e-12 (fails 29) via level_retype 1/rlr<->0/rlr
+[105200 evals] best 8.39887e-12 (fails 29) via core_divide noop
+[112720 evals] best 8.41871e-12 (fails 29) via core_undivide noop
+[117440 evals] best 8.44275e-12 (fails 29) via undivide 1/lrll
+[117760 evals] best 8.4503e-12 (fails 29) via core_undivide noop
+[122640 evals] best 8.47017e-12 (fails 29) via core_divide noop
+[165280 evals] best 1.43128e-11 (fails 28) via divide 0/rrrrr
+[168000 evals] best 1.45749e-11 (fails 28) via core_undivide noop
+[170400 evals] best 1.68382e-11 (fails 28) via divide 1/rll
+[172640 evals] best 1.71204e-11 (fails 28) via core_undivide noop
+[178720 evals] best 1.79457e-11 (fails 28) via divide 0/lrr
+[183680 evals] best 1.82521e-11 (fails 28) via core_divide noop
+[190480 evals] best 1.85485e-11 (fails 28) via core_undivide noop
+[190960 evals] best 1.89079e-11 (fails 28) via core_divide noop
+[192000 evals] best 1.92475e-11 (fails 28) via core_undivide noop
+[192240 evals] best 3.98705e-11 (fails 27) via rotate 0/lrr
+[196400 evals] best 4.00667e-11 (fails 27) via divide 1/rrlr
+[197760 evals] best 4.00667e-11 (fails 27) via retype 1/rrlrr->st2
+[261200 evals] best 7.87414e-11 (fails 26) via crossover l<->l
+[271200 evals] best 7.87477e-11 (fails 26) via core_divide noop
+[274240 evals] best 7.96497e-11 (fails 26) via core_divide noop
+[275040 evals] best 8.05626e-11 (fails 26) via core_undivide noop
+[277040 evals] best 1.4805e-10 (fails 25) via undivide 0/rlll
+[277600 evals] best 1.51268e-10 (fails 25) via core_divide noop
+[283040 evals] best 3.12178e-10 (fails 24) via rotate 0/lrr
+[313680 evals] best 3.12896e-10 (fails 24) via level_retype 1/rlr<->0/rlr
+[340000 evals] best 6.89781e-10 (fails 23) via divide 1/rlll
+[351440 evals] best 6.89742e-09 (fails 23) via core_undivide noop
+[353280 evals] best 6.94596e-09 (fails 23) via core_undivide noop
+[358400 evals] best 7.00355e-09 (fails 23) via core_undivide noop
+[362720 evals] best 7.0692e-09 (fails 23) via swap 0/rrrrr
+[364560 evals] best 7.14137e-09 (fails 23) via core_undivide noop
+[365520 evals] best 7.20308e-09 (fails 23) via core_undivide noop
+[365920 evals] best 7.23862e-09 (fails 23) via core_undivide noop
+[373840 evals] best 7.23862e-09 (fails 23) via crossover rrrrrl<->rrll
+[390880 evals] best 7.24269e-09 (fails 23) via rotate 0/lrr
+[402480 evals] best 7.2467e-09 (fails 23) via crossover rrll<->lrrr
+[422480 evals] best 1.02386e-08 (fails 23) via divide 1/rlll
+[422720 evals] best 2.05575e-08 (fails 22) via divide 1/lrll
+[455120 evals] best 2.30337e-08 (fails 22) via crossover lrrr<->rllr
+[463120 evals] best 2.38566e-08 (fails 22) via level_retype 0/rlrl<->1/rlr
+[466080 evals] best 4.78825e-08 (fails 21) via core_divide rrll (2 floors)
+[483840 evals] best 9.76421e-08 (fails 20) via divide 1/lrll
+[497440 evals] best 1.95284e-07 (fails 19) via crossover rrllr<->rrllr
+[anneal] phase 2/3: grain 3, budget 500000 — unfolded 96 leaf-copies (share>3)
+[   200 evals] best 1.83626e-13 (fails 39) via anneal-seed/0
+[  4320 evals] best 1.83638e-13 (fails 39) via level_retype 0/lrrr<->1/rrlr
+[  7680 evals] best 1.83641e-13 (fails 39) via swap 1/llrrl
+[  8880 evals] best 3.62008e-13 (fails 38) via undivide 1/lrrr
+[ 17120 evals] best 3.6202e-13 (fails 38) via core_undivide noop
+[ 18080 evals] best 7.35588e-13 (fails 37) via undivide 1/llrrl
+[ 18640 evals] best 7.35612e-13 (fails 37) via core_undivide noop
+[ 28400 evals] best 1.3318e-12 (fails 36) via retype 1/lrrr->O
+[ 48240 evals] best 1.39362e-12 (fails 36) via level_retype 1/llrrlr<->0/rllr
+[ 48880 evals] best 1.39398e-12 (fails 36) via swap 1/llrrr
+[ 53920 evals] best 1.4572e-12 (fails 36) via crossover rr<->rr
+[ 56960 evals] best 1.45745e-12 (fails 36) via core_undivide noop
+[ 60880 evals] best 1.7726e-12 (fails 35) via level_retype 0/llr<->1/rrlr
+[ 63520 evals] best 5.87208e-12 (fails 34) via divide 1/rrrr
+[ 66880 evals] best 1.22536e-11 (fails 33) via retype 0/rrrrrl->r
+[ 68640 evals] best 2.42529e-11 (fails 32) via rotate 0/rrrrr
+[ 71760 evals] best 2.43119e-11 (fails 32) via crossover lrl<->lrl
+[ 72080 evals] best 2.43801e-11 (fails 32) via core_undivide noop
+[ 78160 evals] best 2.43839e-11 (fails 32) via level_retype 0/lrrr<->1/rllr
+[ 91600 evals] best 2.4769e-11 (fails 32) via level_retype 0/rllr<->1/rlr
+[ 93760 evals] best 2.48387e-11 (fails 32) via divide 1/rlr
+[ 96800 evals] best 2.50941e-11 (fails 32) via core_undivide noop
+[103280 evals] best 2.51131e-11 (fails 32) via core_undivide noop
+[119920 evals] best 2.51267e-11 (fails 32) via rotate 1/llrrr
+[122800 evals] best 2.53283e-11 (fails 32) via core_undivide noop
+[123600 evals] best 2.53618e-11 (fails 32) via core_undivide noop
+[125520 evals] best 5.07696e-11 (fails 31) via crossover rrrrrr<->rlrr
+[137680 evals] best 5.10394e-11 (fails 31) via retype 1/lrlll->of
+[141280 evals] best 5.23793e-11 (fails 31) via undivide 0/rrrrr
+[150320 evals] best 5.24022e-11 (fails 31) via core_undivide noop
+[151200 evals] best 4.10836e-10 (fails 28) via crossover lrrl<->rrll
+[186000 evals] best 4.11313e-10 (fails 28) via level_retype 1/llll<->0/rlrr
+[192320 evals] best 4.11815e-10 (fails 28) via core_undivide noop
+[202560 evals] best 4.12887e-10 (fails 28) via rotate 0/rlr
+[216800 evals] best 8.7845e-10 (fails 27) via core_divide rrlll (2 floors)
+[223120 evals] best 8.98065e-10 (fails 27) via core_divide rrlll (2 floors)
+[225040 evals] best 9.19804e-10 (fails 27) via core_undivide noop
+[228880 evals] best 9.3217e-10 (fails 27) via core_undivide noop
+[233600 evals] best 9.87021e-10 (fails 27) via crossover rrrl<->rrrl
+[234880 evals] best 9.90066e-10 (fails 27) via core_undivide noop
+[235360 evals] best 1.88613e-09 (fails 26) via crossover rlrl<->lrrr
+[243040 evals] best 1.88635e-09 (fails 26) via core_undivide noop
+[288320 evals] best 1.88635e-09 (fails 26) via crossover lr<->lr
+[310320 evals] best 7.90852e-09 (fails 24) via retype 0/rrlllr->r
+[389200 evals] best 1.51646e-08 (fails 23) via rotate 1/llrll
+[392960 evals] best 1.51781e-08 (fails 23) via undivide 0/rlr
+[396000 evals] best 1.51869e-08 (fails 23) via undivide 1/llrll
+[418240 evals] best 1.61363e-08 (fails 23) via divide 1/rlll
+[419600 evals] best 3.04324e-08 (fails 22) via swap 0/rll
+[444640 evals] best 3.11245e-08 (fails 22) via core_undivide noop
+[453680 evals] best 5.97513e-08 (fails 21) via core_undivide noop
+[458480 evals] best 6.06147e-08 (fails 21) via undivide 1/llrll
+[459440 evals] best 6.14333e-08 (fails 21) via crossover rlrl<->rrllr
+[464560 evals] best 6.19713e-08 (fails 21) via level_retype 0/lrrr<->1/lrlll
+[467600 evals] best 6.2383e-08 (fails 21) via crossover llr<->llr
+[468000 evals] best 6.25855e-08 (fails 21) via undivide 0/rlr
+[anneal] phase 3/3: grain 2, budget 500000 — unfolded 128 leaf-copies (share>2)
+[   200 evals] best 3.28383e-15 (fails 45) via anneal-seed/0
+[  2400 evals] best 1.27109e-14 (fails 43) via anneal-seed/11
+[  4160 evals] best 1.27122e-14 (fails 43) via core_undivide noop
+[  4960 evals] best 1.27133e-14 (fails 43) via core_undivide noop
+[  5440 evals] best 1.27141e-14 (fails 43) via crossover rl<->rl
+[  6400 evals] best 2.54301e-14 (fails 42) via core_undivide noop
+[  8960 evals] best 2.54321e-14 (fails 42) via swap 0/llllr
+[  9760 evals] best 2.54342e-14 (fails 42) via swap 1/llrlr
+[  9920 evals] best 2.54547e-14 (fails 42) via undivide 0/rlr
+[ 22960 evals] best 2.54569e-14 (fails 42) via core_undivide noop
+[ 26080 evals] best 5.14279e-14 (fails 41) via rotate 0/lrlrr
+[ 28720 evals] best 5.15142e-14 (fails 41) via core_undivide noop
+[ 29040 evals] best 5.15186e-14 (fails 41) via core_undivide noop
+[ 30000 evals] best 5.15297e-14 (fails 41) via swap 1/llrll
+[ 31760 evals] best 5.15349e-14 (fails 41) via core_undivide noop
+[ 32480 evals] best 5.20851e-14 (fails 41) via divide 1/llrlrl
+[ 38160 evals] best 5.26944e-14 (fails 41) via core_undivide noop
+[ 40160 evals] best 5.32798e-14 (fails 41) via crossover rrlrrl<->rrlrrl
+[ 47040 evals] best 1.03522e-13 (fails 40) via divide 1/llrlrl
+[ 54000 evals] best 3.8649e-13 (fails 38) via divide 0/rrlrrl
+[ 54320 evals] best 3.88486e-13 (fails 38) via core_undivide noop
+[ 65040 evals] best 3.89607e-13 (fails 38) via divide 1/lrrr
+[ 66960 evals] best 3.89689e-13 (fails 38) via level_retype 0/lrrr<->1/rllr
+[ 69840 evals] best 3.97558e-13 (fails 38) via swap 1/llrlrl
+[ 71840 evals] best 4.01654e-13 (fails 38) via core_undivide noop
+[ 74960 evals] best 2.66422e-11 (fails 32) via level_retype 1/lrlrrr<->0/rlrl
+[ 79760 evals] best 2.67443e-11 (fails 32) via swap 1/llrll
+[ 90480 evals] best 2.67755e-11 (fails 32) via core_undivide noop
+[ 95840 evals] best 2.84823e-11 (fails 32) via divide 1/rrlr
+[106080 evals] best 2.85064e-11 (fails 32) via core_undivide noop
+[242160 evals] best 1.10468e-10 (fails 30) via level_retype 0/rrlllr<->1/lrlrl
+[261840 evals] best 1.13005e-10 (fails 30) via rotate 0/lrlrr
+[294080 evals] best 2.25842e-10 (fails 29) via level_retype 1/llrlrll<->0/rrlrrll
+[304880 evals] best 4.3164e-10 (fails 28) via swap 0/rlr
+[346880 evals] best 4.36981e-10 (fails 28) via rotate 0/lrlrr
+[359680 evals] best 4.40945e-10 (fails 28) via swap 1/llrlrl
+[381840 evals] best 9.00576e-10 (fails 27) via divide 0/lllr
+[449040 evals] best 9.20992e-10 (fails 27) via rotate 0/lrlrr
+[anneal] finish: de-share (grain off), polish 1500000 evals — unfolded 32 leaf-copies
+[   200 evals] best 1.79588e-12 (fails 36) via anneal-seed/0
+[  4800 evals] best 1.79593e-12 (fails 36) via place_missing noop
+[ 15360 evals] best 1.79623e-12 (fails 36) via rotate 0/rrlrr
+[ 36240 evals] best 3.50817e-12 (fails 35) via level_retype 1/llrrr<->0/rrlrl
+[103120 evals] best 3.52062e-12 (fails 35) via undivide 1/rrrl
+[123200 evals] best 1.26003e-11 (fails 33) via crossover llllrlr<->rrrrr
+[127040 evals] best 1.26851e-11 (fails 33) via core_undivide noop
+[128800 evals] best 1.27772e-11 (fails 33) via core_undivide noop
+[131840 evals] best 2.32615e-11 (fails 32) via core_divide rrllr (2 floors)
+[134480 evals] best 2.33823e-11 (fails 32) via place_missing noop
+[135360 evals] best 2.34449e-11 (fails 32) via level_retype 1/rrrr<->0/rrlrrlr
+[140880 evals] best 2.34579e-11 (fails 32) via place_missing noop
+[141920 evals] best 2.34703e-11 (fails 32) via place_missing noop
+[149040 evals] best 2.5583e-11 (fails 32) via level_retype 0/llllrlrl<->1/llrrl
+[165520 evals] best 4.43277e-11 (fails 31) via undivide 0/rrllr
+[173760 evals] best 4.5392e-11 (fails 31) via divide 1/lrlll
+[174400 evals] best 4.55799e-11 (fails 31) via crossover l<->l
+[181440 evals] best 4.57067e-11 (fails 31) via place_missing noop
+[199920 evals] best 1.82608e-10 (fails 29) via level_retype 0/rrlrl<->1/rrllrr
+[201600 evals] best 1.83115e-10 (fails 29) via core_undivide noop
+[205360 evals] best 1.83224e-10 (fails 29) via swap 1/lrrll
+[206960 evals] best 1.84394e-10 (fails 29) via place_missing noop
+[207280 evals] best 1.85542e-10 (fails 29) via place_missing noop
+[211360 evals] best 1.85715e-10 (fails 29) via undivide 0/lllr
+[394320 evals] best 1.85916e-10 (fails 29) via rotate 0/lrlrr
+[395200 evals] best 1.87069e-10 (fails 29) via place_missing noop
+[396640 evals] best 1.87243e-10 (fails 29) via place_missing noop
+[429680 evals] best 1.95082e-10 (fails 29) via level_retype 0/lrlrrr<->1/llrlrll
+[531200 evals] best 7.98394e-10 (fails 27) via level_retype 0/llllrlrl<->1/llrlrll
+[617520 evals] best 8.06466e-10 (fails 27) via undivide 0/lrll
+[797200 evals] best 8.47009e-10 (fails 27) via level_retype 1/llrr<->0/lrrr
+[846480 evals] best 8.84037e-10 (fails 27) via level_retype 1/lrlrrl<->0/rrlrrll
+[969760 evals] best 8.94046e-10 (fails 27) via rotate 1/llrlrl
+[1083680 evals] best 1.60805e-09 (fails 26) via swap 0/llllrlr
+[1198960 evals] best 6.4322e-09 (fails 24) via level_retype 0/rrrrrl<->1/lrlrrl
+[1357200 evals] best 1.21534e-08 (fails 23) via crossover rlr<->llllrlr
+[1453360 evals] best 1.25851e-08 (fails 23) via swap 1/lrrll
+[1454560 evals] best 1.25997e-08 (fails 23) via place_missing noop
+[1455440 evals] best 1.26006e-08 (fails 23) via place_missing noop
+[1465600 evals] best 1.26006e-08 (fails 23) via undivide 0/lllr
+[1492400 evals] best 1.26278e-08 (fails 23) via undivide 1/llrlrll
+
+--- done ---
+elapsed      : 79027.6s
+evals        : 3000000 across 37428 topologies
+best         : 1.26278e-08 (23 fails) via undivide 1/llrlrll
+
+improvement history:
+  [    80] 2.08665e-19  (g4:construct/0)
+  [   560] 5.36487e-16  (g4:construct/6)
+  [   880] 8.24937e-16  (g4:construct/10)
+  [  1920] 3.40701e-15  (g4:level_fix noop)
+  [  2560] 3.54792e-15  (g4:level_retype 1/rlr<->0/rrlr)
+  [  5600] 7.10621e-15  (g4:divide 1/lllr)
+  [  5840] 7.22073e-15  (g4:core_divide noop)
+  [  8720] 8.05574e-15  (g4:core_divide noop)
+  [  9520] 9.60644e-15  (g4:level_compound_fix noop)
+  [  9760] 9.70633e-15  (g4:core_divide noop)
+  [ 10240] 9.7388e-15  (g4:crossover rrl<->rrl)
+  [ 11360] 9.73885e-15  (g4:core_undivide noop)
+  [ 11440] 9.76347e-15  (g4:core_undivide noop)
+  [ 12560] 9.76353e-15  (g4:level_fix noop)
+  [ 13120] 9.80676e-15  (g4:core_divide noop)
+  [ 13200] 9.81434e-15  (g4:core_undivide noop)
+  [ 13760] 2.19875e-14  (g4:swap 0/rrl)
+  [ 14640] 2.21351e-14  (g4:core_undivide noop)
+  [ 16640] 3.12145e-14  (g4:swap 0/lrl)
+  [ 20080] 6.11965e-14  (g4:rotate 0/lrr)
+  [ 24560] 6.12446e-14  (g4:core_undivide noop)
+  [ 27280] 9.09789e-14  (g4:undivide 0/llr)
+  [ 29200] 9.09792e-14  (g4:core_undivide noop)
+  [ 31120] 9.09795e-14  (g4:core_divide noop)
+  [ 33120] 9.09799e-14  (g4:core_divide noop)
+  [ 33360] 9.09802e-14  (g4:core_divide noop)
+  [ 34640] 1.59113e-13  (g4:crossover r<->r)
+  [ 36720] 1.59546e-13  (g4:core_divide noop)
+  [ 45520] 1.98045e-13  (g4:swap 0/rl)
+  [ 47360] 1.98703e-13  (g4:swap 0/rrl)
+  [ 49520] 1.99037e-13  (g4:core_divide noop)
+  [ 50240] 7.31388e-13  (g4:swap 0/rll)
+  [ 50480] 7.31391e-13  (g4:crossover rr<->rr)
+  [ 52240] 7.31395e-13  (g4:core_undivide noop)
+  [ 58560] 7.31891e-13  (g4:undivide 1/lllr)
+  [ 58960] 7.31896e-13  (g4:undivide 1/lllr)
+  [ 65600] 7.31896e-13  (g4:core_undivide noop)
+  [ 67680] 7.31897e-13  (g4:core_divide noop)
+  [ 68160] 7.31897e-13  (g4:retype 1/lllr->st2)
+  [ 95360] 8.30056e-12  (g4:divide 1/rrl)
+  [ 99440] 8.30058e-12  (g4:core_divide noop)
+  [101840] 8.39142e-12  (g4:level_retype 1/rlr<->0/rlr)
+  [105200] 8.39887e-12  (g4:core_divide noop)
+  [112720] 8.41871e-12  (g4:core_undivide noop)
+  [117440] 8.44275e-12  (g4:undivide 1/lrll)
+  [117760] 8.4503e-12  (g4:core_undivide noop)
+  [122640] 8.47017e-12  (g4:core_divide noop)
+  [165280] 1.43128e-11  (g4:divide 0/rrrrr)
+  [168000] 1.45749e-11  (g4:core_undivide noop)
+  [170400] 1.68382e-11  (g4:divide 1/rll)
+  [172640] 1.71204e-11  (g4:core_undivide noop)
+  [178720] 1.79457e-11  (g4:divide 0/lrr)
+  [183680] 1.82521e-11  (g4:core_divide noop)
+  [190480] 1.85485e-11  (g4:core_undivide noop)
+  [190960] 1.89079e-11  (g4:core_divide noop)
+  [192000] 1.92475e-11  (g4:core_undivide noop)
+  [192240] 3.98705e-11  (g4:rotate 0/lrr)
+  [196400] 4.00667e-11  (g4:divide 1/rrlr)
+  [197760] 4.00667e-11  (g4:retype 1/rrlrr->st2)
+  [261200] 7.87414e-11  (g4:crossover l<->l)
+  [271200] 7.87477e-11  (g4:core_divide noop)
+  [274240] 7.96497e-11  (g4:core_divide noop)
+  [275040] 8.05626e-11  (g4:core_undivide noop)
+  [277040] 1.4805e-10  (g4:undivide 0/rlll)
+  [277600] 1.51268e-10  (g4:core_divide noop)
+  [283040] 3.12178e-10  (g4:rotate 0/lrr)
+  [313680] 3.12896e-10  (g4:level_retype 1/rlr<->0/rlr)
+  [340000] 6.89781e-10  (g4:divide 1/rlll)
+  [351440] 6.89742e-09  (g4:core_undivide noop)
+  [353280] 6.94596e-09  (g4:core_undivide noop)
+  [358400] 7.00355e-09  (g4:core_undivide noop)
+  [362720] 7.0692e-09  (g4:swap 0/rrrrr)
+  [364560] 7.14137e-09  (g4:core_undivide noop)
+  [365520] 7.20308e-09  (g4:core_undivide noop)
+  [365920] 7.23862e-09  (g4:core_undivide noop)
+  [373840] 7.23862e-09  (g4:crossover rrrrrl<->rrll)
+  [390880] 7.24269e-09  (g4:rotate 0/lrr)
+  [402480] 7.2467e-09  (g4:crossover rrll<->lrrr)
+  [422480] 1.02386e-08  (g4:divide 1/rlll)
+  [422720] 2.05575e-08  (g4:divide 1/lrll)
+  [455120] 2.30337e-08  (g4:crossover lrrr<->rllr)
+  [463120] 2.38566e-08  (g4:level_retype 0/rlrl<->1/rlr)
+  [466080] 4.78825e-08  (g4:core_divide rrll (2 floors))
+  [483840] 9.76421e-08  (g4:divide 1/lrll)
+  [497440] 1.95284e-07  (g4:crossover rrllr<->rrllr)
+  [500200] 1.83626e-13  (g3:anneal-seed/0)
+  [504320] 1.83638e-13  (g3:level_retype 0/lrrr<->1/rrlr)
+  [507680] 1.83641e-13  (g3:swap 1/llrrl)
+  [508880] 3.62008e-13  (g3:undivide 1/lrrr)
+  [517120] 3.6202e-13  (g3:core_undivide noop)
+  [518080] 7.35588e-13  (g3:undivide 1/llrrl)
+  [518640] 7.35612e-13  (g3:core_undivide noop)
+  [528400] 1.3318e-12  (g3:retype 1/lrrr->O)
+  [548240] 1.39362e-12  (g3:level_retype 1/llrrlr<->0/rllr)
+  [548880] 1.39398e-12  (g3:swap 1/llrrr)
+  [553920] 1.4572e-12  (g3:crossover rr<->rr)
+  [556960] 1.45745e-12  (g3:core_undivide noop)
+  [560880] 1.7726e-12  (g3:level_retype 0/llr<->1/rrlr)
+  [563520] 5.87208e-12  (g3:divide 1/rrrr)
+  [566880] 1.22536e-11  (g3:retype 0/rrrrrl->r)
+  [568640] 2.42529e-11  (g3:rotate 0/rrrrr)
+  [571760] 2.43119e-11  (g3:crossover lrl<->lrl)
+  [572080] 2.43801e-11  (g3:core_undivide noop)
+  [578160] 2.43839e-11  (g3:level_retype 0/lrrr<->1/rllr)
+  [591600] 2.4769e-11  (g3:level_retype 0/rllr<->1/rlr)
+  [593760] 2.48387e-11  (g3:divide 1/rlr)
+  [596800] 2.50941e-11  (g3:core_undivide noop)
+  [603280] 2.51131e-11  (g3:core_undivide noop)
+  [619920] 2.51267e-11  (g3:rotate 1/llrrr)
+  [622800] 2.53283e-11  (g3:core_undivide noop)
+  [623600] 2.53618e-11  (g3:core_undivide noop)
+  [625520] 5.07696e-11  (g3:crossover rrrrrr<->rlrr)
+  [637680] 5.10394e-11  (g3:retype 1/lrlll->of)
+  [641280] 5.23793e-11  (g3:undivide 0/rrrrr)
+  [650320] 5.24022e-11  (g3:core_undivide noop)
+  [651200] 4.10836e-10  (g3:crossover lrrl<->rrll)
+  [686000] 4.11313e-10  (g3:level_retype 1/llll<->0/rlrr)
+  [692320] 4.11815e-10  (g3:core_undivide noop)
+  [702560] 4.12887e-10  (g3:rotate 0/rlr)
+  [716800] 8.7845e-10  (g3:core_divide rrlll (2 floors))
+  [723120] 8.98065e-10  (g3:core_divide rrlll (2 floors))
+  [725040] 9.19804e-10  (g3:core_undivide noop)
+  [728880] 9.3217e-10  (g3:core_undivide noop)
+  [733600] 9.87021e-10  (g3:crossover rrrl<->rrrl)
+  [734880] 9.90066e-10  (g3:core_undivide noop)
+  [735360] 1.88613e-09  (g3:crossover rlrl<->lrrr)
+  [743040] 1.88635e-09  (g3:core_undivide noop)
+  [788320] 1.88635e-09  (g3:crossover lr<->lr)
+  [810320] 7.90852e-09  (g3:retype 0/rrlllr->r)
+  [889200] 1.51646e-08  (g3:rotate 1/llrll)
+  [892960] 1.51781e-08  (g3:undivide 0/rlr)
+  [896000] 1.51869e-08  (g3:undivide 1/llrll)
+  [918240] 1.61363e-08  (g3:divide 1/rlll)
+  [919600] 3.04324e-08  (g3:swap 0/rll)
+  [944640] 3.11245e-08  (g3:core_undivide noop)
+  [953680] 5.97513e-08  (g3:core_undivide noop)
+  [958480] 6.06147e-08  (g3:undivide 1/llrll)
+  [959440] 6.14333e-08  (g3:crossover rlrl<->rrllr)
+  [964560] 6.19713e-08  (g3:level_retype 0/lrrr<->1/lrlll)
+  [967600] 6.2383e-08  (g3:crossover llr<->llr)
+  [968000] 6.25855e-08  (g3:undivide 0/rlr)
+  [1000200] 3.28383e-15  (g2:anneal-seed/0)
+  [1002400] 1.27109e-14  (g2:anneal-seed/11)
+  [1004160] 1.27122e-14  (g2:core_undivide noop)
+  [1004960] 1.27133e-14  (g2:core_undivide noop)
+  [1005440] 1.27141e-14  (g2:crossover rl<->rl)
+  [1006400] 2.54301e-14  (g2:core_undivide noop)
+  [1008960] 2.54321e-14  (g2:swap 0/llllr)
+  [1009760] 2.54342e-14  (g2:swap 1/llrlr)
+  [1009920] 2.54547e-14  (g2:undivide 0/rlr)
+  [1022960] 2.54569e-14  (g2:core_undivide noop)
+  [1026080] 5.14279e-14  (g2:rotate 0/lrlrr)
+  [1028720] 5.15142e-14  (g2:core_undivide noop)
+  [1029040] 5.15186e-14  (g2:core_undivide noop)
+  [1030000] 5.15297e-14  (g2:swap 1/llrll)
+  [1031760] 5.15349e-14  (g2:core_undivide noop)
+  [1032480] 5.20851e-14  (g2:divide 1/llrlrl)
+  [1038160] 5.26944e-14  (g2:core_undivide noop)
+  [1040160] 5.32798e-14  (g2:crossover rrlrrl<->rrlrrl)
+  [1047040] 1.03522e-13  (g2:divide 1/llrlrl)
+  [1054000] 3.8649e-13  (g2:divide 0/rrlrrl)
+  [1054320] 3.88486e-13  (g2:core_undivide noop)
+  [1065040] 3.89607e-13  (g2:divide 1/lrrr)
+  [1066960] 3.89689e-13  (g2:level_retype 0/lrrr<->1/rllr)
+  [1069840] 3.97558e-13  (g2:swap 1/llrlrl)
+  [1071840] 4.01654e-13  (g2:core_undivide noop)
+  [1074960] 2.66422e-11  (g2:level_retype 1/lrlrrr<->0/rlrl)
+  [1079760] 2.67443e-11  (g2:swap 1/llrll)
+  [1090480] 2.67755e-11  (g2:core_undivide noop)
+  [1095840] 2.84823e-11  (g2:divide 1/rrlr)
+  [1106080] 2.85064e-11  (g2:core_undivide noop)
+  [1242160] 1.10468e-10  (g2:level_retype 0/rrlllr<->1/lrlrl)
+  [1261840] 1.13005e-10  (g2:rotate 0/lrlrr)
+  [1294080] 2.25842e-10  (g2:level_retype 1/llrlrll<->0/rrlrrll)
+  [1304880] 4.3164e-10  (g2:swap 0/rlr)
+  [1346880] 4.36981e-10  (g2:rotate 0/lrlrr)
+  [1359680] 4.40945e-10  (g2:swap 1/llrlrl)
+  [1381840] 9.00576e-10  (g2:divide 0/lllr)
+  [1449040] 9.20992e-10  (g2:rotate 0/lrlrr)
+  [1500200] 1.79588e-12  (polish:anneal-seed/0)
+  [1504800] 1.79593e-12  (polish:place_missing noop)
+  [1515360] 1.79623e-12  (polish:rotate 0/rrlrr)
+  [1536240] 3.50817e-12  (polish:level_retype 1/llrrr<->0/rrlrl)
+  [1603120] 3.52062e-12  (polish:undivide 1/rrrl)
+  [1623200] 1.26003e-11  (polish:crossover llllrlr<->rrrrr)
+  [1627040] 1.26851e-11  (polish:core_undivide noop)
+  [1628800] 1.27772e-11  (polish:core_undivide noop)
+  [1631840] 2.32615e-11  (polish:core_divide rrllr (2 floors))
+  [1634480] 2.33823e-11  (polish:place_missing noop)
+  [1635360] 2.34449e-11  (polish:level_retype 1/rrrr<->0/rrlrrlr)
+  [1640880] 2.34579e-11  (polish:place_missing noop)
+  [1641920] 2.34703e-11  (polish:place_missing noop)
+  [1649040] 2.5583e-11  (polish:level_retype 0/llllrlrl<->1/llrrl)
+  [1665520] 4.43277e-11  (polish:undivide 0/rrllr)
+  [1673760] 4.5392e-11  (polish:divide 1/lrlll)
+  [1674400] 4.55799e-11  (polish:crossover l<->l)
+  [1681440] 4.57067e-11  (polish:place_missing noop)
+  [1699920] 1.82608e-10  (polish:level_retype 0/rrlrl<->1/rrllrr)
+  [1701600] 1.83115e-10  (polish:core_undivide noop)
+  [1705360] 1.83224e-10  (polish:swap 1/lrrll)
+  [1706960] 1.84394e-10  (polish:place_missing noop)
+  [1707280] 1.85542e-10  (polish:place_missing noop)
+  [1711360] 1.85715e-10  (polish:undivide 0/lllr)
+  [1894320] 1.85916e-10  (polish:rotate 0/lrlrr)
+  [1895200] 1.87069e-10  (polish:place_missing noop)
+  [1896640] 1.87243e-10  (polish:place_missing noop)
+  [1929680] 1.95082e-10  (polish:level_retype 0/lrlrrr<->1/llrlrll)
+  [2031200] 7.98394e-10  (polish:level_retype 0/llllrlrl<->1/llrlrll)
+  [2117520] 8.06466e-10  (polish:undivide 0/lrll)
+  [2297200] 8.47009e-10  (polish:level_retype 1/llrr<->0/lrrr)
+  [2346480] 8.84037e-10  (polish:level_retype 1/lrlrrl<->0/rrlrrll)
+  [2469760] 8.94046e-10  (polish:rotate 1/llrlrl)
+  [2583680] 1.60805e-09  (polish:swap 0/llllrlr)
+  [2698960] 6.4322e-09  (polish:level_retype 0/rrrrrl<->1/lrlrrl)
+  [2857200] 1.21534e-08  (polish:crossover rlr<->llllrlr)
+  [2953360] 1.25851e-08  (polish:swap 1/lrrll)
+  [2954560] 1.25997e-08  (polish:place_missing noop)
+  [2955440] 1.26006e-08  (polish:place_missing noop)
+  [2965600] 1.26006e-08  (polish:undivide 0/lllr)
+  [2992400] 1.26278e-08  (polish:undivide 1/llrlrll)
+written      : /home/bruno/src/homemaker-layout/examples/harbor-house/evolved-anneal-3M.dom
