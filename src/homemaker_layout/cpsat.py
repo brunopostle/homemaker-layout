@@ -45,7 +45,7 @@ def solve_room_labels(
     reqs: dict,
     neighbors: dict[Hashable, set],
     context_types: dict[Hashable, set[str]],
-    time_limit_s: float = 2.0,
+    time_limit_s: float = 30.0,
     deterministic_limit: float = 4.0,
 ) -> dict[Hashable, str] | None:
     """Assign each of ``codes`` to one of ``slots``, maximising satisfied
@@ -198,6 +198,18 @@ def solve_room_labels(
     # ``max_deterministic_time`` is a work-unit budget, independent of machine
     # speed and load, so the same inputs give the same answer; the wall-clock
     # cap stays as a pathological-case backstop only.
+    #
+    # homemaker-py-vjd: that backstop MUST stay well clear of what the
+    # deterministic budget costs in wall time, or it silently becomes the
+    # binding cap and takes the load-dependence back. It had. At
+    # ``time_limit_s=2.0`` harbor-house hit exactly 2010 ms and returned
+    # FEASIBLE (not OPTIMAL) on 2 of 24 solves, while the deterministic budget
+    # was never reached (max 2.483 of 4.0) -- so the cap doing the work was the
+    # wall clock, and those two labellings were both suboptimal AND
+    # load-dependent. The cause was §38.14's added `t -> n` adjacency, which
+    # makes the model markedly harder; the 2 s value dated from when solves
+    # finished in ~124 ms. Raised so `deterministic_limit` governs and the wall
+    # clock only stops a pathological hang.
     solver.parameters.max_deterministic_time = deterministic_limit
     solver.parameters.max_time_in_seconds = time_limit_s
     status = solver.Solve(model)

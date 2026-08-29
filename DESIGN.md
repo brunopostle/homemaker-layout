@@ -5886,6 +5886,79 @@ warns about, now biting the flagship result itself: **any future re-validation
 of this default needs N ≥ 40, and N=20 should not be trusted to settle it either
 way.**
 
+### 38.20 CP-SAT seeding re-measured deterministically: it loses (`homemaker-py-vjd`)
+
+§39.5 concluded, over 6 seeds, that the exact CP-SAT seeder beats greedy
+(harbor 102 → 92, maple 156 → 154). Two things have happened since that make it
+worth re-checking, and a third turned up on the way.
+
+**First, a live bug in the cap.** `solve_room_labels` sets both a deterministic
+work-unit budget (`max_deterministic_time = 4.0`) and a wall-clock backstop
+(`max_time_in_seconds`), with the comment that the wall clock "stays as a
+pathological-case backstop only". At its 2.0 s value it had stopped being a
+backstop and become **the binding constraint**: on harbor, 2 of 24 solves
+returned `FEASIBLE` rather than `OPTIMAL`, wall time hit exactly 2010 ms, and
+the deterministic budget was never reached (max 2.483 of 4.0). Those two
+labellings were therefore both **suboptimal and load-dependent** — the wall
+clock is exactly the load-dependent cap §39.5 added the deterministic one to
+escape. Cause: §38.14's added `t → n` adjacency makes the model markedly harder,
+and the 2 s value dated from when solves finished in ~124 ms. Raised to 30 s so
+the deterministic budget governs; all 24/24 harbor and 36/36 maple solves are now
+`OPTIMAL`, with the deterministic budget still in headroom (max 3.569 of 4.0).
+
+**Second, the verdict itself.** Re-measured deterministically — `fdp`'s
+`id()`-ordering fix means the arms no longer differ by memory layout — over 12
+constructed seeds, scored by the canonical evaluator:
+
+| programme | solver | hard | soft | total | s/seed |
+|---|---|---|---|---|---|
+| harbor-house | greedy | 722 | 601 | **1323** | 0.079 |
+| harbor-house | cpsat | 908 | 640 | 1548 | 1.623 |
+| maple-court | greedy | 777 | 987 | **1764** | 0.063 |
+| maple-court | cpsat | 1213 | 1043 | 2256 | 1.327 |
+
+**CP-SAT loses on both**, by +225 and +492 fails, at ~21× the seeding time. The
+gap is concentrated in *hard* fails (+186, +436).
+
+**Third, and it separates two things that looked like one.** §38.14's adjacency
+is responsible for the *time* blow-up but almost none of the *quality* gap.
+Removing `t → n` from harbor and re-measuring:
+
+| harbor | cpsat − greedy (total) | cpsat s/seed |
+|---|---|---|
+| with `t → n` | +225 | 1.623 |
+| without | **+205** | **0.193** (8.4× faster) |
+
+So the adjacency costs 8.4× the time and about 9% of the quality deficit. The
+regression is otherwise pre-existing.
+
+**How this squares with §39.5.** That section's own text records CP-SAT
+returning "194 / 180 / 171 / 182 over four identical 10-seed aggregates" before
+the determinism work. A 10-fail harbor margin (102 vs 92) sits well inside a
+noise band that wide. The measurement was taken with `fdp`'s `id()`-ordered
+`room_slots` still live, so **the "cpsat wins" margin was never outside its own
+documented noise**. It is restated here rather than contradicted: the honest
+position is that the seeder-level claim was never established, and now that the
+solver is deterministic it measures the other way.
+
+*(The absolute totals here are ~6× §39.5's because the objective has since
+changed — §39.4, §38.10–§38.12 — so these numbers are not directly comparable to
+that table. The greedy-vs-cpsat comparison within this measurement is
+like-for-like and is what the verdict rests on.)*
+
+**Cost of the cap fix.** The two harbor solves that used to be cut off at 2 s now
+run to optimality, and the full test suite goes from ~4.5 min to ~10 min because
+the `assign_cpsat` tests dominate it. That is correctness bought with wall time,
+and it is the right trade for a default, but the tests should not be paying it —
+they cannot currently pass a smaller `deterministic_limit` because
+`constructive_topology` does not thread the solver's limits through
+(`homemaker-py-2xk`).
+
+**No default changes.** `assign_solver` was already default `greedy` for the
+independent reason §37.7 gives, and this reinforces it. What changes is that the
+"cpsat wins the seeder A/B" claim should no longer be cited as a reason to
+pursue it.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated
@@ -6071,7 +6144,11 @@ Re-measured over 6 seeds:
 | harbor-house | 102 | **92** | cpsat wins |
 | maple-court | 156 | **154** | cpsat wins |
 
-`2g7.5`'s seeder-level result stands. Both `assign_solver` flags remain default
+`2g7.5`'s seeder-level result stands. **RESTATED — see §38.20.** This margin
+(10 fails on harbor) is inside the ±23-fail noise band this same section
+documents below, and it was measured before `homemaker-py-fdp` made CP-SAT's
+inputs deterministic. Re-measured deterministically over 12 seeds under the
+current objective, cpsat *loses* on both programmes at ~21× the seeding time. Both `assign_solver` flags remain default
 off for the independent reason §37.7 gives (it does not survive a full
 `driver.search` run).
 
