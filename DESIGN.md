@@ -2784,6 +2784,13 @@ is real per-seed noise (not a directional bias) that does not appear to overturn
 verdict above, but the exact historical per-seed numbers quoted in this section were not re-measured
 under the fix. See §35 for the mechanism and what was (and wasn't) re-confirmed.
 
+**Caveat DISCHARGED for this section (`homemaker-py-d86`, §38.18).** The 1ph protocol has now been
+re-run at N=20 on a pre-iio commit with and without the fix backported: all 40 (seed, arm) cells are
+identical, and the reason is structural rather than lucky — programme-house declares `count: 1` for
+every code, so no leaf ever acquires a share and the stale-share bug cannot fire on this programme
+at all. The numbers above stand. The caveat remains live for harbor-house/qpk, where shares do exist
+and §35 measured real divergence.
+
 ## 21. Insert/relocate-circulation repair operator (`homemaker-py-8sh`) — DONE (mixed, kept off)
 
 **Motivation.** qi6's remaining candidate (§18): mechanism (a), an explicit search-time
@@ -5777,6 +5784,59 @@ Guarded by `test_search_is_reproducible_at_a_fixed_worker_count` (parametrised
 over 2/3/4 workers, asserting each is internally stable and deliberately not
 asserting they agree with each other) and
 `test_scoring_a_frozen_design_is_deterministic`.
+
+### 38.18 The 1ph verdict re-verified: the iio bug could never have touched it (`homemaker-py-d86`)
+
+`d86` asked for the rigorous version of §35's spot-check: take the codebase at the
+`1ph` commit, backport the `iio` stale-leaf-share fix, and re-run the actual
+historical seed sets to see whether the published verdict would have changed.
+
+**One constraint had to be worked around.** This repository's history begins
+**2026-07-30**, six days *after* the 1ph commit (2026-07-24) — the historical
+checkout the issue asks for does not exist here. The closest reachable stand-in
+is `391f510` (2026-07-30), which is a genuine ancestor of the iio fix
+(`929be5b`, 2026-08-01) and therefore pre-iio, and which carries that era's
+`examples/` and objective. Everything below is measured there, not at the true
+1ph commit, and that is a real limitation of the reproduction.
+
+**Protocol as published:** programme-house `init.dom`, budget 3000, 4 workers,
+seeds 1–20, ON vs OFF, both arms finished with `--collapse`. Run twice over the
+same worktree — once as-is, once with the 22-line `iio` `fitness.py` hunk applied.
+
+| codebase | OFF | ON | W/L/T | mean diff | t (df=19) |
+|---|---|---|---|---|---|
+| published 1ph (2026-07-24) | 7.95 | 7.10 | 11/6/3 | +0.85 | 2.38 |
+| pre-iio `391f510` | **8.05** | **7.10** | **11/6/3** | **+0.95** | **2.59** |
+| the same, + iio fix backported | 8.05 | 7.10 | 11/6/3 | +0.95 | 2.59 |
+
+Two results:
+
+1. **The published verdict reproduces.** ON beats OFF, significant at N=20, with
+   a win/loss/tie split identical to the published 11/6/3.
+2. **The iio fix changes nothing — 0 of 40 (seed, arm) cells differ.** Not a
+   coincidence of means: the per-seed fail counts are equal cell by cell.
+
+**And it could not have been otherwise.** The iio bug needs a leaf carrying a
+*stale* `share`/`share_type` — leftover multiplicity from a code the leaf has
+since been retyped away from. Leaf-sharing only ever stamps a share when a code
+has `count > 1`, and **programme-house declares `count: 1` for all six of its
+codes**. Measured directly over 8 constructed seeds at that commit:
+
+| programme | leaves | `share > 1` | `share_type` set |
+|---|---|---|---|
+| programme-house | 56 | **0** | **0** |
+| harbor-house | 128 | 24 | 24 |
+
+`_collapse_value` reads `leaf.share_type`; on programme-house it is never set,
+so the bug is **structurally unreachable on the 1ph protocol**. That is why §35
+saw 2 of 3 harbor seeds diverge by 5–8 fails while programme-house at N=20 moves
+not one cell — harbor has codes at counts 10, 6 and 5.
+
+§20's retroactive caveat is therefore **discharged for the 1ph section** and
+stays live for harbor-house/qpk, where shares exist and the divergence was
+measured. Worth noting for future archaeology: "was this measurement affected by
+bug X" is often answerable from the programme's structure without re-running
+anything.
 
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
