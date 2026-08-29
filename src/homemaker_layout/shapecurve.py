@@ -77,6 +77,7 @@ import numpy as np
 
 from homemaker_layout import dom as dom_mod
 from homemaker_layout import geometry
+from homemaker_layout import graph as _graph
 
 # sqrt(2*ln(10)): FAIL_THRESHOLD=0.1 inversion of a unit-height Gaussian,
 # gaussian(x,1,target,sigma) >= 0.1  <=>  |x-target| <= K*sigma.
@@ -91,11 +92,23 @@ def eligible(root: dom_mod.Node, leaf_sharing: bool = False,
     """Is ``root`` inside this DP's validated scope for ``solve``?
 
     Any storey count (homemaker-py-koo — ``solve``/``is_feasible`` handle
-    ``below``-inherited wall-stacking directly, see the module docstring) but
-    none of ``leaf_sharing``/``superpose``/``max_share``/``multi_use`` (none
-    of which ``leaf_constraints`` models).
+    ``below``-inherited wall-stacking directly, see the module docstring).
+
+    homemaker-py-tym: ``leaf_sharing``/``max_share``/``multi_use`` are now IN
+    scope — ``leaf_constraints`` mirrors ``quality_size``'s k-scaling and
+    co_type adjustment for them, reading the evaluator's own ``fit`` so it
+    cannot diverge. This matters because ``leaf_sharing`` defaults True in
+    ``driver.search``, so the guard previously excluded most real runs and the
+    DP never fired where it would actually be used.
+
+    ``superpose`` stays OUT of scope, and for a different reason than the
+    others: it does not adjust a leaf's target, it changes WHICH TYPE the leaf
+    is scored as. The collapse happens inside the evaluation, after the DP has
+    already read ``leaf.type``, so the DP would be bounding the wrong code.
+    That needs the collapse modelled, not a target rescaled.
     """
-    return not leaf_sharing and not superpose and max_share is None and not multi_use
+    del leaf_sharing, max_share, multi_use      # modelled; kept for call-site clarity
+    return not superpose
 
 
 def _interval_add(a: Interval, b: Interval) -> Interval:
@@ -153,7 +166,13 @@ def leaf_constraints(fit, leaf: dom_mod.Node) -> LeafBounds:
     Mirrors the branching of ``Fitness.quality_size``/``quality_width``/
     ``quality_proportion`` (fitness.py) but returns the (target, sigma)-derived
     hard bounds instead of evaluating a Gaussian against actual geometry.
-    Ignores leaf-sharing/co_type target adjustment (see module docstring).
+
+    homemaker-py-tym: the size bound now also mirrors ``quality_size``'s
+    leaf-sharing / co_type adjustment. It does so by asking the SAME ``fit``
+    object the evaluator uses, rather than re-deriving the rule, so the DP
+    cannot drift from the objective it is meant to predict -- the failure mode
+    that made §39.5's `cpsat._matches` optimise a different relation than the
+    scorer checked.
     """
     # §39.4: classify by the GENERIC type set, mirroring get_space_params --
     # a programme code takes its declared params whatever letter it starts with.
@@ -169,11 +188,24 @@ def leaf_constraints(fit, leaf: dom_mod.Node) -> LeafBounds:
         params = fit.conf("size_circulation") if t0 == "c" else fit.get_space_params(leaf.type, "size")
         target, sigma = params[0], params[1]
         # NB: quality_size's ``target > 0`` gate governs only the leaf-sharing/
-        # co_type k-scaling of (target, sigma) (not modelled here, see module
-        # docstring) -- the underlying gaussian(area, target, sigma) test
-        # always applies, including target==0 (e.g. size_circulation's [0.0,
-        # 14.0] default: a real one-sided "as small as possible" constraint,
-        # not "unconstrained").
+        # co_type k-scaling of (target, sigma) -- the underlying
+        # gaussian(area, target, sigma) test always applies, including
+        # target==0 (e.g. size_circulation's [0.0, 14.0] default: a real
+        # one-sided "as small as possible" constraint, not "unconstrained").
+        if t0 != "c" and target > 0:
+            # homemaker-py-tym: mirror quality_size exactly. A shared leaf holds
+            # k same-code rooms, so the gaussian is centred on k*target with
+            # sigma*k (fractional tolerance preserved); a co_typed leaf serves
+            # two codes' requirements additively. A leaf never carries both --
+            # construction never stamps both, and quality_size encodes that by
+            # only consulting co_type when k == 1.
+            k = _graph.leaf_share(leaf, fit._max_share) if fit._leaf_sharing else 1
+            co_type = None if k > 1 else fit._leaf_co_type(leaf)
+            if k > 1:
+                target, sigma = target * k, sigma * k
+            elif co_type:
+                co = fit.get_space_params(co_type, "size")
+                target, sigma = target + co[0], sigma + co[1]
         amin, amax = max(0.0, target - _K * sigma), target + _K * sigma
 
     # --- width -> wmin ---

@@ -6082,6 +6082,54 @@ Wired into `experiments/ab_ssz_search.py`, which prints a power report per arm
 before its summary table. `rerun_1ph_protocol.sh` writes a TSV the CLI reads
 directly: `python experiments/ab_report.py <results.tsv> off on`.
 
+### 38.23 The shape-curve DP now models leaf-sharing, so it can fire on real runs (`homemaker-py-tym`)
+
+`shapecurve.leaf_constraints` derived each leaf's feasible area from its own
+type's base `(target, sigma)`. `Fitness.quality_size` does not: for a leaf
+holding `k` same-code rooms it centres the gaussian on `k × target` with
+`sigma × k`, and for a co-typed leaf it adds the two codes' targets. The DP
+modelled neither, so `shapecurve.eligible` excluded any run with
+`leaf_sharing`/`max_share`/`multi_use` — and **`leaf_sharing` defaults `True` in
+`driver.search`**, so the guard excluded essentially every real run. The DP was
+correct and unreachable.
+
+**Why the guard could not simply be dropped.** On six harbor-house constructed
+seeds, **24 of 24 shared leaves (100%)** have a real area outside the unscaled
+single-room bounds. Relaxing `eligible` without modelling `k` would have made
+the DP call every one of those topologies infeasible — false negatives that
+prune feasible topologies and send the NM warm-start to a bad point. The guard
+was load-bearing.
+
+**Fix: mirror `quality_size`, by asking the same `Fitness`.** `leaf_constraints`
+now computes `k = graph.leaf_share(leaf, fit._max_share)` when `fit._leaf_sharing`
+is set, applies `target·k, sigma·k`, and otherwise consults `fit._leaf_co_type`
+for the additive co_type case — the same object, the same flags, the same
+branch order as the evaluator. It deliberately does **not** re-derive the rule:
+§39.5's `cpsat._matches` bug was exactly a solver optimising a relation the
+scorer had since moved, and this is the same hazard class.
+
+Verified as an exact inversion, not an approximation: for every shared leaf in a
+real seed, `quality_size` evaluated at the DP's `amin` and `amax` returns
+`FAIL_THRESHOLD` to 1e-9.
+
+| leaf | type | k | DP amin | DP amax | q(amin) | q(amax) |
+|---|---|---|---|---|---|---|
+| `llrlr` | m | 3 | 17.12 | 42.88 | 0.100000 | 0.100000 |
+| `lrlr` | n | 3 | 128.50 | 231.50 | 0.100000 | 0.100000 |
+| `rlrrl` | of | 2 | 14.27 | 35.73 | 0.100000 | 0.100000 |
+| `rrlr` | t | 3 | 8.34 | 27.66 | 0.100000 | 0.100000 |
+
+**`superpose` stays excluded, and for a different reason than the rest.** The
+others rescale a leaf's target; superposition changes *which type the leaf is
+scored as*, and the collapse happens inside evaluation, after the DP has read
+`leaf.type`. Bounding the wrong code is not something a rescale can fix — that
+needs the collapse modelled.
+
+`shapecurve_warmstart`/`shapecurve_prune` remain default **off**, so this
+changes no current run. What it changes is that they are now *applicable*:
+`homemaker-py-v4s`'s A/B, which its own issue said to defer until this landed,
+is unblocked.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated

@@ -72,23 +72,33 @@ def _two_storey_mixed_topology(child_types=("O", "O")):
     return level0, target
 
 
-def test_eligible_guards_sharing_not_storey_count():
-    """homemaker-py-koo: multi-storey is now handled (below-inherited fixed
-    splits, DESIGN.md §37.6), so ``eligible`` only guards the still-unmodelled
-    leaf_sharing/superpose/max_share/multi_use family."""
+def test_eligible_guards_superpose_not_storey_count_or_sharing():
+    """`eligible` guards only what `leaf_constraints` cannot model.
+
+    homemaker-py-koo removed the storey-count guard (below-inherited fixed
+    splits, §37.6). homemaker-py-tym removed the leaf_sharing/max_share/
+    multi_use guards by MODELLING them: `leaf_constraints` now mirrors
+    `quality_size`'s k-scaling and co_type adjustment, reading the evaluator's
+    own Fitness so it cannot drift.
+
+    `superpose` remains excluded, for a different reason than the others: it
+    does not rescale a target, it changes WHICH TYPE the leaf is scored as, and
+    that collapse happens after the DP has read `leaf.type`.
+    """
     root = dom.load(str(HARBOR_L0 / "generated.dom"))
     assert len(dom.levels(root)) == 1
     assert shapecurve.eligible(root)
-    assert not shapecurve.eligible(root, leaf_sharing=True)
+    assert shapecurve.eligible(root, leaf_sharing=True)
+    assert shapecurve.eligible(root, max_share=3)
+    assert shapecurve.eligible(root, multi_use=True)
     assert not shapecurve.eligible(root, superpose=True)
-    assert not shapecurve.eligible(root, max_share=3)
-    assert not shapecurve.eligible(root, multi_use=True)
 
     seed = dom.load(str(HARBOR_L0 / "init.dom"))
     seed.above = dom.Node(rotation=0)  # fake a second storey
     assert len(dom.levels(seed)) == 2
     assert shapecurve.eligible(seed)
-    assert not shapecurve.eligible(seed, leaf_sharing=True)
+    assert shapecurve.eligible(seed, leaf_sharing=True)
+    assert not shapecurve.eligible(seed, superpose=True)
 
 
 def test_solve_feasible_root_realises_zero_shape_fails(tmp_path):
@@ -264,3 +274,99 @@ def test_is_feasible_multistorey_never_writes():
     assert shapecurve.is_feasible(infeasible_root, fit) is False
     after = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
     assert before == after
+
+
+# --------------------------------------------------------------------------- #
+# homemaker-py-tym / DESIGN.md §38.23 — leaf_sharing / co_type target modelling
+# --------------------------------------------------------------------------- #
+def _shared_seed():
+    """A real harbor-house constructed seed, which stamps share>1 leaves."""
+    from homemaker_layout import geometry, operators, programme
+
+    d = "examples/harbor-house"
+    reqs = programme.load_programme_dir(d)
+    conf, cost = fit_mod.load_config(d, overrides={"leaf_sharing": True})
+    fit = fit_mod.Fitness(conf, cost)
+    root = operators.constructive_topology(
+        dom.load(f"{d}/init.dom"), reqs, np.random.default_rng(0),
+        sorted(reqs) + ["C", "O"], min_storeys=programme.storey_minimum(d),
+        adjacency_aware=True, proportion_aware=True, circ_divisor=3,
+        leaf_sharing=True, leaf_share_factor=3, depth_balanced=True,
+        interior_outside=True, outside_divisor=3)
+    geometry.clear_cache()
+    dom.canonicalize_shares(root)
+    return fit, root
+
+
+@pytest.mark.skipif(not Path("examples/harbor-house").is_dir(),
+                    reason="harbor-house not available")
+def test_leaf_constraints_inverts_quality_size_for_shared_leaves():
+    """The DP's (amin, amax) must be the exact FAIL_THRESHOLD inversion of
+    quality_size -- INCLUDING its k-scaling for a shared leaf.
+
+    quality_size centres the gaussian on k*target with sigma*k for a leaf
+    holding k same-code rooms. leaf_constraints ignored that, which is why
+    `eligible` excluded leaf_sharing outright -- and leaf_sharing defaults True
+    in driver.search, so the DP never fired on a real run.
+    """
+    from homemaker_layout import geometry
+
+    fit, root = _shared_seed()
+    shared = [lf for lf in root.leaves() if (getattr(lf, "share", 1) or 1) > 1]
+    assert shared, "seed carries no shared leaves -- test would be vacuous"
+
+    orig_area = geometry.area
+    try:
+        for lf in shared:
+            b = shapecurve.leaf_constraints(fit, lf)
+            for bound in (b.amin, b.amax):
+                geometry.area = lambda _n, _a=bound: _a
+                assert fit.quality_size(lf) == pytest.approx(
+                    fit_mod.FAIL_THRESHOLD, abs=1e-9), (
+                    f"leaf {lf.id} (share={lf.share}): DP bound {bound} is not "
+                    f"on the fail threshold of quality_size")
+    finally:
+        geometry.area = orig_area
+
+
+@pytest.mark.skipif(not Path("examples/harbor-house").is_dir(),
+                    reason="harbor-house not available")
+def test_unscaled_bounds_would_reject_every_shared_leaf():
+    """Guard the reason `eligible` could not simply be relaxed.
+
+    Without the k-scaling, a shared leaf's real area sits far outside the
+    single-room bounds, so the DP would call a feasible topology infeasible --
+    a false negative that prunes good topologies and misdirects the NM
+    warm-start. Measured: 100% of shared leaves, 6 seeds.
+    """
+    from homemaker_layout import geometry
+
+    fit, root = _shared_seed()
+    K = shapecurve._K
+    checked = would_reject = 0
+    for lf in root.leaves():
+        if (getattr(lf, "share", 1) or 1) <= 1 or lf.type not in (fit._programme or {}):
+            continue
+        checked += 1
+        area = geometry.area(lf)
+        t, sg = fit.get_space_params(lf.type, "size")[:2]
+        b = shapecurve.leaf_constraints(fit, lf)
+        assert b.amin <= area <= b.amax, "scaled bounds should accept the real area"
+        if not (max(0.0, t - K * sg) <= area <= t + K * sg):
+            would_reject += 1
+    assert checked, "no shared leaves -- test would be vacuous"
+    assert would_reject == checked, (
+        f"expected the unscaled bounds to reject every shared leaf; "
+        f"{would_reject}/{checked}")
+
+
+def test_eligible_admits_sharing_but_still_excludes_superpose():
+    """superpose is excluded for a DIFFERENT reason than the others: it does
+    not rescale a target, it changes which TYPE is scored, and the collapse
+    happens after the DP has read leaf.type."""
+    assert shapecurve.eligible(None, leaf_sharing=True)
+    assert shapecurve.eligible(None, max_share=3)
+    assert shapecurve.eligible(None, multi_use=True)
+    assert shapecurve.eligible(None, leaf_sharing=True, max_share=4, multi_use=True)
+    assert not shapecurve.eligible(None, superpose=True)
+    assert not shapecurve.eligible(None, leaf_sharing=True, superpose=True)
