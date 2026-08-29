@@ -21,3 +21,23 @@ output       : /home/user/homemaker-layout/examples/harbor-house/coldstart-50000
 [   240 evals] best 6.52063e-20 (fails 55) via construct/2
 [  1280 evals] best 3.07967e-20 (fails 54) via construct/15
 [  1760 evals] best 1.59184e-19 (fails 54) via swap 0/lrr
+[  1920 evals] best 6.67908e-19 (fails 52) via rotate 0/lrll
+[  3120 evals] best 1.30712e-18 (fails 51) via core_undivide noop
+[  4400 evals] best 1.39275e-18 (fails 51) via core_divide noop
+[  6720 evals] best 1.41743e-18 (fails 51) via swap 0/lrr
+[  8640 evals] best 2.87976e-18 (fails 50) via core_undivide noop
+[ 10000 evals] best 5.71109e-18 (fails 49) via rotate 0/rlll
+[ 12240 evals] best 5.95838e-18 (fails 49) via crossover lrlll<->lrlll
+[ 12400 evals] best 1.17875e-17 (fails 48) via level_compound_fix noop
+[ 12880 evals] best 1.24564e-17 (fails 48) via level_fix noop
+[ 15120 evals] best 1.40283e-17 (fails 48) via swap 0/llr
+[ 16080 evals] best 1.44296e-17 (fails 48) via level_compound_fix noop
+[ 17600 evals] best 1.48821e-16 (fails 48) via swap 0/llr
+[ 18960 evals] best 5.32871e-16 (fails 42) via crossover lrllr<->rrl
+[ 21680 evals] best 1.25e-15 (fails 41) via crossover rlrrr<->llll
+[ 22720 evals] best 3.08937e-15 (fails 40) via retype 0/lrrr->m
+[ 22800 evals] best 3.1408e-15 (fails 40) via core_undivide noop
+[ 23280 evals] best 3.18171e-15 (fails 40) via level_fix noop
+[ 24000 evals] best 3.39655e-15 (fails 40) via level_compound_fix noop
+[ 24160 evals] best 3.42463e-15 (fails 40) via level_compound_fix noop
+[ 24960 evals] best 3.43166e-15 (fails 40) via level_compound_fix noop

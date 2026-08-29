@@ -19,3 +19,24 @@ shapecurve prune     : False
 output       : /home/user/homemaker-layout/examples/maple-court/coldstart-500000-s0.dom
 [    80 evals] best 1.5923e-44 (fails 136) via construct/0
 [   160 evals] best 4.80951e-39 (fails 119) via construct/1
+[  1360 evals] best 2.33063e-35 (fails 108) via level_compound_fix noop
+[  1600 evals] best 4.62166e-35 (fails 107) via undivide 0/lrrl
+[  2400 evals] best 2.12969e-34 (fails 105) via core_undivide noop
+[  2640 evals] best 8.34232e-34 (fails 103) via crossover lrlrr<->lrrll
+[  3120 evals] best 1.18679e-33 (fails 102) via retype 2/rrrr->ws1
+[  3520 evals] best 2.83542e-32 (fails 98) via core_undivide noop
+[  4240 evals] best 5.90625e-32 (fails 97) via swap 0/lrlr
+[  4800 evals] best 6.75777e-32 (fails 97) via core_divide lrlr (2 floors)
+[  5120 evals] best 9.68203e-30 (fails 90) via core_divide lrlr (2 floors)
+[  6720 evals] best 1.06032e-29 (fails 90) via crossover lrll<->lrll
+[  6800 evals] best 2.32821e-29 (fails 89) via swap 0/lrrr
+[  7440 evals] best 9.83875e-29 (fails 87) via divide 0/rlll
+[  7520 evals] best 1.98761e-28 (fails 86) via core_undivide noop
+[  8960 evals] best 3.45107e-27 (fails 82) via level_fix ef1: lvl2/lrlrr → lvl0/rllr
+[  9600 evals] best 3.48472e-27 (fails 82) via core_undivide noop
+[ 12320 evals] best 3.50776e-27 (fails 82) via level_compound_fix noop
+[ 12640 evals] best 3.62472e-27 (fails 82) via swap 2/rlll
+[ 13440 evals] best 3.64565e-27 (fails 82) via core_undivide noop
+[ 14320 evals] best 3.67293e-27 (fails 82) via retype 0/rllll->py
+[ 14640 evals] best 1.36771e-26 (fails 80) via level_compound_fix py: lvl0 → lvl1/lrr
+[ 14880 evals] best 2.61906e-26 (fails 79) via divide 1/llrr

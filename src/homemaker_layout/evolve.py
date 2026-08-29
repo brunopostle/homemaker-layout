@@ -71,6 +71,11 @@ def _parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--child-budget", type=int,
                    default=_env_int("HOMEMAKER_CHILD_BUDGET", 80),
                    metavar="N", help="per-child evaluation budget")
+    p.add_argument("--checkpoint-every", type=int, default=0, metavar="N",
+                   help="write the best-so-far .dom every N evals (0 = off). "
+                        "Crash safety for long runs: without it the only "
+                        "output lands at the end, so a reclaimed container or "
+                        "an OOM loses the whole search.")
     p.add_argument("--workers", type=int,
                    default=_env_int("HOMEMAKER_WORKERS", 1),
                    metavar="N", help="parallel worker processes")
@@ -302,6 +307,41 @@ def main(argv=None) -> int:
 
     _preflight(programme_dir)
 
+    def _make_checkpoint(path):
+        """Write best-so-far to `<out>.checkpoint` ATOMICALLY.
+
+        A checkpoint is worthless if a crash can catch it half-written, so it
+        goes to a temp file in the same directory and is renamed over the
+        target (rename is atomic within a filesystem). It is deliberately NOT
+        the final output path -- a checkpoint is a leaf-sharing run's internal
+        best, which is dishonest under the canonical scorer until the finish
+        stage unfolds it (homemaker-py-3l6), so it must not be mistaken for
+        the finished article.
+        """
+        import os
+        import tempfile
+
+        def _write(best, n_evals):
+            if best is None:
+                return
+            d = os.path.dirname(path) or "."
+            fd, tmp = tempfile.mkstemp(dir=d, suffix=".ckpt")
+            try:
+                with os.fdopen(fd, "w") as fh:
+                    fh.write(dom.dumps(best.root))
+                os.replace(tmp, path)
+            except BaseException:
+                if os.path.exists(tmp):
+                    os.unlink(tmp)
+                raise
+            print(f"[{n_evals:6d} evals] checkpoint -> {os.path.basename(path)} "
+                  f"({best.n_fails} fails)", file=sys.stderr, flush=True)
+
+        return _write
+
+    _ckpt = (_make_checkpoint(str(out) + ".checkpoint")
+             if args.checkpoint_every > 0 and args.output != Path("-") else None)
+
     print(f"seed         : {seed_file}", file=sys.stderr)
     print(f"programme    : {programme_dir.name}", file=sys.stderr)
     print(f"budget       : {args.budget}", file=sys.stderr)
@@ -353,6 +393,8 @@ def main(argv=None) -> int:
             n_workers=args.workers,
             superpose=args.superpose,
             multi_use=args.multi_use,
+            checkpoint=_ckpt,
+            checkpoint_every=args.checkpoint_every,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
         _finish_sharing = False
@@ -377,6 +419,8 @@ def main(argv=None) -> int:
             collapse_insearch=args.collapse_insearch,
             shapecurve_warmstart=args.shapecurve_warmstart,
             shapecurve_prune=args.shapecurve_prune,
+            checkpoint=_ckpt,
+            checkpoint_every=args.checkpoint_every,
             log=lambda m: print(m, file=sys.stderr, flush=True),
         )
         _finish_sharing = args.leaf_sharing

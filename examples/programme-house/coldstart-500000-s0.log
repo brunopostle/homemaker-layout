@@ -30,3 +30,34 @@ output       : /home/user/homemaker-layout/examples/programme-house/coldstart-50
 [  7840 evals] best 7.11352e-05 (fails 5) via core_divide noop
 [  8400 evals] best 0.000111875 (fails 5) via undivide 0/rr
 [  8480 evals] best 0.000114961 (fails 5) via core_undivide noop
+[ 10640 evals] best 8.54011e-05 (fails 4) via swap 0/l
+[ 11440 evals] best 8.56844e-05 (fails 4) via crossover rlr<->ll
+[ 11600 evals] best 8.57076e-05 (fails 4) via level_retype 1/rl<->0/llr
+[ 13120 evals] best 8.58391e-05 (fails 4) via core_undivide noop
+[ 13440 evals] best 8.73822e-05 (fails 4) via undivide 0/rl
+[ 15760 evals] best 0.000112799 (fails 4) via crossover ll<->ll
+[ 16320 evals] best 0.00015754 (fails 3) via level_retype 1/lr<->0/rl
+[ 16480 evals] best 0.00020643 (fails 3) via swap 0/ll
+[ 18480 evals] best 0.000208867 (fails 3) via crossover lll<->llr
+[ 19360 evals] best 2.54868e-05 (fails 2) via level_compound_fix l1: lvl1 → lvl0/rl
+[ 19520 evals] best 2.54914e-05 (fails 2) via crossover rr<->rr
+[ 19920 evals] best 2.54938e-05 (fails 2) via level_compound_fix noop
+[ 22720 evals] best 0.000445739 (fails 2) via undivide 0/rl
+[ 25760 evals] best 0.000446136 (fails 2) via crossover lll<->lll
+[ 26080 evals] best 0.000446413 (fails 2) via core_undivide noop
+[ 28800 evals] best 0.000446749 (fails 2) via retype 1/rrl->b2
+[ 29440 evals] best 0.000447236 (fails 2) via level_retype 1/rrl<->0/rl
+[ 29920 evals] best 0.000447713 (fails 2) via crossover r<->r
+[ 30320 evals] best 0.00044781 (fails 2) via crossover rrr<->llr
+[ 33520 evals] best 0.000447846 (fails 2) via retype 0/lr->t2
+[ 33600 evals] best 0.000447864 (fails 2) via crossover root<->root
+[ 92160 evals] best 0.00248135 (fails 2) via retype 1/ll->O
+[102080 evals] best 0.00248174 (fails 2) via crossover rrr<->llr
+[102880 evals] best 0.00248226 (fails 2) via crossover rrl<->rrl
+[103120 evals] best 0.00248262 (fails 2) via retype 1/rl->t2
+[103200 evals] best 0.00248301 (fails 2) via core_undivide noop
+[110640 evals] best 0.0024834 (fails 2) via crossover ll<->ll
+[111920 evals] best 0.00248376 (fails 2) via crossover root<->root
+[114080 evals] best 0.00248391 (fails 2) via level_retype 1/rl<->0/lr
+[120240 evals] best 0.00248398 (fails 2) via level_retype 1/rrr<->0/rrr
+[138800 evals] best 0.00248406 (fails 2) via level_delete (2 storeys)

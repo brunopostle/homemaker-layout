@@ -317,6 +317,8 @@ def search(
     assign_solver: str = "greedy",
     enable_reassign: bool = False,
     preserve_circulation: bool = False,
+    checkpoint=None,
+    checkpoint_every: int = 0,
 ) -> SearchResult:
     """Run the memetic loop from ``seed_root`` until ``budget`` oracle
     evaluations are consumed. Returns the best individual found; its ``root``
@@ -497,6 +499,8 @@ def search(
 
     do_bootstrap = (not seed_root.divided) if bootstrap is None else bootstrap
 
+    last_checkpoint = [0]        # list so the nested recorder can rebind it
+
     def _log(msg: str) -> None:
         if log:
             log(msg)
@@ -523,6 +527,21 @@ def search(
                 (n_evals, len({p.sig for p in pop} | {ind.sig}), len(seen_sigs)))
             _log(f"[{n_evals:6d} evals] best {ind.fitness:.6g} "
                  f"(fails {ind.n_fails}) via {ind.lineage}")
+            # Crash safety for long runs. A 3M-eval search is days of compute
+            # whose only output lands at the very end (or on SIGTERM), so an
+            # abrupt loss -- a reclaimed container, an OOM, a power cut --
+            # takes everything with it. When `checkpoint` is given it is
+            # handed the current best at most every `checkpoint_every` evals,
+            # so the run always has a recoverable artefact on disk. Rate-limited
+            # by evals, not by improvements, because improvements come in
+            # bursts early on. A failing checkpoint must never kill the search.
+            if checkpoint is not None and (
+                    n_evals - last_checkpoint[0] >= checkpoint_every):
+                last_checkpoint[0] = n_evals
+                try:
+                    checkpoint(result.best, n_evals)
+                except Exception as exc:                    # noqa: BLE001
+                    _log(f"[{n_evals:6d} evals] checkpoint failed: {exc!r}")
         if niche_by_signature:
             # §11.5 structural niching: at most one individual per topology
             # signature, keeping the better of any collision. This preserves

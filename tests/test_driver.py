@@ -672,3 +672,48 @@ def test_use_tiers_prefers_fewer_hard_over_fewer_total_fails(monkeypatch):
     tiered = driver.search(copy.deepcopy(seed_root), use_tiers=True, **common_kw)
     assert tiered.best.n_hard == 0  # tiered comparator: fewer hard fails wins
     assert tiered.best.n_fails == 2
+
+
+# --------------------------------------------------------------------------- #
+# Crash safety for long runs: driver.search's checkpoint hook
+# --------------------------------------------------------------------------- #
+def test_search_checkpoint_is_called_with_the_current_best(tmp_path):
+    """A long search's only output otherwise lands at the very end, so an
+    abrupt loss takes the whole run with it."""
+    seen = []
+    r = driver.search(
+        dom.load("examples/programme-house/init.dom"),
+        "examples/programme-house", budget=400, seed=0, child_budget=20,
+        checkpoint=lambda best, n: seen.append((n, best.n_fails)),
+        checkpoint_every=50)
+    assert seen, "checkpoint was never called"
+    evals = [n for n, _ in seen]
+    assert evals == sorted(evals)
+    assert all(b - a >= 50 for a, b in zip(evals, evals[1:])), \
+        "checkpoint_every must rate-limit by evals, not fire on every improvement"
+    assert r.best is not None
+
+
+def test_search_checkpoint_failure_never_kills_the_run():
+    """Losing a checkpoint is bad; losing the search because a checkpoint
+    failed is worse."""
+    def boom(best, n):
+        raise OSError("disk full")
+
+    r = driver.search(
+        dom.load("examples/programme-house/init.dom"),
+        "examples/programme-house", budget=400, seed=0, child_budget=20,
+        checkpoint=boom, checkpoint_every=50)
+    assert r.best is not None
+
+
+def test_search_without_checkpoint_is_unchanged():
+    """Default off: no hook, byte-identical result to before the feature."""
+    kw = dict(budget=400, seed=0, child_budget=20)
+    a = driver.search(dom.load("examples/programme-house/init.dom"),
+                      "examples/programme-house", **kw)
+    b = driver.search(dom.load("examples/programme-house/init.dom"),
+                      "examples/programme-house",
+                      checkpoint=None, checkpoint_every=0, **kw)
+    assert a.best.fitness == b.best.fitness
+    assert a.n_evals == b.n_evals
