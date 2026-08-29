@@ -5433,6 +5433,68 @@ complaint is narrower and is about search mechanics rather than truth — a hard
 flat where it should be merely low. That is worth a separate issue; it is not
 the calibration fault this section spent its length chasing.
 
+### 38.12 The missing-space cascade was weighted by YAML verbosity (`homemaker-py-1i8`)
+
+`graph.check_space_counts` emitted, per missing room instance, two base failures
+plus **one placeholder for each optional key the author happened to type**:
+
+```python
+if req.has_size:        failures.append(f"missing {mid}: would need size check")
+if req.has_width:       failures.append(...)
+if req.has_proportion:  failures.append(...)
+```
+
+`has_size`/`has_width`/`has_proportion` are literally `"size" in c` from the
+YAML. So a missing room cost 3, 4 or 5 fails depending on nothing but how
+verbosely its space was written, and under `value *= 0.5 ** len(failures)` that
+is a **4× difference in penalty between two single rooms**. The tiered
+comparator inherits it directly, because `n_hard` is dominated by these
+cascades — so the search's *primary key* was partly a measure of config style.
+
+**Why it is unambiguously wrong, not merely arbitrary.** A present room is
+checked on all three qualities regardless of what was declared:
+`get_space_params` fills width and proportion from defaults, deriving width from
+size when it is absent. programme-house's `t2` declares `size:` alone and still
+receives a real width target of **1.633** which it can fail on. So the two paths
+disagreed about the same room: present, it faces three checks; missing, it
+emitted one placeholder. The cascade is supposed to stand in for the checks that
+could not be run, and it was standing in for the wrong number of them.
+
+**Fix: emit all three placeholders, always.** A fixed 5 fails per missing
+instance, mirroring the present-room path.
+
+| programme | before | after | max weight ratio, before → after |
+|---|---|---|---|
+| programme-house | 3..5 | 5 | 4× → 1× |
+| harbor-house | 4..5 | 5 | 2× → 1× |
+| maple-court | 4..5 | 5 | 2× → 1× |
+| health-centre | 5..5 | 5 | 1× → 1× |
+
+36 of the corpus's 67 codes were under-counted; 31 were already at 5.
+
+**This makes fail counts LARGER, and that is the point.** It is a correctness
+fix, not an improvement, and anyone reading the new numbers as a regression has
+misread them:
+
+| layout | before (total/hard) | after |
+|---|---|---|
+| harbor `evolved-3M-nols-3.dom` | 82 / 37 | **84 / 39** |
+| harbor `generated.dom` | 155 / 128 | **174 / 147** |
+| harbor `evolved-3M.dom` | 131 / 87 | **144 / 100** |
+| maple `generated.dom` | 126 / 17 | 126 / 17 (no missing instances) |
+
+**Note the alternative that was NOT taken.** `1i8` also offered "emit exactly one
+fail per missing instance and let the placeholders be informational". That would
+have fixed the verbosity dependence too, but it silently rescales how much a
+missing room matters — from 1/32 to 1/2, the same weight as a single crinkliness
+fail. Whether a missing required room *should* cost 1/32 is a real question, and
+a separate one; conflating it with this fix would have changed the objective's
+priorities under cover of a bug fix. The magnitude is left exactly where it was.
+
+**Baselines.** Every historical corpus fail count is invalidated again, on top of
+§39.4 and §38.10/§38.11. This is why the cold-start re-baseline is worth running
+*after* the objective work rather than before it.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated

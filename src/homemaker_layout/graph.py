@@ -556,8 +556,10 @@ def check_space_counts(
     ``check_space_counts`` in ``ProgrammeDriven.pm:156-215``.
 
     Returns ``(failures, missing_ids)`` where:
-    - ``failures`` is the stacked failure list (2 base + per-quality per missing
-      space, up to ~7 per missing space; also "too many" for excess spaces).
+    - ``failures`` is the stacked failure list: per missing instance, 2 base
+      failures plus one placeholder for each of the three quality checks it
+      would have faced -- a FIXED 5, independent of how the programme was
+      spelled (homemaker-py-1i8); also "too many" for excess spaces.
     - ``missing_ids`` is the list of virtual space ids used to suppress false
       adjacency/level/vertical failures for absent spaces.
 
@@ -602,13 +604,26 @@ def check_space_counts(
                 failures.append(f"missing required space: {mid}")
                 failures.append(f"missing required space: {mid} (critical)")
                 missing.append(mid)
-                # Per-quality failures (1 each for explicitly configured params)
-                if req.has_size:
-                    failures.append(f"missing {mid}: would need size check")
-                if req.has_width:
-                    failures.append(f"missing {mid}: would need width check")
-                if req.has_proportion:
-                    failures.append(f"missing {mid}: would need proportion check")
+                # One placeholder per quality check the missing room WOULD have
+                # faced -- always all three (homemaker-py-1i8, DESIGN.md §38.12).
+                #
+                # These used to be gated on req.has_size/has_width/has_proportion,
+                # which record only whether the author TYPED the key in
+                # patterns.config, not whether the requirement exists. It always
+                # exists: `get_space_params` fills width and proportion from
+                # defaults (or derives width from size), so a PRESENT room is
+                # checked on all three however its config was spelled --
+                # programme-house's `t2` declares `size:` alone and still gets a
+                # real width target of 1.633 that it can fail on.
+                #
+                # So the missing path must mirror the present path. Gating it
+                # made one missing room cost 3 fails and another 5, and under
+                # `value *= 0.5 ** len(failures)` that is a 4x difference in
+                # penalty between two single rooms decided by YAML verbosity --
+                # inherited by the tiered comparator, whose primary key n_hard
+                # is dominated by these cascades.
+                for check in ("size", "width", "proportion"):
+                    failures.append(f"missing {mid}: would need {check} check")
 
         elif actual > expected:
             failures.append(

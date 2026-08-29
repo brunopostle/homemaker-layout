@@ -168,3 +168,57 @@ def test_two_phase_build_graphs_independent():
 
     assert pre_nodes_l2 == 7
     assert post_nodes_l2 == 3
+
+
+# --------------------------------------------------------------------------- #
+# homemaker-py-1i8 / DESIGN.md §38.12 — the missing-space cascade must not be
+# weighted by how verbosely the programme was written.
+# --------------------------------------------------------------------------- #
+def _missing_fails(declared: dict) -> list[str]:
+    """Fails for a bare plot that declares one required room, absent."""
+    from homemaker_layout.graph import check_space_counts
+    from homemaker_layout.programme import _parse_spaces
+
+    reqs = _parse_spaces({"spaces": {"x1": dict({"usage": "living"}, **declared)}})
+    root = dom.Node(node=[[0, 0], [6, 0], [6, 6], [0, 6]], type="O")
+    fails, missing = check_space_counts(root, reqs)
+    assert missing, "the room should be reported missing"
+    return fails
+
+
+def test_missing_space_cost_is_independent_of_declared_keys():
+    """A missing room costs the same whether or not the author typed the
+    optional keys.
+
+    It used to cost 2 base + one placeholder per key PRESENT IN THE YAML, so a
+    room declaring size/width/proportion cost 5 fails and one declaring size
+    alone cost 3. Under `value *= 0.5 ** len(failures)` that is a 4x difference
+    in penalty between two single rooms, decided by verbosity -- and the tiered
+    comparator inherits it, since n_hard is dominated by these cascades.
+    """
+    verbose = _missing_fails({"size": [16.0, 4.0], "width": [4.0, 1.0],
+                              "proportion": [1.5, 0.5]})
+    terse = _missing_fails({"size": [16.0, 4.0]})
+    assert len(verbose) == len(terse) == 5
+    assert set(verbose) == set(terse)
+
+
+def test_missing_space_placeholders_mirror_the_checks_a_present_room_faces():
+    """All three, always -- because a present room is checked on all three.
+
+    `get_space_params` fills width and proportion from defaults (deriving width
+    from size when absent), so the requirement exists however the config is
+    spelled. The placeholder count has to mirror that or the two paths
+    disagree.
+    """
+    fails = _missing_fails({"size": [16.0, 4.0]})
+    for check in ("size", "width", "proportion"):
+        assert f"missing x1: would need {check} check" in fails
+    assert sum(1 for f in fails if f.startswith("missing required space")) == 2
+
+
+def test_missing_space_cascade_scales_per_instance_not_per_code():
+    fails = _missing_fails({"size": [16.0, 4.0], "count": 3})
+    assert len(fails) == 15
+    for i in (1, 2, 3):
+        assert f"missing required space: x1#{i}" in fails
