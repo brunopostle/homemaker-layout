@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Re-run the 1ph protocol (DESIGN.md §20): programme-house init.dom, budget 3000,
-# 4 workers, seeds 1-20, ON vs OFF, BOTH arms finished with --collapse.
+# 4 workers, ON vs OFF, BOTH arms finished with --collapse.
+# Usage: rerun_1ph_protocol.sh <worktree> <tag> <out.tsv> [lo] [hi]   (APPEND=1 to add)
 set -u
-W="$1"; TAG="$2"; OUT="$3"
+W="$1"; TAG="$2"; OUT="$3"; LO="${4:-1}"; HI="${5:-20}"
 cd "$W/examples/programme-house"
-: > "$OUT"
-for seed in $(seq 1 20); do
+[ "${APPEND:-0}" = "1" ] || : > "$OUT"
+for seed in $(seq "$LO" "$HI"); do
   for arm in on off; do
     flag=""; [ "$arm" = "off" ] && flag="--no-collapse-insearch"
     t0=$(date +%s)

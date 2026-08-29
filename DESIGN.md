@@ -2768,6 +2768,11 @@ path):
 - Cost: ON still ~1.2–1.3× OFF wall-clock at this size (20.9s mean OFF → 26.4s mean ON), same order
   as the original measurement.
 
+**Re-validated under the current objective (`homemaker-py-ioe`, §38.19):** the default still
+stands, but the margin is about a third smaller (+0.57 fails/seed against the +0.85 below) and is
+**no longer detectable at this section's N=20** (p ≈ 0.069 there); it takes N=60 to reach
+p = 0.017. Do not re-check this default at N=20.
+
 Confirms the qpk verdict holds at both example scales tested. `collapse_insearch` default flipped
 **OFF → ON** in `evolve.py` (`--collapse-insearch`/`--no-collapse-insearch`,
 `HOMEMAKER_COLLAPSE_INSEARCH`) and `driver.py` (`_overrides_for`, `_fitness_for`, `_evaluate`,
@@ -5837,6 +5842,49 @@ stays live for harbor-house/qpk, where shares exist and the divergence was
 measured. Worth noting for future archaeology: "was this measurement affected by
 bug X" is often answerable from the programme's structure without re-running
 anything.
+
+### 38.19 `collapse_insearch=True` re-validated under the current objective (`homemaker-py-ioe`)
+
+§38.18 confirmed the `1ph` default-flip was sound *for its own era*. But that
+measurement predates three changes to the objective it was measured against —
+§39.4's generic-namespace fix, §38.10/§38.11's per-space crinkliness, and
+§38.12's missing-space cascade — and `collapse_insearch` runs `collapse_global`
+inside every eval, valued against exactly the quality factors those changes
+touched. A default carried on a superseded measurement is an assumption, not a
+result, so the `1ph` protocol was re-run as published on the current codebase:
+programme-house, budget 3000, 4 workers, ON vs OFF, both arms finished with
+`--collapse` (`experiments/rerun_1ph_protocol.sh`).
+
+| | N | OFF | ON | W/L/T | mean diff | t | p |
+|---|---|---|---|---|---|---|---|
+| published `1ph` (2026-07-24) | 20 | 7.95 | 7.10 | 11/6/3 | +0.85 | 2.38 | 0.028 |
+| historical re-run (§38.18) | 20 | 8.05 | 7.10 | 11/6/3 | +0.95 | 2.59 | — |
+| **current objective** | 20 | 7.85 | 7.15 | 10/7/3 | +0.70 | 1.82 | **0.069** |
+| current objective | 40 | 7.60 | 7.03 | 21/14/5 | +0.57 | 2.01 | 0.045 |
+| **current objective** | **60** | **7.58** | **7.02** | **29/19/12** | **+0.57** | **2.45** | **0.017** |
+
+**Verdict: the default stands.** At N=60, mean diff **+0.567 fails/seed**,
+paired t = 2.454 (df=59), **p = 0.0171** exact, 95% CI **[+0.105, +1.029]**
+excluding zero. A Wilcoxon signed-rank cross-check agrees (p = 0.0138), which
+matters here because fail counts are small integers and normality is not
+obvious.
+
+**Two things worth recording beyond the verdict.**
+
+First, **the effect is about a third smaller than published** — +0.57 against
++0.85. Some of that is regression from a slightly lucky N=20 draw, and some is
+plausibly real erosion: several of the fails `collapse_global` used to clear
+have been redefined out of existence or made harder by the objective work.
+
+Second, and more usefully: **the published protocol's N=20 can no longer detect
+its own effect.** At exactly the published sample size the current answer is
+p ≈ 0.069 — a null by the conventional threshold. Had this been re-run at N=20
+and stopped there, the honest report would have been "the 1ph verdict no longer
+reproduces", and the default would have looked unjustified. It took N=60 to
+resolve. That is precisely the "8sh/1ph/qi6/lj3 pattern" this document already
+warns about, now biting the flagship result itself: **any future re-validation
+of this default needs N ≥ 40, and N=20 should not be trusted to settle it either
+way.**
 
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
