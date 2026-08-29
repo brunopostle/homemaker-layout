@@ -1,5 +1,7 @@
 """Unit tests for fitness.py quality terms and helpers (oracle-free)."""
 
+from pathlib import Path
+
 import pytest
 
 from _helpers import with_usage
@@ -12,6 +14,7 @@ from homemaker_layout.fitness import (
     Fitness,
     _leaf_grade,
     classify_fail_tier,
+    load_config,
     gaussian,
     tier_counts,
 )
@@ -449,26 +452,73 @@ def test_tier_counts_empty():
     assert tier_counts(()) == (0, 0)
 
 
-def test_classify_fail_tier_covers_full_corpus():
-    """Regression guard: every fail string ever emitted into a checked-in
-    native (non-YAML) .fails file must still classify without error."""
-    import glob
-    from pathlib import Path
+# Layouts chosen for BREADTH of failure kinds, not for being good designs --
+# between them these emit size/width/proportion/crinkliness/access/adjacency,
+# missing-space cascades, connectivity and volume fails.
+_CORPUS_LAYOUTS = [
+    ("harbor-house", "evolved-3M-nols-3.dom"),
+    ("harbor-house", "generated.dom"),
+    ("maple-court", "generated.dom"),
+]
+
+
+def test_classify_fail_tier_covers_every_fail_the_evaluator_emits():
+    """Every fail string the evaluator can produce must classify into a tier.
+
+    Fails are GENERATED here by scoring corpus layouts. The previous version
+    globbed `examples/**/*.fails` and asserted it had checked something -- but
+    those are generated artefacts that `homemaker-fitness` writes beside a
+    `.dom`, absent from a clean checkout. So it passed only on a machine that
+    had already run the scorer, and in a fresh clone failed with `assert 0 > 0`:
+    it was asserting on the state of the developer's working tree, not on the
+    code (`homemaker-py-1ue`).
+    """
+    import copy
+
+    from homemaker_layout import dom as dom_mod
 
     repo_root = Path(__file__).resolve().parent.parent
-    checked = 0
-    for path in glob.glob(str(repo_root / "examples" / "**" / "*.fails"), recursive=True):
+    checked = kinds = 0
+    seen: set[str] = set()
+    for prog, name in _CORPUS_LAYOUTS:
+        path = repo_root / "examples" / prog / name
+        if not path.is_file():
+            continue
+        conf, cost = load_config(repo_root / "examples" / prog)
+        _, fails = Fitness(conf, cost).score_with_fails(
+            copy.deepcopy(dom_mod.load(str(path))))
+        for fail in fails:
+            classify_fail_tier(fail)      # raises on an unclassified string
+            checked += 1
+            seen.add(fail.split()[-1])
+    kinds = len(seen)
+    assert checked > 0, "no corpus layout could be scored -- fixtures missing?"
+    assert kinds >= 8, f"only {kinds} distinct fail kinds exercised; too narrow"
+
+
+def test_classify_fail_tier_rejects_an_unknown_fail_string():
+    """The guard above is only worth anything if an unclassifiable string
+    actually raises."""
+    with pytest.raises(ValueError, match="unclassified fail string"):
+        classify_fail_tier("0/lr something nobody has ever emitted")
+
+
+def test_classify_fail_tier_checks_any_native_fails_artefacts_present():
+    """If a working tree happens to carry .fails artefacts, check them too --
+    but never require them to exist."""
+    import glob
+
+    repo_root = Path(__file__).resolve().parent.parent
+    for path in glob.glob(str(repo_root / "examples" / "**" / "*.fails"),
+                          recursive=True):
         with open(path) as f:
             first = f.readline()
             if first.startswith("---"):
-                continue  # legacy Perl-oracle YAML .fails, not this evaluator's output
+                continue      # legacy Perl-oracle YAML, not this evaluator
             lines = [first.rstrip("\n")] + [ln.rstrip("\n") for ln in f]
         for line in lines:
-            if not line:
-                continue
-            classify_fail_tier(line)  # raises on failure
-            checked += 1
-    assert checked > 0
+            if line:
+                classify_fail_tier(line)
 
 
 # --------------------------------------------------------------------------- #

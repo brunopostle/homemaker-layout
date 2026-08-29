@@ -95,21 +95,41 @@ def test_evaluate_full_does_not_call_collapse_global_when_off():
 # --------------------------------------------------------------------------- #
 
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house example absent")
-def test_collapse_insearch_reproduces_94g_finish_time_result():
-    # DESIGN.md §17: the finish-time collapse takes this layout 15 -> 12 fails.
-    # collapse_insearch runs the SAME collapse_global earlier in the SAME
-    # pipeline (before Phase-1 checks instead of after the whole search), so it
-    # must reach the identical fail count on this fixed-geometry layout.
+def test_collapse_insearch_matches_finish_time_collapse():
+    """in-search collapse must reach the SAME layout as finish-time collapse.
+
+    That equality is the actual guarantee: `collapse_insearch` runs the same
+    `collapse_global` earlier in the same pipeline (before the Phase-1 checks
+    rather than after the whole search), so on a FIXED geometry the two must
+    agree. Both sides are computed here rather than hard-coded.
+
+    This test previously asserted the §17 constants directly -- `15` fails
+    before collapse and `12` after. Those were measured before §39.4, when
+    harbor's effective programme was silently 32 instances because codes like
+    `cr1` were being read as generic circulation; the same layout now scores 82
+    -> 58. Pinning the endpoints made a live invariant fail whenever the
+    programme or the objective legitimately changed, while not actually
+    checking the invariant at all (two independent constants can both drift and
+    still be equal, or both hold and mask an inequality). See
+    `homemaker-py-ut5` for restating the reference figure itself.
+    """
     conf, cost = load_config(HARBOR)
     conf_ci, _ = load_config(HARBOR, overrides={"collapse_insearch": True})
-    fit, fit_ci = Fitness(conf, cost), Fitness(conf_ci, cost)
     root = dom_mod.load(str(HARBOR / "evolved-3M-nols-3.dom"))
 
-    _, f_base = fit.score_with_fails(copy.deepcopy(root))
-    _, f_ci = fit_ci.score_with_fails(copy.deepcopy(root))
+    _, f_base = Fitness(conf, cost).score_with_fails(copy.deepcopy(root))
+    _, f_ci = Fitness(conf_ci, cost).score_with_fails(copy.deepcopy(root))
 
-    assert len(f_base) == 15
-    assert len(f_ci) == 12
+    # the same collapse, applied once at finish time, scored canonically
+    finished = copy.deepcopy(root)
+    Fitness(conf, cost).collapse_global(
+        finished, adjacency=True, objective="threshold",
+        preserve_public_access=True, iters=3)
+    _, f_finish = Fitness(conf, cost).score_with_fails(finished)
+
+    assert len(f_ci) == len(f_finish), (
+        "in-search collapse diverged from finish-time collapse on fixed geometry")
+    assert len(f_ci) < len(f_base), "collapse must not make the layout worse"
 
 
 @pytest.mark.skipif(not HARBOR.is_dir(), reason="harbor-house example absent")
