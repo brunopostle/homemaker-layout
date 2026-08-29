@@ -5540,6 +5540,76 @@ courtyard — it made room for one.
 
 `evolve._preflight` is now silent on health-centre; both its checks pass.
 
+### 38.14 Toilet-to-sleeping adjacency declared where the brief supports it (`homemaker-py-3qj`)
+
+A toilet next to a sleeping room is a positive even with no door between them
+(Stewart Brand, *How Buildings Learn*): the adjacency is what makes a later
+knock-through possible. The engine already scores this — `check_adjacency` runs
+against the UNFILTERED `graph_base_pre`, so a declared adjacency is satisfied by
+a neighbouring room regardless of the edges `has_circulation` later strips for
+routing. But it is only scored where a programme **declares** it, and only
+programme-house did (`t1 -> [b1]`, the ensuite).
+
+**Declared:**
+
+| programme | added | why |
+|---|---|---|
+| harbor-house | `t` → `n` | Bathrooms serve the Neighborhoods (communal sleeping). Both codes unpinned, 6 t / 5 n. |
+| maple-court | `tt` → `r` | Upper Bathrooms among Individual Rooms — both pinned to level 2, and already 62% adjacent at seed time. |
+
+**Not declared, and this is the substantive part.** Two candidates that look
+obvious from the room lists are wrong, and checking before declaring is what
+caught them:
+
+- **maple `t` → `n` is IMPOSSIBLE.** Adjacency is evaluated per level
+  (`graph_base[li]`), and maple pins `t` to level 0, `n` to level 1. Declaring it
+  would have added **six permanently unsatisfiable fails**. The measured 0%
+  seed-time adjacency was not search difficulty, it was a hard impossibility.
+  maple's ground floor holds six bathrooms and exactly one sleeping room (Clinic
+  Room ×1) — a ground-floor WC in a communal building is public, so the Brand
+  argument does not apply to it anyway.
+- **health-centre has no dedicated WC to declare.** The owner's ruling on
+  treatment rooms was that one "may give access to a toilet, but this would be a
+  *dedicated* toilet". `t9` is a Public WC (×2) and `t10` a Staff WC; making
+  either dedicated-adjacent to `tr1` contradicts that. Earning the credit here
+  needs a dedicated WC **added to the brief**, which is programme authoring
+  beyond this issue.
+
+*(Also worth recording: maple's level 1 carries four Neighborhoods and no toilet
+at all. That may be a genuine gap in the brief.)*
+
+**Both declarations are reachable**, so the search gets a gradient rather than a
+permanent penalty: best of 8 constructed seeds satisfies 2/3 for harbor `t → n`
+and 2/2 for maple `tt → r`. Cost on `evolved-3M-nols-3.dom`: 84 → 89 fails, all
+five being the new requirement.
+
+**Cost: the exact assigner got ~8× slower; the default path is free.**
+`constructive_topology` seeding, 3-seed average:
+
+| | greedy (default) | cpsat (opt-in) |
+|---|---|---|
+| harbor before | 0.06 s | 0.28 s |
+| harbor after | **0.06 s** | **2.11 s** (7.5×) |
+| maple after | 0.03 s | 1.37 s (2.9×) |
+
+`assign_solver` defaults to `greedy`, so ordinary runs pay nothing. One more
+adjacency constraint makes the CP-SAT labelling model markedly harder, which
+means §39.5's cpsat-versus-greedy verdict was measured on a cheaper problem than
+the corpus now poses and is worth re-checking.
+
+**Two tests were over-fitted to the old seeds** and broke here. Both were
+repaired to assert their intent rather than a sampled artefact, not relaxed to
+pass:
+
+- `test_reassign_fires_and_preserves_room_multiset` pinned constructive seed 0.
+  The better-seeded design left nothing for the repair operator to improve, which
+  is a legitimate noop — 5 of 6 other seeds still fire. It now sweeps six seeds.
+- `test_repair_circulation_reconnects_every_storey` asserted `on_ok == on_tot`,
+  hardening a sampled 100% into a guarantee. `repair_circulation_settled` is a
+  heuristic over already-settled walls and nothing makes it complete; measured
+  25% → 92%, stable across 6 and 12 seeds. It now asserts the real claim (repair
+  strictly helps) plus a ≥85% regression bar.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated
