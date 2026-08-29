@@ -5717,6 +5717,67 @@ that the fail *count* matched and only the continuous score moved, which the
 this dangerous: a harness that reports MISMATCH on its own control, in a way the
 metric-of-record cannot see, trains everyone to ignore the warning.
 
+### 38.17 `n_workers` is an algorithm parameter, not noise (`homemaker-py-b8g`)
+
+§14 recorded "harbor seed 2 scored 71 then 73 on byte-identical re-runs —
+parallel/BLAS non-determinism", and `b8g` carried that forward as an
+uninvestigated noise source widening the error bars on every A/B run at
+`n_workers>1`. **The premise does not survive measurement.** Nothing is
+non-deterministic:
+
+| test | result |
+|---|---|
+| score a frozen `.dom`, 20 repeats in one process | bit-identical |
+| same `.dom`, 8 processes, different `PYTHONHASHSEED` | bit-identical |
+| full search, harbor, seeds 0/1/2/3, `n_workers` 1..4, repeated across processes | bit-identical **per worker count** |
+| the same, with `OMP_NUM_THREADS=OPENBLAS_NUM_THREADS=MKL_NUM_THREADS=1` | **identical to unpinned** |
+
+That last row matters most. `b8g`'s proposed remedy was "likely a one-line env
+pin in the worker pool initializer". Pinning the BLAS thread count changes
+nothing at all — bit-for-bit — so shipping that mitigation would have looked
+like a fix and done nothing, while retiring the issue. BLAS is not implicated.
+
+**What is real, and it is not noise.** The trajectory is a deterministic
+*function of* `n_workers`. harbor seed 3, budget 1500:
+
+| `n_workers` | best |
+|---|---|
+| 1 | 64 fails, 1.6264880162149419e-22 |
+| 2 | 64 fails, same bits |
+| 3 | 64 fails, same bits |
+| 4 | **65 fails, 7.685882216045091e-23** |
+
+Each is perfectly stable on its own across processes. The mechanism is at
+`driver.py`'s batch loop:
+
+```python
+batch_n = min(n_workers, max(1, (budget - n_evals + child_budget - 1) // child_budget))
+```
+
+`batch_n` children are bred from **one population snapshot** before any of them
+is admitted, and the shared `rng` is consumed in a different pattern. At
+`n_workers=1` each child sees the population its predecessor updated. So a
+4-worker run is a partly-generational algorithm and a 1-worker run is
+steady-state — the same seed, a different search. (Seeds 0/1/2 happened to agree
+across worker counts and seed 3 did not; divergence is occasional, not constant,
+which is exactly how it reads as "noise" when sampled.)
+
+**Consequence for the A/B record.** `n_workers` must be treated as part of an
+arm's configuration. Comparing a result measured at 4 workers against one
+measured at 1 compares two algorithms. The `run_*_ab.sh` harnesses already pin
+`WORKERS=4` within a run, so arms inside one harness are sound; the exposure is
+comparing across harnesses, or against a historical figure whose worker count
+was not recorded.
+
+**§14's original observation was most likely `homemaker-py-xcy`** — the
+`as_completed` admission-ordering bug, which was genuinely non-deterministic and
+has since been fixed. There is no residual noise behind it.
+
+Guarded by `test_search_is_reproducible_at_a_fixed_worker_count` (parametrised
+over 2/3/4 workers, asserting each is internally stable and deliberately not
+asserting they agree with each other) and
+`test_scoring_a_frozen_design_is_deterministic`.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated

@@ -331,7 +331,16 @@ def search(
     legacy single-seed path (appropriate for warm starts from existing designs).
 
     ``n_workers=1`` (default) runs serially; ``n_workers > 1`` evaluates
-    children in parallel using ``ProcessPoolExecutor``.  The bootstrap batch
+    children in parallel using ``ProcessPoolExecutor``.
+
+    **``n_workers`` is an ALGORITHM parameter, not just a speed knob**
+    (homemaker-py-b8g, DESIGN.md §38.17). ``batch_n = min(n_workers, ...)``
+    children are bred from ONE population snapshot before any of them is
+    admitted, and the shared ``rng`` is consumed in a different pattern, so a
+    run at ``n_workers=4`` explores a different trajectory from the same seed at
+    ``n_workers=1``. Each worker count is bit-reproducible on its own; results
+    from DIFFERENT worker counts are not comparable, and an A/B whose arms differ
+    in ``n_workers`` is comparing two algorithms, not two configurations.  The bootstrap batch
     is fully parallel; the main loop generates ``n_workers`` children per
     iteration from the current population snapshot and evaluates them in
     parallel.  Results are admitted in completion order (fastest first), so

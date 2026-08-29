@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from homemaker_layout import dom, driver, innerloop, solver
+from homemaker_layout import dom, driver, fitness, innerloop, solver
 
 CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 SEED_FILE = CORPUS / "c964435454c459f86c3ed9a5a7621132.dom"
@@ -506,23 +506,50 @@ def test_search_parallel_smoke():
     assert r.n_topologies >= 2  # at least the bootstrap individuals
 
 
-def test_search_parallel_is_reproducible():
-    """Two same-seed parallel runs must be byte-identical (homemaker-py-xcy).
+@pytest.mark.parametrize("workers", [2, 3, 4])
+def test_search_is_reproducible_at_a_fixed_worker_count(workers):
+    """Same seed + SAME worker count => byte-identical (homemaker-py-xcy/b8g).
 
     ``_run_batch`` used to admit futures in completion order (``as_completed``),
     which varies run-to-run; with the order-sensitive ``admit`` (n_evals accrual,
     first-of-tie wins ``best``) that made parallel searches non-reproducible.
-    Admitting in submission order fixed it. Guard the invariant directly: same
-    seed + same worker count ⇒ identical best (n_fails, fitness, signature) and
-    identical improvement history."""
+    Admitting in submission order fixed it.
+
+    Note the invariant is per worker count, and deliberately so. `n_workers` is
+    an algorithm parameter: `batch_n = min(n_workers, ...)` children are bred
+    from one population snapshot before any is admitted, so different worker
+    counts explore different trajectories from the same seed (§38.17). This
+    parametrises over several counts to check each is internally stable; it does
+    NOT assert that they agree with each other, because they legitimately need
+    not.
+    """
     def run():
         r = driver.search(dom.load(str(INIT_FILE)), CORPUS, budget=1200,
-                          pop_size=8, child_budget=80, seed=0, n_workers=3)
+                          pop_size=8, child_budget=80, seed=0, n_workers=workers)
         return (r.best.n_fails, r.best.fitness, r.best.sig, tuple(r.history))
 
-    a = run()
-    b = run()
-    assert a == b, "parallel search is not reproducible run-to-run"
+    assert run() == run(), (
+        f"search at n_workers={workers} is not reproducible run-to-run")
+
+
+def test_scoring_a_frozen_design_is_deterministic():
+    """No floating-point/BLAS nondeterminism in a single eval (homemaker-py-b8g).
+
+    b8g suspected "a single fitness eval on a fixed genome returning different
+    fail counts across runs", plausibly BLAS threading. It does not: measured
+    bit-identical over 20 in-process repeats and 8 processes with different
+    PYTHONHASHSEED, and pinning OMP/OPENBLAS/MKL to one thread changes nothing.
+    This guards the floor the reproducibility argument stands on.
+    """
+    import copy
+
+    conf, cost = fitness.load_config(CORPUS)
+    root = dom.load(str(INIT_FILE))
+    results = {
+        fitness.Fitness(conf, cost).score_with_fails(copy.deepcopy(root))
+        for _ in range(8)
+    }
+    assert len(results) == 1, "scoring a frozen design is not deterministic"
 
 
 def _shared_best_result() -> driver.SearchResult:
