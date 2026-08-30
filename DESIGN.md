@@ -6130,6 +6130,62 @@ changes no current run. What it changes is that they are now *applicable*:
 `homemaker-py-v4s`'s A/B, which its own issue said to defer until this landed,
 is unblocked.
 
+### 38.24 The shape-curve warm-start cannot pay off as wired (`homemaker-py-v4s`)
+
+With `tym` landed the DP finally *runs* on real (leaf-sharing) searches, so
+`v4s` asked for the search-level A/B: `shapecurve_warmstart`/`_prune` off vs on,
+budget 2000, seeds 0–4. **No A/B was run, because two structural facts make the
+payoff zero before any seed is drawn**, and measuring a no-op would have
+produced a null that reads like a measurement rather than a fact.
+
+**1. Reach: the warm-start only ever touches the bootstrap population.**
+`driver._evaluate` gates it on `x0 is None`, and every child gets
+`x0 = innerloop.warm_x0(child_root, ratios)` from its parent (`driver.py:764`).
+So `x0 is None` holds only for seed-population individuals. Instrumented over a
+4000-eval run: **8 DP solves**, exactly `pop_size`. At the 500k budget the
+corpus baseline uses that is 8 evaluations out of 500,000.
+
+**2. Applicability: on the real programmes the DP finds nothing feasible.**
+Feasibility of constructed seeds, 6 seeds each:
+
+| programme | leaf_sharing on | off |
+|---|---|---|
+| harbor-house | **0/6** | **0/6** |
+| programme-house | 0/6 | — |
+| harbor-house-l0 | 4/6 | 5/6 |
+
+So even those 8 bootstrap individuals get no warm start on harbor or
+programme-house. Only `harbor-house-l0` — the reduced programme the DP was
+originally validated on (§37.2) — is feasible, at 75% over a real search.
+
+**The infeasibility is correct, not a bug.** This is the dangerous direction, so
+it was checked: on 4 harbor topologies the DP calls infeasible, an NM polish
+minimising the shape-fail family reaches **14, 16, 17, 16** fails — never 0.
+**0/4 false negatives.** The DP is right that these topologies admit no ratio
+assignment satisfying every size/width/proportion bound at once; the full harbor
+programme is simply shape-infeasible where `l0` is not. Note this is per
+*topology*, and says nothing about whether a good design exists — programme-house
+reaches 0 hard / 1 soft in the 500k baseline while its constructed seeds are
+DP-infeasible.
+
+**`shapecurve_prune` is separately inert.** It only acts inside the
+`feasibility_max_shape_fails is not None` branch, and its exact-prune arm
+additionally requires `best_n_fails <= 0` — an incumbent with zero total fails.
+On these programmes that combination effectively never arises.
+
+**What would have to change** for the feature to be worth an A/B — filed as its
+own issue rather than smuggled in here:
+
+- let the DP run for children too, not only where `x0 is None`, so its reach is
+  the search rather than the bootstrap; and/or
+- treat DP-infeasibility as a *signal* rather than a precondition — an infeasible
+  topology still has a best-achievable shape-fail floor, and that floor is
+  exactly what a pre-filter wants to rank on.
+
+`tym` was still worth doing: the DP now models leaf-sharing exactly (§38.23) and
+fires on real runs, which is what turned an untestable question into a
+structural answer.
+
 ## 39. Config audit: requirements that actively fight the engine (`homemaker-py-ju3`) — measured 2026-08-25
 
 The corpus `patterns.config` targets and `costs.config` values were estimated
