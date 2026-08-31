@@ -129,3 +129,13 @@ output       : /home/bruno/src/homemaker-layout/examples/maple-court/coldstart-5
 [212000 evals] best 2.21402e-21 (fails 60) via core_undivide noop
 [215760 evals] best 2.21403e-21 (fails 60) via retype 2/llrrl->tt
 [215920 evals] best 2.21422e-21 (fails 60) via retype 0/rrlrll->gh1
+[225600 evals] best 2.21422e-21 (fails 60) via rotate 2/llrr
+[227200 evals] best 2.21441e-21 (fails 60) via rotate 2/llrr
+[230720 evals] best 2.21445e-21 (fails 60) via core_undivide noop
+[234720 evals] best 2.21445e-21 (fails 60) via swap 0/rrll
+[240240 evals] best 2.7509e-20 (fails 56) via level_fix ws1: lvl1/rllll → lvl0/rllll
+[268800 evals] best 6.17587e-20 (fails 55) via swap 0/lr
+[271440 evals] best 6.21537e-20 (fails 55) via rotate 2/llrr
+[272480 evals] best 6.21597e-20 (fails 55) via swap 0/lrr
+[275920 evals] best 6.23221e-20 (fails 55) via core_undivide noop
+[279920 evals] best 6.23222e-20 (fails 55) via core_undivide noop
