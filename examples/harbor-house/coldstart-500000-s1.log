@@ -1,0 +1,138 @@
+WARNING: 418 m2 per storey needs ~86 m of daylit wall; the plot's non-private perimeter gives 53 m. Roughly 49 m2 of courtyard closes the gap. (DESIGN.md §38.3)
+seed         : /home/bruno/src/homemaker-layout/examples/harbor-house/init.dom
+programme    : harbor-house
+budget       : 500000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 1
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/bruno/src/homemaker-layout/examples/harbor-house/coldstart-500000-s1.dom
+[    80 evals] best 1.97416e-37 (fails 113) via construct/0
+[   160 evals] best 7.00325e-25 (fails 74) via construct/1
+[   800 evals] best 6.80772e-23 (fails 69) via construct/9
+[  4320 evals] best 9.1398e-23 (fails 69) via crossover rrrl<->lrlrl
+[  5520 evals] best 3.57821e-22 (fails 67) via level_retype 1/lrlr<->0/lrrr
+[  5760 evals] best 3.65686e-22 (fails 67) via level_fix noop
+[  6800 evals] best 3.79298e-22 (fails 67) via level_fix noop
+[  7760 evals] best 3.8619e-22 (fails 67) via level_fix noop
+[  7840 evals] best 1.7705e-21 (fails 65) via swap 0/rrl
+[  7920 evals] best 2.74628e-21 (fails 64) via level_compound_fix noop
+[  8800 evals] best 5.85324e-21 (fails 64) via core_divide rlrl (2 floors)
+[ 12560 evals] best 1.35161e-20 (fails 62) via divide 1/rlrr
+[ 12800 evals] best 3.34685e-21 (fails 61) via divide 1/rlrl
+[ 13280 evals] best 5.60778e-20 (fails 60) via rotate 0/ll
+[ 13440 evals] best 1.11899e-20 (fails 59) via core_divide noop
+[ 15600 evals] best 1.12856e-20 (fails 59) via level_retype 0/llrr<->1/rlrlr
+[ 16320 evals] best 9.59246e-20 (fails 56) via crossover lrl<->rlll
+[ 17200 evals] best 3.64982e-19 (fails 54) via divide 1/rrrl
+[ 17760 evals] best 3.67434e-19 (fails 54) via core_undivide noop
+[ 19040 evals] best 1.24538e-17 (fails 49) via place_missing r -> rlrr
+[ 19920 evals] best 2.27675e-17 (fails 48) via crossover llrl<->llrr
+[ 22080 evals] best 4.47951e-17 (fails 47) via crossover llrl<->rlrl
+[ 26160 evals] best 4.48735e-17 (fails 47) via core_undivide noop
+[ 26640 evals] best 4.51597e-17 (fails 47) via crossover rllll<->rrll
+[ 27840 evals] best 5.54956e-17 (fails 47) via core_divide noop
+[ 33840 evals] best 5.58344e-17 (fails 47) via crossover rlr<->rlr
+[ 34720 evals] best 5.59502e-17 (fails 47) via retype 0/lllrl->t
+[ 36720 evals] best 5.62216e-17 (fails 47) via retype 1/lll->da1
+[ 37760 evals] best 5.62658e-17 (fails 47) via core_undivide noop
+[ 39680 evals] best 2.20153e-16 (fails 45) via swap 0/llr
+[ 45520 evals] best 2.20165e-16 (fails 45) via core_undivide noop
+[ 45920 evals] best 2.2103e-16 (fails 45) via core_divide noop
+[ 47200 evals] best 8.87603e-16 (fails 43) via core_undivide noop
+[ 53120 evals] best 7.82728e-15 (fails 40) via level_retype 1/rlrll<->0/llll
+[ 54480 evals] best 7.82772e-15 (fails 40) via core_divide noop
+[ 63120 evals] best 7.83773e-15 (fails 40) via swap 0/rrl
+[ 63200 evals] best 8.01003e-15 (fails 40) via core_divide noop
+[ 66240 evals] best 8.17685e-15 (fails 40) via core_undivide noop
+[ 67840 evals] best 1.57621e-14 (fails 39) via swap 0/lllr
+[ 67920 evals] best 1.60963e-14 (fails 39) via crossover lrrr<->rlrrr
+[ 70720 evals] best 1.61878e-14 (fails 39) via core_undivide noop
+[ 71360 evals] best 2.13599e-14 (fails 39) via crossover lr<->lr
+[ 76320 evals] best 2.17444e-14 (fails 39) via core_divide noop
+[ 76960 evals] best 3.01548e-14 (fails 38) via swap 0/rlrr
+[ 77120 evals] best 7.07557e-14 (fails 37) via core_divide noop
+[ 78240 evals] best 8.0242e-14 (fails 37) via level_retype 1/llrl<->0/rllll
+[ 78880 evals] best 8.95492e-14 (fails 37) via core_undivide noop
+[ 79920 evals] best 1.79545e-13 (fails 36) via core_undivide noop
+[ 81440 evals] best 3.28852e-13 (fails 35) via retype 1/rlrrl->me1
+[ 83200 evals] best 3.33778e-13 (fails 35) via level_retype 1/rlrrl<->0/rrlr
+[ 86800 evals] best 3.4079e-13 (fails 35) via swap 0/lllr
+[ 87520 evals] best 3.41583e-13 (fails 35) via retype 1/rrrlr->ut1
+[ 88640 evals] best 3.47403e-13 (fails 35) via core_undivide noop
+[ 89760 evals] best 1.43975e-12 (fails 33) via rotate 0/lllr
+[ 96800 evals] best 2.74475e-12 (fails 32) via core_undivide noop
+[ 97520 evals] best 2.79491e-12 (fails 32) via core_divide noop
+[ 99200 evals] best 5.60626e-12 (fails 31) via crossover rlllr<->rlllr
+[100640 evals] best 5.6397e-12 (fails 31) via level_retype 1/rrlrl<->0/rllrl
+[100720 evals] best 5.69106e-12 (fails 31) via crossover l<->l
+[103600 evals] best 5.72518e-12 (fails 31) via core_undivide noop
+[104000 evals] best 5.72765e-12 (fails 31) via crossover rrrl<->llrr
+[104880 evals] best 1.13649e-11 (fails 30) via swap 0/rlrr
+[105760 evals] best 1.14675e-11 (fails 30) via core_undivide noop
+[106720 evals] best 1.15509e-11 (fails 30) via core_undivide noop
+[112480 evals] best 1.1616e-11 (fails 30) via swap 0/rlrr
+[115600 evals] best 1.16278e-11 (fails 30) via core_divide noop
+[122080 evals] best 1.16391e-11 (fails 30) via core_undivide noop
+[122720 evals] best 1.1641e-11 (fails 30) via crossover rlrrl<->rlllr
+[126000 evals] best 1.22712e-11 (fails 30) via rotate 0/lllr
+[127360 evals] best 1.22713e-11 (fails 30) via crossover rlllr<->rlllr
+[129120 evals] best 1.22713e-11 (fails 30) via core_undivide noop
+[139520 evals] best 2.45561e-11 (fails 29) via divide 1/lrrl
+[141680 evals] best 2.49366e-11 (fails 29) via core_divide noop
+[152400 evals] best 2.52189e-11 (fails 29) via retype 1/lrrll->ut1
+[156160 evals] best 2.52213e-11 (fails 29) via core_undivide noop
+[158000 evals] best 2.52214e-11 (fails 29) via level_retype 1/lrlr<->0/lrlr
+[158640 evals] best 2.52946e-11 (fails 29) via core_undivide noop
+[161920 evals] best 2.52948e-11 (fails 29) via core_undivide noop
+[176480 evals] best 2.53112e-11 (fails 29) via core_divide noop
+[188480 evals] best 2.53113e-11 (fails 29) via crossover lrlr<->lrlr
+[192480 evals] best 2.70108e-11 (fails 29) via retype 0/llrr->O
+[220400 evals] best 5.31971e-11 (fails 28) via retype 0/lrrll->O
+[221680 evals] best 5.32438e-11 (fails 28) via core_undivide noop
+
+--- finishing (homemaker-py-3l6): unfold + polish 250000 evals ---
+[finish] unfold: materialised 14 shared-leaf copies
+[   200 evals] best 1.10357e-23 (fails 70) via seed
+[   520 evals] best 7.90847e-23 (fails 67) via level_compound_fix st1: lvl1 → lvl0/rllrl
+[  1560 evals] best 8.0677e-23 (fails 67) via core_divide noop
+[  2280 evals] best 8.09024e-23 (fails 67) via core_undivide noop
+[  3160 evals] best 6.36622e-22 (fails 64) via level_compound_fix r: lvl0 → lvl1/rllrr
+[  4200 evals] best 1.16291e-21 (fails 63) via level_retype 0/rllrrrr<->1/rrllrr
+[  4680 evals] best 4.50812e-21 (fails 61) via crossover lllrrrl<->llrr
+[  5640 evals] best 9.50892e-21 (fails 60) via undivide 0/llrlr
+[  9400 evals] best 6.41079e-20 (fails 57) via retype 0/rllll->st2
+[  9480 evals] best 6.45739e-20 (fails 57) via retype 1/lrrrrl->t
+[ 15720 evals] best 6.50643e-20 (fails 57) via core_divide noop
+[ 16200 evals] best 6.55803e-20 (fails 57) via core_divide noop
+[ 19000 evals] best 1.25528e-19 (fails 56) via undivide 1/rrrl
+[ 19640 evals] best 1.26465e-19 (fails 56) via core_divide noop
+[ 19720 evals] best 3.14136e-19 (fails 55) via level_retype 0/lrrll<->1/llll
+[ 19880 evals] best 3.16683e-19 (fails 55) via core_divide noop
+[ 21800 evals] best 3.19364e-19 (fails 55) via core_undivide noop
+[ 22200 evals] best 3.22186e-19 (fails 55) via retype 1/lrrrrr->st2
+[ 24280 evals] best 3.25155e-19 (fails 55) via core_divide noop
+[ 24520 evals] best 3.2828e-19 (fails 55) via core_undivide noop
+[ 27560 evals] best 3.28746e-19 (fails 55) via swap 1/lrrrr
+[ 29080 evals] best 3.694e-19 (fails 55) via core_undivide noop
+[ 29400 evals] best 3.70022e-19 (fails 55) via retype 0/lllrrrl->of
+[ 32120 evals] best 3.70789e-19 (fails 55) via core_undivide noop
+[ 33640 evals] best 6.57751e-19 (fails 54) via core_divide noop
+[ 39560 evals] best 2.18305e-18 (fails 52) via level_retype 0/lllrl<->1/rrlrl
+[ 39640 evals] best 2.19058e-18 (fails 52) via core_undivide noop
+[ 43560 evals] best 2.19358e-18 (fails 52) via core_undivide noop
+[ 45480 evals] best 4.07392e-18 (fails 51) via undivide 0/rllrr
+[ 45560 evals] best 4.28145e-18 (fails 51) via swap 0/lllrrr
+[ 46600 evals] best 1.5216e-17 (fails 49) via level_retype 0/rrrr<->1/lrrrrl
+[ 49720 evals] best 1.61723e-17 (fails 49) via crossover rrrr<->rlllrl
+[ 50920 evals] best 1.6221e-17 (fails 49) via core_undivide noop
