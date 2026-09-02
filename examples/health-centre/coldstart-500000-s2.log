@@ -181,3 +181,7 @@ output       : /home/bruno/src/homemaker-layout/examples/health-centre/coldstart
 [429600 evals] best 0.000769686 (fails 6) via level_fix noop
 [430320 evals] best 0.00078154 (fails 6) via core_divide noop
 [431440 evals] best 0.00078639 (fails 6) via level_compound_fix noop
+[433680 evals] best 0.000793532 (fails 6) via crossover lrlrl<->rlrrl
+[433760 evals] best 0.000793974 (fails 6) via level_delete noop
+[435280 evals] best 0.000796904 (fails 6) via level_compound_fix noop
+[439520 evals] best 0.000798566 (fails 6) via level_fix noop
