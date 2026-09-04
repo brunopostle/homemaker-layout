@@ -5120,11 +5120,22 @@ turned out to be.)*
 moved:** harbor-house must reach its known 15-fail floor in materially fewer
 than 1.7 M evals, *and* `level 0 not connected` / `level 1 not connected` must
 be absent from the result. Fail-count parity alone is not a pass — the whole
-claim of §38 is that those two fails are bought, not missed. In particular `2g7.7` (LLM repair operator at
+claim of §38 is that those two fails are bought, not missed.
+
+In particular `2g7.7` (LLM repair operator at
 stagnation) is worth deferring until after `ssz`: an LLM asked to propose a
 valley-crossing multi-edit against an objective that pays ×85 to delete the
 corridor it just inserted will have its work reverted by the next selection
 step.
+
+*(**Withdrawn — see §39.12.** Both halves failed. The 15 was measured against
+harbor's pre-§39.4 *effective* programme of 32 instances; the same artefact
+scores 89 against the real 37-instance one, so the target is not measurable.
+And there is no longer a combined fix to accept: `2v1` closed NULL (§39.8).
+§39.12 replaces it with the 4×3-seed cold-start baseline — harbor mean 39.3,
+sd 5.5, minimum detectable difference 13.7 at n=3 — and demotes the
+connectivity clause to a separately-tracked standing defect, since
+`level N not connected` appears in 10 of the 12 baseline runs.)*
 
 ### 38.8 What `ssz` actually was: the objective demands daylight for rooms that do not need it (`homemaker-py-ssz`)
 
@@ -6803,3 +6814,125 @@ is now correctly calibrated, but it does **not** say the corpus is
 unsatisfiable. Of the four programmes, three fit their plots and one does not —
 and that one fails a much cruder test than daylight. §38.3's claim that the
 plateau programmes are "frontage-infeasible as specified" is withdrawn.
+
+### 39.12 The cold-start re-baseline, and what it does to §38.7's acceptance test (`homemaker-py-ut5`)
+
+Every corpus fail count published before §39.4/§39.7/§38.11 was measured
+against a different objective and, for harbor-house, against a different
+*programme* — the 32-instance effective one, where `cr1`/`of`/`st1`/`st2` were
+being read as generic circulation and silently dropped. §38.7 nevertheless
+pinned the Phase-9 acceptance test to one of those numbers:
+
+> harbor-house must reach its known **15-fail floor** in materially fewer than
+> 1.7 M evals, *and* `level 0 not connected` / `level 1 not connected` must be
+> absent from the result.
+
+That figure is not measurable any more, and this section replaces it.
+
+**The bead's migration premise is stale.** `homemaker-py-ut5` asks for
+`evolved-3M*.dom` to be migrated with `experiments/migrate_ju3_rename.py`. That
+script does not exist: the rename approach was abandoned during `ju3` in favour
+of tightening the matching rule at the source (§39.3), so the old artefacts
+parse correctly against today's 16-code / 37-instance harbor programme with no
+migration at all. Criterion satisfied, differently.
+
+**The 3M artefacts, rescored under the current objective** (all committed at
+`0d4ae7a`; `missing` counted as distinct instances, not placeholder lines):
+
+| artefact | fails | hard | soft | `not connected` | missing instances |
+|---|---|---|---|---|---|
+| `evolved-3M-nols.dom` | 69 | 32 | 37 | 2 | 4 |
+| `evolved-3M-nols-3.collapsed.dom` | 85 | 42 | 43 | 2 | 3 |
+| `evolved-3M-nols-2.dom` | 87 | 43 | 44 | 2 | 3 |
+| `evolved-3M-nols-3.dom` | 89 | 44 | 45 | 2 | 3 |
+| `evolved-3M.dom` | 145 | 101 | 44 | 1 | 22 |
+
+So the layout §38.7 called a 15-fail floor scores **89**. Most of the
+difference is not a regression in the layout: it is the instances the effective
+programme used to drop, now counted, each of which cascades into a
+`missing required space` line plus three `would need <check>` placeholders.
+
+**But these numbers cannot be compared to a fresh run.** The 3M artefacts were
+*evolved* under one objective and are *scored* under another. Nothing in them
+was ever selected for the terms they are now judged on. They are a record of
+what the old search produced, not a floor the current search has to beat.
+
+**The cold-start baseline is the reference from here.** Four programmes ×
+3 seeds × 500,000 evaluations, from `init.dom`, one worker per run (so
+`homemaker-py-b8g`'s parallel non-determinism cannot get in), scored by the
+shipped scorer — `experiments/run_coldstart_baseline.py`, results in
+`experiments/results/coldstart_baseline.tsv`, artefacts committed as
+`examples/*/coldstart-500000-s{0,1,2}.dom`. ~430 h of compute.
+
+| programme | fails (s0/s1/s2) | mean | sd | MDD at N=3 | hard | `not connected` | missing |
+|---|---|---|---|---|---|---|---|
+| programme-house | 1 / 1 / 1 | 1.0 | 0.00 | 0.0 | 1 | 0 / 1 / 0 | 0 |
+| health-centre | 4 / 9 / 5 | 6.0 | 2.65 | 6.6 | 10 | 1 / 1 / 1 | 0 |
+| harbor-house | 33 / 43 / 42 | 39.3 | 5.51 | 13.7 | 27 | 2 / 2 / 2 | 0 |
+| maple-court | 54 / 73 / 55 | 60.7 | 10.69 | 26.6 | 46 | 3 / 2 / 3 | 0 |
+
+MDD is the smallest mean difference a 3-seed paired comparison could call
+significant at 95% (`t_crit(0.975, 2)·sd/√3`, §38.22). For harbor that is
+**13.7 fails**: any future A/B on this corpus at n=3 that reports a margin
+smaller than that has not measured anything. This is the same trap `0wr`
+found in the old harbor A/Bs.
+
+**Two results worth stating plainly.**
+
+*Missing spaces are gone.* Zero `missing required space` fails in all twelve
+runs, across all four programmes. The current search places every required
+instance of every code, every time. The dominant term in the stale 3M
+artefacts is not a term the live search still fails on — which is exactly why
+those artefacts could not have served as a floor.
+
+*A third of the residual is a term with no gradient.* Aggregated over all 321
+fails in the twelve runs:
+
+| category | count | share | tier |
+|---|---|---|---|
+| crinkliness | 112 | 34.9% | soft |
+| size | 44 | 13.7% | soft |
+| edge too long | 29 | 9.0% | soft |
+| not adjacent to | 28 | 8.7% | **hard** |
+| access | 24 | 7.5% | soft |
+| inaccessible usable space | 20 | 6.2% | **hard** |
+| proportion | 18 | 5.6% | soft |
+| not connected | 18 | 5.6% | **hard** |
+| width / too few stairs / staircase volume / other | 28 | 8.7% | mixed |
+
+Crinkliness alone is 35% of what the whole corpus is being judged on, and
+`homemaker-py-9gj` says `quality_uncrinkliness` returns a flat hard 0.0 in
+precisely that regime — so the inner loop cannot rank two layouts that differ
+only there. `homemaker-py-gvb` says the same fails are tiered SOFT while most
+are topological and unreachable by a ratio solve. The single largest component
+of the residual is one the objective currently cannot descend. That is where
+the next real gain is, not in more evaluations.
+
+Of the hard fails, 66 of 84 are one family — `not adjacent to` (28),
+`inaccessible usable space` (20), `not connected` (18). All three are access
+topology, and §39.9/§39.10 established why they survive: the resize destroys
+constructed connectivity, and preserving it through the resize (`3z0`) was
+measured NULL.
+
+**The restated acceptance test.** §38.7's version cannot stand as written, for
+two independent reasons — its fail-count target came from a stale programme,
+and `homemaker-py-2v1`, the fix it was the acceptance test *for*, closed NULL
+(§39.8: severing the spine is already punished; §38.2 is retracted). There is
+no combined fix left to accept. Replacing it:
+
+1. **Reference, not floor.** The corpus reference is the table above, with its
+   seeds and its sd. A change is an improvement when it beats the cold-start
+   mean by more than that programme's MDD, on the same budget, at n ≥ 3 seeds
+   — not when it beats a single remembered number.
+2. **Connectivity is a standing defect, not an acceptance clause.**
+   `level N not connected` appears in 10 of 12 runs and in every harbor and
+   maple run. It is not something a fail-count improvement will clear as a side
+   effect; it has its own open mechanism (§39.9) and two measured-NULL attempts
+   behind it. Track it as a defect and count it separately; do not fold it into
+   a pass/fail on an unrelated change.
+3. **Any target quoted in a document or a test carries the commit it was
+   measured at.** The `15` was quoted for months after the programme it
+   described had changed underneath it. `tests/test_collapse_insearch.py` now
+   computes both sides of its invariant instead of pinning constants, for the
+   same reason.
+

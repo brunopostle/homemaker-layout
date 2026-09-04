@@ -106,12 +106,14 @@ def test_collapse_insearch_matches_finish_time_collapse():
     This test previously asserted the §17 constants directly -- `15` fails
     before collapse and `12` after. Those were measured before §39.4, when
     harbor's effective programme was silently 32 instances because codes like
-    `cr1` were being read as generic circulation; the same layout now scores 82
-    -> 58. Pinning the endpoints made a live invariant fail whenever the
+    `cr1` were being read as generic circulation; immediately after §39.4 the
+    same layout scored 82 -> 58, and it has moved again since. Pinning the
+    endpoints made a live invariant fail whenever the
     programme or the objective legitimately changed, while not actually
     checking the invariant at all (two independent constants can both drift and
-    still be equal, or both hold and mask an inequality). See
-    `homemaker-py-ut5` for restating the reference figure itself.
+    still be equal, or both hold and mask an inequality). At the time of
+    writing the same layout scores 89 -> 64; DESIGN.md §39.12 restates the
+    reference figure itself and says why no constant belongs here.
     """
     conf, cost = load_config(HARBOR)
     conf_ci, _ = load_config(HARBOR, overrides={"collapse_insearch": True})
