@@ -46,7 +46,7 @@ def test_exempt_factors_really_are_one():
     the corpus rather than assumed from reading the code."""
     checked = 0
     for d, p in _artefacts():
-        conf, cost = load_config(d)
+        conf, cost = load_config(d, overrides={"quality_aggregate": "product"})
         fit = Fitness(conf, cost)
         seen = []
         orig = Fitness.evaluate_leaf
@@ -75,7 +75,7 @@ def test_exempt_factors_really_are_one():
 def test_fail_set_is_byte_identical():
     for d, p in _artefacts():
         root = dom_mod.load(str(p))
-        c_prod, cost = load_config(d)
+        c_prod, cost = load_config(d, overrides={"quality_aggregate": "product"})
         c_geo, _ = load_config(d, overrides={"quality_aggregate": "geometric_mean"})
         _, f_prod = Fitness(c_prod, cost).score_with_fails(copy.deepcopy(root))
         _, f_geo = Fitness(c_geo, cost).score_with_fails(copy.deepcopy(root))

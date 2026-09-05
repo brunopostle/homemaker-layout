@@ -190,7 +190,19 @@ CONF_DEFAULTS: dict = {
     "value_inside": 300.0,
     "value_circulation": 50.0,
     "value_outside": 100.0,
-    "value_supported": 300.0,
+    # homemaker-py-ecx (DESIGN.md §39.19). Was 300.0 -- the same rate as
+    # `value_inside`, which made a roof terrace worth as much per square metre
+    # as a real internal room, and (after quality, which barely touches an
+    # outside leaf) 4.4x as much in practice. The owner's ruling is that a
+    # terrace must not be worth more per area than a room.
+    #
+    # Set to `value_outside`, not to some number that makes an inequality come
+    # out: outdoor space is worth the same to an occupant whatever level it sits
+    # on, and the real difference between a ground garden and a roof terrace is
+    # what it takes to BUILD -- which `cost` already says, `outside` 10.0
+    # against `outside_supported` 110.0. Value describes worth, cost describes
+    # structure; the level belongs in the second.
+    "value_supported": 100.0,
     "storey_limit": 4,
     "storey_minimum": 2,
     "latitude": 53.3814,
@@ -502,15 +514,24 @@ class Fitness:
         # well-lit room costs is already charged by `exterior_wall` and
         # `boundary_wall` in the cost model, so penalising it again in value
         # bills the same wall twice.
-        # homemaker-py-ecx (DESIGN.md §39.18): how a leaf's quality factors are
-        # combined. "product" (default) is stock. "geometric_mean" divides out
+        # homemaker-py-ecx (DESIGN.md §39.18/§39.19): how a leaf's quality
+        # factors are combined. "geometric_mean" is now the DEFAULT and
+        # "product" is the old stock behaviour, kept for comparison.
+        # The geometric mean divides out
         # how many questions the leaf was ASKED, because quality is a product
         # and an outside leaf is exempt from size, crinkliness and access while
         # a room is judged on all three -- so exemption alone buys a higher
         # quality, and quality multiplies the value rate. Fails are emitted per
         # factor inside evaluate_leaf, before any combining, so the fail set
         # cannot move either way.
-        self._quality_aggregate = str(self.conf("quality_aggregate") or "product")
+        #
+        # Made default ON with the §39.19 value_supported change, because the
+        # owner's ruling -- a terrace must not be worth more per square metre
+        # than a real internal room -- needs BOTH. Measured on the corpus:
+        # stock 4.39x, rate alone 1.46x, aggregation alone 2.23x, together
+        # 98.9 against 132.9 per m2, which is the ruling satisfied.
+        self._quality_aggregate = str(
+            self.conf("quality_aggregate") or "geometric_mean")
         if self._quality_aggregate not in ("product", "geometric_mean"):
             raise ValueError(
                 f"unknown quality_aggregate: {self._quality_aggregate!r}")
