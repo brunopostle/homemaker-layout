@@ -20,6 +20,8 @@ Call ``dom.merge_divided(root)`` and rebuild graphs before ``process_storey``
 
 from __future__ import annotations
 
+import functools
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -144,7 +146,6 @@ def connectivity_weight_for(value_inside: float, value_circulation: float) -> fl
     Derived from the value rates rather than hard-coded, so the two stay in step
     if either rate is ever retuned.
     """
-    import math
     if value_inside <= 0 or value_circulation <= 0:
         return 1.0
     ratio = value_circulation / value_inside
@@ -241,6 +242,22 @@ _E = 2.718281828  # Urb::Math::gaussian uses this truncated e, not math.e
 def gaussian(x: float, a: float, b: float, c: float) -> float:
     """Bit-faithful port of ``Urb::Math::gaussian`` (note the truncated e)."""
     return a * (_E ** (0 - ((x - b) ** 2 / (2 * c * c))))
+
+
+@functools.lru_cache(maxsize=None)
+def _crink_at_fail_threshold(distance: float, sigma: float) -> float:
+    """The crinkliness at which the stock gaussian crosses ``FAIL_THRESHOLD``
+    on the COMPACT (too-little-exposure) side (homemaker-py-9gj).
+
+    ``quality_uncrinkliness`` evaluates the gaussian at ``x = 1/crink``, so
+    solving ``gaussian(x, 1, distance, sigma) == FAIL_THRESHOLD`` for the root
+    above ``distance`` and inverting gives the crinkliness below which a leaf
+    fails. Uses ``_E`` rather than ``math.e`` so the crossing agrees with the
+    truncated constant the gaussian itself is evaluated with.
+    """
+    d = math.sqrt(2.0 * sigma * sigma
+                  * math.log(1.0 / FAIL_THRESHOLD) / math.log(_E))
+    return 1.0 / (distance + d)
 
 
 def _gaussian_product(target_a: float, sigma_a: float,
@@ -448,6 +465,25 @@ class Fitness:
         # would silently delete a whole fail category.
         self._crinkliness_floor = float(
             self.conf("crinkliness_floor") or 0.01)
+        # homemaker-py-9gj (DESIGN.md §39.13): how the FAILING compact tail of
+        # the crinkliness gaussian is scaled. "gaussian" (default) is stock,
+        # byte-identical to every prior run. "ramp" replaces the tail — and
+        # only the tail, only below FAIL_THRESHOLD, only on the compact side —
+        # with a straight line in crinkliness, because the stock exponent grows
+        # like 1/crink^2 and underflows the whole tail to a numerically
+        # indistinguishable zero. Nothing at or above FAIL_THRESHOLD moves, so
+        # the fail set is byte-identical either way and no calibration changes.
+        self._crinkliness_tail = str(self.conf("crinkliness_tail") or "gaussian")
+        if self._crinkliness_tail not in ("gaussian", "ramp"):
+            raise ValueError(
+                f"unknown crinkliness_tail: {self._crinkliness_tail!r}")
+        if self._crinkliness_tail == "ramp" and self._crinkliness_mode != "urb":
+            # Both rewrite the same tail; composing them would give a shape
+            # neither was measured under.
+            raise ValueError(
+                "crinkliness_tail='ramp' is incompatible with "
+                f"crinkliness_mode={self._crinkliness_mode!r} (§38.1's modes are "
+                "superseded; use one or the other, not both)")
 
     def usages(self) -> dict[str, str]:
         """``{room code: usage}`` for this programme (homemaker-py-sel).
@@ -1257,7 +1293,22 @@ class Fitness:
         q = gaussian(1 / crink, 1.0, distance, sigma)
         if one_sided and 1 / crink > distance:
             return 1.0
-        return max(q, self._crinkliness_floor) if mode in ("floor", "compact_ok") else q
+        if mode in ("floor", "compact_ok"):
+            return max(q, self._crinkliness_floor)
+        if (self._crinkliness_tail == "ramp"
+                and q < FAIL_THRESHOLD and 1 / crink > distance):
+            # homemaker-py-9gj (DESIGN.md §39.13). The stock exponent is
+            # (1/crink - distance)^2 / 2sigma^2, so it grows without bound as
+            # exposure falls: measured over the corpus baseline, the failing
+            # compact tail spans crink 0.12..0.59 and q 1e-300..1e-1, every
+            # value of which is numerically zero beside a passing leaf's ~1.
+            # The search therefore cannot rank two layouts that differ only in
+            # how exposed their under-lit rooms are. Replacing the tail with a
+            # straight line in crink keeps the ordering, makes it
+            # representable, is continuous at the threshold, and still sends a
+            # fully buried leaf (crink == 0, handled above) to exactly 0.
+            return FAIL_THRESHOLD * crink / _crink_at_fail_threshold(distance, sigma)
+        return q
 
     # --- access --- #
 
