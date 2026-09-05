@@ -14,3 +14,7 @@ scratch/
 .dolt/
 *.db
 .beads-credential-key
+
+# per-process shards written by the sharded A/B harnesses; the merged
+# <out>.csv is the artefact worth keeping (experiments/ab_9gj_ramp.py --report)
+experiments/results/*.csv.shard*
