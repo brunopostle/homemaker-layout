@@ -7606,3 +7606,126 @@ judgement belonging to the programme author, and §39.16 is a standing reminder
 that "this inherited constant looks wrong" has already been wrong twice in this
 section. The aggregation defect is a formula choice and is fixed here; the rate
 question is left open on `homemaker-py-ecx` with the numbers attached.
+
+### 39.19 A terrace must not be worth more per square metre than a room (`homemaker-py-ecx`)
+
+§39.18 left the rate question open with the numbers attached. The owner's
+ruling settles it: *we definitely don't want a terrace to be worth more per
+area than a real internal room.*
+
+**What it takes to satisfy that**, measured over the twelve baseline layouts —
+mean realised value per m², which is `rate × quality`, not the rate alone:
+
+| configuration | room | terrace | |
+|---|---|---|---|
+| as shipped before this section | 67.0 | 294.6 | violates, **4.39×** |
+| `value_supported = 100` alone | 67.0 | 98.2 | violates, 1.46× |
+| geometric mean alone | 132.9 | 296.8 | violates, 2.23× |
+| **both** | **132.9** | **98.9** | **satisfies** |
+
+The 4.4× breaks down as roughly 2.2× aggregation and 2.0× rate, and **neither
+half alone is enough**. That is why §39.18's aggregation moved from default-OFF
+to default-ON here rather than waiting on its own A/B: it is not an optional
+improvement, it is half of a ruling.
+
+**The rate: `value_supported` 300 → 100.** Not a number back-solved to make an
+inequality come out — that would depend on the corpus's measured mean room
+quality and would rot the moment either changed. `value_supported` is set to
+`value_outside`, on the reasoning that **outdoor space is worth the same to an
+occupant whatever level it sits on**, and the real difference between a ground
+garden and a roof terrace is what it takes to *build*. `cost` already says that,
+`outside` 10.0 against `outside_supported` 110.0. Value describes worth, cost
+describes structure, and the level belongs in the second.
+
+Changed in `CONF_DEFAULTS` and in the four corpus `patterns.config` files,
+which all declared 300.0 explicitly. Deliberately **not** changed in
+`harbor-house-l0` (a shape-curve test fixture) or the `y51-sweep-*` directories
+(historical fixtures that exist to reproduce past measurements) — those are
+pinned on purpose, and silently repricing them would destroy what they are for.
+
+**Neither change can move a fail**, and this is structural rather than lucky:
+value rates never enter fail emission at all, and `evaluate_leaf` emits each
+fail from its factor before anything is combined. Verified across the corpus —
+identical fail sets, scores +11% to +169% (and −5% once, programme-house s2,
+where the layout is mostly terrace).
+
+**`tests/test_terrace_value_ruling.py` pins the ruling as an invariant** of the
+objective rather than a property of a layout, and a second test asserts that
+reverting the aggregation *breaks* it again — so if that ever stops being true,
+either the reasoning here or the measurement behind it has changed and wants
+looking at, rather than quietly passing.
+
+**The 500 k cold-start baseline (§39.12) is superseded.** This changes what
+"good" means, so every fail count in that table was produced under a different
+objective. The layouts remain valid artefacts and their *fail counts* are
+unchanged by this section — but a fresh corpus run is needed before any new
+number is compared with them, and the acceptance discipline of §39.12 applies
+to that run as it did to the last.
+
+**What this does not fix.** The ordering by return on cost is now outside-ground
+1.64, terrace 0.87, room 0.66, circulation **0.07**. The ruling is satisfied and
+the terrace no longer out-earns a room. Circulation at 0.07 is untouched and
+remains the worst thing a building can contain by a wide margin — that is
+`homemaker-py-hxi`, still open, and §39.18's aggregation only moved it from
+0.02 to 0.07. Ground-level outdoor space still returns 1.64 against a room's
+0.66; it is cheap rather than over-valued (67.8 per m² against a room's 132.9,
+so it complies with the ruling), but whether a garden should return 2.5× what a
+room does is the same question one level down.
+
+### 39.20 The native-vs-Perl parity tests have never run (`homemaker-py-118`)
+
+§39.19's objective change broke three tests. They were the right tests to
+break, and how they broke is worse than the change.
+
+`tests/test_dom_corpus.py` carries `test_native_fitness_score_parity` and
+`test_native_fitness_fail_set_parity`: for each `.dom` in
+`examples/programme-house`, read the cached `.score`/`.fails` beside it and
+assert the native Python fitness agrees. They are the **only** check that the
+native evaluator still agrees with the Urb oracle it was ported from, and
+CLAUDE.md still describes `oracle.py` and the Perl tool as being "kept for
+cross-validation".
+
+Two facts:
+
+* `.gitignore` lines 10–11 exclude `*.dom.score` and `*.dom.fails`;
+* `git log --diff-filter=A` over those patterns finds **zero** files ever
+  added, on any branch.
+
+So no oracle cache has ever existed in this repository, and on a clean checkout
+every one of the 64 parametrised cases skips. The tests have never verified
+anything.
+
+Worse than skipping, though, is what happens when they *don't* skip. Nothing in
+a `.score` file records who wrote it. A `.dom` left in that directory by a
+search run — with a `.score` written by `homemaker-fitness`, the **native**
+scorer — silently becomes a parity fixture, and the test then compares the
+native scorer with itself. That passes by construction, whatever the native
+scorer says.
+
+Three such cases were live and green: the `coldstart-500000-s*.dom` artefacts
+committed to `examples/programme-house` during §39.12, scored natively in this
+session. They surfaced only because §39.19 made the native scorer disagree with
+its own stale output. Had the objective not changed, a green
+"native matches oracle" would have gone on being reported indefinitely.
+
+**Stopgap shipped.** The parametrisation is restricted to the Perl corpus's
+MD5-named files, so a session artefact cannot become a fixture again; the skip
+message states that parity is unverified rather than reading like an optional
+missing cache; and a guard test asserts the restriction. All 64 cases now skip
+honestly. Regenerating the caches with the native scorer would *not* have been
+a fix — it would have re-cemented the self-comparison.
+
+**What is actually needed** is on `homemaker-py-118`: regenerate the fixtures
+from the Perl oracle, narrow the ignore rules so fixture caches can be tracked
+while working files stay ignored, and then find out whether parity still holds.
+It may well not — this session alone shipped §39.14, §39.18 and §39.19, none of
+which the Perl oracle has. If parity is being abandoned deliberately that is a
+defensible decision and the tests should be deleted with a note. What must not
+survive is a test that looks like a guarantee and is not one.
+
+**The general lesson, which is §38's lesson again.** A cached artefact that
+does not record its provenance is not evidence. §38.19's p-values, §39.14's
+misread constant and this all have the same shape: something was trusted
+because it was *present*, not because it was *checked*. The fix each time is to
+make the artefact carry its own justification — a committed fixture, a stated
+derivation, a naming convention that cannot admit the wrong file.
