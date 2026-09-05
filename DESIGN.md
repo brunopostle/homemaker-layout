@@ -6815,6 +6815,17 @@ unsatisfiable. Of the four programmes, three fit their plots and one does not �
 and that one fails a much cruder test than daylight. §38.3's claim that the
 plateau programmes are "frontage-infeasible as specified" is withdrawn.
 
+*(**Qualified by §39.17.** The table above divides demand evenly across
+storeys, and on that basis harbor-house and maple-court pass "with room to
+spare". They do not pass per storey. A programme pins rooms to level 0, and
+the ground floor is the one storey that cannot set itself back to buy more
+perimeter: harbor's pinned 347 m² needs 71 m of daylit wall against the plot's
+53 m, and maple's 414 m² needs 85 m against 55 m. That per-storey shortfall
+orders the corpus exactly as the fail counts do, and it is where the whole
+crinkliness residual sits. §38.3's "frontage-infeasible as specified" was
+withdrawn against the averaged test; against the binding storey the two
+plateau programmes are short. `_preflight` now checks both.)*
+
 ### 39.12 The cold-start re-baseline, and what it does to §38.7's acceptance test (`homemaker-py-ut5`)
 
 Every corpus fail count published before §39.4/§39.7/§38.11 was measured
@@ -7405,3 +7416,100 @@ reading a ratio as a length: `1/crink` was taken for room depth, and the median
 constant with a physical interpretation needs that interpretation written down
 next to it — and, where one exists, its provenance. `uncrinkliness: [5/6,
 1.1/3]` now carries both in `fitness.py`.
+
+### 39.17 The ground floor is the storey that fails, and §39.11 averaged it away (`homemaker-py-773`)
+
+§39.16 relocated the crinkliness residual to a plan-form question: light on two
+sides all but guarantees a pass, only 33.7% of leaves get it, so why can the
+search not deliver more? Four measurements answer it, and the first two
+refute the premises the bead was filed on.
+
+**The search does build courtyards.** Classifying every outside leaf in the
+twelve baseline artefacts by how much of its own boundary is external — a leaf
+with none is an interior void, and only an interior void converts single-aspect
+rooms into two-aspect ones:
+
+| programme | courtyard | perimeter garden/terrace |
+|---|---|---|
+| harbor-house | 8 leaves, 273 m² | 18 leaves, 712 m² |
+| maple-court | 16 leaves, 404 m² | 29 leaves, 1417 m² |
+| health-centre | 13 leaves, 107 m² | 3 leaves, 32 m² |
+
+**And they work.** Tracing where each lit edge's light comes from, over 524 lit
+edges: 44% plot wall, **30% courtyard**, 26% perimeter void. Of the 145 leaves
+with light on two or more sides, a courtyard supplies at least one side for 77
+of them — **53%**. The plan form is not structurally incapable, and no operator
+is missing.
+
+**But every ground floor is starved and every top floor has surplus.** A leaf
+passes iff `L_i >= A_i/(1.6202·h)`. Summing that demand over a storey's graded
+leaves and comparing with the lit wall those leaves actually hold:
+
+| storey | supply/demand (3 seeds) | crinkliness fails |
+|---|---|---|
+| harbor ground | 0.95 / 0.97 / 0.62 | 14/27, 10/24, 12/24 |
+| harbor first | 1.67 / 1.26 / 1.75 | 1/21, 3/18, 2/20 |
+| maple ground | 0.96 / 0.77 / 0.52 | 12/27, 11/26, 15/27 |
+| maple first | 0.64 / 0.89 / 0.92 | 6/14, 6/15, 5/16 |
+| maple second | 1.35 / 1.25 / 1.30 | 1/21, 7/20, 4/24 |
+| health-centre (single) | 1.77 / 1.60 / 2.07 | 1/27, 2/24, 0/25 |
+| programme-house (all) | 2.07 – 4.15 | 0 everywhere |
+
+The ratio predicts the fail rate almost perfectly: above ~1.2, near-zero fails;
+below 1.0, 40–55% of the storey's leaves fail.
+
+**And the open space is on the wrong storey.** Harbor puts **50 m²** of
+courtyard on the starved ground floor and **223 m²** on the first floor, which
+already has 1.3–1.8× the frontage it needs; its perimeter terraces go 136 m²
+ground against 521 m² above. The upper storeys set back and become mostly
+terrace — which is where all the spare frontage in the table comes from — while
+the ground floor is packed to the plot edge.
+
+`value_rate` explains it: an outside leaf above ground takes `value_supported`
+= 300, the same rate as an interior room, against a cost of 110. A roof terrace
+returns 2.7× its cost while a room returns 1.5×, and nothing in the objective
+connects an outside leaf's value to whether it illuminates anything. Open space
+is paid the same wherever it is put.
+
+**The brief was already short before the search started, and §39.11 could not
+see it.** §39.11 divides total demand by storey count, and on that basis
+declared harbor and maple "frontage-feasible with room to spare". But a
+programme *pins* rooms to the ground floor with `level: 0`, and the ground
+floor is the one storey that cannot set itself back to buy more perimeter:
+
+| programme | pinned to level 0 | frontage needed | plot supplies | |
+|---|---|---|---|---|
+| harbor-house | 347 m² (50% of plot) | 71.4 m | 53.0 m | **short 18.4 m** |
+| maple-court | 414 m² (54%) | 85.2 m | 55.0 m | **short 30.2 m** |
+| health-centre | 50 m² (13%) | 10.3 m | 61.3 m | 51.0 m spare |
+| programme-house | 38 m² (73%) | 7.8 m | 22.1 m | 14.2 m spare |
+
+That is the same ordering as the corpus fail counts — 39.3, 60.7, 6.0, 1.0 —
+and it is a property of the brief and the plot, fixed before any search runs.
+The averaged check is not merely weaker: on maple it asks for a 22 m² courtyard
+where the ground floor needs **57 m²**.
+
+**Shipped: a third `_preflight` check.** Advisory, like the others.
+
+```
+WARNING: 347 m2 is pinned to level 0 by the programme and needs ~71 m of daylit
+wall, against the 53 m the plot perimeter gives. The ground floor cannot set
+itself back to buy more, so a square courtyard of roughly 21 m2 (4.6 m a side)
+is what closes it.
+```
+
+Silent on health-centre and programme-house. `tests/test_evolve_preflight.py`
+asserts that, and asserts that the ground-floor figure exceeds the averaged one
+on maple — if the two ever agree, one of the checks has stopped earning its
+place.
+
+**What this does and does not settle.** It says where the residual comes from
+and gives the author a number to act on. It does not say the search is
+blameless: harbor's *achieved* ground floor carries ~614 m² of room against the
+347 m² the programme pins there, so the search chooses to overload the storey
+it is already short on. Whether that is rational under the current value rates,
+and whether an outside leaf's value should depend on the daylight it delivers,
+are the open questions — the second especially, since it is the same "value
+prices what cost already charges, and prices it context-free" shape that §39.14
+found in crinkliness. Both are objective changes and neither is smuggled in
+here.

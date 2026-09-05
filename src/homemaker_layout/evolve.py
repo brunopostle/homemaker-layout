@@ -231,13 +231,20 @@ def _parse_args(argv=None) -> argparse.Namespace:
 def _preflight(programme_dir) -> None:
     """Warn before the run if the programme cannot fit its plot (homemaker-py-tdp).
 
-    Two checks, cheap and closed-form (DESIGN.md §38.3/§39.11). Neither can be
-    fixed by searching harder, so it is worth saying so up front rather than
-    letting a multi-hour run bottom out against it:
+    Three checks, cheap and closed-form (DESIGN.md §38.3/§39.11/§39.17). None
+    can be fixed by searching harder, so it is worth saying so up front rather
+    than letting a multi-hour run bottom out against it:
 
     1. does the demanded floor area fit the plot at all;
     2. is there enough daylit wall for that area, given every interior leaf
-       needs ``L >= A/(1.6202*h)`` before it fails crinkliness.
+       needs ``L >= A/(1.6202*h)`` before it fails crinkliness;
+    3. the same question for the GROUND FLOOR alone. Check 2 divides the
+       demand evenly across storeys, but a programme pins rooms to level 0
+       with ``level: 0`` and the ground floor is the one storey that cannot be
+       made smaller or set back to buy itself more perimeter. Averaging hides
+       that: harbor-house and maple-court both pass check 2 comfortably while
+       their pinned ground floors are short by 18 m and 30 m of daylit wall
+       (§39.17), which is where their whole crinkliness residual lives.
 
     "Daylit" is measured exactly as ``Fitness.area_outside`` does: an external
     boundary counts unless its perimeter type is ``private`` or ``fortified``.
@@ -260,6 +267,11 @@ def _preflight(programme_dir) -> None:
         storeys = max(_prog.n_storeys_required(reqs),
                       _prog.storey_minimum(str(programme_dir)))
         built = sum(r.size * r.count for r in reqs.values()) / max(storeys, 1)
+        from .fitness import Fitness, load_config
+        conf, cost = load_config(str(programme_dir))
+        spaces = Fitness(conf, cost).spaces
+        pinned = sum(r.size * r.count for code, r in reqs.items()
+                     if (spaces.get(code) or {}).get("level") == 0)
     except Exception:
         return                              # advisory only; never block a run
 
@@ -280,6 +292,18 @@ def _preflight(programme_dir) -> None:
               f"wall; the plot's non-private perimeter gives {daylit:.0f} m. "
               f"Roughly {court:.0f} m2 of courtyard closes the gap{note}. "
               f"(DESIGN.md §38.3)", file=sys.stderr)
+
+    # ...and the same question for the one storey that cannot set itself back.
+    ground = pinned / (1.6202 * height)
+    if pinned and ground > daylit:
+        # a square courtyard of area x contributes its whole perimeter, 4*sqrt(x)
+        court = ((ground - daylit) / 4.0) ** 2
+        print(f"WARNING: {pinned:.0f} m2 is pinned to level 0 by the programme and "
+              f"needs ~{ground:.0f} m of daylit wall, against the {daylit:.0f} m the "
+              f"plot perimeter gives. The ground floor cannot set itself back to "
+              f"buy more, so a square courtyard of roughly {court:.0f} m2 "
+              f"({court ** 0.5:.1f} m a side) is what closes it. "
+              f"(DESIGN.md §39.17)", file=sys.stderr)
 
 
 def main(argv=None) -> int:
