@@ -7085,7 +7085,14 @@ that §39.12 found to be 35% of the whole corpus fail count is not being
 decided down here at all. It is being decided above the threshold, in the
 part of the factor nobody had looked at. §39.14 looks at it.
 
-### 39.14 What the crinkliness factor actually rewards: a 2.5 m room, twice-charged (`homemaker-py-9gj`)
+### 39.14 What the crinkliness factor actually rewards: surplus daylight, twice-charged (`homemaker-py-9gj`)
+
+*(Retitled. As first written this section was headed "a 2.5 m room,
+twice-charged" and argued that the gaussian's peak encodes an absurd optimum.
+**That half is withdrawn** — see §39.16: the constant is Alexander 159, "Light
+on Two Sides of Every Room", and 2.5 m is depth *per window wall*, not room
+depth. The twice-charged half stands, on a better argument than the one given
+here. The retracted passage is marked in place below.)*
 
 §39.13 fixed the failing tail and the fix did nothing. That is a result about
 the tail, but the owner's response to it was the useful one — *if calculating
@@ -7118,18 +7125,22 @@ subtraction; it has no enforcement role at all.
 *And it is where a lot of the corpus lives.* 133 of the 318 passing graded
 leaves — 42% — sit on it, at mean quality 0.810.
 
-**What the peak implies, in metres.** The gaussian peaks at `1/crink = 0.833`,
-i.e. a room `0.833 × h` deep. At h = 3 m that is a **2.5 m** room. Single-aspect
-quality against depth:
-
-| depth (m) | 1.0 | 2.0 | 2.5 | 3.0 | 4.0 | 4.5 | 5.0 | 6.0 |
-|---|---|---|---|---|---|---|---|---|
-| quality | 0.395 | 0.902 | **1.000** | 0.902 | 0.395 | 0.191 | 0.076 ✗ | 0.006 ✗ |
-
-An ordinary 4 m room loses 60% of its value. And the corpus's realised median
+~~**What the peak implies, in metres.** The gaussian peaks at `1/crink =
+0.833`, i.e. a room `0.833 × h` deep. At h = 3 m that is a **2.5 m** room. An
+ordinary 4 m room loses 60% of its value. And the corpus's realised median
 depth is **2.95 m** — the search has been building 3 m deep rooms because that
 is what it is paid for. That is not the search failing to find good buildings;
-it is the search succeeding at a badly-specified goal.
+it is the search succeeding at a badly-specified goal.~~
+
+**WITHDRAWN (§39.16).** Both halves of that are wrong. The table it rested on
+read `1/crink` as room depth; it is depth **per illuminated wall**, so the
+2.5 m figure is what Alexander 159 asks for on *each* side and the rule it
+encodes is "a room deeper than 2.5 m per window needs another window". A 4 m
+room scores 0.395 lit on one side and **0.902** lit on two — which is the
+pattern working, not a defect. And the "realised median depth 2.95 m" was
+`A/L`, not depth: the corpus's single-aspect leaves are a median 3.46 m deep
+and its two-opposite leaves 4.42 m. Ordinary rooms. The claim that the search
+was driven to build shallow ones does not survive.
 
 **What shipped: `crinkliness_shape="daylight"`, default OFF.** A room shallower
 than the peak scores 1.0. Daylight is a sufficiency requirement — enough is
@@ -7170,8 +7181,9 @@ Per artefact the score moves +0.2% to +19.6%, and unlike the tail change it
 reaches health-centre and programme-house, where the ramp was 0.000% on every
 seed.
 
-**Honest scope.** This removes a double-charge and an absurd optimum, but it
-recovers only 0.480 → 0.513 of the factor's harshness. Crinkliness is still the
+**Honest scope.** This removes a double-charge (not "an absurd optimum" — see
+the withdrawal above), but it recovers only 0.480 → 0.513 of the factor's
+harshness. Crinkliness is still the
 harshest of the seven quality factors, and the bulk of that is now concentrated
 in the part this change deliberately did not touch: the steep decay from the
 2.5 m saturation point to the 4.86 m limit, which takes an ordinary 4 m room to
@@ -7270,16 +7282,27 @@ for programme size, as a cross-programme comparison would not:
 | too deep, spec contradictory as declared | 17 (15%) |
 | too deep, other | 18 (16%) |
 
-**So what is actually wrong is not a sigma.** It is that three declared
+~~**So what is actually wrong is not a sigma.** It is that three declared
 quantities — target area, target aspect, and the daylight limit — are jointly
-contradictory for six specs, and nothing told anyone. Of the three, the
-daylight limit is the one with independent support: the gaussian's own crossing
-and §38.3's frontage bound, derived separately, agree at `1.62·h` = 4.86 m, and
-the architectural rule of thumb for single-sided daylight (roughly twice the
-window head height) puts it in the same region. The area and aspect targets are
-the author's brief. So the resolution is a decision for the programme author —
-shrink the room, allow a deeper aspect, or say out loud that it wants a corner
-— and not a new constant chosen to make the number go down.
+contradictory for six specs, and nothing told anyone.~~
+
+**PARTLY WITHDRAWN (§39.16).** The measurement stands; "contradictory" does
+not. Those six specs are not mis-specified — they are large rooms, and the
+constant is Alexander 159, so a large room *is supposed to* need light on two
+sides. The audit column is reporting the pattern doing its job. What is real,
+and what the column is genuinely useful for, is the **tension between that
+demand and what the plan form can supply**: harbor asks for 7 rooms with two
+aspects and maple 6, while across the twelve baseline runs only 33.7% of graded
+leaves achieve two or more sides at all. The daylight limit itself is the
+best-supported number in the objective — the gaussian's own crossing, §38.3's
+frontage bound, and a named design pattern all agree — so it is the last thing
+that should be retuned.
+
+The author decision it prompts is therefore not "shrink the room": it is
+whether the *plot* can give these rooms two aspects. §39.11 already computed
+the aggregate form of the same question and found harbor needs roughly 49 m² of
+courtyard to close its frontage gap. A courtyard is precisely what turns
+single-aspect rooms into two-aspect ones.
 
 **Shipped:** the `at declared target` column in `audit_programme_config.py`,
 the tool CLAUDE.md already sends programme authors to, plus a count of
@@ -7302,3 +7325,83 @@ the size gaussian's upper half is the main thing that makes it fall. Removing
 it on the analogy with crinkliness would license the search to inflate every
 room until it ran out of plot. If that upper bound is the wrong instrument, the
 thing to re-examine is the value rate, not the sigma.
+
+### 39.16 The crinkliness constant is Alexander 159, and that corrects §39.14/§39.15 (`homemaker-py-u5q`)
+
+The owner supplied the provenance §39.14 and §39.15 were missing: *the
+crinkliness number comes from Alexander's "light on two sides of every room"
+pattern — shallow rooms such as corridors along an outside wall can have light
+on one side, but deep rooms need to be on a corner or have external walls on
+opposite sides of the room.*
+
+That is A Pattern Language 159, and it changes what the constants mean.
+
+**The same numbers, read correctly.** `1/crink = A/(L·h)` is floor area per
+metre of *illuminated wall*, divided by storey height — not room depth. Room
+depth only equals it when the room is lit on one side. So:
+
+| lighting | depth at the peak | depth at the fail edge |
+|---|---|---|
+| one side | 2.50 m | 4.86 m |
+| two opposite sides | 5.00 m | 9.72 m |
+
+The constant says **2.5 m of room depth per window wall**. A room deeper than
+that needs another window. That is the pattern, stated as a ratio. §39.14 read
+the 2.5 m as an absurd optimum for a whole room; it is the depth Alexander
+allows *per side*. A 4 m room scores 0.395 lit on one side and **0.902** lit on
+two — the factor is not miscalibrated, it is doing exactly what it was built to
+do.
+
+**What the corpus actually achieves**, over the 430 graded leaves in the twelve
+500 k baseline runs:
+
+| exposure | n | share | crinkliness fail rate |
+|---|---|---|---|
+| unlit | 77 | 17.9% | **100%** |
+| one side | 208 | 48.4% | 15% |
+| two — corner | 87 | 20.2% | 2% |
+| two — opposite | 34 | 7.9% | **0%** |
+| three or four | 24 | 5.6% | 4% |
+
+Light on two sides all but guarantees a pass. The entire crinkliness residual
+is leaves that did not get it. That also disposes of §39.14's "the search built
+2.95 m rooms because that is what it was paid for": 2.95 m was the median
+`A/L`, and the corpus's single-aspect leaves are a median **3.46 m** deep, its
+two-opposite leaves **4.42 m**. Ordinary rooms.
+
+**What survives, on a better argument.** `crinkliness_shape="daylight"` still
+stands, but not because the peak is absurd. Alexander 159 states a
+**minimum** — light on *at least* two sides — and a two-sided gaussian turns a
+minimum into a target, penalising rooms for exceeding it. Of the 133 leaves on
+the clipped side of the peak, **68% are lit on two or more sides**, at mean
+quality 0.770:
+
+| exposure of the clipped leaves | n | share | mean stock quality |
+|---|---|---|---|
+| two — corner | 55 | 41.4% | 0.748 |
+| one side | 43 | 32.3% | 0.896 |
+| two — opposite | 23 | 17.3% | 0.854 |
+| three or four | 12 | 9.0% | 0.710 |
+
+So the stock factor's near side is docking a fifth to a quarter of the value of
+rooms that *satisfy the pattern well* — and doing it on top of the
+`exterior_wall`/`boundary_wall` charge those windows already carry in `cost`.
+Both reasons to clip it survive; the "2.5 m optimum" reason does not, and is
+withdrawn.
+
+**And it relocates the residual.** The crinkliness fails are not a calibration
+error to be tuned away. They are leaves that failed to get light on two sides —
+77 with no light at all (`k54`), and 32 of the 208 single-aspect ones. The
+question that follows is not *what should sigma be* but *why can a binary
+slicing tree on a convex plot only give a third of its leaves two aspects*, and
+the answer §39.11 already reached from the other direction is courtyards: an
+internal void turns single-aspect rooms into two-aspect ones, and harbor's
+frontage gap wants ~49 m² of it. `homemaker-py-7b7` enlarged the health-centre
+plot assuming a courtyard shape for the same reason.
+
+**Method note, because it cost two published errors.** Both mistakes came from
+reading a ratio as a length: `1/crink` was taken for room depth, and the median
+`A/L` was reported as the median depth of built rooms. A dimensionless
+constant with a physical interpretation needs that interpretation written down
+next to it — and, where one exists, its provenance. `uncrinkliness: [5/6,
+1.1/3]` now carries both in `fitness.py`.

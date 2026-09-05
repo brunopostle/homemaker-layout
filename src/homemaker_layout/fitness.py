@@ -198,6 +198,23 @@ CONF_DEFAULTS: dict = {
     "plot_ratio": [2.00, 0.50],
     "ratio_outside": [0.33, 0.15],
     "ratio_circulation": [0.00, 0.20],
+    # PROVENANCE (DESIGN.md §39.16). This is Christopher Alexander, A Pattern
+    # Language 159, "Light on Two Sides of Every Room" -- not an arbitrary
+    # constant. The factor is evaluated at `1/crink = A/(L*h)`: floor area per
+    # metre of ILLUMINATED wall, over storey height. It is NOT room depth, and
+    # reading it as depth has caused two published errors -- it equals depth
+    # only for a room lit on one side.
+    #
+    # 5/6 x h = 2.5 m at h=3 is therefore 2.5 m of room depth PER WINDOW WALL:
+    # a shallow room (a corridor along an outside wall) may be lit on one side,
+    # a deeper one needs a corner or windows on opposite walls. At the fail
+    # edge (+2.146 sigma) the allowance is 4.86 m per wall -- so 4.86 m
+    # single-aspect, or 9.72 m between two opposite windows.
+    #
+    # Independently corroborated twice: the gaussian's own FAIL_THRESHOLD
+    # crossing and §38.3's frontage bound `L >= A/(1.6202*h)`, derived
+    # separately, agree at 1.6202. Of the numbers in this table it is the
+    # best-supported, and the last that should be retuned.
     "uncrinkliness": [5.0 / 6, 1.1 / 3],
     "uncrinkliness_circulation": [5.0 / 6, 1.1 / 3],
     "size_circulation": [0.0, 14.0],
@@ -1315,12 +1332,15 @@ class Fitness:
             return self._crinkliness_floor if mode == "floor" else 0.0
 
         if self._crinkliness_shape == "daylight" and 1 / crink <= distance:
-            # homemaker-py-9gj (DESIGN.md §39.14). `1/crink` is the room's mean
-            # depth from its daylit wall in storey-heights, so `1/crink <=
-            # distance` means comfortably lit -- shallower than the point the
-            # stock gaussian peaks at. Stock decays from there as if surplus
-            # daylight were a defect; it is not one this factor should price,
-            # because the extra exterior wall is already billed in `cost`.
+            # homemaker-py-9gj (DESIGN.md §39.14, corrected by §39.16).
+            # `1/crink` is floor area per metre of illuminated wall over storey
+            # height -- room depth PER WINDOW WALL, not room depth. The target
+            # is Alexander 159, which states a MINIMUM (light on at least two
+            # sides), and a two-sided gaussian turns a minimum into a target:
+            # 68% of the leaves in this clipped region are lit on two or more
+            # sides and are being docked for satisfying the pattern well. Nor
+            # should this factor price the surplus envelope -- `edge_cost` and
+            # `outside_edge_cost` already bill that wall.
             # Clipping here (rather than at the fail threshold) keeps the
             # factor CONTINUOUS: the graded approach to the daylight limit
             # survives, and no 10x cliff is introduced at the very boundary
