@@ -6936,3 +6936,369 @@ no combined fix left to accept. Replacing it:
    computes both sides of its invariant instead of pinning constants, for the
    same reason.
 
+
+### 39.13 The crinkliness tail underflows, and what rescaling it can and cannot reach (`homemaker-py-9gj`)
+
+`homemaker-py-9gj` was filed against a narrow symptom: `quality_uncrinkliness`
+returns exactly `0.0` for a leaf with no daylit wall, so two layouts whose
+buried rooms differ score identically. Measuring it first, as §39.12's
+crinkliness share (35% of the whole corpus residual) makes worth doing, moves
+the diagnosis in both directions — the defect is wider than the bead says, and
+the part of it a rescale can reach is narrower.
+
+**The mechanism is the parameterisation, not the zero.** The factor evaluates
+the gaussian at `x = 1/crink`, so its exponent grows like `1/crink²`. Over the
+twelve 500 k cold-start runs, 430 leaves carry a minimum-exposure requirement
+and 112 of them (26%) fail it. Their quality values:
+
+| stock quality | leaves | crinkliness range | share of corpus value |
+|---|---|---|---|
+| exactly 0.0 | 77 | 0 | 0.000000% |
+| 1e-300 … 1e-30 | 5 | 0.116 … 0.187 | 0.000000% |
+| 1e-30 … 1e-12 | 8 | 0.200 … 0.279 | 0.000000% |
+| 1e-12 … 1e-6 | 5 | 0.327 … 0.354 | 0.000001% |
+| 1e-6 … 1e-3 | 11 | 0.370 … 0.441 | 0.000812% |
+| 1e-3 … 0.1 | 6 | 0.467 … 0.589 | 0.033014% |
+
+All 112 together are **0.034% of total value on 23% of the floor area**. The
+flat region is not the single point `crink == 0`: it is the entire failing
+tail, because `exp(−d²)` with `d = (1/crink − 0.833)/0.367` underflows a
+double to exactly zero below `crink ≈ 1/15`, and is numerically indis­tinguish­able
+from zero well above that. A layout that gives a buried room a quarter of the
+exposure it needs is rewarded by 1e-28 — beside passing leaves worth ~1, that
+is no reward at all.
+
+**This also explains why §38.1's `floor` mode measured as a no-op.** It returns
+`max(q, 0.01)`, and 110 of those 112 leaves sit below 0.01 — so it maps almost
+the whole failing tail onto one constant. It replaced a flat zero with a flat
+0.01. The ordering was never the problem the floor was solving.
+
+**What shipped: `crinkliness_tail="ramp"`, default OFF.** Below
+`FAIL_THRESHOLD`, on the compact side only, the tail becomes a straight line in
+crinkliness meeting the gaussian exactly at the threshold:
+
+```
+q = FAIL_THRESHOLD * crink / crink_at_threshold(distance, sigma)
+```
+
+`crink_at_threshold` inverts the gaussian at `FAIL_THRESHOLD` using the same
+truncated `_E` the factor is evaluated with (0.61721 for the global
+`uncrinkliness` parameters). The construction is deliberately conservative:
+
+* Nothing at or above `FAIL_THRESHOLD` moves at all, so no calibration changes
+  and no leaf crosses the threshold. The fail set is **byte-identical** on all
+  21 committed corpus artefacts, the four `init.dom` seeds included —
+  asserted in `tests/test_fitness_crinkliness_tail.py`, not assumed.
+* A fully buried leaf still scores exactly 0. Burial remains a defect; this
+  restores an ordering within the failing region, it does not forgive it.
+* It refuses to compose with §38.1's superseded modes, which rewrite the same
+  tail.
+
+Because the fail set is invariant, this is the one case the §38.9 trap exempts:
+both arms of an A/B can be scored under the stock objective without an arm
+winning by deleting a fail category.
+
+**Effect on the scalar**, per 500 k baseline artefact (§39.12):
+
+| programme | score delta |
+|---|---|
+| harbor-house s0/s1/s2 | +0.49% / +0.40% / +0.55% |
+| maple-court s0/s1/s2 | +0.31% / +0.45% / +2.81% |
+| health-centre, programme-house | +0.000% (all seeds) |
+| every `init.dom` | +0.000% |
+
+The zeros are not a bug and they matter for how this must be tested: a
+programme with no partially-exposed failing rooms has nothing to grade, and
+neither does any *starting* layout. The ramp is a mid-search signal by
+construction.
+
+**A correction to `gvb`'s premise.** `homemaker-py-gvb` records crinkliness
+fails as "topological (zero-exposure) and unreachable by the inner loop". The
+first half holds — 77 of the 112 are at `crink == 0`. The second does not.
+Perturbing only the division ratios of a baseline artefact, which is exactly
+the inner loop's degree of freedom, changes which leaves have zero exposure:
+
+Twelve random jitters per amplitude per artefact; the cell gives how many of
+the twelve changed the set, and in brackets the range of buried-leaf counts
+seen:
+
+| artefact | buried | ±2% | ±5% | ±10% | ±25% |
+|---|---|---|---|---|---|
+| harbor s0 | 11 | 6/12 [11–12] | 5/12 [11–12] | 10/12 [10–12] | 10/12 [11–14] |
+| harbor s1 | 8 | 0/12 [8] | 0/12 [8] | 0/12 [8] | 6/12 [6–10] |
+| harbor s2 | 11 | 0/12 [11] | 0/12 [11] | 0/12 [11] | 7/12 [10–11] |
+| maple s0 | 12 | 1/12 [12–13] | 4/12 [12–13] | 5/12 [12–13] | 11/12 [10–14] |
+| maple s1 | 18 | 0/12 [18] | 1/12 [17–18] | 4/12 [17–18] | 9/12 [15–19] |
+| maple s2 | 14 | 0/12 [14] | 1/12 [14–15] | 6/12 [14–15] | 11/12 [14–18] |
+| health s0 | 1 | 0/12 [1] | 0/12 [1] | 0/12 [1] | 3/12 [0–1] |
+
+Zero exposure is reachable by a ratio move, and reachable in the direction the
+search wants: harbor s1 goes 8 → 6 buried leaves, maple s1 18 → 15,
+health-centre s0 1 → 0. It generally takes a coordinated move of order
+±10–25%, because a leaf has to slide far enough to meet an outside neighbour or
+the plot edge — though harbor s0 is sensitive at ±2%, so the threshold is a
+property of the layout, not a constant.
+
+(The count has to be taken over leaves in traversal order, not as a set of
+`leaf.id`: ids repeat across storeys, and deduplicating them silently loses
+five of the corpus's 77 buried leaves.)
+
+So the valley is real and the ratio DOF *can* cross it. Under the stock
+objective it has no reason to: the far side pays 1e-28. Under the ramp the same
+move — a buried leaf reaching `crink = 0.2` — pays `0.1 × 0.2/0.617 = 0.032` of
+that leaf's rate and area, some 1e26 times more. Whether that is enough to
+outweigh the size and proportion cost such a move also incurs is a separate
+question, answered below; the point here is only that under stock the question
+never gets asked, because the gain is not representable.
+
+**What it cannot reach.** 69% of the failing region is at `crink == 0`, and
+0 × anything is 0: no rescaling of the factor grades a leaf that has no
+exposure at all. Ordering *those* leaves needs a different quantity — burial
+depth in the adjacency graph, say — which is a new objective term with its own
+calibration burden, not a repair to this one. Filed separately as
+`homemaker-py-k54`; it is not smuggled in here.
+
+**Verdict: NULL, and not for want of statistical power.** Search A/B,
+`experiments/ab_9gj_crinkliness.py`, harbor and maple, three 500 k plateau
+starts × two RNG seeds each, 8000 evals, both arms scored under stock:
+
+```
+harbor-house  N=6  gaussian mean 39.17  ramp mean 39.17  0W/0L/6T
+maple-court   N=6  gaussian mean 60.50  ramp mean 60.50  0W/0L/6T
+```
+
+Every one of the twelve pairs is **byte-identical** — same fail count, same
+scalar to every printed figure. The two arms did not diverge and then
+reconverge; they took the same trajectory. A +0.5% perturbation to the value
+of a layout never once flipped a comparison in 8000 evaluations.
+
+In hindsight that is what the measurement above already said: the failing tail
+is 0.034% of corpus value. Making 0.034% of the objective orderable cannot
+move a search. **The ramp is correct and inert.** It is kept — it costs
+nothing, it removes a genuine representability defect, and `k54` needs the
+failing region orderable if it is ever to add to it — but it is not a fix for
+anything, and it should not be cited as one.
+
+What the null is genuinely useful for is where it points. If the orderable
+part of the failing region is worth 0.034%, then the crinkliness residual
+that §39.12 found to be 35% of the whole corpus fail count is not being
+decided down here at all. It is being decided above the threshold, in the
+part of the factor nobody had looked at. §39.14 looks at it.
+
+### 39.14 What the crinkliness factor actually rewards: a 2.5 m room, twice-charged (`homemaker-py-9gj`)
+
+§39.13 fixed the failing tail and the fix did nothing. That is a result about
+the tail, but the owner's response to it was the useful one — *if calculating
+the gaussian of a reciprocal is stupid then we need to reexamine what we are
+doing.* So: what is this factor, and is the reciprocal the stupid part?
+
+**The reciprocal is not the stupid part.** `crink = area_outside/area = (L·h)/A`,
+so `1/crink = A/(L·h)` is the room's mean depth from its daylit wall, measured
+in storey heights. That is exactly the right variable for a daylight rule, and
+the fail boundary it implies — `1/crink = 1.620`, a **4.86 m** deep room at the
+corpus's h = 3 m — is a sensible one. It also agrees with §38.3's frontage
+bound `L >= A/(1.6202·h)`, which was derived independently. Two different
+routes to the same 1.62 is good evidence the underlying rule is sound.
+
+**Hanging a two-sided gaussian on it is the stupid part.** Three separate
+problems, all on the near side of the peak:
+
+*It bills the same wall twice.* `edge_cost` charges `exterior_wall` at 100/m²
+and `outside_edge_cost` charges `boundary_wall` at 133.3/m², both as
+`rate × length × height` — the very quantity `area_outside` measures. A
+well-lit room already pays for its envelope in `cost`. Penalising it again in
+`value` means the two halves of `score = value/cost` pull against each other on
+the same square metre.
+
+*It has never once produced a failure.* The over-exposed branch only reaches
+`FAIL_THRESHOLD` above `crink = 21.5`. The maximum crinkliness anywhere in the
+twelve 500 k baseline runs is **3.95**. That side of the gaussian is pure value
+subtraction; it has no enforcement role at all.
+
+*And it is where a lot of the corpus lives.* 133 of the 318 passing graded
+leaves — 42% — sit on it, at mean quality 0.810.
+
+**What the peak implies, in metres.** The gaussian peaks at `1/crink = 0.833`,
+i.e. a room `0.833 × h` deep. At h = 3 m that is a **2.5 m** room. Single-aspect
+quality against depth:
+
+| depth (m) | 1.0 | 2.0 | 2.5 | 3.0 | 4.0 | 4.5 | 5.0 | 6.0 |
+|---|---|---|---|---|---|---|---|---|
+| quality | 0.395 | 0.902 | **1.000** | 0.902 | 0.395 | 0.191 | 0.076 ✗ | 0.006 ✗ |
+
+An ordinary 4 m room loses 60% of its value. And the corpus's realised median
+depth is **2.95 m** — the search has been building 3 m deep rooms because that
+is what it is paid for. That is not the search failing to find good buildings;
+it is the search succeeding at a badly-specified goal.
+
+**What shipped: `crinkliness_shape="daylight"`, default OFF.** A room shallower
+than the peak scores 1.0. Daylight is a sufficiency requirement — enough is
+enough — and the surplus envelope is the cost model's business.
+
+Clipping at the **peak** rather than at `FAIL_THRESHOLD` is deliberate, and it
+is the one place this differs from "everything that passes scores 1.0":
+
+* it keeps the factor **continuous**, where clipping at the threshold would put
+  a 10× jump (0.1 → 1.0) on the exact boundary the `0.5**n` fail multiplier
+  already steps on — a new cliff at the most brittle point in the objective;
+* it keeps the graded approach to the daylight limit, which is the part of the
+  curve still doing useful work. Clipping at the threshold would make
+  crinkliness purely binary above it and delete that gradient — the opposite of
+  what `9gj` set out to do.
+
+Note this clips the **opposite** side from §38.1's superseded `compact_ok`,
+which forgives a leaf for being buried. Composing either with those modes is
+refused.
+
+**The fail set is byte-identical** on all 21 corpus artefacts under all four
+shape/tail combinations — the over-exposed fail branch being unreachable is
+what makes that true — so stock scoring stays a valid yardstick for every arm.
+
+**Effect.** Area-weighted over all graded leaves:
+
+| factor | stock | daylight+ramp |
+|---|---|---|
+| **crinkliness** | **0.480** | **0.513** |
+| size | 0.536 | 0.536 |
+| proportion | 0.853 | — |
+| width | 0.928 | — |
+| access | 0.962 | — |
+| perpendicular | 0.982 | — |
+| leaf quality (the product) | 0.2722 | 0.2831 |
+
+Per artefact the score moves +0.2% to +19.6%, and unlike the tail change it
+reaches health-centre and programme-house, where the ramp was 0.000% on every
+seed.
+
+**Honest scope.** This removes a double-charge and an absurd optimum, but it
+recovers only 0.480 → 0.513 of the factor's harshness. Crinkliness is still the
+harshest of the seven quality factors, and the bulk of that is now concentrated
+in the part this change deliberately did not touch: the steep decay from the
+2.5 m saturation point to the 4.86 m limit, which takes an ordinary 4 m room to
+0.395. Whether `sigma = 1.1/3` is the right steepness for that approach is a
+calibration question, not a shape question, and it is open.
+
+**Verdict at pilot budget: no measurable search effect, and honestly labelled.**
+Same protocol as §39.13 — harbor and maple, three 500 k plateau starts × two
+RNG seeds, 8000 evals, all arms scored under stock:
+
+```
+harbor-house  daylight      vs stock   N=6  39.17 -> 39.00   1W/0L/5T
+harbor-house  daylight+ramp vs stock   N=6  39.17 -> 39.00   1W/0L/5T
+              mean diff +0.167  sd 0.408   MDD at N=6 = 0.428
+              UNDERPOWERED: the margin is below what N=6 can resolve
+maple-court   daylight      vs stock   N=6  60.50 -> 60.50   0W/0L/6T
+maple-court   daylight+ramp vs stock   N=6  60.50 -> 60.50   0W/0L/6T
+              NO DIFFERENCE: identical on every pair
+```
+
+This is **not** the same null as §39.13's. There the arms took byte-identical
+trajectories; here they reach genuinely different layouts — harbor s1 scores
+1.428e-15 under `daylight` against stock's 1.468e-15 on the same start — they
+simply land on the same fail count. The change is doing something; 8000 evals
+from a plateau is not enough to say what. Note the direction of that particular
+number: a layout optimised under `daylight` scores *lower* under stock, which
+is exactly why stock is the yardstick and not the arm's own objective.
+
+So the shape change is **justified but unproven**: the double-charge against
+`cost` and the 2.5 m optimum are defects on their own terms, established by
+construction rather than by a fail count, and correcting them cannot be
+scored by a pilot this small. It stays default OFF. The powered protocol —
+`--budget 100000 --seeds 3 --starts 3`, giving n=9 per programme — is in
+`experiments/ab_9gj_crinkliness.py`'s docstring and wants the local machine,
+like §39.12's baseline did.
+
+What should *not* be concluded is that crinkliness does not matter. §39.15
+takes the same question by a different route and finds something a search A/B
+at any budget would not have shown.
+
+### 39.15 The magic numbers, examined (`homemaker-py-u5q`)
+
+The owner's hypothesis, and it is the right one to test: *these sigma values
+were plucked out of nowhere many years ago and never rigorously examined; it is
+entirely possible that our inability to create designs with zero failures is
+because the scoring magic numbers are simply wrong.*
+
+**First, what a sigma is here.** A fail is `quality < FAIL_THRESHOLD`, and every
+factor is a gaussian, so a `(target, sigma)` pair does not express a soft
+preference. It **defines an acceptance interval**, `target ± 2.1460·sigma`.
+Sigma is the tolerance that decides failures. Once that is said out loud the
+question becomes answerable, because an interval can be checked against
+geometry.
+
+**The blanket form of the hypothesis does not survive.** programme-house
+reaches **1 fail** on all three 500 k seeds, and on two of them that one fail is
+structural — `staircase volume`, `level 1 not connected` — not a quality factor
+at all. health-centre's residual is likewise dominated by connectivity and
+stairs. Where a programme is internally consistent the objective is very nearly
+satisfiable, so the numbers are not globally wrong. Something more specific is.
+
+**The specific form survives, and §39.1's "CLEAN" was answering a weaker
+question than it appeared to.** `audit_programme_config.py` sweeps each spec's
+whole tolerance box and asks *is some shape in here feasible?* All 67 corpus
+specs pass that. But a tolerance is not a design intent. The author declared a
+target area and a target aspect, and that is the room they asked for. Asking
+whether **that** room is feasible gives a different answer:
+
+| programme | instances needing ≥2 exposed sides *as declared* |
+|---|---|
+| harbor-house | **7** (cr1, da1, 5 × n) |
+| maple-court | **6** (da1, lr1, 4 × n) |
+| health-centre | 0 |
+| programme-house | 0 |
+
+harbor's common room is 80 m² at aspect 2.0 — a 6.32 × 12.65 m room, and
+6.32 m is deeper than the 4.86 m single-aspect daylight limit. It is
+"feasible" only at the bottom of its area tolerance and the top of its aspect
+one: 4.5 × 13.4 m at 60 m². The search can satisfy the spec only by building
+something other than what was asked for.
+
+**And those are the codes that fail.** Within each programme, comparing the
+predicted codes against every other code in the same programme — which controls
+for programme size, as a cross-programme comparison would not:
+
+| programme | predicted codes | all other codes |
+|---|---|---|
+| harbor-house | 13/21 instances fail (**62%**) | 29/113 (26%) |
+| maple-court | 14/18 instances fail (**78%**) | 53/172 (31%) |
+
+**Decomposition of the corpus's 112 crinkliness fails:**
+
+| | |
+|---|---|
+| buried, `crink == 0` — topological, `k54` | 77 (69%) |
+| too deep, spec contradictory as declared | 17 (15%) |
+| too deep, other | 18 (16%) |
+
+**So what is actually wrong is not a sigma.** It is that three declared
+quantities — target area, target aspect, and the daylight limit — are jointly
+contradictory for six specs, and nothing told anyone. Of the three, the
+daylight limit is the one with independent support: the gaussian's own crossing
+and §38.3's frontage bound, derived separately, agree at `1.62·h` = 4.86 m, and
+the architectural rule of thumb for single-sided daylight (roughly twice the
+window head height) puts it in the same region. The area and aspect targets are
+the author's brief. So the resolution is a decision for the programme author —
+shrink the room, allow a deeper aspect, or say out loud that it wants a corner
+— and not a new constant chosen to make the number go down.
+
+**Shipped:** the `at declared target` column in `audit_programme_config.py`,
+the tool CLAUDE.md already sends programme authors to, plus a count of
+instances demanding a corner as declared and what that costs against a
+building's corner budget. This does not change the objective; it makes a
+contradiction visible before a multi-hour run bottoms out on it, exactly as
+§39.11's pre-flight does for plot area and frontage.
+
+**One related finding, recorded rather than fixed.** 36 of the 44 size fails
+(82%) are rooms **larger** than their target — and `cost` already charges floor
+area at `inside` = 200/m². That is the same shape of double-charge §39.14 found
+in crinkliness, but it is **not** the same case and must not be treated as one:
+crinkliness's surplus side has never once produced a failure, whereas size's
+upper bound is doing real work. Because the objective is `value/cost`, adding
+`dA` to a leaf raises the score whenever `q·value_inside / cost_inside`
+(= 1.5·q at the defaults) exceeds the current score — and the realised corpus
+scores are of order 1e-11, so that holds for any quality worth having. Growth
+is therefore always profitable *unless quality falls*, and within the objective
+the size gaussian's upper half is the main thing that makes it fall. Removing
+it on the analogy with crinkliness would license the search to inflate every
+room until it ran out of plot. If that upper bound is the wrong instrument, the
+thing to re-examine is the value rate, not the sigma.
