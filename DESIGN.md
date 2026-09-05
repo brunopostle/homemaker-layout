@@ -7513,3 +7513,96 @@ are the open questions — the second especially, since it is the same "value
 prices what cost already charges, and prices it context-free" shape that §39.14
 found in crinkliness. Both are objective changes and neither is smuggled in
 here.
+
+### 39.18 Quality is a product over a variable number of questions (`homemaker-py-ecx`)
+
+§39.17 left an observation unexplained: the search puts its open space on the
+storey that already has surplus frontage, and it does so consistently. Filed as
+a suspicion about `value_rate`. It is not the rate, or not only the rate.
+
+**What a square metre actually earns**, over the twelve baseline runs:
+
+| leaf kind | n | area | mean quality | value/m² | cost/m² | **value/cost** |
+|---|---|---|---|---|---|---|
+| outside, ground | 32 | 556 m² | 0.247 | 74.0 | 10.0 | **7.40** |
+| outside, upper (terrace) | 25 | 834 m² | **0.986** | 295.8 | 110.0 | **2.69** |
+| room | 345 | 7090 m² | **0.223** | 67.0 | 200.0 | **0.34** |
+| circulation | 111 | 2453 m² | 0.076 | 3.8 | 200.0 | **0.02** |
+
+A roof terrace returns 2.7× its cost; a room returns 0.34×; a corridor 0.02×.
+The search is not leaving value on the table by filling upper storeys with
+terrace — that is by a wide margin the most profitable thing the objective
+offers it. 7% of the corpus area produces 32% of its value.
+
+**And the mean-quality column is where most of that comes from.** Quality is a
+*product* of factors, and the leaf kinds are not asked the same number of
+questions:
+
+| factor | room | circulation | outside |
+|---|---|---|---|
+| perpendicular | 0.978 | 0.980 | — |
+| proportion | 0.872 | 0.699 | 1.000 |
+| size | 0.518 | 0.270 | **exempt** |
+| width | 0.937 | 0.918 | 0.907 |
+| crinkliness | 0.427 | 0.376 | **exempt** |
+| access | 0.940 | 1.000 | **exempt** |
+| **product** | **0.223** | **0.076** | **0.766** |
+| factors that ever bite | 6/7 | 5/7 | 3/7 |
+
+Every exemption is individually correct. An outside leaf has no programme size
+target to be measured against; an uncovered one is lit by definition; ground
+level outside needs no access. What is not correct is the consequence: **a leaf
+exempt from the two harshest factors scores higher than one judged on them and
+doing well, purely by not being asked.** Quality then multiplies the value
+rate, so the exemption is worth money.
+
+The general form of the defect is worth stating, because it is not about
+outside space: under a product, **adding any new quality criterion mechanically
+devalues every leaf it applies to, relative to every leaf it does not** — even
+a leaf that scores 1.0 on it. The objective's scale should not depend on how
+many things it happens to measure.
+
+**What shipped: `quality_aggregate="geometric_mean"`, default OFF.** The
+product, normalised by how many questions the leaf was asked. A leaf good at
+everything asked of it scores the same whether three things were asked or six.
+Computed in log space, so six small factors cannot underflow the product before
+the root is taken; a zero factor still gives zero, so a fully buried leaf is
+worth nothing under either.
+
+Telling "exempt" from "asked and scored 1.0" needs a predicate,
+`factor_is_asked`, that restates conditions living inside the `quality_*`
+methods — duplication that can drift. `tests/test_fitness_aggregate.py` pins it
+against every leaf in the corpus: wherever the predicate says exempt, the
+factor really is exactly 1.0.
+
+**The fail set is byte-identical** on every corpus artefact, and for a stronger
+reason than in §39.13/§39.14: `evaluate_leaf` emits each fail from the factor
+itself, before anything is combined, so no choice of aggregation can move a
+fail. Stock scoring is therefore a sound yardstick here by construction.
+
+**Effect**, larger than either crinkliness change and reaching all four
+programmes where those reached two:
+
+| programme | score delta |
+|---|---|
+| harbor-house | +70.4% / +36.9% / +42.6% |
+| maple-court | +93.0% / +60.8% / +57.4% |
+| health-centre | +74.9% / +169.3% / +86.7% |
+| programme-house | +60.3% / +108.2% / +39.3% |
+
+| leaf kind | value/cost, product | value/cost, geometric mean |
+|---|---|---|
+| outside, upper | 2.60 | 2.62 |
+| outside, ground | 1.30 | 1.64 |
+| room | 0.34 | **0.66** |
+| circulation | 0.02 | **0.07** |
+
+**What it does not fix, deliberately.** A terrace still out-earns a room 4:1.
+That residue is the rates, not the aggregation: `value_supported` is 300, the
+same as `value_inside`, while an upper outside leaf costs 110 against a room's
+200 — so even at quality 1.0 a terrace returns 2.73 and a room 1.5. Whether a
+roof terrace is worth as much per square metre as interior floor is a design
+judgement belonging to the programme author, and §39.16 is a standing reminder
+that "this inherited constant looks wrong" has already been wrong twice in this
+section. The aggregation defect is a formula choice and is fixed here; the rate
+question is left open on `homemaker-py-ecx` with the numbers attached.

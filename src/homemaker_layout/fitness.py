@@ -502,6 +502,18 @@ class Fitness:
         # well-lit room costs is already charged by `exterior_wall` and
         # `boundary_wall` in the cost model, so penalising it again in value
         # bills the same wall twice.
+        # homemaker-py-ecx (DESIGN.md §39.18): how a leaf's quality factors are
+        # combined. "product" (default) is stock. "geometric_mean" divides out
+        # how many questions the leaf was ASKED, because quality is a product
+        # and an outside leaf is exempt from size, crinkliness and access while
+        # a room is judged on all three -- so exemption alone buys a higher
+        # quality, and quality multiplies the value rate. Fails are emitted per
+        # factor inside evaluate_leaf, before any combining, so the fail set
+        # cannot move either way.
+        self._quality_aggregate = str(self.conf("quality_aggregate") or "product")
+        if self._quality_aggregate not in ("product", "geometric_mean"):
+            raise ValueError(
+                f"unknown quality_aggregate: {self._quality_aggregate!r}")
         self._crinkliness_shape = str(self.conf("crinkliness_shape") or "gaussian")
         if self._crinkliness_shape not in ("gaussian", "daylight"):
             raise ValueError(
@@ -1444,7 +1456,49 @@ class Fitness:
         factors["access"] = f
         quality *= f
 
+        if self._quality_aggregate == "geometric_mean":
+            quality = self._aggregate_geometric(leaf, factors)
         return quality, factors
+
+    def factor_is_asked(self, name: str, leaf: Node) -> bool:
+        """Is this factor a real question for this leaf, or an exemption?
+
+        Exempt factors return exactly 1.0 from their `quality_*` method, which
+        is indistinguishable from a leaf that was asked and answered perfectly
+        -- so the two cases have to be told apart here.
+        `tests/test_fitness_aggregate.py` asserts the invariant this duplication
+        rests on: whenever this returns False, the factor really is 1.0.
+        """
+        if name == "daylight":
+            return False                    # pinned to 1.0, URB_NO_OCCLUSION §6
+        if name == "size":
+            return _generic_class(leaf) not in ("o", "s")
+        if name == "crinkliness":
+            if dom_mod.is_outside(leaf) and not dom_mod.is_covered(leaf):
+                return False                # uncovered outside is lit by definition
+            if self.crinkliness_params(leaf) is None:
+                # no minimum-exposure requirement; under "daylight" nothing is
+                # left to ask, under "gaussian" the over-exposed side still bites
+                return self._crinkliness_shape != "daylight"
+            return True
+        if name == "access":
+            return not (not dom_mod.level_of(leaf) and dom_mod.is_outside(leaf))
+        return True
+
+    def _aggregate_geometric(self, leaf: Node, factors: dict[str, float]) -> float:
+        """Geometric mean over the factors this leaf was actually asked.
+
+        Computed in log space so six factors near zero cannot underflow the
+        product before the root is taken. A zero factor stays zero -- a fully
+        buried leaf is worth nothing under either aggregation.
+        """
+        asked = [v for name, v in factors.items()
+                 if self.factor_is_asked(name, leaf)]
+        if not asked:
+            return 1.0
+        if any(v <= 0.0 for v in asked):
+            return 0.0
+        return math.exp(sum(math.log(v) for v in asked) / len(asked))
 
     # ------------------------------------------------------------------ #
     # Value rates and costs (Leaf.pm:146-251, Storey.pm:122-147)

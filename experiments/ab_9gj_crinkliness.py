@@ -91,6 +91,12 @@ ARM_CONF = {
     "daylight": {"crinkliness_shape": "daylight"},
     "daylight+ramp": {"crinkliness_shape": "daylight",
                       "crinkliness_tail": "ramp"},
+    # homemaker-py-ecx (§39.18): orthogonal to the crinkliness arms -- it
+    # changes how the factors are COMBINED, not what any of them says.
+    "geomean": {"quality_aggregate": "geometric_mean"},
+    "geomean+daylight": {"quality_aggregate": "geometric_mean",
+                         "crinkliness_shape": "daylight",
+                         "crinkliness_tail": "ramp"},
 }
 ARMS = ["stock", "daylight", "daylight+ramp"]
 
