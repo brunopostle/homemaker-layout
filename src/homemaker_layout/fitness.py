@@ -477,6 +477,23 @@ class Fitness:
         if self._crinkliness_tail not in ("gaussian", "ramp"):
             raise ValueError(
                 f"unknown crinkliness_tail: {self._crinkliness_tail!r}")
+        # homemaker-py-9gj (DESIGN.md §39.14): what the factor rewards ABOVE the
+        # fail threshold, orthogonal to `crinkliness_tail` below it.
+        # "gaussian" (default) is stock: two-sided, so a room with MORE daylit
+        # wall than target is penalised for it. "daylight" clips that side to
+        # 1.0 -- daylight is a sufficiency requirement, and the envelope a
+        # well-lit room costs is already charged by `exterior_wall` and
+        # `boundary_wall` in the cost model, so penalising it again in value
+        # bills the same wall twice.
+        self._crinkliness_shape = str(self.conf("crinkliness_shape") or "gaussian")
+        if self._crinkliness_shape not in ("gaussian", "daylight"):
+            raise ValueError(
+                f"unknown crinkliness_shape: {self._crinkliness_shape!r}")
+        if self._crinkliness_shape == "daylight" and self._crinkliness_mode != "urb":
+            raise ValueError(
+                "crinkliness_shape='daylight' is incompatible with "
+                f"crinkliness_mode={self._crinkliness_mode!r} (§38.1's modes are "
+                "superseded; use one or the other, not both)")
         if self._crinkliness_tail == "ramp" and self._crinkliness_mode != "urb":
             # Both rewrite the same tail; composing them would give a shape
             # neither was measured under.
@@ -1266,6 +1283,13 @@ class Fitness:
             # whatever it holds. So the factor is CLIPPED on the compact side,
             # never switched off, and the over-exposed side keeps the global
             # bound.
+            #
+            # ...unless `crinkliness_shape="daylight"`, under which the
+            # over-exposed side is not this factor's business at all (the cost
+            # model charges that wall). A space with no daylight requirement
+            # then has nothing left to be judged on. (§39.14)
+            if self._crinkliness_shape == "daylight":
+                return 1.0
             if not crink:
                 return 1.0
             distance, sigma = self.conf("uncrinkliness")
@@ -1289,6 +1313,20 @@ class Fitness:
             if one_sided:
                 return 1.0
             return self._crinkliness_floor if mode == "floor" else 0.0
+
+        if self._crinkliness_shape == "daylight" and 1 / crink <= distance:
+            # homemaker-py-9gj (DESIGN.md §39.14). `1/crink` is the room's mean
+            # depth from its daylit wall in storey-heights, so `1/crink <=
+            # distance` means comfortably lit -- shallower than the point the
+            # stock gaussian peaks at. Stock decays from there as if surplus
+            # daylight were a defect; it is not one this factor should price,
+            # because the extra exterior wall is already billed in `cost`.
+            # Clipping here (rather than at the fail threshold) keeps the
+            # factor CONTINUOUS: the graded approach to the daylight limit
+            # survives, and no 10x cliff is introduced at the very boundary
+            # the fail multiplier already steps on. Note this is the OPPOSITE
+            # side from §38.1's `compact_ok`, which forgives being buried.
+            return 1.0
 
         q = gaussian(1 / crink, 1.0, distance, sigma)
         if one_sided and 1 / crink > distance:
