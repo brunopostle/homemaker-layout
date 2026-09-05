@@ -23,6 +23,17 @@ demanding a corner; a rectangular storey has only four corners, so a programme
 wanting more corner rooms than the plot has corners is over-subscribed before
 the search starts.
 
+**Two different questions, and §39.1 answered only the weaker one**
+(`homemaker-py-u5q`, DESIGN.md §39.15). Sweeping the whole tolerance box asks
+"is SOME shape in this spec's box feasible?" and every corpus spec passes it.
+But a tolerance is not a design intent: the author declared a target area and a
+target aspect, and those are the room they asked for. Asking "is the room AS
+DECLARED feasible?" is a different question, and six corpus specs fail it —
+all on daylight, all of them the big rooms. `at-target` below is that column.
+A spec can be "feasible" only at the bottom of its area tolerance and the top
+of its aspect tolerance, which means the search can satisfy it only by building
+something the author did not ask for.
+
 Usage::
 
     python experiments/audit_programme_config.py
@@ -96,7 +107,50 @@ def audit_code(fit: fitness.Fitness, code: str, height: float,
         if bool((swp & crink_ok).any()):
             result["needs"] = name
             break
+
+    # ...and the sharper question: the room AS DECLARED, not merely some room
+    # inside its tolerances. Target area at target aspect is what the author
+    # asked for; a spec feasible only at the edge of its box is one the search
+    # can satisfy only by building something else. (u5q, §39.15)
+    result.update(_audit_at_target(fit, code, height, hi, lo))
     return result
+
+
+def _audit_at_target(fit: fitness.Fitness, code: str, height: float,
+                     hi: float, lo: float) -> dict:
+    """Score the declared target area at the declared target aspect."""
+    sp = fit.spaces.get(code)
+    if sp is None:
+        return {"at_target": None, "at_target_needs": None}
+    size = fit.get_space_params(code, "size")
+    prop = fit.get_space_params(code, "proportion")
+    wid = fit.get_space_params(code, "width")
+    area, ratio = size[0], prop[0]
+    if not (area > 0 and ratio >= 1):
+        return {"at_target": None, "at_target_needs": None}
+    long_side, short_side = math.sqrt(area * ratio), math.sqrt(area / ratio)
+
+    bad = []
+    if fitness.gaussian(area, 1.0, size[0], size[1]) < fitness.FAIL_THRESHOLD:
+        bad.append("size")
+    if fitness._clipped_gaussian(short_side, wid[0], wid[1],
+                                 "above") < fitness.FAIL_THRESHOLD:
+        bad.append("width")
+    if fitness._clipped_gaussian(ratio, prop[0], prop[1],
+                                 "below") < fitness.FAIL_THRESHOLD:
+        bad.append("proportion")
+
+    needs = None
+    declares_light = "crinkliness" not in sp or sp.get("crinkliness") is not None
+    if declares_light:
+        for name, length_of in EXPOSURE:
+            L = length_of(long_side, short_side)
+            if area / (hi * height) <= L <= area / (lo * height):
+                needs = name
+                break
+        if needs is None:
+            bad.append("crinkliness")
+    return {"at_target": bad, "at_target_needs": needs}
 
 
 # The SEMANTIC (usage) prefixes. Unlike the generic types these classify
@@ -185,6 +239,11 @@ def audit_namespace(progdir: str) -> int:
     return skipped
 
 
+def _multi_aspect(pattern: str) -> bool:
+    """True if this exposure pattern needs more than one wall to the outside."""
+    return any(k in pattern for k in ("corner", "opposite", "3 sides", "4 sides"))
+
+
 def audit(progdir: str, verbose: bool) -> tuple[int, int]:
     reqs = programme.load_programme_dir(progdir)
     conf, cost = fitness.load_config(progdir)
@@ -193,14 +252,25 @@ def audit(progdir: str, verbose: bool) -> tuple[int, int]:
     height = seed.get("height") or 3.0
 
     print(f"=== {Path(progdir).name}   (height {height} m)")
-    hdr = f"  {'code':<7}{'count':<7}{'area ok':<18}{'min width':<11}{'max aspect':<12}needs"
+    hdr = (f"  {'code':<7}{'count':<7}{'area ok':<18}{'min width':<11}"
+           f"{'max aspect':<12}{'needs (anywhere in box)':<26}at declared target")
     print(hdr)
     print("  " + "-" * (len(hdr) - 2))
 
-    impossible = corner_demand = 0
+    impossible = corner_demand = as_declared = as_declared_corner = 0
     for code in sorted(reqs) + ["C", "O"]:
         count = reqs[code].count if code in reqs else 0
         r = audit_code(fit, code, height)
+        at = r.get("at_target")
+        if at:
+            as_declared += max(count, 1)
+            target_col = "FAILS " + ",".join(at)
+        elif at is None:
+            target_col = "-"
+        else:
+            target_col = (r.get("at_target_needs") or "ok")
+            if _multi_aspect(target_col):
+                as_declared_corner += max(count, 1)
         if not r["swp"]:
             verdict = "IMPOSSIBLE (size/width/proportion contradict)"
             impossible += max(count, 1)
@@ -209,19 +279,39 @@ def audit(progdir: str, verbose: bool) -> tuple[int, int]:
             impossible += max(count, 1)
         else:
             verdict = r["needs"]
-            if "corner" in verdict or "opposite" in verdict or "3 sides" in verdict \
-                    or "4 sides" in verdict:
+            if _multi_aspect(verdict):
                 corner_demand += max(count, 1)
         area_col = "%.1f-%.1f m2" % (r["amin"], r["amax"])
         width_col = "%.2f m" % r["wmin"]
         aspect_col = "%.2f" % r["rmax"]
         count_col = str(count) if count else "-"
         print(f"  {code:<7}{count_col:<7}{area_col:<18}"
-              f"{width_col:<11}{aspect_col:<12}{verdict}")
+              f"{width_col:<11}{aspect_col:<12}{verdict:<26}{target_col}")
 
     print(f"\n  room instances that are impossible as specified : {impossible}")
     print(f"  room instances requiring >=2 exposed sides       : {corner_demand}"
-          f"   (a rectangular storey has 4 corners)\n")
+          f"   (a rectangular storey has 4 corners)")
+    print(f"  room instances that FAIL AS DECLARED             : {as_declared}"
+          f"   (target area at target aspect)")
+    print(f"  room instances needing >=2 sides AS DECLARED     : "
+          f"{as_declared_corner}")
+    if as_declared_corner:
+        need = -(-as_declared_corner // 4)   # ceil
+        print(f"     ^ a rectangular storey offers 4 corners, so these alone need "
+              f">= {need} storey(s)\n"
+              f"       and claim {as_declared_corner} of the 4*S corners a "
+              f"S-storey building has, leaving\n"
+              f"       4*S - {as_declared_corner} for every other room. They are "
+              f"satisfiable single-aspect only by\n"
+              f"       shrinking toward the bottom of their area tolerance and "
+              f"stretching toward the\n"
+              f"       top of their aspect one -- i.e. by building something "
+              f"other than what was\n"
+              f"       asked for. (The seed init.dom is one storey for every "
+              f"corpus programme;\n"
+              f"       the search grows the rest, so the corner budget is not "
+              f"fixed in advance.)")
+    print()
     return impossible, corner_demand
 
 
