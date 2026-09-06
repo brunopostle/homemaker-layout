@@ -233,7 +233,17 @@ CONF_DEFAULTS: dict = {
     "size_circulation": [0.0, 14.0],
     "size_inside": [16.0, 3.5],
     "proportion_outside": [1.5, 50],
-    "proportion_circulation": [1.5, 0.5],
+    # homemaker-py-hxi (DESIGN.md §39.22). Was [1.5, 0.5], which fails a
+    # corridor above aspect 2.57 -- at the 1.97 m minimum width the width factor
+    # allows, that is a corridor 5.1 m long. A corridor is long and thin by
+    # nature, and the longer the building the longer the spine has to be.
+    #
+    # `None` means NO proportion requirement. What stops a corridor becoming an
+    # unpleasant space is crinkliness, not aspect: a long buried corridor has
+    # crink == 0 and fails outright, while a long one along a facade scores
+    # 0.90 -- which is the right answer for both. Width still holds the
+    # narrow side (>= 1.97 m) and `edge too long` still caps a single wall.
+    "proportion_circulation": None,
     "proportion_inside": [1.5, 0.5],
     "width_outside": [3.0, 0.3],
     "width_circulation": [2.4, 0.2],
@@ -1182,6 +1192,8 @@ class Fitness:
             params = self.conf("proportion_outside")
         elif t0 == "c":
             params = self.conf("proportion_circulation")
+            if params is None:
+                return 1.0          # no aspect requirement -- §39.22
         else:
             params = self.get_space_params(leaf.type, "proportion")
             co_type = self._leaf_co_type(leaf)

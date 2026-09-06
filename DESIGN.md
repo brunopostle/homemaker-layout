@@ -7814,3 +7814,88 @@ Next: `homemaker-py-hxi` — circulation at 0.07 return against a room's 0.66,
 which the owner has ruled needs fixing — and the corpus re-baseline
 (`homemaker-py-bk9`), which §39.19 made necessary and which every future number
 depends on.
+
+### 39.22 A corridor may be corridor-shaped (`homemaker-py-hxi`)
+
+Asked whether the scoring of outdoor and circulation space is likely correct,
+the answer for circulation is no — but **not** for the reason the bead carried.
+
+**First, a retraction of the bead's own premise.** `hxi` was titled "search is
+rewarded for deleting the circulation spine". §39.8 already measured that and
+found the opposite: of 64 sampled deletions across harbor and maple, 7 broke
+connectivity and **0 of those 7 were rewarded** (×0.00 to ×0.58). Severing costs
+one or two connectivity fails plus the cascade behind them, which outweighs the
+×6 value gain. The low value rate does not translate into the spine being
+deleted. (A comment on the bead restating the retracted claim has been
+corrected, and the bead retitled.)
+
+**What the parameters actually say.** Over the 111 circulation leaves in the
+twelve baseline runs, per leaf:
+
+| factor | mean | fails |
+|---|---|---|
+| perpendicular | 0.982 | 0/111 |
+| proportion | 0.710 | 7/111 |
+| size | 0.539 | 16/111 |
+| width | 0.772 | 2/111 |
+| crinkliness | 0.485 | 29/111 |
+| access | 1.000 | 0/111 |
+
+Median corridor 14.3 m², median aspect **1.67** — a stubby room, not a
+corridor. Two parameters explain that, and both are the double-charge shape
+§39.14 and §39.18 found elsewhere:
+
+1. **`proportion_circulation = [1.5, 0.5]`** caps aspect at 2.57. At the 1.97 m
+   minimum width the width factor allows, that is a corridor **5.1 m long**; at
+   the 2.4 m target width, 6.2 m. A corridor is long and thin by nature, and
+   the bigger the building the longer the spine must be.
+2. **`size_circulation = [0.0, 14.0]`** — the target area of a corridor is
+   **zero**, so a median 14.3 m² corridor scores 0.592 on size purely for
+   existing. Circulation is then priced as overhead twice: once in
+   `value_circulation` = 50 (a sixth of a room) and again in a size factor
+   whose optimum is non-existence.
+
+**Owner's ruling on the first:** *there should be no cap on the proportion of a
+corridor, especially for big buildings, the crinkliness rule is there to
+prevent these becoming unpleasant spaces.*
+
+That justification is exactly right, and it is checkable. The unpleasant space
+the aspect cap was being used to prevent is a long *buried* corridor — and
+crinkliness already sends that to zero, because a buried leaf has `crink == 0`.
+A long corridor *along a facade* is a perfectly good corridor, and crinkliness
+scores it **0.90**. The cap was standing in for a rule that already exists and
+does the job better, since it distinguishes the two cases where aspect cannot.
+
+**Shipped:** `proportion_circulation = None`, meaning no aspect requirement.
+`quality_proportion` returns 1.0 for circulation; `shapecurve.leaf_constraints`
+yields `rmax = inf` so the DP agrees with the fitness rather than pruning
+topologies the objective would accept. A habitable room's aspect target is
+untouched — the ruling is about corridors.
+
+The narrow side is still held: `width_circulation` keeps a corridor ≥ 1.97 m
+wide, and `edge too long` still caps any single wall at 8 m.
+
+**Unlike §39.14/§39.18/§39.19, this changes the fail set** — that is the point
+of it. Across the twelve baseline artefacts it removes exactly **7** corridor
+proportion fails and adds none:
+
+| programme | fails before → after |
+|---|---|
+| harbor-house | 33/43/42 → 33/42/40 |
+| maple-court | 54/73/55 → 54/71/54 |
+| health-centre | 4/9/5 → 3/9/5 |
+| programme-house | 1/1/1 → unchanged |
+
+**What binds next, and it is worth knowing before reading too much into this.**
+Removing the aspect cap roughly doubles how long a single corridor leaf may be:
+the binding constraint moves from proportion at ~6.2 m to `size_circulation` at
+**12.5 m** (a 2.4 m wide leaf reaches the 30 m² fail edge there). A longer spine
+is still representable as several corridor leaves in series, so this is a real
+relaxation rather than a cosmetic one — but the zero-area size target is still
+there, and it is the other half of the double-charge above. It has **not** been
+changed: it is a distinct parameter with its own rationale (circulation is
+overhead, minimise it), the owner has not ruled on it, and §39.16 is a standing
+reminder about how often an inherited constant has turned out to be right.
+
+Whether any of this helps the search is unmeasured and, as with everything since
+§39.19, gated on the re-baseline (`homemaker-py-bk9`).

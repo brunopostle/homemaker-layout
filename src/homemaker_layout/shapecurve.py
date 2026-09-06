@@ -233,8 +233,11 @@ def leaf_constraints(fit, leaf: dom_mod.Node) -> LeafBounds:
         params = fit.conf("proportion_circulation")
     else:
         params = fit.get_space_params(leaf.type, "proportion")
-    target, sigma = params[0], params[1]
-    rmax = max(1.0 + 1e-9, target + _K * sigma)
+    if params is None:
+        rmax = math.inf         # no aspect requirement (§39.22, circulation)
+    else:
+        target, sigma = params[0], params[1]
+        rmax = max(1.0 + 1e-9, target + _K * sigma)
 
     return LeafBounds(amin=amin, amax=amax, wmin=wmin, rmax=rmax)
 
