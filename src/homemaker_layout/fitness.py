@@ -210,7 +210,25 @@ CONF_DEFAULTS: dict = {
     "door_width": 1.2,
     "plot_ratio": [2.00, 0.50],
     "ratio_outside": [0.33, 0.15],
-    "ratio_circulation": [0.00, 0.20],
+    # homemaker-py-hxi (DESIGN.md §39.24). Was [0.00, 0.20] -- a gaussian on
+    # the circulation FRACTION, targeting zero, applied as a multiplier to the
+    # whole building's value (0.013..0.70 across the corpus). `None` disables
+    # it, because it double-counts and does so with the wrong curve.
+    #
+    # The score is `value / cost`, which is already a ratio, so the per-m2
+    # economics -- circulation worth 50 against a build cost of 200 -- is
+    # already a PROPORTIONAL pressure and not merely an absolute one: adding
+    # corridor moves value/cost by an amount that depends on how much of the
+    # building is already corridor. A second, super-linear term on the same
+    # quantity says the same thing twice, and says it with a curve where twice
+    # the corridor is far more than twice as bad (0.10 -> x0.882, 0.20 ->
+    # x0.607, 0.40 -> x0.135).
+    #
+    # Contrast `ratio_outside`, which is KEPT: its target is 0.33, not zero, so
+    # it is a genuine two-sided requirement rather than "less is better", and
+    # its binding side (do not build too much outdoor space) is not something
+    # the economics expresses -- outdoor space is profitable.
+    "ratio_circulation": None,
     # PROVENANCE (DESIGN.md §39.16). This is Christopher Alexander, A Pattern
     # Language 159, "Light on Two Sides of Every Room" -- not an arbitrary
     # constant. The factor is evaluated at `1/crink = A/(L*h)`: floor area per
@@ -2048,7 +2066,8 @@ class Fitness:
         factor *= self.ratio_o(ratios)
 
         circ_ratio = self.conf("ratio_circulation")
-        factor *= self.ratio_type(ratios, "c", circ_ratio[0], circ_ratio[1])
+        if circ_ratio is not None:          # §39.24: off by default
+            factor *= self.ratio_type(ratios, "c", circ_ratio[0], circ_ratio[1])
 
         min_required = 0.0
         for req in (self._programme or {}).values():

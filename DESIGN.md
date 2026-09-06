@@ -7971,3 +7971,83 @@ untouched and unruled: `value_circulation` = 50 against `value_inside` = 300, a
 room per square metre is a design judgement, not something measurement settles,
 and the linear ramp the owner describes is only as steep as that number makes
 it. Left open on the bead.
+
+### 39.24 `ratio_circulation` removed, and a sweep for the rest of its kind (`homemaker-py-hxi`)
+
+Owner, closing the rate question and opening a general one:
+
+> I think a corridor could be worth a sixth of a room, this is ok. maybe we
+> should dump the ratio_circulation altogether if there is already a pressure in
+> circulation caused by the cost benefit ratio per msq. this is the kind of
+> thing we want to root out of the scoring model: anything that is double
+> counting, or using a gaussian where a linear ramp is appropriate, etc.
+
+So `value_circulation = 50` stands, and `hxi`'s rate question is closed.
+
+**`ratio_circulation` is a duplicate, and the argument is stronger than it first
+looks.** The score is `value / cost` — already a ratio. So the per-m² economics
+(50 against a build cost of 200) is not merely an *absolute* pressure against
+corridor area: adding corridor moves `value/cost` by an amount that depends on
+how much of the building is already corridor. It is **already proportional**.
+`ratio_circulation` states the same thing a second time, as a whole-building
+multiplier, on a curve where twice the corridor is far more than twice as bad.
+
+**A correction to my own first measurement.** I initially measured this by
+overriding `ratio_circulation` and comparing — and got scores going *down* when
+a ≤1 multiplier was removed, which is impossible. The cause: all four corpus
+programmes **declare** `ratio_circulation` themselves, so the `CONF_DEFAULTS`
+value I had changed was never in play, and my "with" arm was accidentally
+comparing two different sigmas. The same trap as `value_supported` in §39.19.
+Measured properly, disabling it raises every score, by +42% to +7712%
+(programme-house s2, which is 44% circulation).
+
+**And the declared values are not what the default suggests:**
+
+| programme | declared | worst the *lower* side can cost |
+|---|---|---|
+| harbor-house | [0.08, 0.15] | 13.3% |
+| maple-court | [0.08, 0.15] | 13.3% |
+| health-centre | [0.10, 0.12] | 29.3% |
+| programme-house | [0.00, 0.15] | 0% |
+| `CONF_DEFAULTS` | [0.00, 0.20] | 0% |
+
+Three of the four target a *positive* circulation fraction, so the term is
+formally two-sided, not "less is better" — and a two-sided target is exactly
+what a gaussian is for. That is the one argument for keeping it. It does not
+survive the numbers: the lower side ("a building needs some circulation") is
+worth at most 13% on the two large programmes, while the upper side reaches
+99%, and the lower side's job is done structurally anyway by the access and
+connectivity checks, which no amount of value can buy off. What is left is an
+upper-side penalty, and the upper side is the duplicated one.
+
+**Shipped:** `ratio_circulation` disabled — `None` in `CONF_DEFAULTS` and in the
+four corpus `patterns.config` files, each with the reason inline and a note that
+a `[target, sigma]` pair re-enables it. Fail sets are unchanged; it was always a
+value multiplier, never a fail source.
+
+**The sweep.** Every term in the objective, against the two tests the owner
+named — does it double-count, and is a gaussian the right curve for what it
+measures?
+
+| term | measures | shape | verdict |
+|---|---|---|---|
+| perpendicular | corner angle vs 90° | two-sided gaussian | **OK** — a right angle is a genuine optimum |
+| proportion | aspect vs target | clipped, one free side | **OK** |
+| width | narrowest vs minimum | clipped, one free side | **OK** |
+| crinkliness | daylight per unit floor | one-sided since §39.14 | **OK** |
+| access | has a circulation neighbour | binary | **OK** — not a curve |
+| size, *lower* side | area vs programme target | gaussian | **OK** — a room has a right size |
+| size, *upper* side | area over target | gaussian | **SUSPECT** — `cost` already charges floor area, and an oversize room is wasteful in proportion, not quadratically. §39.15 found 82% of size fails are over-target. Not changed: §39.15 also found this upper half is the main brake on growth, so removing it needs the value rates looked at first. |
+| ratio_outside | outdoor fraction vs target | two-sided gaussian | **OK** — and its binding side counters the economics rather than duplicating it, since outdoor space is profitable |
+| ratio_circulation | circulation fraction | gaussian, effectively one-sided | **REMOVED** |
+| min internal area | total room area below 1.2× the programme | one-sided gaussian | **SUSPECT** — "build the rooms you were asked for" is already said by the missing-space fails and again by `quality_size`. A third statement of it. |
+| staircase volume | stair fit | gaussian | **OK** — a stair has a right size |
+| stair count, storey limits | counts vs bounds | binary fails | **OK** |
+| `ratio_public_outside`, `ratio_private_outside` | boundary-length ratios | gaussian | **DEAD** — absent from `CONF_DEFAULTS` and from every corpus config, so the branch never runs |
+| `daylight` factor | pinned to 1.0 | constant | **DEAD** — `URB_NO_OCCLUSION` (§6); it is a factor that can never be anything but 1 |
+| `0.5 ** n_fails` | fail count | exponential | **RULING WANTED** — each failure independently halves the building. Coherent as a product of independent defects, but it is not "twice as many failures is twice as bad", and it is the single largest term in the objective. |
+
+The three SUSPECT entries and the fail multiplier are filed rather than changed
+— each needs a ruling or a rate change behind it, and §39.16 is the standing
+reminder about acting on an inherited constant before understanding what it
+measures. The two DEAD entries are inert and cost nothing but confusion.

@@ -150,13 +150,22 @@ def test_twice_the_corridor_is_exactly_twice_as_bad():
         "so, §39.23's justification needs revisiting")
 
 
-def test_the_amount_of_circulation_is_still_priced():
-    """Removing the per-leaf cap must not make corridors free. Two charges
-    remain, and they are the ones that do not depend on how it is cut up."""
+def test_the_amount_of_circulation_is_priced_exactly_once():
+    """Removing the per-leaf cap must not make corridors free -- but the charge
+    that remains must also be the ONLY one (§39.24).
+
+    The linear ramp is `value_circulation` against the build cost: every square
+    metre of corridor is worth less than it costs, and because the score is
+    `value / cost` that pressure is already proportional to how much of the
+    building is corridor. `ratio_circulation` said the same thing a second time
+    and is disabled; if it comes back, either it has a justification this test
+    does not know about or the double count has returned.
+    """
     fit = _fit()
     assert fit.conf("value_circulation") < fit.cost("inside"), (
         "a corridor must cost more to build than it is worth, or there is no "
         "linear ramp pushing the search to use less of it")
-    assert fit.conf("ratio_circulation") is not None, (
-        "the building-level circulation fraction check is the other charge"
-    )
+    assert fit.conf("ratio_circulation") is None, (
+        "ratio_circulation duplicates the per-m2 economics (§39.24)")
+    assert fit.conf("size_circulation") is None, "§39.23"
+    assert fit.conf("proportion_circulation") is None, "§39.22"
