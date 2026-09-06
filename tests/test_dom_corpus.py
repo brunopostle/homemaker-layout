@@ -76,10 +76,6 @@ def _native_evaluate(src: Path):
     tracking: dict = {
         "has_public_access_outside": False,
         "has_public_access_inside": False,
-        "public_length_all": 0.0,
-        "public_length_outside": 0.0,
-        "private_length_all": 0.0,
-        "private_length_outside": 0.0,
         "stair_fit": [],
         "_failures": failures,
     }

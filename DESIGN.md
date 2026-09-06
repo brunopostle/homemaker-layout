@@ -8126,3 +8126,47 @@ where the fraction penalty lifted and fall where a new hard fail landed:
 | maple-court | 51→**52**, 65, 52 | −50% (new fail), +1%, +0.4% |
 | health-centre | 3/9/5 unchanged | +29% … +156% |
 | programme-house | 1→**2** all seeds | −43%, +24%, −50% |
+
+### 39.26 Two dead paths in the objective (`homemaker-py-dpt`)
+
+§39.24's sweep listed two entries as DEAD rather than suspect — inert code that
+reads as live. Both are removed here. Neither changes a score or a failure on
+any corpus artefact; that is what "dead" meant, and it is verified rather than
+asserted: every artefact scores identically to its §39.25 measurement.
+
+**`ratio_public_outside` and `ratio_private_outside`.** `evaluate_building`
+read both and multiplied a gaussian into the building factor for each. Neither
+key exists in `CONF_DEFAULTS`, and no `patterns.config` in the repository
+declares either, so both branches were guarded by `if conf_po and isinstance(...)`
+and never ran. Removing them also retires what fed them: the four
+`public_length_*` / `private_length_*` tracking keys accumulated per leaf in
+`process_storey`, and the `_public_length` / `_private_length` helpers, which
+had no other caller.
+
+Note what is **not** removed: `_public_access`, `_public_access_outside` and
+`_public_access_pins`, and the `has_public_access_inside` / `..._outside`
+tracking flags. Those are live — they drive real checks and
+`collapse_global`'s `preserve_public_access`. Only the *length ratio* machinery
+was dead.
+
+**The `daylight` quality factor.** `evaluate_leaf` set `factors["daylight"] =
+1.0` unconditionally, a factor that has been pinned since the URB_NO_OCCLUSION
+descope (§6) and can never be anything else. It was never in `_GRADED_FACTORS`,
+so it contributed nothing to the graded signal; §39.18's geometric mean then had
+to special-case it in `factor_is_asked` as a factor that is never asked. A
+constant that exists only to be excluded is worth deleting.
+
+If the occlusion subsystem is ever rebuilt (`homemaker-py-2g5`), it reintroduces
+a real daylight factor; nothing here forecloses that, and a real one would need
+`factor_is_asked` to say `True` for it anyway.
+
+**Why this is worth doing at all**, given neither changes a number: §39.20 and
+§39.25 were both cases where something inert looked live — a parity test that
+never ran, a per-level rule switched off in every config — and in both the
+misreading cost real time and produced a wrong conclusion. An objective with
+fewer things in it that do nothing is an objective where "this term does
+nothing" is informative rather than routine.
+
+Still open on `dpt`, and all three need a ruling or a rate change rather than a
+measurement: `quality_size`'s upper side, the minimum-internal-area factor as a
+third statement of "build the rooms", and the `0.5 ** n_fails` curve.

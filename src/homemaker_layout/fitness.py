@@ -1,7 +1,7 @@
 """Native port of Urb's programme-driven fitness: leaf quality terms + cost model.
 
 Scope (homemaker-py-gnw): per-leaf quality factors (perpendicular, proportion,
-size, width, crinkliness, daylight, access), the programme-driven parameter
+size, width, crinkliness, access), the programme-driven parameter
 lookup chain (``get_space_params``), value rates, and the cost denominator
 (per-leaf area costs, interior/exterior wall edge costs, boundary costs).
 Storey/building checks, staircases, failure stacking and final assembly are
@@ -1544,9 +1544,6 @@ class Fitness:
         factors["crinkliness"] = f
         quality *= f
 
-        # Daylight pinned to 1 — URB_NO_OCCLUSION semantics (DESIGN.md §6).
-        factors["daylight"] = 1.0
-
         if len(self.access(leaf, G)) > 0:
             f = 1.0
         elif not dom_mod.level_of(leaf) and dom_mod.is_outside(leaf):
@@ -1570,8 +1567,6 @@ class Fitness:
         `tests/test_fitness_aggregate.py` asserts the invariant this duplication
         rests on: whenever this returns False, the factor really is 1.0.
         """
-        if name == "daylight":
-            return False                    # pinned to 1.0, URB_NO_OCCLUSION §6
         if name == "size":
             return _generic_class(leaf) not in ("o", "s")
         if name == "crinkliness":
@@ -1923,38 +1918,6 @@ class Fitness:
                 return True
         return False
 
-    def _public_length(self, leaf: Node, root: Node) -> float:
-        """Non-private external boundary metres; mirrors ``Urb::Dom::Public_Length``."""
-        if dom_mod.level_of(leaf) != 0:
-            return 0.0
-        total = 0.0
-        for edge in range(4):
-            bid = geometry.boundary_id(leaf, edge)
-            if bid not in frozenset("abcd"):
-                continue
-            if self._perimeter_type(root, bid).lower() == "private":
-                continue
-            total += geometry.edge_length(leaf, edge)
-        return total
-
-    def _private_length(self, leaf: Node, root: Node) -> float:
-        """Private external boundary metres; mirrors ``Urb::Dom::Private_Length``."""
-        if dom_mod.level_of(leaf) != 0:
-            return 0.0
-        total = 0.0
-        for edge in range(4):
-            bid = geometry.boundary_id(leaf, edge)
-            if bid not in frozenset("abcd"):
-                continue
-            if self._perimeter_type(root, bid).lower() != "private":
-                continue
-            total += geometry.edge_length(leaf, edge)
-        return total
-
-    # ----------------------------------------------------------------------- #
-    # Extended process_storey (adds circ, stair, tracking)
-    # ----------------------------------------------------------------------- #
-
     def process_storey(
         self,
         level_root: Node,
@@ -2040,15 +2003,6 @@ class Fitness:
                             and self._public_access(leaf, root) is not None):
                         tracking["has_public_access_inside"] = True
 
-                    pub = self._public_length(leaf, root)
-                    tracking["public_length_all"] = tracking.get("public_length_all", 0.0) + pub
-                    if dom_mod.is_outside(leaf):
-                        tracking["public_length_outside"] = tracking.get("public_length_outside", 0.0) + pub
-                    priv = self._private_length(leaf, root)
-                    tracking["private_length_all"] = tracking.get("private_length_all", 0.0) + priv
-                    if dom_mod.is_outside(leaf):
-                        tracking["private_length_outside"] = tracking.get("private_length_outside", 0.0) + priv
-
         for a, b in G.edges():
             cost += self.edge_cost(G, a, b, fail)
         for leaf in level_root.leaves():
@@ -2095,19 +2049,6 @@ class Fitness:
         if actual_internal < min_required and min_required > 0:
             f2 = gaussian(actual_internal, 1.0, min_required, min_required * 0.15)
             factor *= f2
-
-        # Public/private ratios (optional config)
-        pub_all = tracking.get("public_length_all", 0.0)
-        pub_ratio = tracking.get("public_length_outside", 0.0) / pub_all if pub_all else 0.0
-        conf_po = self.conf("ratio_public_outside")
-        if conf_po and isinstance(conf_po, list):
-            factor *= gaussian(pub_ratio, 1.0, conf_po[0], conf_po[1])
-
-        priv_all = tracking.get("private_length_all", 0.0)
-        priv_ratio = tracking.get("private_length_outside", 0.0) / priv_all if priv_all else 0.0
-        conf_pr = self.conf("ratio_private_outside")
-        if conf_pr and isinstance(conf_pr, list):
-            factor *= gaussian(priv_ratio, 1.0, conf_pr[0], conf_pr[1])
 
         # Staircase volume (multi-level only)
         lvls = dom_mod.levels(root)
@@ -2188,10 +2129,6 @@ class Fitness:
         tracking: dict = {
             "has_public_access_outside": False,
             "has_public_access_inside": False,
-            "public_length_all": 0.0,
-            "public_length_outside": 0.0,
-            "private_length_all": 0.0,
-            "private_length_outside": 0.0,
             "stair_fit": [],
             "_failures": failures,
         }

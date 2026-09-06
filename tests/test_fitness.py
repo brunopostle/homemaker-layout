@@ -335,8 +335,10 @@ def test_leaf_grade_sums_over_failing_factors():
 
 
 def test_leaf_grade_ignores_non_graded_keys():
-    # daylight is pinned and never a graded factor even if below threshold.
-    assert _leaf_grade({"daylight": 0.0}) == 0.0
+    # Only _GRADED_FACTORS contribute; anything else is ignored however low.
+    # (This used to name "daylight", a factor pinned to 1.0 since the
+    # URB_NO_OCCLUSION descope and removed entirely in §39.26.)
+    assert _leaf_grade({"not_a_factor": 0.0}) == 0.0
 
 
 # --------------------------------------------------------------------------- #

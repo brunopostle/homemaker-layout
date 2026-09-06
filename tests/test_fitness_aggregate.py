@@ -87,7 +87,7 @@ def test_geometric_mean_is_the_product_when_every_factor_is_asked():
     fit = Fitness(*load_config(EXAMPLES / "harbor-house"))
     leaf = dom_mod.Node(type="r")
     factors = {"perpendicular": 0.9, "proportion": 0.8, "size": 0.5,
-               "width": 0.95, "crinkliness": 0.4, "access": 1.0, "daylight": 1.0}
+               "width": 0.95, "crinkliness": 0.4, "access": 1.0}
     asked = [v for k, v in factors.items() if fit.factor_is_asked(k, leaf)]
     expected = math.prod(asked) ** (1.0 / len(asked))
     assert fit._aggregate_geometric(leaf, factors) == pytest.approx(expected)
@@ -111,7 +111,6 @@ def test_it_does_not_underflow_where_the_product_would():
     tiny = 1e-60
     factors = {k: tiny for k in ("perpendicular", "proportion", "size",
                                  "width", "crinkliness", "access")}
-    factors["daylight"] = 1.0
     assert math.prod(factors[k] for k in factors) == 0.0      # product underflows
     assert fit._aggregate_geometric(leaf, factors) == pytest.approx(tiny, rel=1e-6)
 
