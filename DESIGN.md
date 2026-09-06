@@ -7597,6 +7597,34 @@ programmes where those reached two:
 | room | 0.34 | **0.66** |
 | circulation | 0.02 | **0.07** |
 
+**A/B verdict: directionally positive, not resolvable at this budget.** Same
+protocol as §39.13/§39.14 — harbor and maple, three 500 k plateau starts × two
+RNG seeds, 8000 evals, all arms scored under stock (valid here by
+construction, since no aggregation can move a fail). Run against the
+*pre-§39.19* defaults, so `stock` really is the old objective:
+
+```
+harbor  geomean          vs stock  N=6  39.17 -> 39.00  1W/0L/5T  diff +0.167  MDD 0.428
+harbor  geomean+daylight vs stock  N=6  39.17 -> 39.00  1W/0L/5T  diff +0.167  MDD 0.428
+maple   geomean          vs stock  N=6  60.50 -> 60.17  1W/1L/4T  diff +0.333  MDD 1.434
+maple   geomean+daylight vs stock  N=6  60.50 -> 60.00  1W/0L/5T  diff +0.500  MDD 1.285
+```
+
+Every margin is below what N=6 can resolve; N≈26–67 would be needed. Unlike
+§39.13's ramp — which was an *exact* null, 0W/0L/6T with sd=0 and identical
+trajectories — the arms here genuinely diverge and every one of the four lands
+on the favourable side of zero. That is worth exactly as much as it sounds:
+four coin-flips landing the same way. It is not evidence, and it is recorded
+here so that a later run cannot cite it as if it were.
+
+**The honest summary of this section's three A/Bs**: none of §39.13, §39.14 or
+§39.18 produced a measurable search improvement at an 8000-eval plateau budget.
+All three were shipped on correctness grounds — an unrankable tail, a
+double-charge, an exemption that bought quality — and §39.19 then required two
+of them outright. If the objective changes in §39 pay off in search terms, this
+corpus has not yet shown it, and the powered protocol in
+`experiments/ab_9gj_crinkliness.py` is what would.
+
 **What it does not fix, deliberately.** A terrace still out-earns a room 4:1.
 That residue is the rates, not the aggregation: `value_supported` is 300, the
 same as `value_inside`, while an upper outside leaf costs 110 against a room's
