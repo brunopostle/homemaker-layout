@@ -122,15 +122,25 @@ def main() -> None:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--budget", type=int, default=500000)
     ap.add_argument("--seeds", type=int, default=3)
-    ap.add_argument("--slots", type=int, default=4)
+    ap.add_argument("--slots", type=int, default=4,
+                    help="concurrent runs; one worker each, so set it to your "
+                         "core count (default 4)")
+    ap.add_argument("--checkpoint-every", type=int, default=None, metavar="N",
+                    help="write each run's best-so-far .dom every N evals "
+                         "(default: budget/20). The longest single run in the "
+                         "first baseline took 62 h; without this, losing the "
+                         "box at hour 61 loses all of it.")
     ap.add_argument("--programmes", nargs="+", default=PROGRAMMES)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
+    checkpoint_every = (args.checkpoint_every if args.checkpoint_every is not None
+                        else max(1, args.budget // 20))
 
     # seed-major: all programmes at seed 0, then seed 1, ...
     queue = [(p, s) for s in range(args.seeds) for p in args.programmes]
     print(f"{len(queue)} runs, budget {args.budget}, {args.slots} slots, "
-          f"seed-major order\n", flush=True)
+          f"checkpoint every {checkpoint_every} evals, seed-major order\n",
+          flush=True)
     if args.dry_run:
         for p, s in queue:
             print(f"  would run {p} seed {s}")
@@ -146,7 +156,8 @@ def main() -> None:
             fh = log.open("w")
             proc = subprocess.Popen(
                 ["homemaker-evolve", "init.dom", "--budget", str(args.budget),
-                 "--seed", str(seed), "--workers", "1", "--output", str(out)],
+                 "--seed", str(seed), "--workers", "1", "--output", str(out),
+                 "--checkpoint-every", str(checkpoint_every)],
                 cwd=d, stdout=subprocess.DEVNULL, stderr=fh)
             running[proc.pid] = (proc, prog, seed, out, fh, time.time())
             print(f"  start {prog} seed {seed} -> {out.name}", flush=True)
