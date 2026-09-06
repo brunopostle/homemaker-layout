@@ -7757,3 +7757,60 @@ misread constant and this all have the same shape: something was trusted
 because it was *present*, not because it was *checked*. The fix each time is to
 make the artefact carry its own justification — a committed fixture, a stated
 derivation, a naming convention that cannot admit the wrong file.
+
+### 39.21 The Perl oracle is gone (`homemaker-py-118`)
+
+§39.20 found that the native-vs-Perl parity tests had never run and, where they
+did run, were comparing the native scorer with itself. The owner's decision on
+that is to remove the oracle outright: *we need to abandon the perl oracle,
+this was only useful when initially porting, but I suspect many of the
+remaining problems have been carried in from the perl (such as the weird
+scoring of outdoor and circulation space, which definitely needs fixing).*
+
+That second clause is the important one, and §39 supports it. Every defect this
+section found is inherited, not introduced:
+
+| defect | where it came from |
+|---|---|
+| §39.14 two-sided crinkliness gaussian, surplus daylight double-charged | Urb |
+| §39.18 quality as a product over a variable number of factors | Urb |
+| §39.19 `value_supported` = `value_inside`, terrace priced as a room | Urb |
+| `hxi` circulation returning 0.07 per unit cost | Urb |
+
+Parity with the oracle was therefore not a safety net; it was a **commitment to
+reproduce those defects**. Every one of §39.14, §39.18 and §39.19 would have
+been a parity failure had parity ever been checked. Keeping the tests would
+have meant either reverting the fixes or explaining the failures away, and the
+second is how a check becomes decorative.
+
+**Removed:** `src/homemaker_layout/oracle.py`, `tests/test_oracle.py`, the two
+parity tests and their fixture machinery in `tests/test_dom_corpus.py`,
+`innerloop.OracleEvaluator` and its `use_native` / `urb_root` plumbing, the
+same plumbing through `driver`, and fourteen `experiments/` scripts that could
+only run against Perl — `accept_innerloop`, `bakeoff_innerloop`,
+`bakeoff_native`, `bench_batch_oracle`, `benchmark_vs_urbevolve`,
+`genome_parity`, `leaf_parity`, `operator_locality`, `optimize_fullfitness`,
+`rebaseline_no_occlusion`, `refine_sweep`, `resolve_ratios`, `run_search`,
+`sweep_failtypes`. Several are cited in earlier sections as the evidence for
+their measurements; those citations now point into git history rather than the
+working tree, which is the honest state — they had been unrunnable since the
+oracle root (`/home/bruno/src/urb`) stopped being present. `run_search` is
+superseded by `run_search_scaled`, which does the same job natively.
+
+**Kept:** `dump_areas.pl`/`.py`, which validate *geometry* against Urb (§4.1)
+rather than fitness, and the prose in `fitness_cmd.py` and `dom.py` explaining
+why the `.score`/`.fails` formats are shaped as they are. Provenance is worth
+keeping; a dead code path is not.
+
+**What this changes about reading the objective.** "Urb did it this way" is no
+longer an argument that a constant is right — but §39.16 is the standing
+counterweight, and it cuts the other way: the crinkliness target *was* right,
+and twice looked wrong only because the code reading it was misunderstood. The
+test is now the same as for anything else. Does the number have a stated
+derivation, does it survive measurement, and does the objective it belongs to
+say what its author meant? Inheritance is neither evidence for nor against.
+
+Next: `homemaker-py-hxi` — circulation at 0.07 return against a room's 0.66,
+which the owner has ruled needs fixing — and the corpus re-baseline
+(`homemaker-py-bk9`), which §39.19 made necessary and which every future number
+depends on.

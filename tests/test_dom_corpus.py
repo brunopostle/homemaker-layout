@@ -1,12 +1,10 @@
 """Corpus-backed tests for dom round-trip, free-branch ownership, and fitness parity.
 
 Skipped when the Urb checkout is absent (these need only its .dom files, not
-perl).  The parity tests compare native Python fitness against cached oracle
-scores and failure sets (generated with URB_NO_OCCLUSION=1).
+perl).  Parity against the Perl oracle used to live here; the oracle is gone
+(DESIGN.md §39.21) and those tests never ran, so they went with it.
 """
 
-import math
-import re
 from pathlib import Path
 
 import pytest
@@ -14,17 +12,6 @@ import pytest
 from homemaker_layout import dom, solver
 
 CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
-
-# The parity fixtures are the Perl corpus, whose files Urb names by MD5. Any
-# other .dom in this directory is something a later session generated -- a
-# search artefact, a candidate, a seed -- and must NEVER be used as a parity
-# fixture: its .score, if one exists, was written by the NATIVE scorer, so
-# comparing against it compares the native scorer with itself and passes
-# whatever the native scorer says. That is exactly what was happening here
-# until 39.20; see `homemaker-py-*` for restoring real oracle fixtures.
-_ORACLE_NAME = re.compile(r"^[0-9a-f]{32}\.dom$")
-ORACLE_FIXTURES = sorted(p for p in CORPUS.glob("*.dom")
-                         if _ORACLE_NAME.match(p.name))
 
 pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Corpus not available")
 
@@ -133,64 +120,7 @@ def _native_evaluate(src: Path):
     return score, frozenset(failures)
 
 
-def _oracle_result(src: Path):
-    """Read cached oracle score and failure set (URB_NO_OCCLUSION=1)."""
-    from homemaker_layout.oracle import Score
-
-    score_file = Path(str(src) + ".score")
-    fails_file = Path(str(src) + ".fails")
-    if not score_file.exists():
-        pytest.skip(
-            f"No oracle score committed for {src.name}. `.gitignore` excludes "
-            "*.dom.score and *.dom.fails, and none has ever been tracked, so "
-            "native-vs-Perl parity is UNVERIFIED in this repository -- these "
-            "cases have always skipped on a clean checkout (DESIGN.md §39.20). "
-            "Regenerating them with the native scorer would not fix it; the "
-            "cache has to come from the Perl oracle.")
-    oracle_score = float(score_file.read_text().strip())
-    oracle_fails = Score(
-        fitness=oracle_score,
-        fails=fails_file.read_text() if fails_file.exists() else "",
-    ).fail_lines
-    return oracle_score, frozenset(oracle_fails)
 
 
-@pytest.mark.parametrize("src", ORACLE_FIXTURES, ids=lambda p: p.name)
-def test_native_fitness_score_parity(src):
-    """Native score matches oracle within 1e-4 relative tolerance."""
-    native_score, _ = _native_evaluate(src)
-    oracle_score, _ = _oracle_result(src)
-    assert math.isclose(native_score, oracle_score, rel_tol=1e-4, abs_tol=1e-15), (
-        f"{src.name}: native={native_score:.6e} oracle={oracle_score:.6e}"
-    )
 
 
-@pytest.mark.parametrize("src", ORACLE_FIXTURES, ids=lambda p: p.name)
-def test_native_fitness_fail_set_parity(src):
-    """Native failure set matches oracle failure set exactly."""
-    _, native_fails = _native_evaluate(src)
-    _, oracle_fails = _oracle_result(src)
-    only_native = native_fails - oracle_fails
-    only_oracle = oracle_fails - native_fails
-    assert not only_native and not only_oracle, (
-        f"{src.name}: only_native={sorted(only_native)} only_oracle={sorted(only_oracle)}"
-    )
-
-
-def test_parity_fixtures_are_never_session_artefacts():
-    """Guard for the defect §39.20 records.
-
-    The parity tests read a cached `.score` beside each `.dom` and treat it as
-    the Perl oracle's answer. Nothing in the file says who wrote it, so a `.dom`
-    left behind by a search run -- with a `.score` written by the NATIVE scorer
-    -- silently becomes a "parity" case that compares the native scorer with
-    itself. Three such cases were live and passing until the §39.19 objective
-    change made the native scorer disagree with its own stale output.
-    """
-    for src in ORACLE_FIXTURES:
-        assert _ORACLE_NAME.match(src.name), src.name
-    stray = [p.name for p in CORPUS.glob("*.dom")
-             if not _ORACLE_NAME.match(p.name)
-             and Path(str(p) + ".score").exists()]
-    assert not set(stray) & {p.name for p in ORACLE_FIXTURES}, (
-        f"session artefacts leaked into the parity fixtures: {stray}")

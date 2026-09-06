@@ -12,7 +12,8 @@ Source of truth: ``Urb::Dom::Fitness::{Base,Leaf,Storey,ProgrammeDriven}``.
 DESCOPE (DESIGN.md §6, decision 2026-06-12): this ports *simple* crinkliness —
 the CIEsky illumination factor is pinned to 1, exactly what Urb computes under
 ``URB_NO_OCCLUSION=1``.  ``quality_daylight`` is likewise pinned to 1.  Parity
-targets the *flagged* oracle, never stock Urb.
+targeted the *flagged* oracle, never stock Urb. The oracle itself is gone
+(DESIGN.md §39.21); this is now the only evaluator.
 
 Call ``dom.merge_divided(root)`` and rebuild graphs before ``process_storey``
 — storey processing runs on the MERGED tree (two-phase pattern, see graph.py).

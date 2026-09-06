@@ -100,7 +100,6 @@ Key modules:
 - `innerloop.py` — ratio optimisation inner loop (Nelder-Mead / CMA-ES)
 - `driver.py` — memetic search outer loop
 - `evolve.py` — `homemaker-evolve` CLI entry point
-- `oracle.py` — legacy Perl shim, kept for validation only; do not use in new code
 - `bubble.py` — 3D bubble-diagram adjacency fitness-signal prototype (DESIGN.md §27, `mi7`); validated NULL, not wired into `fitness.py` — reference only, do not build on without a new formulation
 
 ## Conventions & Patterns
@@ -119,5 +118,14 @@ homemaker-fitness cf0b8a77e8b2325f92a7e7d150184a55.dom
 
 The score is written to `<file>.dom.score` and failures to `<file>.dom.fails`; the numeric score is also printed to stderr.
 
-Do **not** use `urb-fitness.pl` directly — `oracle.py` and the Perl tool are
-kept only for cross-validation.
+`fitness.py` is the **only** evaluator. The Perl oracle it was ported from —
+`oracle.py`, `urb-fitness.pl`, and the parity tests against them — is gone
+(DESIGN.md §39.21). Those parity tests had never actually run: no oracle
+`.score` was ever committed, so on a clean checkout every case skipped, and the
+only cases that ever executed compared the native scorer with itself (§39.20).
+
+The corollary matters when reading the objective: a constant or a rule that
+looks odd is **not** thereby validated by "Urb did it this way". Several
+defects found in §39 were carried straight over from the Perl — see §39.19 on
+`value_supported`, and `homemaker-py-hxi` on circulation, which the owner has
+ruled needs fixing.

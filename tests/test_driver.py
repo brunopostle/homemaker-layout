@@ -28,7 +28,7 @@ def fake_inner(monkeypatch):
     observable."""
     calls = []
 
-    def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+    def fake_optimise(root, programme_dir, x0=None, budget=200, **kw):
         n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(root))
         fitness = 1.0 / (1.0 + abs(12 - n_leaves)) + 1e-6 * len(calls)
         calls.append({"budget": budget, "x0": x0, "kw": kw})
@@ -166,7 +166,7 @@ def test_restart_keeps_elite_and_counts(monkeypatch):
     """§11.5: a stagnation restart fires, is counted, and preserves the best."""
     # Saturating fake (no monotone tiebreaker, unlike `fake_inner`): fitness
     # peaks at 12 leaves and plateaus, so the best stalls and restarts trigger.
-    def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+    def fake_optimise(root, programme_dir, x0=None, budget=200, **kw):
         n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(root))
         fitness = 1.0 / (1.0 + abs(12 - n_leaves))
         return innerloop.Result(
@@ -289,7 +289,7 @@ def test_shapecurve_warmstart_seeds_ratios_when_eligible(monkeypatch):
 
     divisions_at_optimise = []
 
-    def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+    def fake_optimise(root, programme_dir, x0=None, budget=200, **kw):
         divisions_at_optimise.append(
             [tuple(b.division) for _, b in innerloop.free_with_keys(root)])
         n_leaves = sum(len(lvl.leaves()) for lvl in dom.levels(root))
@@ -340,7 +340,7 @@ def test_shapecurve_warmstart_handles_multistorey(monkeypatch):
     it exactly as it would a single-storey one."""
     from homemaker_layout import shapecurve
 
-    def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+    def fake_optimise(root, programme_dir, x0=None, budget=200, **kw):
         for _, b in innerloop.free_with_keys(root):
             b.division = [0.25, 0.25]
         return innerloop.Result(
@@ -364,7 +364,7 @@ def test_shapecurve_warmstart_handles_multistorey(monkeypatch):
 HARBOR_L0 = Path(__file__).parent.parent / "examples" / "harbor-house-l0"
 
 
-def _fake_optimise_ok(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+def _fake_optimise_ok(root, programme_dir, x0=None, budget=200, **kw):
     for _, b in innerloop.free_with_keys(root):
         b.division = [0.25, 0.25]
     return innerloop.Result(
@@ -436,7 +436,7 @@ def test_shapecurve_prune_vetoes_heuristic_when_dp_feasible(monkeypatch):
         pytest.skip("harbor-house-l0 not available")
     root = dom.load(str(HARBOR_L0 / "init.dom"))
     ind, used = driver._evaluate(
-        root, HARBOR_L0, None, x0=None, budget=100, inner_kw={}, lineage="child",
+        root, HARBOR_L0, x0=None, budget=100, inner_kw={}, lineage="child",
         feasibility_max_shape_fails=0, best_n_fails=5, leaf_sharing=False,
         shapecurve_prune=True)
 
@@ -461,7 +461,7 @@ def test_shapecurve_prune_hard_prunes_when_dp_infeasible_and_incumbent_perfect(m
         pytest.skip("harbor-house-l0 not available")
     root = dom.load(str(HARBOR_L0 / "init.dom"))
     ind, used = driver._evaluate(
-        root, HARBOR_L0, None, x0=None, budget=100, inner_kw={}, lineage="child",
+        root, HARBOR_L0, x0=None, budget=100, inner_kw={}, lineage="child",
         feasibility_max_shape_fails=0, best_n_fails=0, leaf_sharing=False,
         shapecurve_prune=True)
 
@@ -485,7 +485,7 @@ def test_shapecurve_prune_defers_to_heuristic_when_incumbent_nonzero(monkeypatch
         pytest.skip("harbor-house-l0 not available")
     root = dom.load(str(HARBOR_L0 / "init.dom"))
     ind, used = driver._evaluate(
-        root, HARBOR_L0, None, x0=None, budget=100, inner_kw={}, lineage="child",
+        root, HARBOR_L0, x0=None, budget=100, inner_kw={}, lineage="child",
         feasibility_max_shape_fails=0, best_n_fails=5, leaf_sharing=False,
         shapecurve_prune=True)
 
@@ -670,7 +670,7 @@ def test_use_tiers_prefers_fewer_hard_over_fewer_total_fails(monkeypatch):
     seed_root = dom.load(str(SEED_FILE))
     calls = []  # first call is always the seed eval; every later call is a child
 
-    def fake_optimise(root, programme_dir, x0=None, budget=200, urb_root=None, **kw):
+    def fake_optimise(root, programme_dir, x0=None, budget=200, **kw):
         for _, b in innerloop.free_with_keys(root):
             b.division = [0.25, 0.25]
         is_seed = len(calls) == 0

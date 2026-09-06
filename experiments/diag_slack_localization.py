@@ -134,7 +134,7 @@ def _run_seed(pdir, fit, reqs, types, seed_root, s):
 
     after_tree = copy.deepcopy(topo)
     r = innerloop.optimise(after_tree, str(pdir), x0=None, budget=BUDGET,
-                           method="nm", use_native=True)
+                           method="nm")
     after = _measure(after_tree, fit, reqs)
     after["n_evals"] = r.n_evals
     return before, after, _leaf_ratios(topo, fit, reqs)

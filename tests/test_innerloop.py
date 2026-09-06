@@ -1,10 +1,27 @@
 """Inner-loop search tests against a fake evaluator (no perl, no oracle)."""
 
+from dataclasses import dataclass
+
 import numpy as np
 import pytest
 
 from homemaker_layout import innerloop
-from homemaker_layout.oracle import Score
+
+
+@dataclass
+class _Score:
+    """Minimal evaluator result: what the optimisers actually read.
+
+    Was `oracle.Score`; the Perl oracle is gone (DESIGN.md §39.21) and these
+    tests only ever needed a fitness with an empty failure set.
+    """
+
+    fitness: float
+    fail_lines: tuple = ()
+
+    @property
+    def n_fails(self) -> int:
+        return len(self.fail_lines)
 
 
 class FakeEvaluator:
@@ -18,7 +35,7 @@ class FakeEvaluator:
     def evaluate(self, xs):
         self.n_evals += len(xs)
         self.n_oracle_calls += 1
-        return [Score(fitness=self.fn(np.asarray(x)), fails="") for x in xs]
+        return [_Score(self.fn(np.asarray(x))) for x in xs]
 
 
 def concave(x):

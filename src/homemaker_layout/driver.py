@@ -8,7 +8,8 @@ mandatory, homemaker-py-8cs: cold starts never catch up at equal budget).
 
 Budgets are stated and accounted in **oracle evaluations** (scored .dom
 files), never generations (§4.6 arithmetic). This driver is deliberately
-small-scale for the Phase-2 proof on the batched Perl oracle; scaling up
+small-scale for the Phase-2 proof on the batched Perl oracle (since removed,
+DESIGN.md §39.21); scaling up
 waits for the native fitness (Phase 3).
 
 Cold-start bootstrap (homemaker-py-0px): when the seed is an undivided bare
@@ -164,7 +165,7 @@ def random_topology(seed_root: dom.Node, n_leaves: int,
     return root
 
 
-def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
+def _evaluate(root: dom.Node, programme_dir, x0, budget, inner_kw,
               lineage: str, want_grade: bool = False,
               feasibility_max_shape_fails: int | None = None,
               best_n_fails: int | None = None,
@@ -239,7 +240,7 @@ def _evaluate(root: dom.Node, programme_dir, urb_root, x0, budget, inner_kw,
                              sig=genome.signature(root), n_hard=0, n_soft=pred)
             return ind, 1
     r = innerloop.optimise(root, programme_dir, x0=x0, budget=budget,
-                           urb_root=urb_root, conf_overrides=overrides, **inner_kw)
+                           conf_overrides=overrides, **inner_kw)
     # §11.4: read the graded proximity scalar off the optimised tree. The inner
     # loop left ``root`` at the optimum (Lamarckian write-back), so re-scoring a
     # copy reproduces r.fitness/r.n_fails exactly and adds the grade. One extra
@@ -276,7 +277,6 @@ def search(
     seed: int = 0,
     types: list[str] | None = None,
     inner_kw: dict | None = None,
-    urb_root=None,
     log=None,
     n_workers: int = 1,
     use_lex: bool = True,
@@ -429,9 +429,6 @@ def search(
     exactly instead of un-dividing and regrowing it. Gated the same way as
     ``ruin_recreate`` (zero mutation weight unless enabled).
     """
-    from .oracle import DEFAULT_URB_ROOT
-
-    urb_root = urb_root or DEFAULT_URB_ROOT
     rng = np.random.default_rng(seed)
     inner_kw = dict(_CHILD_INNER_KW, **(inner_kw or {}))
     # §12.3 M3 reassociate (homemaker-py-9gp.2) is default-OFF: force its weight to
@@ -607,7 +604,7 @@ def search(
         mx = feasibility_max_shape_fails if (filter_on and feasibility_filter) else None
         best_nf = result.best.n_fails if result.best is not None else None
         full = [
-            (root, programme_dir, urb_root, x0, budget_, kw_, lin, use_grade,
+            (root, programme_dir, x0, budget_, kw_, lin, use_grade,
              mx, best_nf, leaf_sharing, superpose, max_share, conn_grade,
              collapse_insearch, multi_use, shapecurve_warmstart, shapecurve_prune)
             for root, x0, budget_, kw_, lin in tasks
@@ -687,7 +684,7 @@ def search(
             # random divide+retype walk that leaves required rooms absent.
             _run_batch([_make_seed_task(str(i)) for i in range(pop_size)])
         else:
-            seed_ind, used = _evaluate(copy.deepcopy(seed_root), programme_dir, urb_root,
+            seed_ind, used = _evaluate(copy.deepcopy(seed_root), programme_dir,
                                        x0=None, budget=seed_budget,
                                        inner_kw={}, lineage="seed",
                                        want_grade=use_grade,
@@ -843,7 +840,7 @@ def polish_finish(
         # No polish: re-optimise the unfolded genome's ratios once and score it
         # canonically so the written .dom and reported fitness are honest.
         ind, used = _evaluate(
-            unfolded, programme_dir, None, x0=None, budget=rescore_budget,
+            unfolded, programme_dir, x0=None, budget=rescore_budget,
             inner_kw={}, lineage="unfold", leaf_sharing=False, superpose=superpose,
             multi_use=multi_use, collapse_insearch=collapse_insearch)
         r2 = SearchResult(best=ind, population=[ind], n_evals=used, n_topologies=1)

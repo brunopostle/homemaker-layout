@@ -105,7 +105,7 @@ def _measure(fit, pdir, seed_root, reqs, types, s, sharing, factor):
     after_tree = copy.deepcopy(topo)
     with _force_sharing(sharing):
         innerloop.optimise(after_tree, str(pdir), x0=None, budget=BUDGET,
-                           method="nm", use_native=True)
+                           method="nm")
     _s2, fails2 = fit.score_with_fails(copy.deepcopy(after_tree))
     after = {"n_leaves": n_leaves, "total": len(fails2), **_bucket(fails2)}
     return before, after

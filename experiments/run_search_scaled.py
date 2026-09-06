@@ -109,7 +109,6 @@ def main() -> int:
         restart_patience=restart_patience,
         seed_adjacency_aware=adj,
         seed_proportion_aware=prop,
-        # urb_root not needed: use_native=True is the default
     )
 
     elapsed = time.perf_counter() - t0

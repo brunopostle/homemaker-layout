@@ -7,8 +7,8 @@ ownership) against the FULL fitness. Never a proxy objective — §4.2 falsified
 that; the full objective's ``0.5^n`` failure cliff is what protects the inner
 loop from trading into new failures (§4.5).
 
-Fitness defaults to the native Python evaluator (Phase 3). The Perl oracle
-(``OracleEvaluator``) is kept for validation but is no longer used in search.
+Fitness is the native Python evaluator. The Perl oracle it was ported from is
+gone (DESIGN.md §39.21) -- "oracle call" below means one batched evaluation.
 Warm-starting from a parent's optimised ratios is ``x0=`` (§5 decision 6,
 Lamarckian inheritance).
 """
@@ -22,7 +22,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import dom, oracle, solver
+from . import dom, solver
 
 _EPS = 0.02  # keep cuts off the edges; matches solver/_experiments convention
 
@@ -60,69 +60,9 @@ class Result:
     n_oracle_calls: int  # perl invocations
 
 
-class OracleEvaluator:
-    """Scores ratio vectors for a frozen topology via the batched oracle.
-
-    Owns a scratch directory seeded with the programme config (and occlusion
-    field, if any) so ``urb-fitness.pl`` finds them in its working directory.
-    Use as a context manager, or call ``close()``.
-    """
-
-    _CONFIGS = ("patterns.config", "costs.config", "occlusion.field")
-
-    def __init__(
-        self,
-        root: dom.Node,
-        programme_dir: str | Path,
-        urb_root: str | Path = oracle.DEFAULT_URB_ROOT,
-    ):
-        self.root = root
-        self.free = solver.free_branches(root)
-        self.urb_root = Path(urb_root)
-        self._dir = Path(tempfile.mkdtemp(prefix="innerloop_"))
-        for name in self._CONFIGS:
-            src = Path(programme_dir) / name
-            if src.exists():
-                shutil.copy(src, self._dir)
-        self.n_evals = 0
-        self.n_oracle_calls = 0
-
-    def __enter__(self) -> "OracleEvaluator":
-        return self
-
-    def __exit__(self, *exc) -> None:
-        self.close()
-
-    def close(self) -> None:
-        shutil.rmtree(self._dir, ignore_errors=True)
-
-    @property
-    def x_current(self) -> np.ndarray:
-        # Midpoint projection: legacy designs carry slightly unequal offsets
-        # (a != b); (a+b)/2 is the least-damaging equal-offset start.
-        return np.array([(b.division[0] + b.division[1]) / 2 for b in self.free], dtype=float)
-
-    def apply(self, x: np.ndarray) -> None:
-        xc = np.clip(x, _EPS, 1 - _EPS)
-        for j, b in enumerate(self.free):
-            b.division = [float(xc[j]), float(xc[j])]
-
-    def evaluate(self, xs: list[np.ndarray]) -> list[oracle.Score]:
-        """Score a population of ratio vectors in one oracle invocation."""
-        paths = []
-        for i, x in enumerate(xs):
-            self.apply(x)
-            p = self._dir / f"member_{i:04d}.dom"
-            dom.dump(self.root, str(p))
-            paths.append(p)
-        scores = oracle.score_batch(paths, self.urb_root)
-        self.n_evals += len(xs)
-        self.n_oracle_calls += 1
-        return scores
-
 
 def compass_search(
-    ev: OracleEvaluator,
+    ev: NativeEvaluator,
     x0: np.ndarray,
     budget: int = 200,
     step0: float = 0.25,
@@ -196,7 +136,7 @@ def compass_search(
 
 
 def cma_search(
-    ev: OracleEvaluator,
+    ev: NativeEvaluator,
     x0: np.ndarray,
     budget: int = 200,
     sigmas: tuple[float, ...] = (0.05, 0.15),
@@ -208,7 +148,7 @@ def cma_search(
 
     Covariance adaptation handles the diagonal ridges of the ``0.5^n``
     landscape that stall axis-aligned pattern search; the ask/tell population
-    maps one-to-one onto ``OracleEvaluator.evaluate``.
+    maps one-to-one onto ``NativeEvaluator.evaluate``.
 
     One sigma does not fit all warm starts (measured at budget 200):
     2f45907 needs a *local* phase — at sigma 0.15 the search wanders out of
@@ -267,7 +207,7 @@ class _BudgetExhausted(Exception):
 
 
 def nm_search(
-    ev: "OracleEvaluator | NativeEvaluator",
+    ev: "NativeEvaluator",
     x0: np.ndarray,
     budget: int = 200,
     seed: int = 0,
@@ -327,7 +267,7 @@ from dataclasses import dataclass as _dc
 
 @_dc
 class _NativeScore:
-    """oracle.Score-compatible result from native fitness."""
+    """Scalar + failure set for one ratio vector."""
 
     fitness: float
     fail_lines: tuple
@@ -340,8 +280,7 @@ class _NativeScore:
 class NativeEvaluator:
     """Scores ratio vectors for a frozen topology via the native Python fitness.
 
-    Drop-in replacement for ``OracleEvaluator``; no temp directory, no Perl
-    startup overhead.  Each ``evaluate`` call runs ``Fitness.score_with_fails``
+    Each ``evaluate`` call runs ``Fitness.score_with_fails``
     serially over the batch (all in-process, no parallelism needed at this
     scale).
     """
@@ -355,7 +294,7 @@ class NativeEvaluator:
         conf, cost = fit_mod.load_config(programme_dir, overrides=conf_overrides)
         self._fit = fit_mod.Fitness(conf, cost)
         self.n_evals = 0
-        self.n_oracle_calls = 0  # kept for interface parity with OracleEvaluator
+        self.n_oracle_calls = 0  # legacy name: batches, not Perl calls
 
     def __enter__(self) -> "NativeEvaluator":
         return self
@@ -376,7 +315,7 @@ class NativeEvaluator:
 
     def evaluate(self, xs: list[np.ndarray]) -> "list[_NativeScore]":
         """Score a batch of ratio vectors; returns objects with .fitness /
-        .n_fails / .fail_lines matching the oracle.Score interface."""
+        .n_fails / .fail_lines."""
         import copy
 
         results = []
@@ -396,8 +335,7 @@ def optimise(
     x0: np.ndarray | None = None,
     budget: int = 200,
     method: str = "nm",
-    use_native: bool = True,
-    urb_root: str | Path = oracle.DEFAULT_URB_ROOT,
+
     conf_overrides: dict | None = None,
     **search_kw,
 ) -> Result:
@@ -407,12 +345,10 @@ def optimise(
     parent's optimised ratios for a Lamarckian warm start. On return ``root``
     carries the best ratios found.
 
-    ``use_native=True`` (default) uses the native Python fitness; set False to
-    fall back to the Perl oracle (kept for validation only).
+    evaluate with the native Python fitness.
     """
-    ev_cls = NativeEvaluator if use_native else OracleEvaluator
-    ev_args = ((root, programme_dir, conf_overrides) if use_native
-               else (root, programme_dir, urb_root))
+    ev_cls = NativeEvaluator
+    ev_args = (root, programme_dir, conf_overrides)
     with ev_cls(*ev_args) as ev:
         if x0 is None:
             x0 = ev.x_current

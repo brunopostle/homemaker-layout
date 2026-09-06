@@ -21,7 +21,6 @@ from scipy.optimize import minimize
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from homemaker_layout import dom, innerloop  # noqa: E402
 
-URB = Path("/home/bruno/src/urb")
 EX = URB / "examples" / "programme-house"
 NAME = "2f45907abd9accac2a124d311732f749.dom"
 
@@ -52,7 +51,7 @@ def main() -> None:
               f"({ev.n_evals - n0} evals)", flush=True)
 
     root = dom.load(str(EX / NAME))
-    r = innerloop.optimise(root, EX, budget=200, method="cma", sigmas=(0.05,), urb_root=URB)
+    r = innerloop.optimise(root, EX, budget=200, method="cma", sigmas=(0.05,))
     print(f"CMA sigma 0.05:    {r.fitness:.6g}  fails {r.n_fails}  ({r.n_evals} evals)")
 
 
