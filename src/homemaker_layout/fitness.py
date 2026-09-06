@@ -230,7 +230,21 @@ CONF_DEFAULTS: dict = {
     # best-supported, and the last that should be retuned.
     "uncrinkliness": [5.0 / 6, 1.1 / 3],
     "uncrinkliness_circulation": [5.0 / 6, 1.1 / 3],
-    "size_circulation": [0.0, 14.0],
+    # homemaker-py-hxi (DESIGN.md §39.23). Was [0.0, 14.0] -- a gaussian on a
+    # corridor's AREA centred on zero, i.e. "the ideal corridor does not exist",
+    # which failed any corridor leaf over 30 m2.
+    #
+    # `None` means no size requirement, because the amount of circulation is
+    # already priced twice and better: linearly, by value_circulation = 50
+    # against a build cost of 200 (every m2 of corridor is net -150), and at
+    # BUILDING level by ratio_circulation, which is where "how much corridor"
+    # belongs. A per-leaf gaussian was a third charge on the same thing.
+    #
+    # It was also the only one of the three that depended on how the corridor
+    # happened to be cut up. Twice the corridor is twice as bad and no worse, so
+    # one 20 m2 leaf must score as two 10 m2 leaves -- under the gaussian it did
+    # not, and splitting a corridor in half more than doubled its value.
+    "size_circulation": None,
     "size_inside": [16.0, 3.5],
     "proportion_outside": [1.5, 50],
     # homemaker-py-hxi (DESIGN.md §39.22). Was [1.5, 0.5], which fails a
@@ -1139,6 +1153,19 @@ class Fitness:
     # Programme-driven parameter lookup (ProgrammeDriven.pm:29-69)
     # ------------------------------------------------------------------ #
 
+    def _generic_param(self, key: str):
+        """``(found, value)`` for a generic C/O/S parameter family.
+
+        ``found`` is False only when the key appears in neither the programme's
+        config nor ``CONF_DEFAULTS``; a present key whose value is ``None`` is
+        found, and means the requirement has been switched off.
+        """
+        if key in self._conf:
+            return True, self._conf[key]
+        if key in CONF_DEFAULTS:
+            return True, CONF_DEFAULTS[key]
+        return False, None
+
     def get_space_params(self, code: str, param: str) -> list[float]:
         # §39.4: only the GENERIC types take the circulation/outside parameter
         # families. A programme code is looked up in ``spaces`` regardless of
@@ -1147,13 +1174,19 @@ class Fitness:
         # families split it the outside way: the circulation branch is exactly
         # C, and S takes the *_outside params (preserved from the original
         # c0 == "c" / c0 in ("o", "s") dispatch).
+        # A generic family key that is PRESENT but null means "no requirement"
+        # (size_circulation, proportion_circulation -- §39.22/§39.23), which is
+        # a different thing from the key being absent. `conf()` cannot tell
+        # them apart, so the tables are consulted directly; returning None here
+        # rather than falling through is what stops a corridor silently
+        # inheriting a habitable room's 16 m2 size target.
         if code == "C":
-            v = self.conf(f"{param}_circulation")
-            if v is not None:
+            found, v = self._generic_param(f"{param}_circulation")
+            if found:
                 return v
         if code in dom_mod.GENERIC_OUTSIDE:
-            v = self.conf(f"{param}_outside")
-            if v is not None:
+            found, v = self._generic_param(f"{param}_outside")
+            if found:
                 return v
         sp = self.spaces.get(code)  # exact-key match, as in Perl
         if sp is not None and param in sp:
@@ -1217,6 +1250,8 @@ class Fitness:
             return 1.0
         if t0 == "c":
             params = self.conf("size_circulation")
+            if params is None:
+                return 1.0          # no size requirement -- §39.23
         else:
             params = self.get_space_params(leaf.type, "size")
         target, sigma = params[0], params[1]

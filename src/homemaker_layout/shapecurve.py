@@ -182,16 +182,18 @@ def leaf_constraints(fit, leaf: dom_mod.Node) -> LeafBounds:
           else "c" if leaf.type == "C" else "")
 
     # --- size -> (amin, amax) ---
-    if t0 in ("o", "s"):
+    params = (fit.conf("size_circulation") if t0 == "c"
+              else None if t0 in ("o", "s")
+              else fit.get_space_params(leaf.type, "size"))
+    if params is None:
+        # o/s never had a size target; circulation's was removed in §39.23
         amin, amax = 0.0, math.inf
     else:
-        params = fit.conf("size_circulation") if t0 == "c" else fit.get_space_params(leaf.type, "size")
         target, sigma = params[0], params[1]
         # NB: quality_size's ``target > 0`` gate governs only the leaf-sharing/
         # co_type k-scaling of (target, sigma) -- the underlying
-        # gaussian(area, target, sigma) test always applies, including
-        # target==0 (e.g. size_circulation's [0.0, 14.0] default: a real
-        # one-sided "as small as possible" constraint, not "unconstrained").
+        # gaussian(area, target, sigma) test always applies where a target
+        # exists. Circulation no longer has one (§39.23).
         if t0 != "c" and target > 0:
             # homemaker-py-tym: mirror quality_size exactly. A shared leaf holds
             # k same-code rooms, so the gaussian is centred on k*target with

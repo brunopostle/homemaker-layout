@@ -236,12 +236,22 @@ def test_solve_multistorey_matches_free_branches(tmp_path):
 
 
 def test_solve_multistorey_infeasible_restores_every_level():
-    """When an upper-storey free split is infeasible (a 'C' leaf forced into
-    a below-fixed box too tall for its proportion/size bounds -- verified by
-    inspection, not tuned to just barely fail), ``solve`` must roll back
-    ALL levels, including the ground storey it already realised earlier in
-    the same call -- not just the storey where infeasibility was detected."""
-    root, target = _two_storey_mixed_topology(child_types=("C", "O"))
+    """When an upper-storey free split is infeasible, ``solve`` must roll back
+    ALL levels, including the ground storey it already realised earlier in the
+    same call -- not just the storey where infeasibility was detected.
+
+    The infeasibility is a `cr1` leaf in the below-fixed box, and it is a
+    contradiction between two of its own bounds rather than a tight fit: across
+    the box's fixed 23.52 m span, cr1 needs >= 180 m2 to satisfy its aspect
+    bound (3.07) and <= 101.5 m2 to satisfy its size bound -- a factor of 1.8
+    apart. Verified by inspection, not tuned to just barely fail.
+
+    This used to be a 'C' leaf, infeasible on circulation's own proportion and
+    size bounds. §39.22/§39.23 removed both, so a corridor can no longer be
+    shape-infeasible at all and the fixture had to move to a leaf that still
+    carries the constraints.
+    """
+    root, target = _two_storey_mixed_topology(child_types=("cr1", "O"))
     level1 = root.above
     fit = _fit()
 
@@ -269,7 +279,8 @@ def test_is_feasible_multistorey_never_writes():
     after = [tuple(b.division) for b in solver.free_branches(feasible_root)]
     assert before == after
 
-    infeasible_root, _ = _two_storey_mixed_topology(child_types=("C", "O"))
+    # 'C' is no longer shape-constrained (§39.22/§39.23); cr1 still is.
+    infeasible_root, _ = _two_storey_mixed_topology(child_types=("cr1", "O"))
     before = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
     assert shapecurve.is_feasible(infeasible_root, fit) is False
     after = [tuple(b.division) for b in solver.free_branches(infeasible_root)]

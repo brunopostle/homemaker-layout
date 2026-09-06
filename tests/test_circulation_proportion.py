@@ -94,3 +94,69 @@ def test_the_shape_curve_dp_accepts_an_unbounded_aspect():
     fit = _fit()
     leaf = dom_mod.Node(type="C", node=[[0.0, 0.0], [4.0, 0.0], [4.0, 4.0], [0.0, 4.0]])
     assert math.isinf(shapecurve.leaf_constraints(fit, leaf).rmax)
+
+
+# --------------------------------------------------------------------------- #
+# No size requirement either (homemaker-py-hxi, DESIGN.md §39.23)
+# --------------------------------------------------------------------------- #
+
+def test_there_is_no_corridor_size_requirement():
+    assert CONF_DEFAULTS["size_circulation"] is None
+    fit = _fit()
+    for area in (5.0, 14.0, 30.0, 60.0, 200.0):
+        leaf = dom_mod.Node(
+            type="C", node=[[0.0, 0.0], [area, 0.0], [area, 1.0], [0.0, 1.0]])
+        assert fit.quality_size(leaf) == 1.0, area
+
+
+def test_a_corridor_does_not_inherit_a_rooms_size_target():
+    """`get_space_params` falls through to a habitable default when a generic
+    family key is missing. A key that is present but null must not fall
+    through -- or a corridor silently acquires a 16 m2 target."""
+    fit = _fit()
+    assert fit.get_space_params("C", "size") is None
+    assert fit.get_space_params("C", "proportion") is None
+    assert fit.get_space_params("C", "width") == CONF_DEFAULTS["width_circulation"]
+
+
+def test_twice_the_corridor_is_exactly_twice_as_bad():
+    """The owner's argument, as arithmetic.
+
+    "double the amount of corridor is simply twice as bad, so it should score
+    the same as two half size corridors". Under a gaussian on area that was
+    false -- splitting a corridor in two raised its total value, which is a
+    pure artefact of how the tree happens to be cut. Value must be linear in
+    corridor area, so that one 2A leaf and two A leaves contribute the same.
+    """
+    fit = _fit()
+    rate = fit.conf("value_circulation")
+
+    def value(area):
+        leaf = dom_mod.Node(
+            type="C", node=[[0.0, 0.0], [area, 0.0], [area, 1.0], [0.0, 1.0]])
+        return fit.quality_size(leaf) * rate * area
+
+    assert value(20.0) == pytest.approx(2 * value(10.0))
+    assert value(60.0) == pytest.approx(6 * value(10.0))
+
+    # and under the old gaussian it was not -- this is what changed.
+    # One 20 m2 corridor scored gaussian(20) = 0.360, two 10 m2 halves
+    # gaussian(10) = 0.775 each, so merely cutting the same corridor in two
+    # multiplied its value by 2.15x.
+    old_whole = gaussian(20.0, 1.0, 0.0, 14.0) * rate * 20.0
+    old_halves = 2 * (gaussian(10.0, 1.0, 0.0, 14.0) * rate * 10.0)
+    assert old_halves / old_whole == pytest.approx(2.15, abs=0.02), (
+        "the old gaussian rewarded splitting a corridor; if that is no longer "
+        "so, §39.23's justification needs revisiting")
+
+
+def test_the_amount_of_circulation_is_still_priced():
+    """Removing the per-leaf cap must not make corridors free. Two charges
+    remain, and they are the ones that do not depend on how it is cut up."""
+    fit = _fit()
+    assert fit.conf("value_circulation") < fit.cost("inside"), (
+        "a corridor must cost more to build than it is worth, or there is no "
+        "linear ramp pushing the search to use less of it")
+    assert fit.conf("ratio_circulation") is not None, (
+        "the building-level circulation fraction check is the other charge"
+    )

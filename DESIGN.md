@@ -7899,3 +7899,75 @@ reminder about how often an inherited constant has turned out to be right.
 
 Whether any of this helps the search is unmeasured and, as with everything since
 §39.19, gated on the re-baseline (`homemaker-py-bk9`).
+
+### 39.23 Twice the corridor is twice as bad, and no worse (`homemaker-py-hxi`)
+
+§39.22 removed the corridor aspect cap and found the next constraint waiting
+behind it: `size_circulation = [0.0, 14.0]`, a gaussian on a corridor's **area**
+centred on zero — the ideal corridor being one that does not exist — failing any
+corridor leaf over 30 m². Owner's ruling:
+
+> as long as circulation is more expensive to build than it has value then we
+> have a linear ramp. a gaussian ramp is probably not appropriate here as double
+> the amount of corridor is simply twice as bad, so it should score the same as
+> two half size corridors
+
+Both halves of that check out.
+
+**The linear ramp already exists.** `value_circulation` is 50 against a build
+cost of 200, so every square metre of corridor is worth −150 — the objective is
+already pushing the search to use less of it, linearly, with no cap needed. And
+the *amount* of circulation is separately governed at building level by
+`ratio_circulation = [0.00, 0.20]`, a gaussian on the circulation **fraction**,
+which is where a question about how much corridor a building should have
+belongs. The per-leaf size gaussian was a **third** charge on the same thing.
+
+**And it was the only one of the three that depended on how the corridor was cut
+up.** Under `value += quality × rate × area`, one 20 m² corridor scores
+`gaussian(20, 0, 14) = 0.360` and contributes 360; two 10 m² halves score 0.775
+each and contribute 775 between them. **Splitting a corridor in half multiplied
+its value by 2.15×** — a pure artefact of where the tree happened to cut, and
+one that rewarded the search for fragmenting its own spine. The ruling's test —
+one 2A leaf must score as two A leaves — is exactly the invariant a gaussian on
+an *amount* cannot satisfy, and it is now a test.
+
+**Shipped:** `size_circulation = None`. `quality_size` returns 1.0 for
+circulation, and `shapecurve.leaf_constraints` gives `amin, amax = 0, inf`.
+
+**One bug this exposed.** `get_space_params` falls through to a habitable
+default when a generic family key is missing, and could not tell "missing" from
+"present but null" — so with `size_circulation = None` a corridor silently
+inherited a room's 16 m² target. `_generic_param` now returns `(found, value)`
+so a declared null is honoured, and a test pins it. The same latent trap applies
+to §39.22's `proportion_circulation`.
+
+**Fail-set effect** of §39.22 and §39.23 together, across the twelve baseline
+artefacts — 16 corridor size fails and 7 proportion fails removed, none added:
+
+| programme | before → after |
+|---|---|
+| harbor-house | 33/43/42 → 32/40/38 |
+| maple-court | 54/73/55 → 51/65/52 |
+| health-centre | 4/9/5 → 3/9/5 |
+| programme-house | 1/1/1 → unchanged |
+
+maple s1 drops 8 fails, harbor s2 drops 4. These are not improvements in the
+layouts — the layouts are unchanged — they are failures the objective should
+never have been reporting.
+
+**Two shape-curve tests had to move fixture.** Both constructed an infeasible
+upper storey out of a `C` leaf, which was infeasible precisely *because* of
+circulation's proportion and size bounds. A corridor can no longer be
+shape-infeasible at all, so the fixture is now a `cr1` leaf, whose infeasibility
+is a contradiction between two of its own bounds rather than a tight fit: across
+the box's fixed 23.52 m span it needs ≥ 180 m² to satisfy its aspect bound and
+≤ 101.5 m² to satisfy its size bound. The tests themselves — that `solve` rolls
+back every level, and that `is_feasible` never writes — are unchanged and still
+worth having.
+
+**What is left of `hxi`.** The two shape factors are fixed. The rate gap remains
+untouched and unruled: `value_circulation` = 50 against `value_inside` = 300, a
+6× difference, on identical build cost. Whether a corridor is worth a sixth of a
+room per square metre is a design judgement, not something measurement settles,
+and the linear ramp the owner describes is only as steep as that number makes
+it. Left open on the bead.
