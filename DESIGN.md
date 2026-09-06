@@ -8051,3 +8051,78 @@ The three SUSPECT entries and the fail multiplier are filed rather than changed
 — each needs a ruling or a rate change behind it, and §39.16 is the standing
 reminder about acting on an inherited constant before understanding what it
 measures. The two DEAD entries are inert and cost nothing but confusion.
+
+### 39.25 The rule Alexander states was off; the one he doesn't was on (`homemaker-py-hxi`)
+
+> maybe plot_ratio is having unintended consequences, Alexander simply says that
+> all levels should have accessible outside space, he doesn't say how much
+
+Both halves of that are right, and the codebase had the two rules the wrong way
+round.
+
+**`ratio_outside` is a gaussian on the outdoor fraction**, applied as a
+whole-building multiplier. Its declared targets have no stated basis and
+contradict one another across the corpus:
+
+| programme | target | actual | effect |
+|---|---|---|---|
+| health-centre | 0.06 | 0.096 – 0.129 | ×0.39 – ×0.77, penalised for having **too much** |
+| programme-house | 0.30 | 0.098 – 0.293 | ×0.40 – ×0.999, penalised for having **too little** |
+| harbor / maple | 0.15 | 0.131 – 0.197 | mild, both sides |
+
+The same objective is pulling two programmes in opposite directions on the same
+quantity, at penalties as large as the `ratio_circulation` ones §39.24 removed.
+
+**And `force_roof_garden` already implements the rule Alexander actually
+states** — per level, no outdoor space at all is a hard failure,
+`level N no outside space`, with no quantity attached. It has existed all along.
+
+**It was switched off in every corpus config.** `force_roof_garden: 0` in all
+four, and in `harbor-house-l0`, `programme-house2` and every `y51-sweep-*`.
+
+**A near-miss worth recording.** Measuring first, I found zero
+`no outside space` failures across the twelve baseline runs and briefly read
+that as "the requirement is already met everywhere". It meant nothing of the
+sort: the check never ran. This is the same shape as §39.20's parity tests —
+an absence of failures from a test that is not executing looks exactly like an
+absence of failures from a test that is passing. The tell was the same too: the
+config, not the code.
+
+Enabled, the rule bites on **4 of 25** levels in the baseline artefacts:
+
+| | |
+|---|---|
+| maple-court s0 | level 1 |
+| programme-house s0/s1/s2 | **level 0**, all three seeds |
+
+programme-house putting no outdoor space on its own ground floor, in every
+seed, is a fair criticism of those layouts rather than a false positive — and
+it is exactly what the fraction rule failed to catch, because 22% outdoor space
+concentrated on one storey satisfies a building-level fraction perfectly.
+
+**Shipped:** `force_roof_garden` on, `ratio_outside` off, in `CONF_DEFAULTS` and
+the four corpus configs, each with the reason inline.
+
+**On the side `ratio_outside` was the only guard for.** Outdoor space is
+profitable (§39.19: ground outdoor returns 1.64 per unit cost against a room's
+0.66), so an upper bound is not obviously redundant. It is covered, though, and
+in a better currency: the minimum-internal-area factor requires built internal
+area ≥ 1.2 × the programme's declared room area, and it is live — binding on
+harbor s0 (×0.920) and programme-house s0 (×0.787) in the baseline. "Build the
+rooms you were asked for, and then some" bounds non-room space directly, where
+a fraction only does so by proxy.
+
+That said, this is the one change in §39.22–§39.25 whose risk is **not**
+measured: nothing here proves the outdoor fraction will not drift upward once
+the search is free to raise it. The re-baseline (`homemaker-py-bk9`) is what
+shows that, and the fraction is worth recording in it explicitly.
+
+**Fail-set and score effect** — 4 hard fails added, none removed; scores rise
+where the fraction penalty lifted and fall where a new hard fail landed:
+
+| programme | fails | score |
+|---|---|---|
+| harbor-house | 32/40/38 unchanged | +1% … +12% |
+| maple-court | 51→**52**, 65, 52 | −50% (new fail), +1%, +0.4% |
+| health-centre | 3/9/5 unchanged | +29% … +156% |
+| programme-house | 1→**2** all seeds | −43%, +24%, −50% |

@@ -209,7 +209,21 @@ CONF_DEFAULTS: dict = {
     "latitude": 53.3814,
     "door_width": 1.2,
     "plot_ratio": [2.00, 0.50],
-    "ratio_outside": [0.33, 0.15],
+    # homemaker-py-hxi (DESIGN.md §39.25). Was [0.33, 0.15] -- a gaussian on
+    # the OUTDOOR FRACTION. Alexander says every level should have accessible
+    # outside space; he does not say how much, and the corpus's four declared
+    # targets (0.06, 0.15, 0.15, 0.30) have no stated basis and contradict each
+    # other -- health-centre was penalised for exceeding 6% while
+    # programme-house was penalised for not reaching 30%.
+    #
+    # `None` disables it. The requirement Alexander actually states is
+    # `force_roof_garden`, which fails a level outright when it has no outdoor
+    # space at all -- qualitative, per level, no quantity. That check already
+    # existed and was switched OFF in every corpus config; §39.25 turns it on
+    # and turns this off. The upper side this used to provide is covered by the
+    # minimum-internal-area factor, which bounds non-room space in the currency
+    # that matters (build the rooms you were asked for).
+    "ratio_outside": None,
     # homemaker-py-hxi (DESIGN.md §39.24). Was [0.00, 0.20] -- a gaussian on
     # the circulation FRACTION, targeting zero, applied as a multiplier to the
     # whole building's value (0.013..0.70 across the corpus). `None` disables
@@ -2063,7 +2077,8 @@ class Fitness:
         ratios = self._ratios(root)
 
         factor = 1.0
-        factor *= self.ratio_o(ratios)
+        if self.conf("ratio_outside") is not None:   # §39.25: off by default
+            factor *= self.ratio_o(ratios)
 
         circ_ratio = self.conf("ratio_circulation")
         if circ_ratio is not None:          # §39.24: off by default
