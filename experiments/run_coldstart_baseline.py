@@ -14,6 +14,11 @@ Design notes, all of which matter for the result being trustworthy:
 * **Seed-major order.** The queue runs seed 0 of every programme, then seed 1,
   then seed 2 -- so if the box is lost half way we have all four programmes at
   fewer seeds, rather than one programme at three seeds and nothing else.
+* **Timings exclude suspend.** ``elapsed_s`` is measured with
+  ``time.monotonic()``, so a run that spans a suspended machine reports the
+  time it actually had a CPU rather than wall time. The 39.12 baseline's
+  ~430 h total was measured with ``time.time()`` and is only trustworthy
+  because that box stayed awake.
 * **Commit and push after every finished run.** This is an ephemeral container;
   it is reclaimed on inactivity or session end. Anything not pushed is gone. Git
   calls are serialised under a lock file so the runner cannot race a human (or
@@ -159,7 +164,12 @@ def main() -> None:
                  "--seed", str(seed), "--workers", "1", "--output", str(out),
                  "--checkpoint-every", str(checkpoint_every)],
                 cwd=d, stdout=subprocess.DEVNULL, stderr=fh)
-            running[proc.pid] = (proc, prog, seed, out, fh, time.time())
+            # monotonic, NOT time.time(): CLOCK_REALTIME advances while the
+            # machine is suspended, so a run spanning an overnight suspend
+            # would report elapsed_s inflated by the suspend. CLOCK_MONOTONIC
+            # stops (that is what CLOCK_BOOTTIME is for), so this measures the
+            # time the run actually had a CPU.
+            running[proc.pid] = (proc, prog, seed, out, fh, time.monotonic())
             print(f"  start {prog} seed {seed} -> {out.name}", flush=True)
 
         time.sleep(10)
@@ -168,7 +178,7 @@ def main() -> None:
                 continue
             fh.close()
             del running[pid]
-            elapsed = round(time.time() - t0, 1)
+            elapsed = round(time.monotonic() - t0, 1)
             if not out.exists():
                 print(f"    FAILED {prog} seed {seed} (rc={proc.returncode}, "
                       f"{elapsed}s) -- see the .log", flush=True)
