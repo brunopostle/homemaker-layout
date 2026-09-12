@@ -19,10 +19,15 @@ Design notes, all of which matter for the result being trustworthy:
   time it actually had a CPU rather than wall time. The 39.12 baseline's
   ~430 h total was measured with ``time.time()`` and is only trustworthy
   because that box stayed awake.
-* **Commit and push after every finished run.** This is an ephemeral container;
-  it is reclaimed on inactivity or session end. Anything not pushed is gone. Git
-  calls are serialised under a lock file so the runner cannot race a human (or
-  another agent) committing in the same tree.
+* **Commit and push after every finished run, to every remote.** This is an
+  ephemeral container; it is reclaimed on inactivity or session end. Anything
+  not pushed is gone. The project lives on two hosts (github and the owner's
+  own hub) and they drifted a week apart once, so the push fans out over every
+  URL `origin` lists -- run ``experiments/setup_dual_remote.sh`` once per clone
+  to configure them -- and reports per URL, so an unreachable host cannot make a
+  successful push look like a failed one. Git calls are serialised under a lock
+  file so the runner cannot race a human (or another agent) committing in the
+  same tree.
 * **Scored by the shipped scorer**, from inside the programme directory, exactly
   as CLAUDE.md requires -- `homemaker-fitness` resolves patterns.config and
   writes .score/.fails relative to cwd.
@@ -47,6 +52,7 @@ REPO = Path(__file__).resolve().parent.parent
 PROGRAMMES = ["harbor-house", "maple-court", "health-centre", "programme-house"]
 LOCK = REPO / ".git" / "coldstart-git.lock"
 RESULTS = REPO / "experiments" / "results" / "coldstart_baseline.tsv"
+BRANCH = "claude/beads-project-intro-fjiez3"
 FIELDS = ["programme", "seed", "budget", "fails", "hard", "soft", "score",
           "elapsed_s", "dom"]
 
@@ -120,7 +126,29 @@ def record_and_push(row: dict, artefacts: "list[Path]") -> None:
                   flush=True)
         return r
 
-    committed = pushed = False
+    def _push_urls() -> "list[str]":
+        """Every URL `git push origin` would write to, one per line.
+
+        `origin` carries two pushurls here -- github and the owner's own hub --
+        because the project lives on both hosts and they drifted a week apart
+        once (see experiments/setup_dual_remote.sh). Asking git for the list
+        rather than hardcoding it means a clone with one remote, two, or five
+        all work, and adding a third host is a config change, not a code change.
+
+        Pushing to each URL separately rather than once to `origin` is
+        deliberate: `git push origin` returns a single exit code for the whole
+        fan-out, so one unreachable host would report the reachable one as a
+        failure too -- the same class of blind spot as the swallowed errors
+        above, one level up.
+        """
+        r = subprocess.run(["git", "remote", "get-url", "--push", "--all", "origin"],
+                           cwd=REPO, capture_output=True, text=True)
+        urls = [u.strip() for u in r.stdout.splitlines() if u.strip()]
+        return urls or ["origin"]
+
+    committed = False
+    reached: "list[str]" = []
+    missed: "list[str]" = []
     with git_lock():
         _git("add", "--", *paths)
         c = _git("commit", "-q", "--only", *paths, "-m", msg + "\n\n"
@@ -131,19 +159,32 @@ def record_and_push(row: dict, artefacts: "list[Path]") -> None:
                  "Claude-Session: https://claude.ai/code/session_01MJ84Feep79Hhm3E4zZJmnB")
         committed = c.returncode == 0
         if committed:
-            for attempt in range(4):
-                _git("pull", "--rebase", "-q", "origin",
-                     "claude/beads-project-intro-fjiez3")
-                if _git("push", "-q", "origin",
-                        "claude/beads-project-intro-fjiez3").returncode == 0:
-                    pushed = True
-                    break
-                time.sleep(2 ** (attempt + 1))
+            for url in _push_urls():
+                for attempt in range(4):
+                    if _git("push", "-q", url,
+                            f"HEAD:refs/heads/{BRANCH}").returncode == 0:
+                        reached.append(url)
+                        break
+                    # Rebase onto the host that rejected us, not onto `origin`:
+                    # a non-fast-forward from one remote is not fixed by
+                    # fetching the other, and the two are allowed to differ.
+                    time.sleep(2 ** (attempt + 1))
+                    _git("pull", "--rebase", "-q", url, BRANCH)
+                else:
+                    missed.append(url)
 
-    if pushed:
-        print(f"    pushed: {msg}", flush=True)
+    if committed and not missed:
+        where = ", ".join(reached)
+        print(f"    pushed to {len(reached)} remote(s) [{where}]: {msg}", flush=True)
+    elif committed and reached:
+        print(f"    PARTIALLY PUSHED: {msg}"
+              f"\n      -- reached: {', '.join(reached)}"
+              f"\n      -- DID NOT reach: {', '.join(missed)}"
+              f"\n         the run is safe in git and on at least one remote;"
+              f" push to the rest by hand", flush=True)
     elif committed:
         print(f"    COMMITTED BUT NOT PUSHED: {msg}"
+              f"\n      -- no remote reached: {', '.join(missed)}"
               f"\n      -- the run is safe in git; `git push` when git is fixed",
               flush=True)
     else:

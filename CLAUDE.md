@@ -57,6 +57,15 @@ collisions, the usage class each code picks up, and per-room-spec satisfiability
    git push
    git status  # MUST show "up to date with origin"
    ```
+
+   This project lives on **two** hosts — `github.com/brunopostle/homemaker-layout`
+   and `hub.postle.net:bruno/homemaker-layout.git`. They are both called `origin`
+   and they have drifted apart before. Run `experiments/setup_dual_remote.sh`
+   once per clone: it gives `origin` a `pushurl` for each host, so a plain
+   `git push` reaches both. Verify with `git remote get-url --push --all origin`
+   — if that prints one URL, your pushes are only reaching half the project.
+   Containers without an `ssh` binary cannot reach `hub`; the script detects
+   that, configures what it can, and says so.
 5. **Clean up** - Clear stashes, prune remote branches
 6. **Verify** - All changes committed AND pushed
 7. **Hand off** - Provide context for next session
