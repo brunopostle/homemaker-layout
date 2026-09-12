@@ -8256,3 +8256,93 @@ three `coldstart-500000-s*.dom` to a scratch directory and run
 `homemaker-fitness` from inside it, per the `cd`-first rule in `CLAUDE.md`. It
 takes seconds and it is the only defensible zero for any comparison that spans
 §39.22-§39.26.
+
+**But not from the working tree any more.** `de41ce8` committed the `bk9` run
+outputs over the baseline artefacts *in place*: the seven finished runs replaced
+their `coldstart-500000-s*.dom`, the five unfinished ones did not. The tree now
+holds a mix of two objectives' outputs under one filename scheme, with nothing
+on the file to say which. **The §39.12 baseline artefacts are the ones at
+`04c2538`**; take them from there
+(`git show 04c2538:examples/<prog>/coldstart-500000-s<n>.dom`) and nowhere else.
+Any future re-baseline should write to a name carrying its commit, not reuse
+this one.
+
+
+### 39.28 The `bk9` hard-fail drop, decomposed (`homemaker-py-bk9`)
+
+§39.27 left two things open: it could not count `not connected` on the new
+artefacts, and it flagged the hard-fail drop as unpredicted and therefore
+unchecked. `de41ce8` put the seven artefacts in the tree, so both can be done.
+
+**First, the artefacts are the runs.** Rescored from the committed `.dom`s, all
+seven reproduce the runner's TSV rows exactly -- 113 fails, 24 hard, 89 soft in
+aggregate, and every score to six significant figures (`0.00907475`, `0.21942`,
+`0.0155085`, `0.0295666`, `4.3309e-10`, `2.9622e-09`, `3.38469e-16`). Nothing
+in the analysis below rests on a number that was only ever printed to a
+terminal.
+
+**Where the 20 hard fails went** (matched 7 runs, rescored §39.12 baseline vs
+`bk9`):
+
+| hard fail | baseline | `bk9` | Δ |
+|---|---|---|---|
+| `inaccessible usable space` (all indices) | 12 | 4 | **−8** |
+| `not adjacent to <code>` (all pairs) | 10 | 6 | **−4** |
+| `level N no outside space` | 3 | 1 | −2 |
+| `unsupported covered outside` / `covered outside above ground` | 4 | 2 | −2 |
+| `<code> on wrong level` | 1 | 0 | −1 |
+| **`level N not connected`** | **10** | **9** | **−1** |
+| `too few stairs` | 4 | 4 | 0 |
+
+**So the access-topology family did not move as a block, and §39.27 overstated
+it by treating it as one.** §39.12 named three members --
+`not adjacent to`, `inaccessible usable space`, `not connected`. The two about
+*reaching* a space fell by two thirds between them. The one about the storey
+spine being severed went 10 → 9, which is nothing. §39.9's mechanism (the
+resize destroys constructed connectivity) is untouched by anything in
+§39.22-§39.26, and this is consistent with that: it remains the standing defect
+§39.12 clause 2 says to count separately, and it is now counted.
+
+**The soft side barely moved, which bears on the masking hypothesis.** 96 → 89,
+and crinkliness -- the single largest term at 35% of the corpus (§39.12) --
+went *up*, 50 → 51. §39.27 raised the possibility that removing soft terms
+improved hard fails as a side effect via `0.5 ** n_fails`. That is not what a
+soft-for-hard trade looks like: the soft count is nearly flat while the hard
+count halves. The removed terms were also contributing very few fails to begin
+with -- the definitional deltas in §39.27's first table are −1 to −8 per run.
+This does not *close* the hypothesis, because removing a ≤1 quality multiplier
+changes `value` and therefore selection regardless of how few fails the term
+was emitting, but it removes the simple version of it.
+
+**A mechanism guessed and refuted.** Four of the vanished `not adjacent to`
+rows are `not adjacent to c` -- adjacency to *circulation*. The obvious reading
+is that §39.22-§39.24, which stopped penalising corridors for being
+corridor-shaped and for being numerous, let the search afford more of them.
+Counted, that is false:
+
+| | baseline | `bk9` |
+|---|---|---|
+| `C` (circulation) leaves | 59 | 58 |
+| `O` (outside) leaves | 48 | 56 |
+| leaves total | 285 | 292 |
+
+Circulation is flat. Outside space is up 17%, which is what §39.25 predicts
+from `ratio_outside` going away, but the corridor count that would explain the
+adjacency result did not change. Whatever improved `not adjacent to c`, it is
+circulation being *placed* differently, not more of it -- or it is noise at
+n = 7 across four heterogeneous programmes. This is recorded as an open
+question, not an answer; the guess is written down because it was tested and
+failed, and the next person should not spend the same hour on it.
+
+**Still not significant.** Seven paired runs across four programmes, against
+§39.12's per-programme MDDs. The five outstanding runs (harbor s2, maple s1/s2,
+health s2, programme-house s2) are what decide whether any of this holds.
+
+**One gap in the record.** `experiments/results/coldstart_baseline.tsv` in the
+repo still holds only the twelve §39.12 rows; the seven `bk9` rows are not in
+it, though their artefacts are committed. A reader taking the TSV at face value
+gets a table that does not describe the `.dom` files sitting next to it. The
+numbers are recoverable -- they are in the table above, and rescoring the
+artefacts regenerates fails/hard/soft/score exactly -- but `elapsed_s` exists
+only in the runner's on-disk copy, and that copy is owned by a live process.
+It should be reconciled from the running box, not reconstructed here.

@@ -58,31 +58,19 @@ collisions, the usage class each code picks up, and per-room-spec satisfiability
    git status  # MUST show "up to date with origin"
    ```
 
-   **`origin` is GitHub, and GitHub is the default.** Everything — this
-   workflow, the cold-start runner, agent containers — pushes to
-   `github.com/brunopostle/homemaker-layout` and nowhere else. That is the
-   record.
+   **There is one remote: `origin`, which is
+   `github.com/brunopostle/homemaker-layout`.** Everything — this workflow, the
+   cold-start runner, agent containers — pushes there and nowhere else. That is
+   the record, and `git status` saying "up to date with origin" means it.
 
-   `hub.postle.net:bruno/homemaker-layout.git` is the owner's own server, kept
-   as a **separate, occasional** remote named `hub`. It is a mirror, not a
-   second source of truth, and it is pushed by hand when the owner wants a copy
-   there:
-
-   ```bash
-   git remote add hub hub.postle.net:bruno/homemaker-layout.git  # once per clone
-   git push hub <branch>                                          # occasionally
-   ```
-
-   Never make `hub` an alias or a second push URL of `origin`. That was tried
-   and it is how the two drifted a week apart in September 2026: the runner
+   The project was briefly also on `hub.postle.net`; that remote is gone. The
+   episode is worth one line of memory, because it cost a week: the runner
    pushed results to one host while an agent polled the other and reported,
-   truthfully from where it stood, that nothing had arrived. Two hosts answering
-   to one name is the failure mode. Keep the names distinct and `hub` gets
-   whatever GitHub has, whenever you send it.
-
-   Agent containers have no `ssh` binary, so they cannot reach `hub` at all —
-   another reason it must never be on `origin`'s push path, where it would turn
-   every agent push into a half-failure.
+   truthfully from where it stood, that nothing had arrived. **If a second
+   remote is ever added, give it its own name and never make it a second push
+   URL of `origin`** — two hosts answering to one name is the failure mode, and
+   agent containers have no `ssh` binary, so a host reachable only over ssh on
+   `origin`'s push path turns every agent push into a permanent half-failure.
 5. **Clean up** - Clear stashes, prune remote branches
 6. **Verify** - All changes committed AND pushed
 7. **Hand off** - Provide context for next session
