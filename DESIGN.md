@@ -8340,10 +8340,33 @@ health s2, programme-house s2) are what decide whether any of this holds.
 
 **One gap in the record, and it is not temporary.** The seven `bk9` rows are
 gone from `experiments/results/coldstart_baseline.tsv`, which still holds only
-the twelve §39.12 rows, and the running box has since confirmed a clean tree
-with everything pushed -- so there is no on-disk copy left holding them. They
-were lost when the branch was reconciled after the two-remote episode: the rows
-had only ever been committed to the host that was dropped.
+the twelve §39.12 rows, and the box has since confirmed a clean tree with
+everything pushed -- so no on-disk copy holds them either.
+
+*How they were lost is not established, and the obvious story is wrong.* All
+this work has run in one repository on one laptop throughout; nothing was lost
+by moving between hosts. What the history does show is narrower and more useful:
+
+* The runner committed **every** §39.12 run itself -- twelve commits,
+  `ac59131` through `d492b7c`, each named `coldstart <programme> seed <n>`.
+* It committed **none** of the seven `bk9` runs. Their artefacts reached the
+  repository only through `de41ce8`, a hand-made commit ("test run output"),
+  which carried the `.dom` and `.log` files and not the table.
+
+So `record_and_push` was not committing at all during the `bk9` sweep -- which
+is exactly the window §39.27 describes, when the function swallowed every git
+error and printed `pushed:` regardless. `2378e5f` fixed the *reporting* of that
+failure, not whatever was causing it. The rows did briefly exist: the 19-row
+table was committed by hand and pushed, and that commit is not in the branch
+now. Something local dropped it. That is as far as the evidence goes.
+
+**Two things follow for the sweep still running.** A process started before
+`2378e5f` is running the old module: it will keep reporting `pushed:`
+unconditionally, so the four in-flight runs may commit nothing and say nothing
+about it, exactly as the first seven did. And whatever failed for the first
+seven has not been diagnosed, only made audible -- so it may still be failing.
+Check the runner's output for `GIT FAILED` / `NOT COMMITTED` lines before
+trusting that the next completion lands.
 
 The consequence is worse than seven absent rows. The runner appends to whatever
 table it finds, so **the next run to finish writes a `bk9` row onto twelve rows
@@ -8362,9 +8385,9 @@ and span a three-day suspend, so the numbers were never usable. An empty column
 is a truer record than a transcribed one.
 
 It writes a **separate** file on purpose. `record_and_push` reads the results
-table *before* it takes the git lock, so editing that table from another clone
-while a sweep is live invites a rebase collision inside the runner's push retry
-and can wedge a job with days of compute in it. Merge the two by hand once the
+table *before* it takes the git lock, so editing that table while a sweep is
+live -- from this repository or any clone of it -- invites a rebase collision
+inside the runner's push retry and can wedge a job with days of compute in it. Merge the two by hand once the
 sweep finishes, and mark which objective each row belongs to when you do.
 
 **Queue state at the time of writing** (from the run logs, not the table):
