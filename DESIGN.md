@@ -8338,11 +8338,36 @@ failed, and the next person should not spend the same hour on it.
 §39.12's per-programme MDDs. The five outstanding runs (harbor s2, maple s1/s2,
 health s2, programme-house s2) are what decide whether any of this holds.
 
-**One gap in the record.** `experiments/results/coldstart_baseline.tsv` in the
-repo still holds only the twelve §39.12 rows; the seven `bk9` rows are not in
-it, though their artefacts are committed. A reader taking the TSV at face value
-gets a table that does not describe the `.dom` files sitting next to it. The
-numbers are recoverable -- they are in the table above, and rescoring the
-artefacts regenerates fails/hard/soft/score exactly -- but `elapsed_s` exists
-only in the runner's on-disk copy, and that copy is owned by a live process.
-It should be reconciled from the running box, not reconstructed here.
+**One gap in the record, and it is not temporary.** The seven `bk9` rows are
+gone from `experiments/results/coldstart_baseline.tsv`, which still holds only
+the twelve §39.12 rows, and the running box has since confirmed a clean tree
+with everything pushed -- so there is no on-disk copy left holding them. They
+were lost when the branch was reconciled after the two-remote episode: the rows
+had only ever been committed to the host that was dropped.
+
+The consequence is worse than seven absent rows. The runner appends to whatever
+table it finds, so **the next run to finish writes a `bk9` row onto twelve rows
+measured under a different objective**, with nothing on any line to say which is
+which. That is precisely the mixture §39.12 was written to prevent and §39.20
+found had already happened once.
+
+`experiments/recover_bk9_rows.py` regenerates the rows *from the committed
+artefacts* rather than from any remembered number, and writes
+`experiments/results/coldstart_bk9_recovered.tsv`. fails, hard, soft and score
+all come back exactly -- the scorer is deterministic and the `.dom` is the run's
+own output; all seven scores match the runner's terminal output to six
+significant figures. `elapsed_s` is left empty because it is not recoverable,
+which costs nothing: these seven were timed with `time.time()` before `d04e585`
+and span a three-day suspend, so the numbers were never usable. An empty column
+is a truer record than a transcribed one.
+
+It writes a **separate** file on purpose. `record_and_push` reads the results
+table *before* it takes the git lock, so editing that table from another clone
+while a sweep is live invites a rebase collision inside the runner's push retry
+and can wedge a job with days of compute in it. Merge the two by hand once the
+sweep finishes, and mark which objective each row belongs to when you do.
+
+**Queue state at the time of writing** (from the run logs, not the table):
+finished under the current objective -- harbor s0/s1, health s0/s1, maple s0,
+programme-house s0/s1; in flight -- maple s1, maple s2, harbor s2, health s2;
+not yet started -- programme-house s2.
