@@ -99,27 +99,58 @@ def record_and_push(row: dict, artefacts: "list[Path]") -> None:
     # along and in-flight runs are never committed as if they were results.
     paths = [str(a.relative_to(REPO)) for a in artefacts if a.exists()]
     paths.append(str(RESULTS.relative_to(REPO)))
+
+    def _git(*argv) -> "subprocess.CompletedProcess":
+        """Run one git command and SAY SO when it fails.
+
+        Every call here used to be `capture_output=True` with the return code
+        ignored, and the function then printed "pushed:" unconditionally. A
+        failing `git commit` was therefore reported as a successful push after
+        every run -- seven completed runs sat on disk for a week looking, from
+        the far end, exactly like a job that had never been started. The
+        results were never at risk; the reporting was. Failing loudly and
+        CONTINUING is the point: a broken git must not cost the queue, and must
+        not be silent either.
+        """
+        r = subprocess.run(["git", *argv], cwd=REPO, capture_output=True, text=True)
+        if r.returncode != 0:
+            err = (r.stderr or r.stdout or "").strip().splitlines()
+            head = err[0] if err else f"exit {r.returncode}"
+            print(f"    GIT FAILED: git {' '.join(argv[:2])} -> {head}",
+                  flush=True)
+        return r
+
+    committed = pushed = False
     with git_lock():
-        subprocess.run(["git", "add", "--", *paths], cwd=REPO, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-q", "--only", *paths, "-m", msg + "\n\n"
-             "Cold-start re-baseline after the DESIGN.md 38.10/38.11 objective\n"
-             "change. Single worker (avoids homemaker-py-b8g), scored by the\n"
-             "shipped scorer from the programme directory.\n\n"
-             "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>\n"
-             "Claude-Session: https://claude.ai/code/session_01MJ84Feep79Hhm3E4zZJmnB"],
-            cwd=REPO, capture_output=True)
-        for attempt in range(4):
-            subprocess.run(["git", "pull", "--rebase", "-q", "origin",
-                            "claude/beads-project-intro-fjiez3"],
-                           cwd=REPO, capture_output=True)
-            p = subprocess.run(["git", "push", "-q", "origin",
-                                "claude/beads-project-intro-fjiez3"],
-                               cwd=REPO, capture_output=True)
-            if p.returncode == 0:
-                break
-            time.sleep(2 ** (attempt + 1))
-    print(f"    pushed: {msg}", flush=True)
+        _git("add", "--", *paths)
+        c = _git("commit", "-q", "--only", *paths, "-m", msg + "\n\n"
+                 "Cold-start re-baseline after the DESIGN.md 38.10/38.11 objective\n"
+                 "change. Single worker (avoids homemaker-py-b8g), scored by the\n"
+                 "shipped scorer from the programme directory.\n\n"
+                 "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>\n"
+                 "Claude-Session: https://claude.ai/code/session_01MJ84Feep79Hhm3E4zZJmnB")
+        committed = c.returncode == 0
+        if committed:
+            for attempt in range(4):
+                _git("pull", "--rebase", "-q", "origin",
+                     "claude/beads-project-intro-fjiez3")
+                if _git("push", "-q", "origin",
+                        "claude/beads-project-intro-fjiez3").returncode == 0:
+                    pushed = True
+                    break
+                time.sleep(2 ** (attempt + 1))
+
+    if pushed:
+        print(f"    pushed: {msg}", flush=True)
+    elif committed:
+        print(f"    COMMITTED BUT NOT PUSHED: {msg}"
+              f"\n      -- the run is safe in git; `git push` when git is fixed",
+              flush=True)
+    else:
+        print(f"    NOT COMMITTED: {msg}"
+              f"\n      -- the .dom/.score/.fails and {RESULTS.name} are on disk"
+              f" and complete;\n         nothing is lost, but nothing is in git"
+              f" either", flush=True)
 
 
 def main() -> None:
