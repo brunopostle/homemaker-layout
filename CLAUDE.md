@@ -58,14 +58,31 @@ collisions, the usage class each code picks up, and per-room-spec satisfiability
    git status  # MUST show "up to date with origin"
    ```
 
-   This project lives on **two** hosts — `github.com/brunopostle/homemaker-layout`
-   and `hub.postle.net:bruno/homemaker-layout.git`. They are both called `origin`
-   and they have drifted apart before. Run `experiments/setup_dual_remote.sh`
-   once per clone: it gives `origin` a `pushurl` for each host, so a plain
-   `git push` reaches both. Verify with `git remote get-url --push --all origin`
-   — if that prints one URL, your pushes are only reaching half the project.
-   Containers without an `ssh` binary cannot reach `hub`; the script detects
-   that, configures what it can, and says so.
+   **`origin` is GitHub, and GitHub is the default.** Everything — this
+   workflow, the cold-start runner, agent containers — pushes to
+   `github.com/brunopostle/homemaker-layout` and nowhere else. That is the
+   record.
+
+   `hub.postle.net:bruno/homemaker-layout.git` is the owner's own server, kept
+   as a **separate, occasional** remote named `hub`. It is a mirror, not a
+   second source of truth, and it is pushed by hand when the owner wants a copy
+   there:
+
+   ```bash
+   git remote add hub hub.postle.net:bruno/homemaker-layout.git  # once per clone
+   git push hub <branch>                                          # occasionally
+   ```
+
+   Never make `hub` an alias or a second push URL of `origin`. That was tried
+   and it is how the two drifted a week apart in September 2026: the runner
+   pushed results to one host while an agent polled the other and reported,
+   truthfully from where it stood, that nothing had arrived. Two hosts answering
+   to one name is the failure mode. Keep the names distinct and `hub` gets
+   whatever GitHub has, whenever you send it.
+
+   Agent containers have no `ssh` binary, so they cannot reach `hub` at all —
+   another reason it must never be on `origin`'s push path, where it would turn
+   every agent push into a half-failure.
 5. **Clean up** - Clear stashes, prune remote branches
 6. **Verify** - All changes committed AND pushed
 7. **Hand off** - Provide context for next session
