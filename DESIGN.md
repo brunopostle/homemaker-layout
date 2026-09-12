@@ -8170,3 +8170,89 @@ nothing" is informative rather than routine.
 Still open on `dpt`, and all three need a ruling or a rate change rather than a
 measurement: `quality_size`'s upper side, the minimum-internal-area factor as a
 third statement of "build the rooms", and the `0.5 ** n_fails` curve.
+
+
+### 39.27 The `bk9` re-baseline, read against the right zero (`homemaker-py-bk9`)
+
+Seven of the twelve post-§39.26 cold-start runs have finished. Naively they
+look like a large win — corpus fail count 145 → 113 against §39.12's table. That
+reading is wrong, and the way it is wrong is the same trap §39.12 itself warned
+about: **the §39.12 numbers were produced by a different objective.** Four terms
+have since been removed (`proportion_circulation` §39.22, `size_circulation`
+§39.23, `ratio_circulation` §39.24, `ratio_outside` §39.25) and one per-level
+rule switched from off to on (`level N no outside space`, §39.25). Some of the
+change in the count is definitional: checks that can no longer fail, and one
+that now can.
+
+**The correct zero is the old artefacts rescored under the current objective.**
+`examples/*/coldstart-500000-s{0,1,2}.dom` are the committed §39.12 layouts;
+scoring them with today's `homemaker-fitness` isolates the definitional part,
+because the layout is held fixed and only the objective moves.
+
+| programme | seed | §39.12 as published | same layout, current objective | definitional Δ |
+|---|---|---|---|---|
+| programme-house | 0 / 1 / 2 | 1 / 1 / 1 | **2 / 2 / 2** | +1 each |
+| health-centre | 0 / 1 / 2 | 4 / 9 / 5 | 3 / 9 / 5 | −1 / 0 / 0 |
+| harbor-house | 0 / 1 / 2 | 33 / 43 / 42 | 32 / 40 / 38 | −1 / −3 / −4 |
+| maple-court | 0 / 1 / 2 | 54 / 73 / 55 | 52 / 65 / 52 | −2 / −8 / −3 |
+
+**programme-house is entirely definitional.** All three old layouts pick up
+`level 0 no outside space` under the current objective — the rule §39.25 turned
+on. Nothing regressed; a check that was dormant in every config started running.
+
+**Now the like-for-like comparison**, rescored baseline versus the new run on
+the same programme and seed, same 500 k budget:
+
+| programme | seed | baseline (h/s) | `bk9` run (h/s) | Δ fails | Δ hard |
+|---|---|---|---|---|---|
+| programme-house | 0 | 2 (1/1) | 2 (0/2) | 0 | −1 |
+| programme-house | 1 | 2 (2/0) | 1 (1/0) | −1 | −1 |
+| health-centre | 0 | 3 (2/1) | 5 (2/3) | **+2** | 0 |
+| health-centre | 1 | 9 (5/4) | 4 (2/2) | −5 | −3 |
+| harbor-house | 0 | 32 (8/24) | 26 (5/21) | −6 | −3 |
+| harbor-house | 1 | 40 (7/33) | 25 (2/23) | −15 | −5 |
+| maple-court | 0 | 52 (19/33) | 50 (12/38) | −2 | −7 |
+| **total** | | **140 (44/96)** | **113 (24/89)** | **−27** | **−20** |
+
+Two things stand out, and only one of them is a result.
+
+*Hard fails fall by 45%, soft by 7%.* 44 → 24 hard against 96 → 89 soft. §39.12
+found hard fails were 66-of-84 one family — `not adjacent to`,
+`inaccessible usable space`, `not connected`, all access topology — and called
+it the stuck part of the residual, with two measured-NULL attempts behind it
+(§39.9, §39.10). Every seed improves on hard count, including the two whose
+total barely moves. If that holds for the remaining five runs it is the first
+movement on that family, and it was not the thing any of §39.22-§39.26 set out
+to fix. It wants its own investigation before it is believed: none of those five
+sections predicted it, and a result nobody predicted is a result nobody has
+checked. The first thing to rule out is that the removed terms were *masking*
+hard fails rather than the search now avoiding them — `0.5 ** n_fails` means a
+layout carrying fewer soft fails is scored higher for the same topology, which
+changes what the search selects, so a hard-fail improvement is a plausible
+downstream consequence of the soft-fail terms leaving, not necessarily a better
+search.
+
+*Nothing here is significant yet.* harbor's paired deltas are −6 and −15 at
+n = 2; §39.12's MDD discipline applies and this does not come close. The
+`bk9` table is a reference to be completed (five runs outstanding: harbor s2,
+maple s1/s2, health s2, programme-house s2), not a result to quote.
+
+**Two caveats on the raw TSV.**
+
+`elapsed_s` in the rows written so far is not wall-clock work — the runner was
+still using `time.time()` when these started, and the machine was suspended for
+roughly three days mid-run. The `time.monotonic()` fix (`d04e585`) landed after
+they were launched, so only rows written by a later launch have trustworthy
+timings. Do not read 400 ks for maple s0 as 111 hours of compute.
+
+`not connected` is not tracked in the table above, because the `bk9` artefacts
+are not in this checkout. §39.12 clause 2 makes it a separately-counted standing
+defect and the baseline carries it in 10 of 12 runs (2 in every harbor run, 2-3
+in every maple run); it needs counting on the new artefacts before any claim
+about the access-topology family is made.
+
+**Reproducing the rescore:** copy each programme's `patterns.config` and its
+three `coldstart-500000-s*.dom` to a scratch directory and run
+`homemaker-fitness` from inside it, per the `cd`-first rule in `CLAUDE.md`. It
+takes seconds and it is the only defensible zero for any comparison that spans
+§39.22-§39.26.
