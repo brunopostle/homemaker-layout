@@ -63,7 +63,11 @@ DEFAULT_RUNS = [
     # carries four duplicated (programme, seed) pairs measured under two
     # different objectives.
     ("programme-house", 2), ("health-centre", 2), ("harbor-house", 2),
-    # maple-court s2 is the twelfth and had not finished when this was written.
+    # maple-court s2 finished last, at `cbd05e3`, completing the sweep. The
+    # 39.12 table now carries five duplicated (programme, seed) pairs measured
+    # under two different objectives; this file is the twelve current-objective
+    # runs, unambiguous, in one place.
+    ("maple-court", 2),
 ]
 
 FIELDS = ["programme", "seed", "budget", "fails", "hard", "soft", "score",

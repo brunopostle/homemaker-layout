@@ -8530,3 +8530,106 @@ ruling wants revisiting with this number in hand.
 with the largest sd in §39.12 (10.69, MDD 26.6 at n = 3) and maple s1 is the
 only run that got worse on hard count, so it is exactly the run that could move
 the maple column. Nothing above is final until it lands.
+
+*(It landed: 51 fails, 9 hard. See §39.31 for the complete sweep, which is the
+reference from here.)*
+
+
+### 39.31 `bk9` complete: not a fail-count win, a hard-fail win (`homemaker-py-bk9`)
+
+`maple-court` s2 finished at `cbd05e3` -- 51 fails, 9 hard, 42 soft,
+`1.01956e-16` -- completing the twelve-run sweep. Every one of the twelve
+reproduces its table row exactly from its committed artefact.
+`experiments/results/coldstart_bk9_recovered.tsv` is the complete set in one
+place; **this table, not §39.12's, is the corpus reference from here.**
+
+**The whole corpus**, rescored §39.12 baseline against `bk9`, same programmes,
+same seeds, same 500 k budget:
+
+| | baseline | `bk9` | Δ |
+|---|---|---|---|
+| fails | 302 | 269 | −33 (−11%) |
+| **hard** | **88** | **59** | **−29 (−33%)** |
+| soft | 214 | 210 | −4 (−2%) |
+
+**By §39.12's own acceptance discipline, this is not a result.** Per programme
+at n = 3, against each programme's own paired MDD, *no* programme's total fail
+count moved significantly:
+
+| programme | baseline (s0/s1/s2) | `bk9` | Δ mean | MDD | significant |
+|---|---|---|---|---|---|
+| programme-house | 2 / 2 / 2 | 2 / 1 / 1 | −0.7 | 1.4 | no |
+| health-centre | 3 / 9 / 5 | 5 / 4 / 6 | −0.7 | 9.4 | no |
+| harbor-house | 32 / 40 / 38 | 26 / 25 / 39 | −6.7 | 19.9 | no |
+| maple-court | 52 / 65 / 52 | 50 / 59 / 51 | −3.0 | 6.6 | no |
+
+That is the honest headline, and it is the one §39.12 clause 1 asks for. Four
+terms came out of the objective on correctness grounds (§39.22-§39.26) and the
+corpus fail count did not significantly improve in any programme. None of them
+was adopted for a fail-count improvement, so nothing is retracted by this -- but
+nobody should now quote `bk9` as having produced one.
+
+**The hard-fail count is a different quantity, and it did move.** Pooling the
+twelve paired deltas: mean −2.42, sd 2.47, MDD 1.57 at n = 12 -- **significant**
+(t ≈ 3.4). Soft over the same twelve pairs: mean −0.33, sd 4.72, MDD 3.00 --
+not significant, and not close.
+
+*Two caveats on that test, both mine to declare.* It pools four programmes whose
+hard counts differ by an order of magnitude (programme-house 1-2, maple 11-19),
+so the variance is dominated by maple; and pooling is a test chosen **after**
+seeing that the per-programme totals were null, which is exactly the move this
+project has caught itself at before. Per programme at n = 3 the hard count is
+significant for harbor-house (−4.7, MDD 3.8) and for programme-house only
+degenerately -- its three deltas are −1, −1, −1, so the sd is zero and the MDD
+collapses to zero along with it. Treat harbor as the one clean per-programme
+result and the pooled test as suggestive.
+
+**One family carries it, and it is the only stable number in the whole
+exercise:**
+
+| hard fail family | base | `bk9` | Δ | n=11 | n=8 | n=7 |
+|---|---|---|---|---|---|---|
+| **`inaccessible usable space`** | **20** | **8** | **−12** | −12 | −10 | −8 |
+| `not adjacent to` | 28 | 21 | −7 | −5 | −1 | −4 |
+| `covered outside` | 9 | 4 | −5 | −4 | −4 | −2 |
+| `no outside space` | 4 | 1 | −3 | −3 | −2 | −2 |
+| `<code> on wrong level` | 2 | 1 | −1 | −2 | −2 | −1 |
+| **`not connected`** | **18** | **17** | **−1** | −1 | 0 | −1 |
+| `too few stairs` | 7 | 7 | 0 | 0 | 0 | 0 |
+
+`inaccessible usable space` loses 60% of its count and read −8, −10, −12, −12
+as the sweep filled in: monotone, and stable once two thirds of the runs were
+in. Nothing else was stable -- `not adjacent to` read −4, −1, −5, −7, and any
+of those four readings taken alone would have supported a different sentence.
+
+`not connected` read −1, 0, −1, −1. It has not moved, at any n. §39.9's
+mechanism is untouched, §39.12 clause 2 stands unaltered, and the standing
+defect is still standing.
+
+**What actually happened, then.** The objective stopped penalising circulation
+for being corridor-shaped (§39.22) and numerous (§39.23/§39.24) and stopped
+penalising outside space for being plentiful (§39.25). The search did not
+respond by building more corridors -- §39.28 measured that and it is flat,
+59 → 58 circulation leaves across the first seven. What it did was stop
+producing spaces you cannot get into. That is a coherent and modest claim, it
+is the only one the data supports at n = 12, and it is worth having: an
+unreachable room is a defect a person would notice, and it was 23% of the
+hard-fail count.
+
+**The one thing that got worse, still untested.** Soft `width` 7 → 13 while
+`proportion` 11 → 7 -- the same shape at n = 12 as at n = 11. The hypothesis in
+§39.30 stands unexamined: with no aspect cap (§39.22) and no size cap (§39.23),
+a corridor shape once refused as a bad proportion can now be built and refused
+as a bad width instead. Six extra `width` fails against four fewer `proportion`
+ones is consistent with a relabelling rather than a regression, but consistent
+is not measured. **This is the next thing to look at on the objective**, and it
+bears directly on the `hxi` ruling: crinkliness was supposed to be what keeps an
+uncapped corridor habitable, and if the search is now making spaces too narrow
+to use, that ruling wants revisiting with this number in hand.
+
+**Acceptance discipline, restated for the next change.** The reference is
+`coldstart_bk9_recovered.tsv` with the seeds and sds above. §39.12's three
+clauses carry over unchanged, with one addition earned here: **a decomposition
+is not a result until the sweep is complete.** Four readings of the same family
+table across n = 7, 8, 11, 12 told three different stories, and each was an
+honest reading of what was there at the time.
