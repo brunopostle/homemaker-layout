@@ -22,6 +22,23 @@ bd close <id>         # Complete work
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
 
+### Running `bd` in a remote agent container
+
+**`bd` is installed at `/root/go/bin/bd`, and that directory is not on `PATH`.**
+So `command -v bd` finds nothing and a bare `bd` reports `command not found`,
+which looks exactly like "beads is not available here". It is available. Run
+`export PATH="$PATH:/root/go/bin"` first, and never conclude beads is missing
+from `command not found` without checking `/root/go/bin`.
+
+**Issues persist; memories do not.** `.beads/issues.jsonl` is git-tracked, so
+`bd export -o .beads/issues.jsonl` followed by a commit is what actually carries
+issue state out of a container. The Dolt database under `.beads/embeddeddolt/`
+is gitignored, `bd export` omits memories unless asked, and `sync.remote` is a
+`git+ssh://` URL that an agent container cannot use — containers have no `ssh`
+binary. **A `bd remember` written in a container therefore reaches nobody.**
+Put anything durable in `DESIGN.md` (findings) or this file (how to work here),
+and leave `bd remember` for sessions running on the owner's own machine.
+
 ### Room-code namespaces (DESIGN.md §39.4/§39.6)
 
 Leaf types share a first character across three namespaces:
