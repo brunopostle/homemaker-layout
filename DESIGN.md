@@ -8627,9 +8627,34 @@ bears directly on the `hxi` ruling: crinkliness was supposed to be what keeps an
 uncapped corridor habitable, and if the search is now making spaces too narrow
 to use, that ruling wants revisiting with this number in hand.
 
+**A test failed on the good news, which is worth recording.**
+`tests/test_outdoor_space_rule.py::test_a_level_with_no_outdoor_space_fails`
+went red on the completed sweep. It asserted that every
+`programme-house/coldstart-500000-s*.dom` carries a `no outside space` fail --
+true of the §39.12 baseline layouts, and false the moment `bk9` produced a
+programme-house ground floor with outdoor space on it. The test was pinned to a
+*defect* in a checked-in search result, so it failed exactly when the search
+stopped making that mistake. That is backwards, and §39.12 clause 3 had already
+named it: a number quoted in a test carries the commit it was measured at.
+
+It is now written to construct the condition instead -- strip the usable outside
+leaves off a level, assert the rule fires; leave the level alone, assert it stays
+quiet -- which tests the rule in both directions and is indifferent to what the
+search produces. The four other tests that read corpus artefacts
+(`test_circulation_proportion`, `test_fitness_aggregate`,
+`test_fitness_crinkliness`, `test_terrace_value_ruling`) were checked and are
+sound: they assert *invariances* over whatever the artefact happens to be
+(`f_prod == f_geo`, "must not add a failure"), not that a particular defect is
+present.
+
+Incidentally it is independent confirmation of the `no outside space` line in
+the family table above, arrived at from the opposite direction.
+
 **Acceptance discipline, restated for the next change.** The reference is
 `coldstart_bk9_recovered.tsv` with the seeds and sds above. §39.12's three
-clauses carry over unchanged, with one addition earned here: **a decomposition
-is not a result until the sweep is complete.** Four readings of the same family
-table across n = 7, 8, 11, 12 told three different stories, and each was an
-honest reading of what was there at the time.
+clauses carry over unchanged, with two additions earned here: **a decomposition
+is not a result until the sweep is complete** -- four readings of the same family
+table across n = 7, 8, 11, 12 told three different stories, each an honest
+reading of what was there at the time -- and **a test must never assert that a
+corpus artefact still exhibits a defect**, because the search's job is to remove
+it.

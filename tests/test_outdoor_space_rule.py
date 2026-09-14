@@ -36,17 +36,65 @@ def test_the_qualitative_rule_is_on_and_the_quantitative_one_is_off(name):
         "the outdoor FRACTION is not a rule Alexander states (§39.25)")
 
 
-def test_a_level_with_no_outdoor_space_fails():
-    """The rule has to bite, or turning it on achieved nothing. programme-house
-    puts no outdoor space on its ground floor in every baseline seed."""
-    d = EXAMPLES / "programme-house"
-    seen = 0
-    for p in sorted(d.glob("coldstart-500000-s*.dom")):
-        conf, cost = load_config(d)
-        _, fails = Fitness(conf, cost).score_with_fails(dom_mod.load(str(p)))
-        assert any("no outside space" in f for f in fails), p.name
-        seen += 1
-    assert seen == 3
+def _strip_outdoor_space(root, level_id):
+    """Retype every usable outside leaf on one level to a code already in use
+    on that level. Returns False if the level has no outdoor space to remove,
+    or nothing safe to retype it to.
+    """
+    levels = dom_mod.levels(root)
+    if level_id >= len(levels):
+        return False
+    leaves = levels[level_id].leaves()
+    outside = [l for l in leaves
+               if dom_mod.is_outside(l) and dom_mod.is_usable(l)]
+    stand_in = next((l.type for l in leaves
+                     if dom_mod.is_usable(l) and not dom_mod.is_outside(l)
+                     and not dom_mod.is_generic(l.type)), None)
+    if not outside or stand_in is None:
+        return False
+    for leaf in outside:
+        leaf.type = stand_in
+        leaf.share, leaf.share_type, leaf.co_type = 1, None, None
+    return True
+
+
+@pytest.mark.parametrize("name", CORPUS)
+def test_the_rule_bites_when_a_level_has_no_outdoor_space(name):
+    """The rule has to fire when the condition holds, and stay quiet when it
+    does not -- or switching it on in §39.25 achieved nothing.
+
+    This CONSTRUCTS the condition rather than looking for a corpus artefact
+    that happens to exhibit it. The first version of this test asserted that
+    every `programme-house/coldstart-500000-s*.dom` carried a
+    `no outside space` fail, which was true of the §39.12 baseline layouts and
+    stopped being true the moment `bk9` produced a programme-house ground floor
+    with a terrace on it (§39.31). A test pinned to a defect in a checked-in
+    search result fails precisely when the search stops making that mistake,
+    which is backwards. §39.12 clause 3 already said it: a number quoted in a
+    test carries the commit it was measured at. Construct the case instead.
+    """
+    d = EXAMPLES / name
+    conf, cost = load_config(d)
+    checked = 0
+    for path in sorted(d.glob("coldstart-500000-s*.dom")):
+        root = dom_mod.load(str(path))
+        for level_id in range(len(dom_mod.levels(root))):
+            stripped = copy.deepcopy(root)
+            if not _strip_outdoor_space(stripped, level_id):
+                continue  # nothing to remove on this level
+            marker = f"level {level_id} no outside space"
+
+            _, before = Fitness(conf, cost).score_with_fails(copy.deepcopy(root))
+            assert marker not in before, (
+                f"{path.name} level {level_id} has outdoor space, so the rule "
+                f"must not fire")
+
+            _, after = Fitness(conf, cost).score_with_fails(stripped)
+            assert marker in after, (
+                f"{path.name} level {level_id}: outdoor space removed and the "
+                f"rule did not fire")
+            checked += 1
+    assert checked, f"{name}: no level with removable outdoor space to test"
 
 
 def test_that_failure_is_hard():
