@@ -58,6 +58,12 @@ DEFAULT_RUNS = [
     # It is listed here so the recovered table is the complete set of runs
     # under the current objective, in one place, unambiguous.
     ("maple-court", 1),
+    # programme-house s2, health-centre s2 and harbor-house s2 finished at
+    # `adb7d4f`, and their rows also went straight onto the 39.12 table. It now
+    # carries four duplicated (programme, seed) pairs measured under two
+    # different objectives.
+    ("programme-house", 2), ("health-centre", 2), ("harbor-house", 2),
+    # maple-court s2 is the twelfth and had not finished when this was written.
 ]
 
 FIELDS = ["programme", "seed", "budget", "fails", "hard", "soft", "score",

@@ -8445,3 +8445,88 @@ heterogeneous programmes, against §39.12's per-programme MDDs, nothing here is
 significant, and the one family that looks robust looks robust on eight points.
 harbor s2, health s2, maple s2 and programme-house s2 decide it. Quote nothing
 from §39.28 or from here as settled until they land.
+
+*(The paragraph above on the soft side -- "the soft count is nearly flat" being
+weaker than stated -- is itself withdrawn at n = 11. See §39.30: soft comes back
+to flat. The n = 8 reading was the noise, not the n = 7 one.)*
+
+
+### 39.30 Eleven of twelve: one family, and it is not the one §39.28 named (`homemaker-py-bk9`)
+
+`programme-house` s2, `health-centre` s2 and `harbor-house` s2 finished
+(`adb7d4f`). Eleven of the twelve `bk9` runs are in; only `maple-court` s2 is
+outstanding. All eleven reproduce their table rows exactly from the committed
+artefacts.
+
+**Per run**, rescored §39.12 baseline against `bk9`, same programme, same seed,
+same 500 k budget:
+
+| run | baseline (h/s) | `bk9` (h/s) | Δ | Δ hard |
+|---|---|---|---|---|
+| programme-house s0 | 2 (1/1) | 2 (0/2) | 0 | −1 |
+| programme-house s1 | 2 (2/0) | 1 (1/0) | −1 | −1 |
+| programme-house s2 | 2 (1/1) | 1 (0/1) | −1 | −1 |
+| health-centre s0 | 3 (2/1) | 5 (2/3) | +2 | 0 |
+| health-centre s1 | 9 (5/4) | 4 (2/2) | −5 | −3 |
+| health-centre s2 | 5 (3/2) | 6 (2/4) | +1 | −1 |
+| harbor-house s0 | 32 (8/24) | 26 (5/21) | −6 | −3 |
+| harbor-house s1 | 40 (7/33) | 25 (2/23) | −15 | −5 |
+| harbor-house s2 | 38 (12/26) | 39 (6/33) | +1 | **−6** |
+| maple-court s0 | 52 (19/33) | 50 (12/38) | −2 | −7 |
+| maple-court s1 | 65 (17/48) | 59 (18/41) | −6 | **+1** |
+| **total** | **250 (77/173)** | **218 (50/168)** | **−32** | **−27** |
+
+**Hard falls 35%; soft is flat at 3%.** Ten of eleven runs improve or hold on
+hard count; one (maple s1) is worse by a single fail. harbor s2 is the clearest
+case in the corpus: total fails go *up* by one while hard fails halve, 12 → 6.
+
+That separation is the answer to §39.28's masking hypothesis, and it is the
+opposite of what §39.29 concluded from eight runs. Removing four terms from the
+objective did not buy hard fails by trading soft ones away: the soft count
+barely moved while the hard count fell by more than a third. §39.29's retreat
+on this point is withdrawn -- at n = 8 the soft side looked like it had moved
+10%, at n = 11 it is 3%.
+
+**By family:**
+
+| hard fail family | base | `bk9` | Δ | n=8 | n=7 |
+|---|---|---|---|---|---|
+| **`inaccessible usable space`** | **18** | **6** | **−12** | −10 | −8 |
+| `not adjacent to` | 24 | 19 | −5 | −1 | −4 |
+| `covered outside` | 7 | 3 | −4 | −4 | −2 |
+| `no outside space` | 4 | 1 | −3 | −2 | −2 |
+| `<code> on wrong level` | 2 | 0 | −2 | −2 | −1 |
+| `not connected` | 15 | 14 | −1 | 0 | −1 |
+| `too few stairs` | 7 | 7 | 0 | 0 | 0 |
+
+**One family is the result.** `inaccessible usable space` loses two thirds of
+its count and is the only family that has strengthened monotonically as runs
+landed: −8, −10, −12 at n = 7, 8, 11. Nothing else in the table has been stable
+across all three readings -- `not adjacent to` has read −4, −1, −5, which is a
+family sitting on top of its own noise, and `not connected` has read −1, 0, −1,
+which is a family not moving at all.
+
+**Three readings of the same quantity, three different stories.** §39.28 (n = 7)
+said two access families moved; §39.29 (n = 8) said only one did and the soft
+side muddied it; §39.30 (n = 11) says one moved, the soft side is clean, and a
+second family is ambiguous. The count changed by four runs and the narrative
+changed twice. The lesson is not that any of the three was carelessly done --
+each was the honest reading of what was there -- but that **family-level deltas
+on a corpus this size are not stable until the corpus is complete**, and the
+rule from §39.12 applies to decompositions as much as to totals. This is the
+same shape as the `15`-fail floor quoted for months in §38.7.
+
+**The one thing that got worse.** Soft `width` goes 6 → 13, the only family up
+by more than three, while `proportion` goes 9 → 6. A corridor no longer has an
+aspect cap (§39.22) or a size cap (§39.23), so a shape that used to be refused
+as a bad proportion can now be built and refused as a bad width instead. That is
+a hypothesis with a plausible mechanism and no measurement behind it; it is
+written down to be tested, not believed. It does not obviously contradict the
+`hxi` ruling -- the crinkliness rule was meant to be what keeps corridors
+habitable -- but if the search is now producing spaces too narrow to use, that
+ruling wants revisiting with this number in hand.
+
+**Still one run short.** `maple-court` s2 is the twelfth. maple is the programme
+with the largest sd in §39.12 (10.69, MDD 26.6 at n = 3) and maple s1 is the
+only run that got worse on hard count, so it is exactly the run that could move
+the maple column. Nothing above is final until it lands.
