@@ -33,13 +33,13 @@ l:
     l:
       rotation: 1
       division:
-      - 0.6842646134231394
-      - 0.6842646134231394
+      - 0.7013712287587179
+      - 0.7013712287587179
       l:
         rotation: 0
         division:
-        - 0.5953638851427695
-        - 0.5953638851427695
+        - 0.72409927848878
+        - 0.72409927848878
         l:
           type: C
           rotation: 0
@@ -47,20 +47,20 @@ l:
           type: ur2
           rotation: 0
       r:
-        type: ph1
+        type: tt
         rotation: 0
     r:
       rotation: 1
       division:
-      - 0.5441747434767326
-      - 0.5441747434767326
+      - 0.5374565367671432
+      - 0.5374565367671432
       l:
-        rotation: 1
+        rotation: 0
         division:
-        - 0.535269689945328
-        - 0.535269689945328
+        - 0.6351326141935343
+        - 0.6351326141935343
         l:
-          rotation: 3
+          rotation: 1
           division:
           - 0.533359502879561
           - 0.533359502879561
@@ -123,17 +123,25 @@ l:
         l:
           rotation: 1
           division:
-          - 0.5977582828211181
-          - 0.5977582828211181
+          - 0.691979932150797
+          - 0.691979932150797
+          l:
+            type: ph1
+            rotation: 0
+          r:
+            type: C
+            rotation: 0
+        r:
+          rotation: 1
+          division:
+          - 0.5
+          - 0.5
           l:
             type: q1
             rotation: 0
           r:
             type: O
             rotation: 0
-        r:
-          type: da1
-          rotation: 0
       r:
         type: O
         rotation: 0
@@ -167,7 +175,7 @@ r:
           type: O
           rotation: 0
     r:
-      rotation: 1
+      rotation: 3
       division:
       - 0.6052153339007782
       - 0.6052153339007782
@@ -192,16 +200,8 @@ r:
     - 0.5792447490157573
     - 0.5792447490157573
     l:
+      type: la1
       rotation: 1
-      division:
-      - 0.5084244010584242
-      - 0.5084244010584242
-      l:
-        type: la1
-        rotation: 1
-      r:
-        type: C
-        rotation: 0
     r:
       rotation: 1
       division:
@@ -263,7 +263,7 @@ above:
           - 0.5
           - 0.5
           l:
-            type: en1
+            type: ph1
             rotation: 0
           r:
             type: k1
@@ -343,8 +343,8 @@ above:
       l:
         rotation: 0
         division:
-        - 0.25
-        - 0.25
+        - 0.51875
+        - 0.51875
         l:
           type: ws1
           rotation: 0
@@ -405,7 +405,7 @@ above:
               type: O
               rotation: 0
             r:
-              type: gy1
+              type: q1
               rotation: 0
           r:
             type: r
@@ -466,7 +466,7 @@ above:
               type: t
               rotation: 0
             r:
-              type: O
+              type: C
               rotation: 0
         r:
           rotation: 0
