@@ -8718,3 +8718,73 @@ compared to it.
 
 **Current state:** `objective 99c85ec: 12 rows verified exactly, 0 mismatched,
 0 artefacts missing, 12 rows skipped (other objectives)`.
+
+
+### 39.33 The runner did not commit once in twelve runs (`homemaker-py-bk9` fallout, needs a bead)
+
+§39.28 inferred from the first seven runs that `record_and_push` was failing
+silently and said it "may still be failing". It was. Across the whole `bk9`
+sweep -- twelve completed runs -- there are **zero** runner-authored commits:
+
+    git log --oneline 99c85ec..HEAD | grep -c '^[0-9a-f]* coldstart '   ->  0
+
+Every artefact reached the repository through a hand-made commit by the owner
+(`de41ce8`, `aa18971`, `adb7d4f`, `cbd05e3`). For contrast, the §39.12 sweep
+produced twelve runner commits, `ac59131` through `d492b7c`, one per run.
+
+**This is undiagnosed, and it is the last thing in this sequence that is.**
+What is known:
+
+* It is not the reporting. `2378e5f` made the failure audible; it did not fix
+  it, and nothing since has addressed the cause.
+* The process running the sweep was started before `2378e5f`, so it was
+  executing the pre-fix module for the whole sweep and would have printed
+  `pushed:` unconditionally regardless. **So there is no evidence either way in
+  the run logs** -- the absence of `GIT FAILED` lines means nothing here.
+* Everything downstream was recoverable because the artefacts are deterministic
+  (§39.28, §39.32), but that is luck about this particular failure, not a
+  property of the design.
+
+**What the next sweep needs, before it is started.** Run one short sweep
+(`--budget 2000 --seeds 1`) with the *current* module and watch for
+`pushed to`/`COMMITTED BUT NOT PUSHED`/`NOT COMMITTED`. If it commits, the
+cause was in code that `2378e5f` replaced and this closes. If it does not, the
+loud version now says which git command failed and why, which is the whole
+reason it was written. Do not start a multi-day sweep until that one-run check
+has committed something.
+
+The likeliest candidates, none verified: the `git_lock` flock interacting with
+the runner's own concurrency; `--only` refusing paths that are unchanged
+because a checkpoint already committed them; or an index lock held by an
+editor or another agent in the same tree.
+
+
+### 39.34 Where `bk9` leaves the objective (handoff)
+
+Closed by §39.27-§39.33: the re-baseline itself, its decomposition, the record
+keeping, and the artefact/table naming. `coldstart_baseline.tsv` at objective
+`99c85ec` is the reference, and `experiments/verify_results_table.py` is the
+guard on it.
+
+Open, in the order they are worth doing:
+
+1. **Soft `width` 7 -> 13 against `proportion` 11 -> 7** (§39.30, §39.31). The
+   only thing `bk9` made worse, and the only open question that came out of the
+   objective work rather than out of process. Hypothesis with a mechanism and no
+   measurement: with no aspect cap (§39.22) and no size cap (§39.23), a corridor
+   shape once refused as a bad proportion can now be built and refused as a bad
+   width instead. If instead the search is producing spaces too narrow to use,
+   the `hxi` ruling wants revisiting -- crinkliness was supposed to be what keeps
+   an uncapped corridor habitable.
+2. **`homemaker-py-dpt`**, three terms still unruled: `quality_size`'s upper
+   side, the minimum-internal-area factor as a third statement of "build the
+   rooms", and the `0.5 ** n_fails` curve. All three need a ruling from the
+   owner rather than a measurement.
+3. **`homemaker-py-k54`**, grade fully-buried leaves by burial depth.
+4. **§39.33**, the runner's silent commit failure. Cheap to check, and it
+   blocks trusting any future sweep.
+
+Unmoved and still separately counted: `level N not connected`, 18 -> 17 over
+twelve runs and flat at every n the sweep was read at (§39.30, §39.31). It has
+its own mechanism (§39.9) and two measured-NULL attempts behind it, and nothing
+in §39.22-§39.26 touched it.
