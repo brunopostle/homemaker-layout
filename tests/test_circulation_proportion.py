@@ -75,7 +75,7 @@ def test_removing_the_cap_only_ever_removes_proportion_fails():
     seen = 0
     for name in ("harbor-house", "maple-court", "health-centre", "programme-house"):
         d = EXAMPLES / name
-        for p in sorted(d.glob("coldstart-500000-s*.dom")):
+        for p in sorted(d.glob("coldstart-*-500000-s*.dom")):
             root = dom_mod.load(str(p))
             c_old, cost = load_config(d, overrides=old)
             c_new, _ = load_config(d)

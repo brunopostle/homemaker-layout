@@ -158,9 +158,9 @@ def starting_points(progdir: str, kind: str, n: int) -> list[Path]:
     d = Path(progdir)
     if kind == "init":
         return [d / "init.dom"]
-    found = sorted(d.glob("coldstart-500000-s*.dom"))[:n]
+    found = sorted(d.glob("coldstart-*-500000-s*.dom"))[:n]
     if not found:
-        raise SystemExit(f"no coldstart-500000-s*.dom in {d} for --start plateau")
+        raise SystemExit(f"no coldstart-*-500000-s*.dom in {d} for --start plateau")
     return found
 
 

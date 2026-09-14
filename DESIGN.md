@@ -8259,13 +8259,14 @@ takes seconds and it is the only defensible zero for any comparison that spans
 
 **But not from the working tree any more.** `de41ce8` committed the `bk9` run
 outputs over the baseline artefacts *in place*: the seven finished runs replaced
-their `coldstart-500000-s*.dom`, the five unfinished ones did not. The tree now
-holds a mix of two objectives' outputs under one filename scheme, with nothing
-on the file to say which. **The §39.12 baseline artefacts are the ones at
-`04c2538`**; take them from there
-(`git show 04c2538:examples/<prog>/coldstart-500000-s<n>.dom`) and nowhere else.
-Any future re-baseline should write to a name carrying its commit, not reuse
-this one.
+their `coldstart-500000-s*.dom`, the five unfinished ones did not. The tree then
+held a mix of two objectives' outputs under one filename scheme, with nothing on
+the file to say which.
+
+*(Fixed, see §39.32. Artefacts and table rows now carry the objective they were
+measured by: `examples/<prog>/coldstart-055d710-500000-s<n>.dom` is the §39.12
+baseline, `coldstart-99c85ec-*` the `bk9` sweep, and the runner stamps the name
+itself so a sweep can no longer overwrite another's results.)*
 
 
 ### 39.28 The `bk9` hard-fail drop, decomposed (`homemaker-py-bk9`)
@@ -8658,3 +8659,62 @@ table across n = 7, 8, 11, 12 told three different stories, each an honest
 reading of what was there at the time -- and **a test must never assert that a
 corpus artefact still exhibits a defect**, because the search's job is to remove
 it.
+
+
+### 39.32 Every result carries the objective it was measured by (`homemaker-py-bk9`)
+
+The housekeeping §39.28 and §39.31 kept deferring, done now that no runner owns
+the files. Three defects, one cause: **nothing in the results told you which
+objective produced it.**
+
+* `experiments/results/coldstart_baseline.tsv` held 17 rows -- the twelve §39.12
+  runs plus five `bk9` rows the runner appended after the objective changed --
+  with five `(programme, seed)` pairs appearing twice, different fail counts,
+  no column to say why. The other seven `bk9` rows were absent entirely.
+* The `.dom` files were worse, because they collide silently: `de41ce8` wrote
+  `bk9` outputs over the §39.12 layouts under the same `coldstart-500000-s*`
+  name, losing the baseline from the working tree.
+* A test had pinned to those layouts and broke when the search improved
+  (§39.31).
+
+**The fix is one column and one filename convention.** The objective is the
+short commit of the last change to `src/homemaker_layout/fitness.py`:
+`055d710` (`ssz`, §38.10/§38.11) for the §39.12 sweep, `99c85ec` (§39.26) for
+`bk9`. That is exact, verifiable, and needs no one to remember when a sweep
+was run.
+
+| | before | after |
+|---|---|---|
+| table | 17 rows, 5 ambiguous duplicates, 7 missing | 24 rows, `objective` column, complete |
+| artefacts | `coldstart-500000-s<n>.dom`, one sweep over another | `coldstart-<objective>-500000-s<n>.dom`, both kept |
+| next sweep | overwrites whatever is there | writes its own stamped names |
+
+`run_coldstart_baseline.py` reads the objective once at start-up, prints it,
+stamps every row with it, and builds its output filenames from it. Reading it
+once rather than per-run is deliberate: an edit to `fitness.py` mid-sweep would
+otherwise split a sweep in two without saying so.
+
+**The merge was checked, not asserted.** All five duplicated rows the runner had
+appended were rescored from their artefacts and matched exactly -- so the five
+rows in the table and the five artefacts on disk were the same runs, and the
+split between "§39.12 rows" and "`bk9` rows" is the right one. `elapsed_s`
+survives for those five and for the twelve §39.12 rows; the other seven `bk9`
+rows keep it empty, for the reason §39.28 gives.
+
+**`experiments/verify_results_table.py` replaces `recover_bk9_rows.py`.**
+Recovery was a one-off; the standing need is a check. It rescores every artefact
+the table names and compares all four measured columns. It earned itself
+immediately: on its first run it reported twelve missing artefacts, because the
+table's `dom` column still held the pre-rename filenames.
+
+It verifies only rows measured by the *current* objective and skips the rest,
+and there is deliberately no flag to override that. Scoring an old row with
+today's scorer reports a mismatch that means nothing except that the objective
+changed -- which is what the column already tells you. To verify an older sweep,
+check out the commit it was measured at and run the script there. After a change
+to the objective it will report *every* row skipped: that is the correct answer,
+and a standing reminder that the corpus needs re-running before anything is
+compared to it.
+
+**Current state:** `objective 99c85ec: 12 rows verified exactly, 0 mismatched,
+0 artefacts missing, 12 rows skipped (other objectives)`.

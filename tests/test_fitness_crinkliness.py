@@ -28,7 +28,7 @@ def _artefacts():
         d = EXAMPLES / name
         if not d.is_dir():
             continue
-        for p in sorted(d.glob("coldstart-500000-s*.dom")) + \
+        for p in sorted(d.glob("coldstart-*-500000-s*.dom")) + \
                 sorted(d.glob("evolved-3M*.dom")) + [d / "init.dom"]:
             if p.exists():
                 yield d, p

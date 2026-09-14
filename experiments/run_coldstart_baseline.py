@@ -47,8 +47,28 @@ REPO = Path(__file__).resolve().parent.parent
 PROGRAMMES = ["harbor-house", "maple-court", "health-centre", "programme-house"]
 LOCK = REPO / ".git" / "coldstart-git.lock"
 RESULTS = REPO / "experiments" / "results" / "coldstart_baseline.tsv"
-FIELDS = ["programme", "seed", "budget", "fails", "hard", "soft", "score",
-          "elapsed_s", "dom"]
+FIELDS = ["objective", "programme", "seed", "budget", "fails", "hard", "soft",
+          "score", "elapsed_s", "dom"]
+
+
+def objective_commit() -> str:
+    """Short commit of the last change to `fitness.py` -- i.e. which objective
+    this run is being scored by.
+
+    Every row carries it because the table did not, once, and the cost was
+    real: the 39.12 rows and the `bk9` rows sat in one file under one set of
+    column headings, five (programme, seed) pairs appearing twice with
+    different fail counts and nothing to say why (DESIGN.md 39.28/39.31). A
+    fail count is only comparable to another measured by the same objective,
+    so the objective belongs in the row, not in a reader's memory of when the
+    sweep was run. This is 39.12 clause 3 -- "any target quoted in a document
+    or a test carries the commit it was measured at" -- applied to the table
+    that does the quoting.
+    """
+    r = subprocess.run(
+        ["git", "log", "-1", "--format=%h", "--", "src/homemaker_layout/fitness.py"],
+        cwd=REPO, capture_output=True, text=True)
+    return r.stdout.strip() or "unknown"
 
 
 @contextmanager
@@ -171,11 +191,16 @@ def main() -> None:
     args = ap.parse_args()
     checkpoint_every = (args.checkpoint_every if args.checkpoint_every is not None
                         else max(1, args.budget // 20))
+    # Read once, at the start: every row of this sweep is stamped with the same
+    # objective, and a mid-sweep edit to fitness.py would otherwise split the
+    # sweep in two without saying so.
+    objective = objective_commit()
 
     # seed-major: all programmes at seed 0, then seed 1, ...
     queue = [(p, s) for s in range(args.seeds) for p in args.programmes]
     print(f"{len(queue)} runs, budget {args.budget}, {args.slots} slots, "
-          f"checkpoint every {checkpoint_every} evals, seed-major order\n",
+          f"checkpoint every {checkpoint_every} evals, seed-major order"
+          f"\nobjective: {objective} (last change to fitness.py)\n",
           flush=True)
     if args.dry_run:
         for p, s in queue:
@@ -187,8 +212,15 @@ def main() -> None:
         while queue and len(running) < args.slots:
             prog, seed = queue.pop(0)
             d = REPO / "examples" / prog
-            out = d / f"coldstart-{args.budget}-s{seed}.dom"
-            log = d / f"coldstart-{args.budget}-s{seed}.log"
+            # Stamped with the objective, so a sweep never overwrites another
+            # objective's results. `de41ce8` wrote the `bk9` outputs straight
+            # over the 39.12 layouts under the shared `coldstart-500000-s*`
+            # name, which cost the baseline from the working tree, broke a test
+            # that had pinned to it, and left the tree holding two objectives'
+            # artefacts indistinguishable by filename (DESIGN.md 39.27/39.31).
+            stem = f"coldstart-{objective}-{args.budget}-s{seed}"
+            out = d / f"{stem}.dom"
+            log = d / f"{stem}.log"
             fh = log.open("w")
             proc = subprocess.Popen(
                 ["homemaker-evolve", "init.dom", "--budget", str(args.budget),
@@ -218,7 +250,8 @@ def main() -> None:
             print(f"    done {prog} seed {seed}: {n} fails "
                   f"({hard}h/{soft}s) score {val:.4g} in {elapsed}s", flush=True)
             record_and_push(
-                dict(programme=prog, seed=seed, budget=args.budget,
+                dict(objective=objective, programme=prog, seed=seed,
+                     budget=args.budget,
                      fails=n, hard=hard, soft=soft, score=f"{val:.6g}",
                      elapsed_s=elapsed, dom=out.name),
                 [out, log, out.with_suffix(".dom.score"), out.with_suffix(".dom.fails")])

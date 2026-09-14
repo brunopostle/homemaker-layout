@@ -28,7 +28,7 @@ def _value_per_m2(overrides=None):
     acc = defaultdict(lambda: [0.0, 0.0])
     for name in CORPUS:
         d = EXAMPLES / name
-        for p in sorted(d.glob("coldstart-500000-s*.dom")):
+        for p in sorted(d.glob("coldstart-*-500000-s*.dom")):
             conf, cost = load_config(d, overrides=overrides)
             fit = Fitness(conf, cost)
             orig = Fitness.evaluate_leaf

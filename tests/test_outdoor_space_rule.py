@@ -65,7 +65,7 @@ def test_the_rule_bites_when_a_level_has_no_outdoor_space(name):
 
     This CONSTRUCTS the condition rather than looking for a corpus artefact
     that happens to exhibit it. The first version of this test asserted that
-    every `programme-house/coldstart-500000-s*.dom` carried a
+    every `programme-house/coldstart-*-500000-s*.dom` carried a
     `no outside space` fail, which was true of the §39.12 baseline layouts and
     stopped being true the moment `bk9` produced a programme-house ground floor
     with a terrace on it (§39.31). A test pinned to a defect in a checked-in
@@ -76,7 +76,7 @@ def test_the_rule_bites_when_a_level_has_no_outdoor_space(name):
     d = EXAMPLES / name
     conf, cost = load_config(d)
     checked = 0
-    for path in sorted(d.glob("coldstart-500000-s*.dom")):
+    for path in sorted(d.glob("coldstart-*-500000-s*.dom")):
         root = dom_mod.load(str(path))
         for level_id in range(len(dom_mod.levels(root))):
             stripped = copy.deepcopy(root)
@@ -109,7 +109,7 @@ def test_disabling_the_fraction_removes_no_failure():
     fail-set movement in §39.25 comes from switching the per-level rule ON."""
     for name in CORPUS:
         d = EXAMPLES / name
-        for p in sorted(d.glob("coldstart-500000-s*.dom")):
+        for p in sorted(d.glob("coldstart-*-500000-s*.dom")):
             root = dom_mod.load(str(p))
             conf, cost = load_config(d)
             with_frac, _ = load_config(

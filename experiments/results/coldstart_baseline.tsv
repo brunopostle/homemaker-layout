@@ -1,18 +1,25 @@
-programme	seed	budget	fails	hard	soft	score	elapsed_s	dom
-programme-house	0	500000	1	0	1	0.00587685	19400.4	coldstart-500000-s0.dom
-health-centre	0	500000	4	2	2	0.0011747	130593.0	coldstart-500000-s0.dom
-harbor-house	0	500000	33	8	25	1.68969e-11	160951.3	coldstart-500000-s0.dom
-harbor-house	1	500000	43	7	36	1.44523e-15	166958.6	coldstart-500000-s1.dom
-programme-house	1	500000	1	1	0	0.0053408	17970.5	coldstart-500000-s1.dom
-maple-court	0	500000	54	18	36	5.52881e-18	224214.4	coldstart-500000-s0.dom
-health-centre	1	500000	9	5	4	0.000101292	124903.7	coldstart-500000-s1.dom
-maple-court	1	500000	73	17	56	4.61196e-25	207119.5	coldstart-500000-s1.dom
-harbor-house	2	500000	42	12	30	3.04107e-14	158582.9	coldstart-500000-s2.dom
-programme-house	2	500000	1	0	1	0.00226757	26225.8	coldstart-500000-s2.dom
-health-centre	2	500000	5	3	2	0.00146757	112528.9	coldstart-500000-s2.dom
-maple-court	2	500000	55	11	44	4.66229e-18	197092.6	coldstart-500000-s2.dom
-maple-court	1	500000	59	18	41	6.21685e-19	242229.5	coldstart-500000-s1.dom
-programme-house	2	500000	1	0	1	0.0166568	21110.8	coldstart-500000-s2.dom
-health-centre	2	500000	6	2	4	0.0074654	120606.9	coldstart-500000-s2.dom
-harbor-house	2	500000	39	6	33	4.04502e-14	171649.3	coldstart-500000-s2.dom
-maple-court	2	500000	51	9	42	1.01956e-16	208789.3	coldstart-500000-s2.dom
+objective	programme	seed	budget	fails	hard	soft	score	elapsed_s	dom
+055d710	programme-house	0	500000	1	0	1	0.00587685	19400.4	coldstart-055d710-500000-s0.dom
+055d710	health-centre	0	500000	4	2	2	0.0011747	130593.0	coldstart-055d710-500000-s0.dom
+055d710	harbor-house	0	500000	33	8	25	1.68969e-11	160951.3	coldstart-055d710-500000-s0.dom
+055d710	harbor-house	1	500000	43	7	36	1.44523e-15	166958.6	coldstart-055d710-500000-s1.dom
+055d710	programme-house	1	500000	1	1	0	0.0053408	17970.5	coldstart-055d710-500000-s1.dom
+055d710	maple-court	0	500000	54	18	36	5.52881e-18	224214.4	coldstart-055d710-500000-s0.dom
+055d710	health-centre	1	500000	9	5	4	0.000101292	124903.7	coldstart-055d710-500000-s1.dom
+055d710	maple-court	1	500000	73	17	56	4.61196e-25	207119.5	coldstart-055d710-500000-s1.dom
+055d710	harbor-house	2	500000	42	12	30	3.04107e-14	158582.9	coldstart-055d710-500000-s2.dom
+055d710	programme-house	2	500000	1	0	1	0.00226757	26225.8	coldstart-055d710-500000-s2.dom
+055d710	health-centre	2	500000	5	3	2	0.00146757	112528.9	coldstart-055d710-500000-s2.dom
+055d710	maple-court	2	500000	55	11	44	4.66229e-18	197092.6	coldstart-055d710-500000-s2.dom
+99c85ec	programme-house	0	500000	2	0	2	0.00907475		coldstart-99c85ec-500000-s0.dom
+99c85ec	health-centre	0	500000	5	2	3	0.0155085		coldstart-99c85ec-500000-s0.dom
+99c85ec	harbor-house	0	500000	26	5	21	4.3309e-10		coldstart-99c85ec-500000-s0.dom
+99c85ec	harbor-house	1	500000	25	2	23	2.9622e-09		coldstart-99c85ec-500000-s1.dom
+99c85ec	maple-court	0	500000	50	12	38	3.38469e-16		coldstart-99c85ec-500000-s0.dom
+99c85ec	programme-house	1	500000	1	1	0	0.21942		coldstart-99c85ec-500000-s1.dom
+99c85ec	health-centre	1	500000	4	2	2	0.0295666		coldstart-99c85ec-500000-s1.dom
+99c85ec	maple-court	1	500000	59	18	41	6.21685e-19	242229.5	coldstart-99c85ec-500000-s1.dom
+99c85ec	programme-house	2	500000	1	0	1	0.0166568	21110.8	coldstart-99c85ec-500000-s2.dom
+99c85ec	health-centre	2	500000	6	2	4	0.0074654	120606.9	coldstart-99c85ec-500000-s2.dom
+99c85ec	harbor-house	2	500000	39	6	33	4.04502e-14	171649.3	coldstart-99c85ec-500000-s2.dom
+99c85ec	maple-court	2	500000	51	9	42	1.01956e-16	208789.3	coldstart-99c85ec-500000-s2.dom
