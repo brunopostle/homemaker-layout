@@ -51,6 +51,13 @@ DEFAULT_RUNS = [
     ("programme-house", 0), ("health-centre", 0), ("harbor-house", 0),
     ("harbor-house", 1), ("maple-court", 0), ("programme-house", 1),
     ("health-centre", 1),
+    # maple-court s1 finished later, at `aa18971`. Its row DID reach
+    # coldstart_baseline.tsv -- appended straight onto the twelve 39.12 rows,
+    # so that table now carries two `maple-court seed 1` lines, 73 fails and
+    # 59, with nothing to say they were measured under different objectives.
+    # It is listed here so the recovered table is the complete set of runs
+    # under the current objective, in one place, unambiguous.
+    ("maple-court", 1),
 ]
 
 FIELDS = ["programme", "seed", "budget", "fails", "hard", "soft", "score",

@@ -8281,6 +8281,11 @@ aggregate, and every score to six significant figures (`0.00907475`, `0.21942`,
 in the analysis below rests on a number that was only ever printed to a
 terminal.
 
+> **Superseded by §39.29 — the eighth run undoes half of this.** The table and
+> the paragraph under it are kept as measured at n = 7, because what changed
+> when one more run landed is the point. `not adjacent to` does *not* move;
+> `inaccessible usable space` does.
+
 **Where the 20 hard fails went** (matched 7 runs, rescored §39.12 baseline vs
 `bk9`):
 
@@ -8394,3 +8399,49 @@ sweep finishes, and mark which objective each row belongs to when you do.
 finished under the current objective -- harbor s0/s1, health s0/s1, maple s0,
 programme-house s0/s1; in flight -- maple s1, maple s2, harbor s2, health s2;
 not yet started -- programme-house s2.
+
+
+### 39.29 The eighth run, and which part of §39.28 survives it (`homemaker-py-bk9`)
+
+`maple-court` seed 1 finished (`aa18971`): 59 fails, 18 hard, 41 soft,
+`6.21685e-19`, reproduced exactly from the committed artefact. It is the eighth
+of twelve, and it is the first run whose **hard** count goes the wrong way --
+baseline 17, now 18.
+
+One run is enough to overturn half of §39.28, which is the useful part:
+
+| hard fail family | base | `bk9` | Δ | at n = 7 |
+|---|---|---|---|---|
+| `inaccessible usable space` | 16 | 6 | **−10** | −8 |
+| `covered outside` (unsupported / above ground) | 7 | 3 | −4 | −2 |
+| `no outside space` | 3 | 1 | −2 | −2 |
+| `<code> on wrong level` | 2 | 0 | −2 | −1 |
+| **`not adjacent to`** | **16** | **15** | **−1** | *−4* |
+| **`not connected`** | **12** | **12** | **0** | *−1* |
+| `too few stairs` | 5 | 5 | 0 | 0 |
+| **total** | **61** | **42** | **−19** | −20 |
+
+**`not adjacent to` is not moving.** maple s1 alone took it from 6 to 9, which
+is most of the −4 that was there at n = 7. §39.28 said "the two [members] about
+*reaching* a space fell by two thirds between them"; that was one run of noise
+carrying a second family along with a real one. **Only `inaccessible usable
+space` survives**, and it survives strongly -- 16 → 6 is more than half the
+entire hard-fail improvement on its own, and it grew rather than shrank with the
+extra run.
+
+`not connected` is now exactly flat, 12 → 12, across eight runs. §39.28 read
+10 → 9 as "nothing"; at n = 8 it is not even that. §39.9's mechanism is
+untouched and §39.12 clause 2 stands unaltered.
+
+**The headline is diluted but holds.** Hard 61 → 42 (−31%, was −45% at n = 7),
+soft 144 → 130 (−10%, was −7%). The soft side moved more this time --
+crinkliness 74 → 68 and `edge too long` 25 → 16 -- so §39.28's "the soft count
+is nearly flat while the hard count halves" is weaker than stated too. The
+masking hypothesis is not as cleanly separated as that sentence implied.
+
+**What this says about the remaining four.** Two of eight paired runs now show
+no hard-fail improvement (health s0 flat, maple s1 worse). At n = 8 across four
+heterogeneous programmes, against §39.12's per-programme MDDs, nothing here is
+significant, and the one family that looks robust looks robust on eight points.
+harbor s2, health s2, maple s2 and programme-house s2 decide it. Quote nothing
+from §39.28 or from here as settled until they land.
