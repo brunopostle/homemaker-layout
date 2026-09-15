@@ -337,7 +337,24 @@ CONF_DEFAULTS: dict = {
     "proportion_inside": [1.5, 0.5],
     "width_outside": [3.0, 0.3],
     "width_circulation": [2.4, 0.2],
-    "width_inside": [4.0, 1.0],
+    # §39.37 (homemaker-py-2f1): `None` means rooms have NO width requirement.
+    # A leaf's area, narrowest width and aspect satisfy A = w^2 * r, so any two
+    # fix the third: over 532 corpus leaves w^2*aspect/area has median 0.9929
+    # and 99.99% of log-area variance is explained by width and aspect alone.
+    # Scoring all three was three Gaussians on two degrees of freedom, and where
+    # a programme declares all three independently they need not even be
+    # mutually satisfiable. Size is the client's brief, proportion is A Pattern
+    # Language 191; width had no independent provenance on rooms, and
+    # get_space_params already DERIVES an undeclared one as
+    # (size/proportion)**0.5.
+    #
+    # Rooms only. width_circulation and width_outside stay: for those classes
+    # size and proportion are deliberately absent (§39.22/§39.23) or inert, so
+    # width is the only shape control there -- and it is what catches the
+    # degenerate outdoor slivers of homemaker-py-jak.
+    #
+    # Set a [target, sigma] pair to restore the old behaviour.
+    "width_inside": None,
     "perpendicular_inside": 0.3,
     "perpendicular_outside": 10.0,
     "allow_sahn_circulation": 0,
@@ -858,8 +875,23 @@ class Fitness:
             lf.share_type = orig_share_type
         val = qs * qw * qp * geometry.area(lf)
         if objective == "threshold":
+            # homemaker-py-s34: count only the factors this leaf is actually
+            # ASKED. An exempt factor returns 1.0, which is indistinguishable
+            # from a perfect answer, so counting it adds `fail_w` to every
+            # candidate for a check the scorer does not perform -- the collapse
+            # would then optimise a relation the objective does not contain,
+            # which is the §39.5 cpsat._matches drift one level up.
+            orig_t, lf.type = lf.type, code
+            try:
+                asked = (self.factor_is_asked("size", lf),
+                         self.factor_is_asked("width", lf),
+                         self.factor_is_asked("proportion", lf))
+            finally:
+                lf.type = orig_t
             passes = (
-                (qs >= FAIL_THRESHOLD) + (qw >= FAIL_THRESHOLD) + (qp >= FAIL_THRESHOLD)
+                (asked[0] and qs >= FAIL_THRESHOLD)
+                + (asked[1] and qw >= FAIL_THRESHOLD)
+                + (asked[2] and qp >= FAIL_THRESHOLD)
             )
             val += fail_w * passes
         return val
@@ -1370,6 +1402,8 @@ class Fitness:
         elif t0 == "c":
             params = self.conf("width_circulation")
         else:
+            if self.conf("width_inside") is None:
+                return 1.0      # no room width requirement -- §39.37
             params = self.get_space_params(leaf.type, "width")
             co_type = self._leaf_co_type(leaf)
             if co_type:
@@ -1614,6 +1648,12 @@ class Fitness:
         """
         if name == "size":
             return _generic_class(leaf) not in ("o", "s")
+        if name == "width":
+            # §39.37: a room's width is fixed by its area and aspect, so it is
+            # not asked. Circulation and outside still are -- for them size and
+            # proportion are absent or inert and width is the only shape control.
+            return not (_generic_class(leaf) not in ("o", "s", "c")
+                        and self.conf("width_inside") is None)
         if name == "crinkliness":
             if dom_mod.is_outside(leaf) and not dom_mod.is_covered(leaf):
                 return False                # uncovered outside is lit by definition
@@ -2200,9 +2240,16 @@ class Fitness:
             )
 
         # --- Phase 1: UNMERGED tree checks ---
+        # homemaker-py-s34: bill a missing room only for the checks a PRESENT
+        # room faces. `factor_is_asked` is asked on a bare probe node carrying a
+        # room code, since the question is per-class, not per-leaf.
+        _probe = dom_mod.Node(type="__room_probe__")
+        room_checks = tuple(
+            c for c in ("size", "width", "proportion")
+            if self.factor_is_asked(c, _probe))
         check_fails, missing = graph_mod.check_space_counts(
             root, programme, self._leaf_sharing, self._max_share,
-            self._multi_use, self.colocate_pairs())
+            self._multi_use, self.colocate_pairs(), room_checks=room_checks)
         failures.extend(check_fails)
 
         self.preprocess_building(root)

@@ -294,19 +294,37 @@ def test_clipped_gaussian_flat_past_target_and_decays_short_of_it():
         gaussian(5.0, 1.0, 3.0, 0.5))
 
 
-def test_quality_width_and_proportion_use_precision_weighted_combination():
+def test_quality_proportion_uses_precision_weighted_combination():
     from homemaker_layout.fitness import _gaussian_product
 
     fit = Fitness(conf=_multi_use_conf())
-    # elongated rectangle so neither the width nor proportion "already fine"
-    # early-return short-circuits before the combination runs
+    # elongated rectangle so the "already fine" early return does not
+    # short-circuit before the combination runs
     leaf = _rect_leaf("x", width=2.0, length=10.0, co_type="y")
-    wt, ws = _gaussian_product(3.0, 0.5, 3.8, 0.2)
-    assert fit.quality_width(leaf) == pytest.approx(
-        gaussian(geometry.length_narrowest(leaf), 1.0, wt, ws))
     pt, ps = _gaussian_product(1.2, 0.5, 1.5, 0.1)
     assert fit.quality_proportion(leaf) == pytest.approx(
         gaussian(geometry.aspect(leaf), 1.0, pt, ps))
+
+
+def test_quality_width_combines_co_types_only_where_width_is_asked():
+    """§39.37 stopped asking rooms for a width, so the co_type precision-weighted
+    width combination is unreachable for them -- and reachable again the moment
+    ``width_inside`` is restored. Both halves are asserted, because the code path
+    still exists and must stay correct for whoever turns it back on."""
+    from homemaker_layout.fitness import _gaussian_product
+
+    leaf = _rect_leaf("x", width=2.0, length=10.0, co_type="y")
+
+    exempt = Fitness(conf=_multi_use_conf())
+    assert exempt.conf("width_inside") is None
+    assert exempt.quality_width(leaf) == 1.0
+    assert not exempt.factor_is_asked("width", leaf)
+
+    restored = Fitness(conf={**_multi_use_conf(), "width_inside": [4.0, 1.0]})
+    assert restored.factor_is_asked("width", leaf)
+    wt, ws = _gaussian_product(3.0, 0.5, 3.8, 0.2)
+    assert restored.quality_width(leaf) == pytest.approx(
+        gaussian(geometry.length_narrowest(leaf), 1.0, wt, ws))
 
 
 def test_quality_size_ignores_co_type_when_pair_not_declared():

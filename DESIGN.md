@@ -8997,8 +8997,8 @@ would have to exist for it to move.
 
 ### 39.37 A room's width: the ruling is right, the first implementation was not (`homemaker-py-2f1`)
 
-**Status: reverted at `9e10d01`'s revert. The analysis below stands; the change
-does not, and §39.37.1 says why.**
+**Status: re-landed. The first attempt was reverted; §39.37.1 says why, and
+§39.37.2 says what the second one does differently.**
 
 Owner's ruling. For any leaf, `area = width² × aspect`, so two of the three fix
 the third. Measured over the 532 usable leaves of the twelve `bk9` artefacts:
@@ -9097,6 +9097,47 @@ and `test_programme` were not in that set because I selected the files by
 grepping their *names* for the terms I had changed. Names are not a dependency
 graph. Where a change touches a widely-read function, the whole suite is the
 only honest gate.
+
+
+#### 39.37.2 The re-land: `width` is exempt everywhere it is not asked
+
+Landed after §39.39 fixed the tie-break, which was the real defect underneath
+the first failure. The ruling is unchanged; what changed is that the exemption is
+now expressed **once** and every consumer reads it, instead of being asserted in
+`quality_width` and contradicted in three other places.
+
+`factor_is_asked("width", leaf)` is that single statement — `False` for a room
+when `width_inside` is `None`, `True` for circulation and outside always. It
+already existed for `size`, `crinkliness` and `access` (§39.18), and
+`tests/test_fitness_aggregate.py` already asserts the invariant it rests on:
+whenever it returns `False`, the factor really is `1.0`. Four consumers now
+agree:
+
+| consumer | before | after |
+|---|---|---|
+| `quality_width` | scored rooms | returns 1.0 for rooms |
+| `_aggregate_geometric` | 6 factors for a room | 5 — the question is not put |
+| `_collapse_value` | banked `fail_w` for width on every candidate | counts only asked factors |
+| `graph.check_space_counts` | billed a missing room for a width check | `room_checks` comes from the caller |
+| `shapecurve.leaf_constraints` | `wmin` from the width target | `wmin = 0.0` for rooms |
+
+The collapse and the cascade are the two that made the first attempt wrong.
+`_collapse_value` adds `_COLLAPSE_FAIL_W` (1e6, chosen to dominate raw quality)
+per *passing* factor; an exempt factor returns 1.0, which is indistinguishable
+from a perfect answer, so it banked an avoided fail for a check the scorer does
+not perform — the §39.5 `cpsat._matches` drift one level up. `check_space_counts`
+hardcoded `("size", "width", "proportion")`, justified in-comment by "a PRESENT
+room is checked on all three", which the ruling made false; it now takes
+`room_checks` from the evaluator, so §38.12's "missing and present rooms are
+billed on the same terms" holds by construction rather than by coincidence.
+
+**Fail-set delta, unchanged from the first attempt**: 269 → 265 over the twelve
+artefacts, **−4, all soft, hard unchanged at 59**, confined to harbor-house s1
+and s2. Scores do move for rooms — the geometric mean now divides by five
+questions instead of six — which is the correct consequence of not asking one.
+
+**This is a new objective under §39.32.** `verify_results_table.py` will report
+all 24 rows skipped until the corpus is re-run, which is the intended signal.
 
 
 ### 39.38 Orthogonality is free: the second division ratio is already pinned (`homemaker-py-32t`)

@@ -551,6 +551,7 @@ def check_space_counts(
     max_share: int = 4,
     multi_use: bool = False,
     colocate_pairs=(),
+    room_checks: tuple[str, ...] = ("size", "width", "proportion"),
 ) -> tuple[list[str], list[str]]:
     """Check design has exactly the required spaces; mirrors
     ``check_space_counts`` in ``ProgrammeDriven.pm:156-215``.
@@ -622,7 +623,12 @@ def check_space_counts(
                 # penalty between two single rooms decided by YAML verbosity --
                 # inherited by the tiered comparator, whose primary key n_hard
                 # is dominated by these cascades.
-                for check in ("size", "width", "proportion"):
+                # homemaker-py-s34: the caller supplies which checks a PRESENT
+                # room actually faces. §38.12's point is that missing and
+                # present rooms must be billed on the same terms; once §39.37
+                # stopped asking rooms for a width, billing a missing room for
+                # one re-opened exactly that asymmetry.
+                for check in room_checks:
                     failures.append(f"missing {mid}: would need {check} check")
 
         elif actual > expected:
