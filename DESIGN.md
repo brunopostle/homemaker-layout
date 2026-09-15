@@ -9121,11 +9121,43 @@ all 532 divisions in the twelve artefacts:
 So the required cut is reachable essentially always, and usually barely moves
 from where the search had already put it.
 
-Four decisions remain before implementing -- the reference direction when a skew
-plot's boundaries disagree, which of θ/θ+90° a given cut takes (`rotation`
-already selects the spanned edge pair and should decide), the one-in-532
-fallback, and confirming storey inheritance still short-circuits on `n.below`.
-They are on the bead.
+**The reference direction is the longest boundary** (owner's ruling, when the
+external boundaries disagree). The prototype already used the level root's
+longest edge, so the numbers above are measured under the adopted rule.
+
+**Which of θ/θ+90° a cut takes is not `rotation`, and the first answer here was
+wrong.** This section originally said `rotation` should decide, since it selects
+which pair of opposite edges the cut spans. Measured, it has no relationship to
+the axis at all:
+
+| | nearer the long axis | nearer its perpendicular |
+|---|---|---|
+| `rotation % 2 == 0` | 140 | 141 |
+| `rotation % 2 == 1` | 114 | 137 |
+
+`rotation` permutes a node's corners relative to its **parent**, so a cut's
+absolute direction depends on the whole ancestor chain, not on the node's own
+rotation.
+
+The prototype picked whichever axis the *existing cut* was nearer — which is
+ratio-dependent, so the axis could flip as the inner loop moves a ratio, making
+the objective discontinuous under Nelder-Mead/CMA. Replaced by a
+**ratio-independent** rule: the cut spans edge(0,1)→edge(3,2), so it runs along
+edges (1,2) and (0,3); take the mean of those two edge directions and pick the
+reference axis nearer to it. It depends only on the node's own corners, and it
+is not a compromise — feasibility 531/532 and median shift 0.0239 are identical,
+and it chooses the same axis in **0 of 532** cases differently. Same answer,
+continuous in the ratios.
+
+**Storey inheritance is unaffected**: `coord_b` short-circuits on
+`n.below is not None and n.below.divided` *before* the interpolation, so the
+derivation is skipped for inherited nodes and upper storeys follow the base
+exactly as now.
+
+**One decision remains** — the 1-in-532 case where the orthogonal cut misses
+[0, 1]. Clamping leaves that one cut slightly skew and can never make a layout
+infeasible; refusing the division can strand a topology the search has already
+committed to. Clamping is the recommendation. It is on the bead.
 
 **This will be a new objective, not a tweak.** It changes the geometry of every
 layout, so every score and fail count moves and all 24 committed artefacts
