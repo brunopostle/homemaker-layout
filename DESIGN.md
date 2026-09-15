@@ -9177,3 +9177,61 @@ layout, so every score and fail count moves and all 24 committed artefacts
 become historical -- new commit, new stamped names, corpus re-run, per §39.32.
 `homemaker-py-7ry` (the runner commits nothing) should be fixed first, or the
 re-run will be hand-carried like `bk9` was.
+
+
+### 39.39 A code's spelling decided the collapse (`homemaker-py-s34`)
+
+§39.4 says a code's spelling decides nothing: `usage:` drives behaviour, `name:`
+is free text, and there is no first-character type test left anywhere. One place
+still disagreed, and it was found only because §39.37 tripped over it.
+
+`collapse_global` built its slot list as
+
+```python
+slots = [c for c in sorted(slot_counts) for _ in range(slot_counts[c])]
+```
+
+**sorted by code name.** `_best_assignment` keeps the first permutation that
+reaches the maximum (`s > best_score`), so whenever two labellings tie, that
+column order picks the winner. Renaming a code reorders the columns and the
+collapse — which reassigns leaf types inside *every* fitness evaluation under
+`collapse_insearch` — lands somewhere else. In the observed case, renaming
+harbor-house's `of` to `ao` moved it to the front and produced a collapse that
+lost `ef1` entirely and gained a third `ao`.
+
+**Width was masking it.** With `quality_width` live on rooms, the ties were rare
+enough that `test_scoring_is_invariant_under_programme_code_spelling` passed.
+Flattening that factor (§39.37) made ties common and the invariance broke
+immediately. The bug was not introduced by that change; it was *exposed* by it.
+Any future change that flattens a term, or any programme whose codes happen to
+tie, would have done the same.
+
+**The fix is to order slots by what a code is, not what it is called.**
+`_slot_order_key` sorts on every field that makes two codes behave differently
+— level, usage, size, width, proportion and their sigmas, crinkliness, count,
+adjacency degree, `requires_below` — with the name itself last, reachable only
+when two specs are identical in every respect, in which case the two slots are
+interchangeable and the choice cannot affect the result.
+
+`adjacency` is a list of other codes' *names*, which renaming also rewrites, so
+only its length is used. Two codes differing solely in which equally-many
+neighbours they want still fall back to the name. That is a narrower residue
+than sorting by name outright, not zero, and it is stated here rather than
+papered over.
+
+**Measured**, harbor-house with `of`→`ao`, `cr1`→`fr1`, `st1`→`gs1`,
+`st2`→`gs2`:
+
+| | before | after |
+|---|---|---|
+| width live | invariant | invariant |
+| **width flattened** | **scores differ** | **invariant** |
+
+**The guard is written to fail for the right reason.**
+`tests/test_collapse_slot_order.py` runs the spelling comparison with a factor
+deliberately flattened, so it tests the tie-break rather than the masking. It is
+independent of whether `homemaker-py-2f1` ever lands.
+
+This is why the ordering went in **first and on its own**, before re-landing
+§39.37: the defect is real today, it is separate from the width ruling, and
+fixing it makes that ruling safe whichever way `homemaker-py-s34` is decided.

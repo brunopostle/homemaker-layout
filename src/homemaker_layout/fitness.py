@@ -187,6 +187,50 @@ def tier_counts(fails) -> tuple[int, int]:
 
 # Urb::Dom::Fitness::Base $CONF — keep values byte-identical to the Perl
 # expressions (5.0/6 etc. evaluate to the same IEEE doubles in both languages).
+def _slot_order_key(code: str, prog: dict) -> tuple:
+    """Rename-invariant ordering for collapse slots (homemaker-py-s34).
+
+    ``collapse_global`` built its slot list with ``sorted(slot_counts)`` -- by
+    code NAME. ``_best_assignment`` keeps the first permutation that reaches the
+    maximum (``s > best_score``), so whenever two assignments tie, the winner is
+    decided by that column order. Renaming a code therefore changes the
+    labelling: renaming harbor-house's `of` to `ao` moved it to the front and
+    produced a different collapse of the same tree, one that lost `ef1`
+    entirely and gained a third `ao`. §39.4 says a code's spelling must decide
+    nothing, and this was the last place it still did.
+
+    So order by what a code IS, not what it is called: every field that makes
+    two codes behave differently, with the name itself last and reachable only
+    when two specs are identical in every respect -- in which case the two slots
+    are interchangeable and the choice cannot affect the result.
+
+    ``adjacency`` is a list of other codes' names, which renaming also rewrites,
+    so only its LENGTH is used. Two codes that differ solely in which equally
+    many neighbours they want still fall back to the name; that is a narrower
+    residue than sorting by name outright, and the spelling-invariance test
+    covers the corpus case.
+    """
+    r = prog.get(code)
+    if r is None:
+        return (1, (), code)
+    return (
+        0,
+        (
+            -1 if r.level is None else r.level,
+            r.usage or "",
+            float(r.size), float(r.size_sigma),
+            float(r.width), float(r.width_sigma),
+            float(r.proportion), float(r.proportion_sigma),
+            -1.0 if r.crinkliness is None else float(r.crinkliness),
+            -1.0 if r.crinkliness_sigma is None else float(r.crinkliness_sigma),
+            int(r.count),
+            len(r.adjacency or ()),
+            r.requires_below is not None,
+        ),
+        code,
+    )
+
+
 CONF_DEFAULTS: dict = {
     "value_inside": 300.0,
     "value_circulation": 50.0,
@@ -1023,7 +1067,8 @@ class Fitness:
                 for lf in lvl.leaves():
                     if id(lf) in pinned and slot_counts.get(lf.type, 0) > 0:
                         slot_counts[lf.type] -= 1
-        slots = [c for c in sorted(slot_counts) for _ in range(slot_counts[c])]
+        slots = [c for c in sorted(slot_counts, key=lambda c: _slot_order_key(c, prog))
+                 for _ in range(slot_counts[c])]
         if not slots:
             return
 
