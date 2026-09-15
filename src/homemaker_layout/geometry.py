@@ -14,6 +14,7 @@ skewed (non-perpendicular) cut.
 from __future__ import annotations
 
 import math
+import os
 
 from .dom import Node
 
@@ -49,7 +50,17 @@ def clear_cache() -> None:
 #
 # Default OFF. It changes the geometry of every layout, so it is a new objective
 # under §39.32 and needs the corpus re-run before anything is compared to it.
-ORTHOGONAL_DIVISION = False
+#
+# Read from the environment, not just set as a global, because the driver runs
+# its evaluations in WORKER PROCESSES: a global flipped in the parent would not
+# reach them, and the search would silently score under a different geometry
+# than the one it was asked for. An env var crosses the fork, and lets a sweep
+# select the objective without editing code:
+#
+#     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/run_coldstart_baseline.py ...
+#
+# Tests set the module attribute directly, which still works.
+ORTHOGONAL_DIVISION = os.environ.get("HOMEMAKER_ORTHOGONAL_DIVISION", "") == "1"
 
 
 def _level_root_of(n: Node) -> Node:
