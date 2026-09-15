@@ -1,0 +1,42 @@
+seed         : /home/user/homemaker-layout/examples/programme-house/init.dom
+programme    : programme-house
+budget       : 2000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/user/homemaker-layout/examples/programme-house/coldstart-491994b-2000-s0.dom
+[    80 evals] best 1.11482e-06 (fails 14) via construct/0
+[   320 evals] best 0.000220593 (fails 7) via construct/3
+[   320 evals] checkpoint -> coldstart-491994b-2000-s0.dom.checkpoint (7 fails)
+[  1920 evals] best 0.000231394 (fails 7) via place_missing noop
+[  1920 evals] checkpoint -> coldstart-491994b-2000-s0.dom.checkpoint (7 fails)
+
+--- finishing (homemaker-py-3l6): unfold + polish 1000 evals ---
+[finish] unfold: materialised 0 shared-leaf copies
+[   200 evals] best 0.000232739 (fails 7) via seed
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 10 → 7 fails (applied)
+
+--- done ---
+elapsed      : 12.9s
+evals        : 3000 across 36 topologies
+best         : 0.000232739 (7 fails) via seed+collapse
+
+improvement history:
+  [    80] 1.11482e-06  (share:construct/0)
+  [   320] 0.000220593  (share:construct/3)
+  [  1920] 0.000231394  (share:place_missing noop)
+  [  2200] 0.000232739  (polish:seed)
+written      : /home/user/homemaker-layout/examples/programme-house/coldstart-491994b-2000-s0.dom
