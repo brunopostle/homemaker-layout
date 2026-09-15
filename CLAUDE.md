@@ -50,9 +50,13 @@ Leaf types share a first character across three namespaces:
   tests match `C`/`O`/`S` exactly, so `cr1` is a room, not circulation.
 - **`usage:`** — every space declares its access-requirement class
   (`living`/`kitchen`/`bedroom`/`toilet`/`utility`/`none`), mandatory, no
-  fallback (DESIGN.md §39.7). A code's spelling decides nothing: `name:` is free
-  text, `usage:` drives behaviour. There is no first-character type test left
-  anywhere in the codebase.
+  fallback (DESIGN.md §39.7). A code's spelling decides nothing to the SCORER:
+  `name:` is free text, `usage:` drives behaviour, and
+  `test_scoring_is_invariant_under_programme_code_spelling` holds the line.
+  **Two first-character tests do survive in `operators.py`'s constructive
+  adjacency heuristic** (`homemaker-py-1v7`) — they do not affect scoring, but
+  they drop and mis-match adjacency requirements while building seeds. Do not
+  add more, and do not read this section as saying none exist.
 
 When adding or editing a programme, run
 `python experiments/audit_programme_config.py` — it reports reserved-name

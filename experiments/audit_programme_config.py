@@ -85,9 +85,25 @@ def audit_code(fit: fitness.Fitness, code: str, height: float,
     if not math.isfinite(amax):
         amax = max(amin * 4, 200.0)
 
-    hi, lo = crink_bounds(fit, circulation=code[:1].lower() == "c")
+    # homemaker-py-45g: EXACTLY "C", not a leading c. §39.4 split the
+    # namespaces -- `cr1` is a room, not circulation -- and harbor-house has
+    # four codes (cr1, of, st1, st2) that a first-character test misreads. This
+    # one was handing `cr1` circulation's crinkliness bounds.
+    hi, lo = crink_bounds(fit, circulation=code == "C")
     areas = np.linspace(max(amin, 1e-6), amax, grid)
-    ratios = np.linspace(1.0, max(rmax, 1.0), grid)
+    # homemaker-py-45g: rmax is legitimately infinite since §39.22 removed the
+    # corridor aspect cap, and np.linspace(1.0, inf, n) is [nan, inf, inf, ...].
+    # Every candidate height then collapses to sqrt(A/inf) = 0, `H >= wmin` is
+    # False everywhere, and the code is reported IMPOSSIBLE -- which is what
+    # every corpus programme has printed for C since §39.22.
+    #
+    # With no aspect cap the binding constraint is wmin: H = sqrt(A/R) >= wmin
+    # means R <= A/wmin^2, so no area in range can satisfy the width bound above
+    # amax/wmin^2. The answer is constant beyond that, so the grid stops there.
+    rhi = rmax
+    if not math.isfinite(rhi):
+        rhi = amax / (wmin * wmin) if wmin > 0 else 1.0
+    ratios = np.linspace(1.0, max(rhi, 1.0), grid)
     A, R = np.meshgrid(areas, ratios, indexing="ij")
     W, H = np.sqrt(A * R), np.sqrt(A / R)
 
