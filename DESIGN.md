@@ -9408,3 +9408,66 @@ acceptance is that it reads 1.0 for interior leaves *before* it is deleted —
 (`homemaker-py-99y`). Boundary leaves will still score below 1.0, which is the
 honest answer for a skew site and an argument for deleting the factor rather
 than keeping it to measure the site's own shape.
+
+
+### 39.41 Harbor-house: the factor is worthless, the geometry is unproven (`homemaker-py-32t`)
+
+§39.40's warm start had a hole the owner spotted: **`quality_perpendicular` was
+still live in both arms**, so the orthogonal arm was being scored on straightness
+it now gets by construction. The comparison that matters is *current objective*
+against *proposed objective*, and the proposed one deletes that factor.
+
+So the factor gained an off switch first — `perpendicular_inside: null` /
+`perpendicular_outside: null`, the §39.22/§39.23 idiom, with `factor_is_asked`
+agreeing so the geometric mean stops dividing by a question it no longer puts.
+It is read through `_generic_param`, **not** `conf()`: `conf()` cannot tell an
+absent key from one present and null, so reading the sigma with it falls through
+to `CONF_DEFAULTS` and scores the leaf anyway while reporting the factor exempt.
+The first version of this change did exactly that. A test now asserts the
+distinction.
+
+**Three arms**, harbor-house warm-started from its own 500 k artefact, 20 000
+evaluations, one worker, same RNG seed. The third arm exists so the geometry
+change and the factor removal can be told apart, rather than repeating this
+project's habit of moving two things at once:
+
+| arm | geometry | perpendicular | fails | hard | score | mean dev | square |
+|---|---|---|---|---|---|---|---|
+| **A** current | equal-offset | scored | **26** | 5 | 4.60e-09 | 1.845° | 0.0% |
+| **B** proposed | orthogonal | **deleted** | **30** | 5 | 2.31e-11 | 0.705° | 67.3% |
+| **C** | orthogonal | scored | **30** | 5 | 2.46e-11 | 0.705° | 67.3% |
+
+**B against C settles the factor.** Identical geometry, one variable, and the
+result is 30 fails either way with scores within 6%. **Deleting
+`quality_perpendicular` costs nothing**, which is what §39.36 predicted from its
+never failing anywhere — and it is now measured under a controlled pairing rather
+than inferred.
+
+**A against B settles nothing, and the 4-fail gap should not be quoted.** The
+trajectories say why:
+
+```
+A: 200 evals -> 26 fails ... 8040 -> 26   (never improved)
+B: 200 evals -> 33 fails ... 9720 -> 30   (-3)
+C: 200 evals -> 33 fails ... 9960 -> 30   (-3)
+```
+
+A is warm-starting a layout that spent **500 000 evaluations** reaching 26 fails
+*under its own geometry*: it begins at its optimum and merely holds it. B and C
+begin at 33 because the seed is wrong for their geometry, and recover 3 in 20 000
+evaluations. The gap is measured between one arm sitting at a converged optimum
+and two arms a twenty-fifth of the way into re-converging. **A warm start
+structurally favours the geometry its seed was evolved under**, so this design
+cannot answer whether orthogonal division costs fails — only a cold sweep can.
+
+That is the §39.12 trap wearing a different coat. §39.40's programme-house run
+missed it because that programme sits at a floor of 2 fails with no headroom, so
+both arms held and the asymmetry never showed.
+
+**The geometry effect itself is not in doubt**: 0% → 67.3% square leaves, mean
+corner deviation 1.845° → 0.705°, on a real programme with 55 leaves.
+
+**Where that leaves the flip.** The factor can go whenever the geometry lands.
+Whether the geometry should land still needs
+`HOMEMAKER_ORTHOGONAL_DIVISION=1` over a cold sweep, judged against the current
+corpus on the §39.12/§39.31 discipline.
