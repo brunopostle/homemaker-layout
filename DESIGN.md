@@ -8993,3 +8993,94 @@ is missing.** Distinguishing the two needs provenance, not measurement.
 `latitude` is the same shape -- unread, and kept deliberately for the daylight
 module's return (`homemaker-py-2g5`). Before removing an inert term, ask what
 would have to exist for it to move.
+
+
+### 39.37 A room's width is not scored: three Gaussians on two degrees of freedom (`homemaker-py-2f1`)
+
+Owner's ruling. For any leaf, `area = width² × aspect`, so two of the three fix
+the third. Measured over the 532 usable leaves of the twelve `bk9` artefacts:
+
+| | |
+|---|---|
+| `w²·aspect / area` | median 0.9929, sd 0.0081 |
+| within 5% | 99.6% of leaves |
+| `log A − (2 log w + log r)` | sd 0.0082, against var(log A) = 0.743 |
+| log-area variance explained by width and aspect alone | **99.99%** |
+
+Scoring `size`, `width` and `proportion` was three Gaussians on a two-parameter
+family. Worse where a programme declares all three independently -- health-centre
+does for all 19 codes, maple-court 26/26 -- because three freely chosen targets
+on a 2-DOF system need not be mutually satisfiable, and nothing checks at the
+point of declaration.
+
+**Which two survive is a question of provenance, not of fit.** `proportion` is
+A Pattern Language 191, *The Shape of Indoor Space*. `size` is the client's
+brief and the strongest term in the objective (median 0.70 on rooms, 9.0%
+failing). `width` had no independent provenance on rooms -- and
+`get_space_params` already **derives** an undeclared room width as
+`(size/proportion)**0.5`, the same identity measured above. So `width_inside`
+is now `None`, the §39.22/§39.23 idiom for "no requirement", and a `[target,
+sigma]` pair restores the old behaviour.
+
+**Rooms only.** `width_circulation` and `width_outside` stay, because for those
+classes the other two are deliberately absent (§39.22/§39.23) or inert
+(§39.26 and `homemaker-py-99y`), leaving width as the only shape control --
+and it is what catches the degenerate outdoor slivers of `homemaker-py-jak`.
+Dropping it wholesale would make `jak` worse.
+
+**`shapecurve.leaf_constraints` moves in lockstep**, `wmin = 0.0` for rooms. Its
+own docstring is the reason: it exists to predict the objective, and a DP bound
+stricter than the scorer is the drift that made §39.5's `cpsat._matches`
+optimise a different relation than the scorer checked.
+
+**Fail-set delta**, all twelve artefacts: 269 → 265, **−4, every one of them
+soft, hard unchanged at 59.** The four are room `width` fails and nothing else
+moved; only harbor-house s1 and s2 changed at all (−2 each).
+
+
+### 39.38 Orthogonality is free: the second division ratio is already pinned (`homemaker-py-32t`)
+
+§39.36 established that the straightening pass was lost and that
+`quality_perpendicular` therefore measures something no operator can fix. The
+owner's ruling is to make the division satisfy the rule **by construction** and
+then delete the scoring term outright -- a constraint satisfied structurally
+needs no Gaussian.
+
+**The opening nobody had noticed.** A division carries *two* ratios: the cut
+runs from `coord_a` (interpolated along edge 0→1 at `division[0]`) to `coord_b`
+(along edge 3→2 at `division[1]`). The port never uses the second freely. Every
+write in the codebase is `division = [x, x]`, and `innerloop.py:314` is
+`b.division = [float(xc[j]), float(xc[j])]` -- the optimiser has **one**
+variable per division and copies it into both slots.
+
+That is the "equal-offset convention", and it is precisely what propagates the
+plot's skew into every leaf. The second ratio is not a free parameter being
+used badly; it is a *pinned* parameter. Deriving it instead of pinning it costs
+**nothing** in search dimensionality: same one variable per division, same
+genome, same solver, same inner loop. Only the rule mapping one ratio to a pair
+of corners changes, and it can live entirely inside `geometry.coord_b`, which
+every other module reads through.
+
+**Measured feasibility** -- fixing `division[0]` and solving `division[1]` so
+the cut runs parallel or perpendicular to the level root's longest edge, over
+all 532 divisions in the twelve artefacts:
+
+| | |
+|---|---|
+| orthogonal cut lands inside [0, 1] | **531 / 532 (99.8%)** |
+| shift in the derived ratio | median 0.0239, mean 0.0713, max 0.6872 |
+
+So the required cut is reachable essentially always, and usually barely moves
+from where the search had already put it.
+
+Four decisions remain before implementing -- the reference direction when a skew
+plot's boundaries disagree, which of θ/θ+90° a given cut takes (`rotation`
+already selects the spanned edge pair and should decide), the one-in-532
+fallback, and confirming storey inheritance still short-circuits on `n.below`.
+They are on the bead.
+
+**This will be a new objective, not a tweak.** It changes the geometry of every
+layout, so every score and fail count moves and all 24 committed artefacts
+become historical -- new commit, new stamped names, corpus re-run, per §39.32.
+`homemaker-py-7ry` (the runner commits nothing) should be fixed first, or the
+re-run will be hand-carried like `bk9` was.

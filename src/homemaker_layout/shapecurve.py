@@ -224,9 +224,18 @@ def leaf_constraints(fit, leaf: dom_mod.Node) -> LeafBounds:
         elif t0 == "c":
             params = fit.conf("width_circulation")
         else:
-            params = fit.get_space_params(leaf.type, "width")
-        target, sigma = params[0], params[1]
-        wmin = max(0.0, target - _K * sigma)
+            # §39.37: rooms have no width requirement, so the DP must not
+            # filter on one. This mirrors quality_width's early return -- the
+            # docstring's whole point is that the DP cannot be allowed to
+            # predict a different objective than the scorer checks.
+            params = fit.conf("width_inside")
+            if params is not None:
+                params = fit.get_space_params(leaf.type, "width")
+        if params is None:
+            wmin = 0.0
+        else:
+            target, sigma = params[0], params[1]
+            wmin = max(0.0, target - _K * sigma)
 
     # --- proportion -> rmax ---
     if t0 in ("o", "s"):
