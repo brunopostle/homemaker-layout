@@ -161,3 +161,51 @@ def test_area_is_conserved(orthogonal):
         if checked > 200:
             break
     assert checked
+
+
+# --------------------------------------------------------------------------- #
+# The scoring term the geometry is meant to replace (§39.41)
+# --------------------------------------------------------------------------- #
+
+def _conf(**overrides):
+    from homemaker_layout.fitness import Fitness, load_config
+    conf, cost = load_config(EXAMPLES / "harbor-house", overrides=overrides)
+    return Fitness(conf, cost)
+
+
+def _a_room():
+    root = dom_mod.load(str(next(_artefacts())))
+    return next(l for lvl in dom_mod.levels(root) for l in lvl.leaves()
+                if l.type not in ("C", "O", "S"))
+
+
+def test_perpendicular_is_scored_by_default():
+    """The exemption must be opt-in: nothing changes until a config asks."""
+    fit, room = _conf(), _a_room()
+    assert fit.factor_is_asked("perpendicular", room)
+    assert fit.quality_perpendicular(room) < 1.0
+
+
+def test_a_null_sigma_exempts_the_factor():
+    """`None` means "no requirement", the §39.22/§39.23 idiom -- set when the
+    geometry supplies orthogonality by construction, so the objective does not
+    also score it."""
+    fit = _conf(perpendicular_inside=None, perpendicular_outside=None)
+    room = _a_room()
+    assert not fit.factor_is_asked("perpendicular", room)
+    assert fit.quality_perpendicular(room) == 1.0
+
+
+def test_the_exemption_is_read_with_a_null_aware_lookup():
+    """`conf()` cannot tell an ABSENT key from one present and null, so reading
+    the sigma with it would fall through to CONF_DEFAULTS and score the leaf
+    anyway -- the §39.22 trap. `_generic_param` distinguishes them, and this
+    asserts the distinction rather than the mechanism."""
+    absent = _conf()
+    nulled = _conf(perpendicular_inside=None)
+    assert absent.conf("perpendicular_inside") == nulled.conf("perpendicular_inside"), (
+        "conf() is expected to be blind here -- if it stops being, this test's "
+        "premise is gone but the behaviour below is what matters")
+    room = _a_room()
+    assert absent.factor_is_asked("perpendicular", room)
+    assert not nulled.factor_is_asked("perpendicular", room)

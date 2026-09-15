@@ -1319,9 +1319,19 @@ class Fitness:
     # ------------------------------------------------------------------ #
 
     def quality_perpendicular(self, leaf: Node) -> float:
-        sigma = self.conf(
+        # `_generic_param`, not `conf`: conf() cannot tell a key that is absent
+        # from one that is present and null, and null is exactly how §39.22 says
+        # "no requirement". Reading it with conf() would silently fall through to
+        # CONF_DEFAULTS and score the leaf anyway.
+        _, sigma = self._generic_param(
             "perpendicular_outside" if dom_mod.is_outside(leaf) else "perpendicular_inside"
         )
+        if sigma is None:
+            # §39.41: no right-angle requirement. Set when the geometry supplies
+            # orthogonality by construction (geometry.ORTHOGONAL_DIVISION), which
+            # is the point of homemaker-py-32t -- a constraint satisfied
+            # structurally needs no Gaussian. The `None` idiom is §39.22/§39.23's.
+            return 1.0
         score = 1.0
         for i in range(4):
             # 1.570796: Urb::Dom::Perpendicular hard-codes this, not pi/2
@@ -1648,6 +1658,11 @@ class Fitness:
         """
         if name == "size":
             return _generic_class(leaf) not in ("o", "s")
+        if name == "perpendicular":
+            _, sigma = self._generic_param(
+                "perpendicular_outside" if dom_mod.is_outside(leaf)
+                else "perpendicular_inside")
+            return sigma is not None
         if name == "width":
             # §39.37: a room's width is fixed by its area and aspect, so it is
             # not asked. Circulation and outside still are -- for them size and
