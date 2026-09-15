@@ -9048,15 +9048,28 @@ three places, and the change touched one:
 
 1. **The scored objective** -- `quality_width`. This is the part the ruling is
    about, and exempting rooms there is right.
-2. **The assignment objective** -- `Fitness._usage_quality` is
-   `size × width × proportion` "as if the leaf were typed `usage`", and it feeds
-   `_best_assignment`, which decides *which room code lands on which leaf*.
-   Removing width removes a discriminator from that objective: labellings shift,
-   and where they tie the tie breaks on slot order. That is why
-   `test_scoring_is_invariant_under_programme_code_spelling` went red --
-   renaming `of`→`ao`, `cr1`→`fr1` permutes the order, so the two spellings
-   produced *different labellings* of the same tree (one lost `ef1` entirely and
-   gained a third `ao`). A §39.4 guard, and a real one.
+2. **The collapse objective** -- `Fitness._collapse_value`, the 94g in-search
+   cell↔room collapse, computes `quality_size`, `quality_width` and
+   `quality_proportion` and adds `_COLLAPSE_FAIL_W` (1e6, chosen to dominate raw
+   quality) *per passing factor*. That collapse **reassigns leaf types inside
+   every fitness evaluation**. With rooms width-exempt, `quality_width` is
+   always 1.0, so width always "passes": it stops discriminating between room
+   candidates, and it shifts rooms against `C`/`O` leaves, where width still
+   varies. Labellings move, and where they tie the tie breaks on slot order --
+   `_best_assignment` takes the first permutation reaching the maximum
+   (`s > best_score`). That is why
+   `test_scoring_is_invariant_under_programme_code_spelling` went red: renaming
+   `of`→`ao`, `cr1`→`fr1` permutes that order, so the two spellings produced
+   *different labellings* of the same tree (one lost `ef1` entirely and gained a
+   third `ao`). A §39.4 guard, and a real one.
+
+   *(Corrected: this section first named `_usage_quality`/`_best_assignment`,
+   which is the **superposition** collapse. Measured with the failing test's own
+   overrides — `{leaf_sharing: True, collapse_insearch: True}` — that path is
+   never entered: 0 assignments in 6 seeds. The substance is unchanged, width
+   does participate in an assignment objective and not only in scoring, but the
+   mechanism is `_collapse_value` under `collapse_insearch`, not
+   `collapse_superposition`.)*
 3. **The missing-room cascade** -- `graph.py` emits one placeholder per check a
    missing room "WOULD have faced", `("size", "width", "proportion")`, and its
    comment justifies that with "a PRESENT room is checked on all three however
