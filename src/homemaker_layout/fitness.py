@@ -293,24 +293,7 @@ CONF_DEFAULTS: dict = {
     "proportion_inside": [1.5, 0.5],
     "width_outside": [3.0, 0.3],
     "width_circulation": [2.4, 0.2],
-    # §39.37 (homemaker-py-2f1): `None` means rooms have NO width requirement.
-    # A leaf's area, narrowest width and aspect satisfy A = w^2 * r, so any two
-    # fix the third: measured over 532 corpus leaves, w^2*aspect/area has median
-    # 0.9929 and 99.99% of log-area variance is explained by width and aspect
-    # alone. Scoring all three was three Gaussians on two degrees of freedom,
-    # and where a programme declares all three independently they need not even
-    # be mutually satisfiable. Size is the client's brief and proportion is
-    # A Pattern Language 191 (The Shape of Indoor Space); width had no
-    # independent provenance on rooms -- get_space_params already DERIVES an
-    # undeclared one as (size/proportion)**0.5.
-    #
-    # Rooms only. width_circulation and width_outside stay: for those classes
-    # size and proportion are deliberately absent (§39.22/§39.23) or inert, so
-    # width is the only shape control there -- and it is what catches the
-    # degenerate outdoor slivers in homemaker-py-jak.
-    #
-    # Set a [target, sigma] pair here to restore the old behaviour.
-    "width_inside": None,
+    "width_inside": [4.0, 1.0],
     "perpendicular_inside": 0.3,
     "perpendicular_outside": 10.0,
     "allow_sahn_circulation": 0,
@@ -1342,8 +1325,6 @@ class Fitness:
         elif t0 == "c":
             params = self.conf("width_circulation")
         else:
-            if self.conf("width_inside") is None:
-                return 1.0      # no room width requirement -- §39.37
             params = self.get_space_params(leaf.type, "width")
             co_type = self._leaf_co_type(leaf)
             if co_type:
