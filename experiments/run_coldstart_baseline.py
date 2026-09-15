@@ -71,6 +71,32 @@ def objective_commit() -> str:
     return r.stdout.strip() or "unknown"
 
 
+def committable(candidates: "list[str]", repo: Path = REPO) -> "list[str]":
+    """``candidates`` minus the paths git is configured to ignore (7ry).
+
+    `.score` and `.fails` are gitignored (`*.dom.score`, `*.dom.fails`), and
+    ``record_and_push`` used to hand them to ``git add`` regardless. ``git add``
+    refuses an ignored path and exits non-zero; ``git commit --only`` is then
+    given a pathspec naming a file that was never staged and fails with "did not
+    match any file(s) known to git". So two ignored sidecars killed the whole
+    commit, taking the .dom, the .log and the results table with them.
+
+    That is why the `bk9` sweep committed nothing across twelve runs, with every
+    artefact hand-carried by the owner (DESIGN.md §39.33). `2378e5f` made the
+    failure audible without fixing it, which is what it said it was doing;
+    reproducing it took one 20-second run once someone looked.
+
+    Asking ``git check-ignore`` rather than hardcoding the two suffixes keeps the
+    runner working if .gitignore changes underneath it.
+    """
+    if not candidates:
+        return []
+    r = subprocess.run(["git", "check-ignore", "--", *candidates],
+                       cwd=repo, capture_output=True, text=True)
+    ignored = {ln.strip() for ln in r.stdout.splitlines() if ln.strip()}
+    return [c for c in candidates if c not in ignored]
+
+
 @contextmanager
 def git_lock():
     LOCK.parent.mkdir(parents=True, exist_ok=True)
@@ -139,6 +165,12 @@ def record_and_push(row: dict, artefacts: "list[Path]") -> None:
             print(f"    GIT FAILED: git {' '.join(argv[:2])} -> {head}",
                   flush=True)
         return r
+
+    dropped = [p for p in paths if p not in set(committable(paths))]
+    if dropped:
+        print(f"    (not committing {len(dropped)} gitignored path(s): "
+              f"{', '.join(sorted(Path(d).name for d in dropped))})", flush=True)
+    paths = committable(paths)
 
     committed = pushed = False
     with git_lock():

@@ -8761,18 +8761,54 @@ What is known:
   (§39.28, §39.32), but that is luck about this particular failure, not a
   property of the design.
 
-**What the next sweep needs, before it is started.** Run one short sweep
-(`--budget 2000 --seeds 1`) with the *current* module and watch for
-`pushed to`/`COMMITTED BUT NOT PUSHED`/`NOT COMMITTED`. If it commits, the
-cause was in code that `2378e5f` replaced and this closes. If it does not, the
-loud version now says which git command failed and why, which is the whole
-reason it was written. Do not start a multi-day sweep until that one-run check
-has committed something.
+**Found, in one twenty-second run.** The check above was run
+(`--budget 2000 --seeds 1 --programmes programme-house`) and the loud version
+named it immediately:
 
-The likeliest candidates, none verified: the `git_lock` flock interacting with
-the runner's own concurrency; `--only` refusing paths that are unchanged
-because a checkpoint already committed them; or an index lock held by an
-editor or another agent in the same tree.
+```
+GIT FAILED: git add -- -> The following paths are ignored by one of your .gitignore files:
+GIT FAILED: git commit -q -> error: pathspec '…coldstart-491994b-2000-s0.dom.score'
+                             did not match any file(s) known to git
+NOT COMMITTED: coldstart programme-house seed 0 @ 2000: 7 fails (3h/4s)
+```
+
+`.gitignore` lines 10-11 are `*.dom.score` and `*.dom.fails`.
+`record_and_push` builds its path list as
+`[out, log, out.with_suffix(".dom.score"), out.with_suffix(".dom.fails")]` and
+hands all four to `git add`. **`git add` refuses an ignored path and exits
+non-zero**, so the two sidecars are never staged; `git commit --only` is then
+given a pathspec naming a file that is "not known to git" and fails outright.
+Two ignored sidecars killed the entire commit, taking the `.dom`, the `.log`
+and the results table with them.
+
+Nothing exotic, nothing environment-specific, nothing flaky: deterministic, and
+reproducible on the first attempt by anyone who ran the check. None of the three
+candidates guessed above was right.
+
+**The fix** is `committable()`, which asks `git check-ignore` and drops what it
+names — rather than hardcoding the two suffixes, so the runner survives a
+`.gitignore` change. Verified end to end: the same probe re-run now reports
+`pushed:` and produced `d698201`, a correct runner commit carrying exactly the
+`.dom`, the `.log` and the table row, stamped with objective `491994b`. That
+probe's artefacts and its `budget 2000` row were removed afterwards; they are
+not corpus data.
+
+`tests/test_coldstart_commit_paths.py` guards it, including the end-to-end
+shape: `git add` + `git commit --only` over the unfiltered list fails, over the
+filtered list succeeds.
+
+**What this cost, and the lesson.** Twelve `bk9` runs committed nothing and were
+hand-carried (`de41ce8`, `aa18971`, `adb7d4f`, `cbd05e3`), the results table lost
+seven rows, and a week was spent reading an empty remote as "no progress".
+`2378e5f` made the failure audible in September and it then sat unread until
+someone ran the one command that would print it. **Making a failure loud is not
+the same as looking at it.**
+
+*(One thing the probe also exposed, not fixed here: `git pull --rebase` inside
+the push retry fails outright when the working tree has unstaged changes —
+`cannot pull with rebase: You have unstaged changes`. It did not block this push,
+which was a fast-forward, but on a box where the remote has moved it would leave
+the retry unable to recover. Worth a look when the runner is next touched.)*
 
 
 ### 39.34 Where `bk9` leaves the objective (handoff)
