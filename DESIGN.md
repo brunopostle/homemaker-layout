@@ -4086,6 +4086,16 @@ local-orthogonality property Urb's `Straighten()` provides explicitly (no
 such pass exists or is needed in `operators.py`), so this is a safe
 substitution, not a new modelling assumption.
 
+> **The parenthesis is wrong, and only the parenthesis — see §39.36
+> (`homemaker-py-bzv`).** `_dims` measuring from edge lengths rather than a
+> bounding box is correct and stands; nothing below depends on the claim being
+> corrected here. But the port's equal-offset convention does **not** give the
+> local-orthogonality property: it *propagates* the plot's skew into every
+> leaf. On harbor-house s0, whose plot has one exactly-square corner, **zero of
+> 52 usable leaves are square** (minimum corner deviation 0.434°, median
+> 1.661°). A `Straighten()` equivalent is needed and is missing, which is why
+> `quality_perpendicular` is a constant tax the search cannot act on.
+
 **Correction 2 (caught in review, and this one REGRESSED accuracy before
 being fixed properly): which dimension sums is not a matter of degree.**
 Switching to edge-length (w, h) alone was not sufficient — a first attempt
@@ -8919,3 +8929,67 @@ was. It was neither: not corridor relabelling, not a corridor regression, and no
 large enough for twelve runs to call it anything. The `hxi` ruling stands on the
 evidence that was supposed to bear on it, and stands better than before — the
 crinkliness cross-tab is the first direct test of its justification.
+
+
+### 39.36 The straightening pass was lost, not the need for it (`homemaker-py-bzv`)
+
+Auditing the objective for terms that duplicate a genuine pattern-language
+criterion (the §39.22-§39.26 exercise, continued) turned up
+`quality_perpendicular` as a candidate to drop: across all 532 usable leaves in
+the twelve `bk9` artefacts it **never fails** -- 0% in all three leaf classes,
+minimum 0.8877, median 0.985 -- and A Pattern Language does not ask for right
+angles. A near-uniform 1.5% tax that cannot discriminate looked like exactly
+the §39.26 case.
+
+**That reading was wrong, and the owner supplied what the measurement was
+actually showing.** Urb had a pass that straightened the walls
+(`Urb::Quad::Straighten` / `Straighten_Root`); it did not survive the port. The
+criterion, in the owner's words, is that *internal walls should be parallel or
+perpendicular to one or more outside plot boundaries*. So the factor is the
+surviving **half** of a feature: the measurement, without the repair. The
+search has no operator that can improve it, which is precisely why it reads as
+a constant.
+
+**What the residual is.** Mean leaf corner deviation tracks each programme's
+own plot skew, and nothing else:
+
+| programme | plot corner dev | mean leaf corner dev (s0/s1/s2) |
+|---|---|---|
+| programme-house | 1.66° | 1.43° / 1.96° / 1.49° |
+| health-centre | 1.66° | 1.55° / 1.72° / 1.69° |
+| harbor-house | 2.29° | 1.84° / 1.62° / 1.89° |
+| maple-court | 1.43° | 1.24° / 1.21° / 1.33° |
+
+Plot skew is a property of the site, constant across seeds; the leaves simply
+inherit it. harbor-house s0 makes it concrete: its plot's four corner
+deviations are 0.63°, 3.95°, **0.00°** and 4.57° -- the plot *has* a true right
+angle -- and of its 52 usable leaves, **none** is square. Minimum deviation
+0.434°, median 1.661°, maximum 4.186°.
+
+**This corrects a claim made in the shape-curve section** (§ the `_dims`
+rotation-invariance correction), which said the equal-offset division
+convention "already gives the local-orthogonality property Urb's `Straighten()`
+provides explicitly (no such pass exists or is needed in `operators.py`)". The
+first half is right and the `_dims` fix that rests on it stands. The
+parenthesis is wrong: the convention propagates the plot's skew into every
+leaf rather than absorbing it. Corrected in place there.
+
+**A formulation gap to settle before implementing.** `quality_perpendicular`
+tests each leaf's own four corners against π/2. The owner's criterion is
+alignment to one or more outside plot boundaries. On a rectangular plot these
+coincide; on a skew plot they diverge, and the difference matters: the current
+test is **unsatisfiable in principle** on a skew plot, while the owner's is
+satisfiable -- align the cuts to the boundary pair meeting at the plot's square
+corner and the interior leaves come out rectangular. Whichever is adopted, the
+factor and the operator have to state the same criterion, or the objective goes
+back to measuring something nothing can fix.
+
+**The general lesson, which is the one worth keeping.** A term that never fires
+is usually dead weight (§39.26), and this audit found three parameters that
+genuinely are -- `plot_ratio`, `evaluate_room_types`, `width_inside`, none of
+them read anywhere in `src/`. But "never fires" has a second cause that looks
+identical from the data: **the operator that would let the search respond to it
+is missing.** Distinguishing the two needs provenance, not measurement.
+`latitude` is the same shape -- unread, and kept deliberately for the daylight
+module's return (`homemaker-py-2g5`). Before removing an inert term, ask what
+would have to exist for it to move.
