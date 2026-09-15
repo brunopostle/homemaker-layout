@@ -31,6 +31,92 @@ def clear_cache() -> None:
     _cache.clear()
 
 
+# --------------------------------------------------------------------------- #
+# Orthogonal division (homemaker-py-32t, DESIGN.md §39.38)
+# --------------------------------------------------------------------------- #
+# A division carries TWO ratios, and this module's own docstring says the
+# independent params "allow a skewed (non-perpendicular) cut". The port never
+# uses the second: every write is ``division = [x, x]`` and the inner loop
+# copies one optimiser variable into both slots. That equal-offset convention
+# propagates the plot's skew into every leaf -- on a harbor-house plot that HAS
+# a true right angle, zero of 52 usable leaves are square (§39.36).
+#
+# With this ON, ``division[1]`` is DERIVED rather than pinned: the cut is placed
+# parallel or perpendicular to the plot's longest boundary (the owner's ruling),
+# which is what Urb's lost ``Straighten()`` provided. Search dimensionality is
+# unchanged -- still one free ratio per division -- because the second was never
+# free to begin with.
+#
+# Default OFF. It changes the geometry of every layout, so it is a new objective
+# under §39.32 and needs the corpus re-run before anything is compared to it.
+ORTHOGONAL_DIVISION = False
+
+
+def _level_root_of(n: Node) -> Node:
+    while n.parent is not None:
+        n = n.parent
+    return n
+
+
+def _unit(ax: float, ay: float) -> "tuple[float, float]":
+    d = math.sqrt(ax * ax + ay * ay)
+    return (ax / d, ay / d) if d else (1.0, 0.0)
+
+
+def _reference_axes(n: Node) -> "tuple[tuple[float, float], tuple[float, float]]":
+    """The plot's two orthogonal directions, from its LONGEST boundary edge.
+
+    The owner's rule is "parallel or perpendicular to one or more outside plot
+    boundaries"; where a skew plot's boundaries disagree, the longest one wins.
+    Cached per level root, since it depends only on the stored plot corners.
+    """
+    root = _level_root_of(n)
+    key = (id(root), "axes")
+    hit = _cache.get(key)
+    if hit is not None:
+        return hit
+    best = max(range(4), key=lambda i: edge_length(root, i))
+    a, b = coordinate(root, best), coordinate(root, (best + 1) % 4)
+    u = _unit(b[0] - a[0], b[1] - a[1])
+    result = (u, (-u[1], u[0]))
+    _cache[key] = result
+    return result
+
+
+def _orthogonal_b(n: Node) -> Point:
+    """End 'b' placed so the cut runs along a plot axis, given end 'a'.
+
+    Which of the two axes is chosen must NOT depend on the division ratios: the
+    cut spans edge(0,1)->edge(3,2), so it runs along edges (1,2) and (0,3), and
+    the axis nearer the mean of those two edge directions is a property of the
+    node's own corners alone. Choosing by the CURRENT cut instead would let the
+    axis flip as the inner loop moves ``division[0]``, making the objective
+    discontinuous under Nelder-Mead/CMA. Measured over 532 corpus divisions the
+    two rules pick the same axis every time, so this costs nothing.
+    """
+    a = coord_a(n)
+    c0, c1 = coordinate(n, 0), coordinate(n, 1)
+    c2, c3 = coordinate(n, 2), coordinate(n, 3)
+    v1 = _unit(c2[0] - c1[0], c2[1] - c1[1])
+    v2 = _unit(c3[0] - c0[0], c3[1] - c0[1])
+    mean = _unit((v1[0] + v2[0]) / 2.0, (v1[1] + v2[1]) / 2.0)
+    u, v = _reference_axes(n)
+    axis = u if abs(mean[0] * u[0] + mean[1] * u[1]) >= abs(
+        mean[0] * v[0] + mean[1] * v[1]) else v
+
+    dx, dy = c2[0] - c3[0], c2[1] - c3[1]
+    den = dx * axis[1] - dy * axis[0]
+    if abs(den) < 1e-12:
+        # edge(3,2) is parallel to the axis: no intersection exists. 0 of 532
+        # corpus divisions hit this; keep the stored offset rather than invent.
+        return _interp(c3, c2, n.division[1])
+    t = ((a[0] - c3[0]) * axis[1] - (a[1] - c3[1]) * axis[0]) / den
+    # Clamp rather than refuse: 1 of 532 corpus divisions lands outside [0,1],
+    # and a clamped cut is merely slightly skew, whereas refusing the division
+    # would strand a topology the search has already committed to (§39.38).
+    return _interp(c3, c2, min(1.0, max(0.0, t)))
+
+
 def _interp(a: Point, b: Point, t: float) -> Point:
     return [a[0] * (1 - t) + b[0] * t, a[1] * (1 - t) + b[1] * t]
 
@@ -78,7 +164,11 @@ def coord_b(n: Node) -> Point:
     if hit is not None:
         return hit
     if n.below is not None and n.below.divided:
+        # Upper storeys inherit, so the derivation below runs once on the base
+        # and the stack follows it -- walls stay aligned between storeys.
         result = coord_b(n.below)
+    elif ORTHOGONAL_DIVISION:
+        result = _orthogonal_b(n)
     else:
         result = _interp(coordinate(n, 3), coordinate(n, 2), n.division[1])
     _cache[key] = result

@@ -9312,3 +9312,74 @@ independent of whether `homemaker-py-2f1` ever lands.
 This is why the ordering went in **first and on its own**, before re-landing
 §39.37: the defect is real today, it is separate from the width ruling, and
 fixing it makes that ruling safe whichever way `homemaker-py-s34` is decided.
+
+
+### 39.40 Orthogonal division, implemented and measured (`homemaker-py-32t`)
+
+§39.38 established that the second division ratio is pinned rather than free, so
+deriving it costs nothing in search dimensionality. `geometry.ORTHOGONAL_DIVISION`
+now does that: `coord_b` places the cut parallel or perpendicular to the plot's
+**longest boundary** (the owner's rule), using the ratio-independent axis choice
+§39.38 settled and clamping the one-in-532 case that falls outside [0, 1].
+
+**Default OFF.** It changes the geometry of every layout, so it is a new
+objective under §39.32, not a tweak. `test_orthogonal_division.py` asserts the
+default, and asserts that with the flag off the stored geometry is reproduced
+exactly.
+
+**It does what it was built to do.** Over the 532 usable leaves of the twelve
+artefacts:
+
+| | OFF | ON |
+|---|---|---|
+| leaves exactly square (< 0.1°) | 0.2% | **54.1%** |
+| median corner deviation | 1.431° | **0.000°** |
+| mean corner deviation | 1.519° | 0.488° |
+| worst corner deviation | 4.186° | 2.287° |
+| mean `quality_perpendicular` | 0.9814 | 0.9916 |
+| total leaf area | 11744.1 m² | 11760.3 m² |
+
+And the residual is exactly where it should be — split by whether a leaf touches
+the plot boundary:
+
+| | n | mean deviation | square |
+|---|---|---|---|
+| **interior** | 177 | **0.000°** | **100%** |
+| boundary | 355 | 0.732° | 31.3% |
+
+Every interior leaf is square. The leaves that are not are the ones meeting a
+skewed site edge, which is correct: the site is the site. That is §39.38's stated
+acceptance criterion, met exactly.
+
+**What it does to fail counts, and why that number must not be quoted.**
+Rescoring the twelve artefacts with the flag on gives 265 → 352 fails
+(+87, hard 59 → 77). **That is not a comparison.** Those layouts were *evolved*
+under equal-offset geometry; their ratios are optimised for it and are being
+scored under a different one. It is the §39.12 trap — evolved under one
+objective, scored under another — and the §39.27 rescore discipline says the
+number is meaningless as written.
+
+Letting the inner loop re-solve the ratios, 2000 evaluations, Nelder-Mead:
+
+| run | evolved under OFF | ON, as-is | ON, re-solved |
+|---|---|---|---|
+| programme-house s0 | 2 | 13 | **3** |
+| health-centre s0 | 5 | 6 | **5** |
+| harbor-house s0 | 26 | 36 | **31** |
+
+Most of the +87 was stale ratios. And this still understates it: the topology is
+one evolved *for the old geometry*, and only the ratios were allowed to adapt.
+
+**So the flip cannot be decided from here.** It needs a cold-start sweep under
+the new geometry, compared against the current corpus on the §39.12/§39.31
+acceptance discipline. That is now practical — `homemaker-py-7ry` is fixed, so
+the runner carries its own artefacts again (§39.33).
+
+**When it is flipped, `quality_perpendicular` goes with it.** That is the point
+of the exercise (§39.36): a constraint satisfied by construction needs no
+scoring term, and the factor's whole residual is the skew this removes. The
+acceptance is that it reads 1.0 for interior leaves *before* it is deleted —
+`perpendicular_inside` and `perpendicular_outside` then go too
+(`homemaker-py-99y`). Boundary leaves will still score below 1.0, which is the
+honest answer for a skew site and an argument for deleting the factor rather
+than keeping it to measure the site's own shape.
