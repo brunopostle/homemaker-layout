@@ -8117,6 +8117,12 @@ measured: nothing here proves the outdoor fraction will not drift upward once
 the search is free to raise it. The re-baseline (`homemaker-py-bk9`) is what
 shows that, and the fraction is worth recording in it explicitly.
 
+*(The `bk9` sweep did not record it. §39.35 does, after the fact, from the
+committed artefacts: mean outdoor fraction 0.157 → 0.168 over the twelve matched
+runs, seven up and five down, outside leaves 92 → 95. **No drift** — this risk is
+closed. The residual §39.35 did find is outdoor-space shape, not quantity:
+`homemaker-py-jak`.)*
+
 **Fail-set and score effect** — 4 hard fails added, none removed; scores rise
 where the fraction penalty lifted and fall where a new hard fail landed:
 
@@ -8768,14 +8774,16 @@ guard on it.
 
 Open, in the order they are worth doing:
 
-1. **Soft `width` 7 -> 13 against `proportion` 11 -> 7** (§39.30, §39.31). The
-   only thing `bk9` made worse, and the only open question that came out of the
-   objective work rather than out of process. Hypothesis with a mechanism and no
-   measurement: with no aspect cap (§39.22) and no size cap (§39.23), a corridor
-   shape once refused as a bad proportion can now be built and refused as a bad
-   width instead. If instead the search is producing spaces too narrow to use,
-   the `hxi` ruling wants revisiting -- crinkliness was supposed to be what keeps
-   an uncapped corridor habitable.
+1. ~~**Soft `width` 7 -> 13 against `proportion` 11 -> 7**~~ **(§39.30, §39.31)
+   -- ANSWERED in §39.35, and the answer was neither of the two the bead
+   expected.** Not one corridor width fail was added (2 -> 2); the rise is
+   outdoor space (+5) and one habitable-room sliver. The whole +6 is below what
+   twelve paired runs can resolve (mean -0.50, MDD 0.57). Corridors got WIDER
+   under `bk9`, not narrower, so the `hxi` ruling is not implicated -- and the
+   crinkliness cross-tab in §39.35 is the first direct test of its
+   justification, which holds. What §39.30's relabelling intuition was actually
+   describing is the proportion cap handing off to **crinkliness**. The residual
+   is outdoor-space SHAPE, now `homemaker-py-jak`.
 2. **`homemaker-py-dpt`**, three terms still unruled: `quality_size`'s upper
    side, the minimum-internal-area factor as a third statement of "build the
    rooms", and the `0.5 ** n_fails` curve. All three need a ruling from the
@@ -8788,3 +8796,126 @@ Unmoved and still separately counted: `level N not connected`, 18 -> 17 over
 twelve runs and flat at every n the sweep was read at (§39.30, §39.31). It has
 its own mechanism (§39.9) and two measured-NULL attempts behind it, and nothing
 in §39.22-§39.26 touched it.
+
+
+### 39.35 The soft `width` rise is not corridors, and twelve runs cannot resolve it anyway (`homemaker-py-413`)
+
+§39.34 listed this first among the open questions: soft `width` 7 → 13 against
+`proportion` 11 → 7, the only thing `bk9` made worse. §39.30 offered a mechanism
+and said plainly that it had no measurement behind it — with no aspect cap
+(§39.22) and no size cap (§39.23), a corridor shape once refused as a bad
+proportion can now be built and refused as a bad **width** instead. The bead set
+the decision rule: if the width fails are corridors the removed caps would have
+caught, it is relabelling and closes; if they are habitable rooms, or corridors
+too narrow to use, the `hxi` ruling wants reopening.
+
+`experiments/diag_413_width_fails.py` classifies every width fail in both arms,
+rescored at the current objective `99c85ec` — the same rescoring that produced
+the 7 → 13 reading. It also measures the *whole* circulation population, not
+only the leaves that failed, because the fail set cannot answer a question about
+what the search builds.
+
+**The hypothesis is false, and neither branch of the decision rule applies.**
+
+| leaf class | baseline | `bk9` | Δ |
+|---|---|---|---|
+| **circulation** | **2** | **2** | **0** |
+| outside | 2 | 7 | +5 |
+| habitable room | 3 | 4 | +1 |
+
+Not one corridor width fail was added. The rise is outdoor space, with one extra
+habitable-room sliver. §39.30's mechanism is about corridors and corridors are
+exactly where nothing happened.
+
+**And the rise is below what the sample can resolve.** Per-run paired deltas over
+the twelve matched runs, by `ab_report.paired_report`, the convention §38.22 asks
+for:
+
+| class | baseline | `bk9` | mean Δ | sd | MDD | verdict |
+|---|---|---|---|---|---|---|
+| circulation | 2 | 2 | +0.00 | 0.60 | 0.38 | underpowered |
+| outside | 2 | 7 | −0.42 | 0.67 | **0.42** | underpowered, *just* |
+| habitable room | 3 | 4 | −0.08 | 0.29 | 0.18 | underpowered |
+| **all** | **7** | **13** | **−0.50** | 0.90 | 0.57 | **underpowered** |
+
+A six-fail difference on a corpus total looks like something and is not. Seven
+runs got worse and two got better; the mean is smaller than the smallest
+difference twelve pairs could establish. This is the fourth time in §39 that a
+family-level count read as a result before the power was checked (§39.28-§39.30
+were three readings of one quantity), and the first where the check was run
+*before* the narrative was written rather than after.
+
+**The `hxi` ruling is not implicated — corridors got wider, not narrower.** The
+census §39.22 made of the baseline's 111 circulation leaves, re-measured on both
+arms:
+
+| arm | n | width p25 | median | p75 | median aspect | median area | w < 1.97 | w < 1.2 |
+|---|---|---|---|---|---|---|---|---|
+| baseline | 111 | 2.14 | 2.80 | 3.63 | 1.67 | 14.34 | 2 | 0 |
+| `bk9` | 115 | 2.24 | **3.20** | 4.69 | 1.59 | **18.74** | 2 | 1 |
+
+Every quantile of corridor width moved **up**. The median corridor is 40 cm wider
+and 4.4 m² bigger, and the count below the 1.97 m fail edge is 2 in both arms.
+"The search is producing spaces too narrow to use" is not what happened: freed of
+a size factor whose optimum was non-existence (§39.23), the search built *more*
+corridor, not thinner corridor. The one sub-1.2 m corridor in the corpus
+(health-centre s2, 0.20 m, aspect 17) would have failed the removed aspect cap
+too — it is refused either way, only the family name changes.
+
+**The ruling's own justification holds.** It rested on crinkliness being what
+keeps an uncapped corridor habitable. The corridors the removed cap would have
+refused are exactly where crinkliness bites:
+
+| arm | corridor aspect | n | crinkliness fails | rate | mean crink quality |
+|---|---|---|---|---|---|
+| baseline | ≤ 2.57 | 104 | 28 | 26.9% | 0.481 |
+| baseline | > 2.57 | 7 | 1 | 14.3% | 0.544 |
+| `bk9` | ≤ 2.57 | 101 | 27 | 26.7% | 0.500 |
+| `bk9` | **> 2.57** | **14** | **6** | **42.9%** | **0.372** |
+
+Long corridors doubled, 7 → 14, which is the change §39.22 intended. Among them
+the crinkliness fail rate is 43% against 27% for stubby ones, and their mean
+crinkliness quality is the lowest cell in the table. The guard fires on the long
+*buried* corridor and lets the long *facade* corridor through, which is precisely
+the distinction the ruling claimed it could make and the aspect cap could not.
+§39.30's relabelling intuition was right in kind and wrong in family: what the
+removed proportion cap handed off to was **crinkliness**, not width.
+
+**What the removed caps would refuse today**, applied to both populations:
+old-proportion fails 7 → 14, old-size fails 16 → 34, either 21 → 44. Most of that
+is the size cap, whose target area for a corridor was zero — a corridor is
+penalised for existing under it, so a population with bigger corridors scores
+worse by construction. That number is what §39.23 removed, not evidence against
+its removal.
+
+**§39.25's unrecorded risk, now recorded.** §39.25 turned `force_roof_garden` on
+and `ratio_outside` off, and flagged the one unmeasured consequence in
+§39.22-§39.26: *"nothing here proves the outdoor fraction will not drift upward
+once the search is free to raise it... the re-baseline is what shows that, and
+the fraction is worth recording in it explicitly."* It never was recorded. It is
+now, per run, in `experiments/results/outdoor_fraction_413.tsv`:
+
+| | baseline | `bk9` | Δ |
+|---|---|---|---|
+| mean outdoor fraction | 0.157 | 0.168 | +0.011 |
+| outside leaves | 92 | 95 | +3 |
+| width-eligible outside leaves | 71 | 72 | +1 |
+
+Seven runs up, five down, per-run swings of ±0.2 in both directions. **No drift.**
+Removing the fraction gaussian did not let outdoor space run away, and the
+minimum-internal-area factor §39.25 nominated as the real upper bound appears to
+be doing the job. That risk is closed.
+
+**What is left is a tail, not a count.** The outside population did not grow —
+71 → 72 width-eligible leaves — but its narrow tail did: leaves below the 2.36 m
+outside fail edge went 2 → 9, and below 1.2 m, 1 → 3. The same number of outdoor
+cells, more of them degenerate slivers (the worst is 0.075 m wide, 0.22 m²). At
+−0.42 fails per run against an MDD of 0.42 that is suggestive and unresolved, and
+it is a question about outdoor-space *shape*, which nothing in §39.22-§39.26
+addressed. Filed as `homemaker-py-jak` rather than claimed here.
+
+**Closing `homemaker-py-413`.** The bead asked which of two things the width rise
+was. It was neither: not corridor relabelling, not a corridor regression, and not
+large enough for twelve runs to call it anything. The `hxi` ruling stands on the
+evidence that was supposed to bear on it, and stands better than before — the
+crinkliness cross-tab is the first direct test of its justification.
