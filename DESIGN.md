@@ -9375,6 +9375,31 @@ the new geometry, compared against the current corpus on the §39.12/§39.31
 acceptance discipline. That is now practical — `homemaker-py-7ry` is fixed, so
 the runner carries its own artefacts again (§39.33).
 
+**A cheap paired warm start, pending that sweep.** programme-house, warm-started
+from its own 500 k artefact, 20 000 evaluations, one worker, same RNG seed, run
+twice — once with the flag on and once off as a control, because otherwise an
+improvement cannot be told from simply more search:
+
+| arm | fails | hard | mean corner deviation | square leaves |
+|---|---|---|---|---|
+| OFF (control) | 2 | 0 | 1.523° | 0.0% |
+| **ON** | **2** | **0** | **0.792°** | **21.4%** |
+| the seed itself (500 k, old geometry) | 2 | 0 | 1.502° | 0.0% |
+
+Same fail count, half the wall skew. The search recovered 2 fails by evaluation
+**200** under the new geometry, against the 13 the naive rescore reported — so
+the +87 above really was stale ratios and topology, not a worse objective.
+
+Four things keep this from being a verdict. It is **one programme and one seed**,
+warm-started from a layout evolved under the old geometry. programme-house was
+**already at its floor** (2 fails, 0 hard, 14 leaves), so this tests "costs
+nothing", not "helps" — there was no headroom either way. The 21.4% square is
+lower than the corpus-wide 54.1% only because this layout is small and most of
+its leaves touch the plot boundary, which is consistent with the interior /
+boundary split rather than at odds with it. And the score is marginally
+*lower* with the flag on — 0.00892275 against 0.008948, about 0.28% — so same
+fails, slightly less value; too small to read at n = 1, but not strictly free.
+
 **When it is flipped, `quality_perpendicular` goes with it.** That is the point
 of the exercise (§39.36): a constraint satisfied by construction needs no
 scoring term, and the factor's whole residual is the skew this removes. The
