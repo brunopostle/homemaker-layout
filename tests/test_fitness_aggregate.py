@@ -120,3 +120,44 @@ def test_unknown_aggregate_is_rejected():
                              overrides={"quality_aggregate": "mean"})
     with pytest.raises(ValueError, match="unknown quality_aggregate"):
         Fitness(conf, cost)
+
+
+def test_circulation_is_not_asked_size_or_proportion():
+    """§39.22/§39.23 removed both, so counting them in the geometric mean
+    divides by questions that are never put -- and because they return 1.0,
+    including them pulls circulation's mean UP. homemaker-py-99y.
+    """
+    from pathlib import Path
+    from homemaker_layout import dom as dom_mod
+    from homemaker_layout.fitness import Fitness, load_config
+
+    examples = Path(__file__).resolve().parent.parent / "examples"
+    d = examples / "harbor-house"
+    if not d.is_dir():
+        import pytest
+        pytest.skip("examples absent")
+    conf, cost = load_config(d)
+    fit = Fitness(conf, cost)
+    root = dom_mod.load(str(next(d.glob("coldstart-*-500000-s0.dom"))))
+    circ = next((l for lvl in dom_mod.levels(root) for l in lvl.leaves()
+                 if l.type == "C"), None)
+    assert circ is not None, "expected a circulation leaf"
+    assert not fit.factor_is_asked("size", circ)
+    assert not fit.factor_is_asked("proportion", circ)
+    # and the §39.18 invariant: an unasked factor really is 1.0
+    assert fit.quality_size(circ) == 1.0
+    assert fit.quality_proportion(circ) == 1.0
+    # a room, by contrast, is asked both
+    room = next(l for lvl in dom_mod.levels(root) for l in lvl.leaves()
+                if l.type not in ("C", "O", "S"))
+    assert fit.factor_is_asked("size", room)
+    assert fit.factor_is_asked("proportion", room)
+
+
+def test_the_removed_parameters_are_gone():
+    """plot_ratio and evaluate_room_types were read nowhere in src/ (99y)."""
+    from homemaker_layout.fitness import CONF_DEFAULTS
+    assert "plot_ratio" not in CONF_DEFAULTS
+    assert "evaluate_room_types" not in CONF_DEFAULTS
+    # latitude stays: unread, but kept for the daylight module (owner's ruling)
+    assert CONF_DEFAULTS["latitude"] == 53.3814

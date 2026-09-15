@@ -250,9 +250,13 @@ CONF_DEFAULTS: dict = {
     "value_supported": 100.0,
     "storey_limit": 4,
     "storey_minimum": 2,
+    # Unread today, and kept deliberately: it is for the daylight/occlusion
+    # subsystem descoped at §6 (URB_NO_OCCLUSION) and due back with
+    # homemaker-py-2g5. Owner's ruling, §39.36 -- "never fires" has two causes
+    # that look identical from the data, dead weight and a missing consumer,
+    # and only provenance tells them apart.
     "latitude": 53.3814,
     "door_width": 1.2,
-    "plot_ratio": [2.00, 0.50],
     # homemaker-py-hxi (DESIGN.md §39.25). Was [0.33, 0.15] -- a gaussian on
     # the OUTDOOR FRACTION. Alexander says every level should have accessible
     # outside space; he does not say how much, and the corpus's four declared
@@ -359,7 +363,6 @@ CONF_DEFAULTS: dict = {
     "perpendicular_outside": 10.0,
     "allow_sahn_circulation": 0,
     "force_roof_garden": 1,
-    "evaluate_room_types": 1,
 }
 
 # Urb::Dom::Fitness::Base $COST
@@ -1657,7 +1660,23 @@ class Fitness:
         rests on: whenever this returns False, the factor really is 1.0.
         """
         if name == "size":
-            return _generic_class(leaf) not in ("o", "s")
+            if _generic_class(leaf) in ("o", "s"):
+                return False
+            if _generic_class(leaf) == "c":
+                # §39.23 removed the corridor size target, but this kept saying
+                # the question was asked, so the geometric mean divided by it.
+                _, v = self._generic_param("size_circulation")
+                return v is not None
+            return True
+        if name == "proportion":
+            if _generic_class(leaf) == "c":
+                # §39.22, same omission as size above.
+                _, v = self._generic_param("proportion_circulation")
+                return v is not None
+            if _generic_class(leaf) in ("o", "s"):
+                _, v = self._generic_param("proportion_outside")
+                return v is not None
+            return True
         if name == "perpendicular":
             _, sigma = self._generic_param(
                 "perpendicular_outside" if dom_mod.is_outside(leaf)
