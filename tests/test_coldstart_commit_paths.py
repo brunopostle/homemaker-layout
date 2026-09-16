@@ -161,15 +161,98 @@ def test_the_runtime_switch_is_in_the_stamp(monkeypatch):
     assert on.startswith(off)
 
 
+VERIFIER = RUNNER.parent / "verify_results_table.py"
+
+
+def _verifier():
+    if not VERIFIER.is_file():
+        pytest.skip("verifier absent")
+    spec = importlib.util.spec_from_file_location("coldstart_verifier", VERIFIER)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def test_the_verifier_does_not_keep_its_own_copy_of_the_rule():
     """Two copies of this rule drifted apart once already. A verifier that
     computes the stamp its own way cannot detect that -- it agrees with
     itself."""
-    verifier = (RUNNER.parent / "verify_results_table.py")
-    if not verifier.is_file():
+    if not VERIFIER.is_file():
         pytest.skip("verifier absent")
-    src = verifier.read_text()
-    i = src.index("def current_objective")
+    src = VERIFIER.read_text()
+    i = src.index("def source_commit")
     body = src[i:i + 1200]
     assert "objective_commit" in body, (
         "the verifier re-derives the stamp instead of asking the runner")
+
+
+def test_the_verifier_reads_the_switch_off_the_row_not_the_environment(monkeypatch):
+    """Which rows are live is a question about the SOURCE; which geometry a row
+    was measured under is a question about the ROW. Deriving both from the
+    environment meant one invocation could only ever check the half of the
+    table that matched it -- and forgetting the variable skipped every
+    orthogonal row while printing "0 mismatched", which reads like success."""
+    mod = _verifier()
+    monkeypatch.delenv("HOMEMAKER_ORTHOGONAL_DIVISION", raising=False)
+    off = mod.source_commit()
+    monkeypatch.setenv("HOMEMAKER_ORTHOGONAL_DIVISION", "1")
+    assert mod.source_commit() == off, (
+        "the set of live rows moves when the environment does")
+    assert mod.split_objective(off + "+orth") == (off, True)
+    assert mod.split_objective(off) == (off, False)
+
+
+def test_the_verifier_scores_each_row_under_its_own_switch():
+    """A row measured with orthogonal division on only reproduces with the
+    switch on: scoring it with the switch off yields a different layout and a
+    mismatch that says nothing about the table. So the scorer's environment is
+    built per row, not inherited."""
+    src = VERIFIER.read_text() if VERIFIER.is_file() else pytest.skip("verifier absent")
+    i = src.index("def score(")
+    body = src[i:src.index("def main")]
+    assert "env=env" in body, "the scorer inherits the switch instead of being told"
+    assert "ORTH_ENV" in body, "the verifier hardcodes the variable name"
+
+
+def test_the_switch_and_its_suffix_are_named_once():
+    """Three places have to agree on the spelling of the variable and the
+    suffix: the runner, the verifier, and anything that re-scores an artefact.
+    A literal in each is three chances to typo one."""
+    mod = _runner()
+    assert mod.ORTH_ENV == "HOMEMAKER_ORTHOGONAL_DIVISION"
+    assert mod.ORTH_SUFFIX == "+orth"
+    if VERIFIER.is_file():
+        assert '"+orth"' not in VERIFIER.read_text(), (
+            "the verifier spells the suffix itself instead of asking the runner")
+
+
+def test_scoring_a_row_ignores_the_ambient_switch(monkeypatch):
+    """End-to-end: the same artefact, scored both ways, must give two different
+    answers (or the switch is not reaching the scorer at all), and each answer
+    must not move when the ambient environment is set the other way.
+
+    The numbers are not pinned -- only that they differ and that they are the
+    verifier's to choose. On the corpus this gap is around ten failures, which
+    is what a mis-scored half of the table would have reported as mismatches.
+    """
+    mod = _verifier()
+    repo = RUNNER.parent.parent
+    import csv as _csv
+    table = repo / "experiments" / "results" / "coldstart_baseline.tsv"
+    if not table.is_file():
+        pytest.skip("results table absent")
+    rows = [r for r in _csv.DictReader(table.open(), delimiter="\t")
+            if (repo / "examples" / r["programme"] / r["dom"]).is_file()]
+    if not rows:
+        pytest.skip("no committed artefacts to score")
+    row = rows[0]
+
+    monkeypatch.setenv("HOMEMAKER_ORTHOGONAL_DIVISION", "0")
+    off = mod.score(row["programme"], row["dom"], orthogonal=False)
+    on = mod.score(row["programme"], row["dom"], orthogonal=True)
+    assert off is not None and on is not None
+    assert off != on, "the orthogonal switch does not reach the scorer"
+
+    monkeypatch.setenv("HOMEMAKER_ORTHOGONAL_DIVISION", "1")
+    assert mod.score(row["programme"], row["dom"], orthogonal=False) == off
+    assert mod.score(row["programme"], row["dom"], orthogonal=True) == on

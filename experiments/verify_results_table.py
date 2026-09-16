@@ -17,15 +17,25 @@ week (DESIGN.md 39.27/39.28/39.31):
 
 Neither was detectable by reading the file. Both are detectable by this.
 
-The objective column holds the short commit of the last change to
-`fitness.py`. Rows whose objective is not the current one are **skipped, not
-failed**: reproducing them needs the scorer as it was at that commit, and
-scoring them with today's would report a dozen mismatches that mean nothing
-except that the objective changed -- which is the whole point of the column.
+The objective column holds the short commit of the last change to `fitness.py`
+or `geometry.py`, plus `+orth` if the run-time orthogonal-division switch was
+on. Rows whose commit is not the current one are **skipped, not failed**:
+reproducing them needs the scorer as it was at that commit, and scoring them
+with today's would report a dozen mismatches that mean nothing except that the
+objective changed -- which is the whole point of the column.
 
-There is deliberately no `--objective` flag for that reason. To verify an older
-sweep, check out the commit it was measured at and run this there: the objective
-it reports will be that one, and those rows become the live set.
+The `+orth` half is not part of that test. Both halves of a commit's rows are
+live at once, and each row is re-scored with the switch set to what the row
+says -- not to what the environment of whoever runs this happens to say. That
+matters: the switch changes the geometry, so a `+orth` row only reproduces with
+it on, and an unsuffixed row only with it off. Deriving it from the environment
+meant a single invocation could check only the half of the table that matched
+it, and forgetting the variable skipped every orthogonal row while printing
+"0 mismatched" -- which reads like success.
+
+There is deliberately no `--objective` flag. To verify an older sweep, check out
+the commit it was measured at and run this there: the commit it reports will be
+that one, and those rows become the live set.
 
 Run it after any sweep, and after any change to the objective -- where it should
 report every row skipped, which is the correct answer and a reminder that the
@@ -40,6 +50,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import os
 import shutil
 import subprocess
 import sys
@@ -50,42 +61,80 @@ REPO = Path(__file__).resolve().parent.parent
 TABLE = REPO / "experiments" / "results" / "coldstart_baseline.tsv"
 
 
-def current_objective() -> str:
-    """The runner's stamp, borrowed rather than re-derived.
+def _runner():
+    """The runner module, so its rules are borrowed rather than re-derived.
 
-    Two copies of this rule drifted apart once already: the runner stamped only
-    `fitness.py` while `geometry.py` could change every leaf's area and aspect,
-    and the ORTHOGONAL_DIVISION switch left no commit at all. A verifier that
-    computes the stamp its own way cannot notice that -- it would simply agree
-    with itself. So it asks the runner.
+    Two copies of the stamping rule drifted apart once already: the runner
+    stamped only `fitness.py` while `geometry.py` could change every leaf's
+    area and aspect, and the ORTHOGONAL_DIVISION switch left no commit at all.
+    A verifier that computes the stamp its own way cannot notice that -- it
+    would simply agree with itself. So it asks the runner.
     """
     import importlib.util
     spec = importlib.util.spec_from_file_location(
         "_coldstart_runner", REPO / "experiments" / "run_coldstart_baseline.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return mod.objective_commit()
+    return mod
 
 
-def score(programme: str, dom: str) -> "tuple[int, int, int, str] | None":
+def source_commit() -> str:
+    """The commit half of the stamp: what the objective's *source* is at.
+
+    Deliberately NOT the full stamp. The other half -- the orthogonal-division
+    switch -- is a property of each ROW, not of whoever is running this.
+    """
+    mod = _runner()
+    env = dict(os.environ)
+    env.pop(mod.ORTH_ENV, None)
+    saved, os.environ = os.environ, env
+    try:
+        return mod.objective_commit()
+    finally:
+        os.environ = saved
+
+
+def split_objective(stamp: str) -> "tuple[str, bool]":
+    """`"47c604f+orth"` -> `("47c604f", True)`; `"47c604f"` -> `("47c604f", False)`."""
+    suffix = _runner().ORTH_SUFFIX
+    if stamp.endswith(suffix):
+        return stamp[:-len(suffix)], True
+    return stamp, False
+
+
+def score(programme: str, dom: str,
+          orthogonal: bool = False) -> "tuple[int, int, int, str] | None":
     """(fails, hard, soft, score), or None if the artefact is missing.
 
     Scored in a scratch copy: `homemaker-fitness` writes `.score`/`.fails`
     beside its input, and verifying a table must not dirty the tree it is
     verifying.
+
+    ``orthogonal`` comes from the ROW's objective, and is passed to the scorer
+    through the environment rather than inherited from it. A row measured with
+    orthogonal division on describes a geometry that only reproduces with the
+    switch on; scoring it with the switch off yields a different layout and a
+    mismatch that says nothing about the table. The inverse is just as wrong.
+    Before this, the switch reached the scorer by inheritance, so the verifier
+    could only ever check the half of the table that matched its own
+    invocation -- and forgetting the variable skipped every orthogonal row
+    while reporting "0 mismatched", which reads like success.
     """
     from homemaker_layout.fitness import classify_fail_tier
 
     src = REPO / "examples" / programme / dom
     if not src.exists():
         return None
+    mod = _runner()
+    env = dict(os.environ)
+    env[mod.ORTH_ENV] = "1" if orthogonal else "0"
     with tempfile.TemporaryDirectory() as td:
         work = Path(td)
         for cfg in (REPO / "examples" / programme).glob("*.config"):
             shutil.copy(cfg, work / cfg.name)
         shutil.copy(src, work / dom)
         r = subprocess.run(["homemaker-fitness", dom], cwd=work,
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, env=env)
         if r.returncode != 0:
             raise SystemExit(f"scoring {programme}/{dom} failed: {r.stderr.strip()}")
         lines = [ln for ln in (work / f"{dom}.fails").read_text().splitlines()
@@ -99,16 +148,23 @@ def main() -> int:
     argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter).parse_args()
-    want = current_objective()
+    want = source_commit()
 
     rows = list(csv.DictReader(TABLE.open(), delimiter="\t"))
     checked = skipped = bad = missing = 0
+    live = set()
 
     for row in rows:
-        if row["objective"] != want:
+        commit, orthogonal = split_objective(row["objective"])
+        # Match on the COMMIT only. Both orthogonal and non-orthogonal rows at
+        # the current commit are live, and each is re-scored under its own
+        # switch -- so one invocation verifies the whole table rather than
+        # whichever half the environment happened to select.
+        if commit != want:
             skipped += 1
             continue
-        got = score(row["programme"], row["dom"])
+        live.add(row["objective"])
+        got = score(row["programme"], row["dom"], orthogonal=orthogonal)
         label = f"{row['programme']} s{row['seed']}"
         if got is None:
             print(f"  MISSING ARTEFACT  {label}: {row['dom']}")
@@ -127,11 +183,13 @@ def main() -> int:
         else:
             checked += 1
 
-    print(f"\nobjective {want}: {checked} row(s) verified exactly, "
+    print(f"\nobjective {' + '.join(sorted(live)) or want}: "
+          f"{checked} row(s) verified exactly, "
           f"{bad} mismatched, {missing} artefact(s) missing, "
           f"{skipped} row(s) skipped (other objectives)")
     if not checked and not bad and not missing:
-        print(f"no rows were measured by the current objective ({want}).\n"
+        print(f"no rows were measured at the current objective commit ({want}),"
+              f"\nwith or without the orthogonal-division switch.\n"
               f"The corpus needs re-running before anything is compared to it.")
         return 1
     return 1 if (bad or missing) else 0

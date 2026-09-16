@@ -53,6 +53,11 @@ RESULTS = REPO / "experiments" / "results" / "coldstart_baseline.tsv"
 BRANCH = "claude/beads-project-intro-fjiez3"
 FIELDS = ["objective", "programme", "seed", "budget", "fails", "hard", "soft",
           "score", "elapsed_s", "dom"]
+# The run-time switch that no commit records, and the suffix it puts on the
+# stamp. Named here because three places have to agree on the spelling: this
+# runner, `verify_results_table.py`, and anything that re-scores an artefact.
+ORTH_ENV = "HOMEMAKER_ORTHOGONAL_DIVISION"
+ORTH_SUFFIX = "+orth"
 
 
 def objective_commit() -> str:
@@ -84,8 +89,8 @@ def objective_commit() -> str:
     # is selected by the environment (so it crosses the worker fork), so the
     # same commit can produce two different objectives; the stamp has to say
     # which one ran.
-    if os.environ.get("HOMEMAKER_ORTHOGONAL_DIVISION", "") == "1":
-        stamp += "+orth"
+    if os.environ.get(ORTH_ENV, "") == "1":
+        stamp += ORTH_SUFFIX
     return stamp
 
 

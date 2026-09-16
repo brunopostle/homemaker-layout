@@ -9518,3 +9518,56 @@ its definition of the thing it stamps, and that definition is itself a claim
 that can be wrong. This one was wrong in two directions at once: too narrow
 across files, and blind to state that lives outside version control entirely.
 When something is stamped "measured under X", ask what X was taken to include.
+
+### 39.43 The verifier could only ever check half the table (`homemaker-py-32t`)
+
+§39.42 fixed the stamp. It left the *reader* of the stamp wrong in a way that
+would have surfaced the moment the orthogonal sweep finished.
+
+`verify_results_table.py` matched each row's `objective` against one value and
+skipped the rest, and the value it matched against was the full stamp —
+including `+orth`, which it got from its own environment. Two consequences,
+both silent:
+
+* **Only one half is ever live.** Run it plainly and every `+orth` row skips;
+  run it with the variable set and every unsuffixed row skips. There is no
+  invocation that checks the whole table, though the table is one table.
+* **Forgetting the variable looks like success.** The run prints
+  `0 mismatched` and a note that the corpus needs re-running — which, after a
+  sweep that just finished, reads as "the sweep didn't land" rather than "you
+  invoked me wrong".
+
+Underneath sat the substantive error: `score()` shelled out to
+`homemaker-fitness` with the environment it had *inherited*, so the geometry a
+row was re-scored under was a property of the person running the verifier
+rather than of the row. Those two coincided only by accident — the same
+variable happened to drive both — and a naive fix to the first (compare the
+commit, ignore the suffix) would have broken that accident and rescored every
+orthogonal artefact with the switch off.
+
+The size of that error is measurable today, on a committed artefact from the
+§39.12 corpus:
+
+| `coldstart-055d710-500000-s0.dom` (harbor-house) | fails | hard | soft |
+|---|---|---|---|
+| orthogonal division off | 32 | 8 | 24 |
+| orthogonal division on | 42 | 8 | 34 |
+
+Ten phantom mismatches on one file — for a whole sweep, a page of them, none
+meaning anything.
+
+**The fix is a separation of two questions that had been merged.** *Which rows
+are live* is a question about the source, and is answered by the commit alone
+(`source_commit()`, now explicitly environment-independent). *Which geometry a
+row was measured under* is a question about the row, and is answered by parsing
+its own stamp (`split_objective()`), then handed to the scorer as an explicit
+`env=`. One invocation now verifies both halves, each under its own switch, and
+the ambient environment cannot change the answer.
+
+**The general form.** §39.42 said a stamp is a claim about what it includes.
+The sequel: a stamp is also read by something, and the reader holds its own
+claim about what the stamp *means*. Writing provenance correctly and consuming
+it correctly are separate pieces of work, and getting the first right is what
+makes the second's error possible — before §39.42 there was no suffix to
+mis-read. Expect every provenance fix to have a consumer-side half, and go
+looking for it in the same sitting.
