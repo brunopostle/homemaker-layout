@@ -9471,3 +9471,50 @@ corner deviation 1.845° → 0.705°, on a real programme with 55 leaves.
 Whether the geometry should land still needs
 `HOMEMAKER_ORTHOGONAL_DIVISION=1` over a cold sweep, judged against the current
 corpus on the §39.12/§39.31 discipline.
+
+
+### 39.42 The objective stamp did not name the whole objective (`homemaker-py-32t`)
+
+§39.32 made every result carry the objective that measured it, and §39.33's
+`verify_results_table.py` guards the table against its artefacts. Both were
+incomplete, and it took the owner starting a multi-day orthogonal-division sweep
+to show it.
+
+`objective_commit()` read **only** `src/homemaker_layout/fitness.py`.
+`ORTHOGONAL_DIVISION` lives in `geometry.py` and is selected by an environment
+variable, so neither the file nor the switch was captured. Both configurations
+stamped `47c604f`:
+
+* every row would have claimed the same objective as a non-orthogonal sweep;
+* artefact filenames are built from the stamp, so the orthogonal run's
+  `coldstart-47c604f-500000-s0.dom` would have **overwritten** the
+  non-orthogonal one;
+* `verify_results_table.py` would have rescored orthogonal artefacts with the
+  flag off and reported mismatches.
+
+Two objectives under one name — the failure §39.32 exists to prevent, occurring
+inside the mechanism written to prevent it.
+
+**Why the definition was wrong.** "The objective" was quietly taken to mean the
+scorer. But `geometry.py` decides every leaf's area, aspect and width; a change
+there changes what every term in `fitness.py` evaluates. It is as much the
+objective as the scorer is. And a **run-time switch leaves no commit at all**,
+so a stamp built only from history cannot distinguish two objectives that share
+one.
+
+| | stamp |
+|---|---|
+| `HOMEMAKER_ORTHOGONAL_DIVISION` unset | `47c604f` |
+| `HOMEMAKER_ORTHOGONAL_DIVISION=1` | `47c604f+orth` |
+
+**And the verifier could not have caught it.** It derived the stamp its own way,
+by the same wrong rule, so it would only ever have agreed with itself. It now
+imports `objective_commit()` from the runner. Two copies of a rule that must
+not drift is one copy too many — the same lesson as §39.37's five consumers and
+§39.5's `cpsat._matches`, arriving for the third time.
+
+**The general form, worth stating once.** A provenance stamp is only as good as
+its definition of the thing it stamps, and that definition is itself a claim
+that can be wrong. This one was wrong in two directions at once: too narrow
+across files, and blind to state that lives outside version control entirely.
+When something is stamped "measured under X", ask what X was taken to include.
