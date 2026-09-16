@@ -23,6 +23,7 @@ import copy
 import numpy as np
 
 from . import dom
+from . import graph as graph_mod
 
 
 def _finalise(root: dom.Node) -> dom.Node:
@@ -1270,8 +1271,11 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
     codes = [room_codes[i] for i in rng.permutation(len(room_codes))]
 
     def _n_secondary(code: str) -> int:
+        # homemaker-py-1v7: EXACT `c` (the generic, which programmes spell
+        # lowercase), not a leading c. A room code beginning with c -- `cr1` in
+        # harbor-house -- is a room, and a requirement to be next to it counts.
         r = reqs.get(code)
-        return len([a for a in (r.adjacency if r else []) if a and a[0].lower() != "c"])
+        return len([a for a in (r.adjacency if r else []) if a and a.lower() != "c"])
 
     codes.sort(key=_n_secondary, reverse=True)
 
@@ -1302,12 +1306,24 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
         for code in codes:
             if not open_slots:
                 break
-            req_adj = [a[0].lower() for a in (reqs.get(code).adjacency if reqs.get(code) else [])]
-            secondary = [a for a in req_adj if a != "c"]
+            # homemaker-py-1v7: ask graph.code_matches_requirement, the single
+            # place that answers "does this leaf count as the thing the
+            # programme asked to be next to" -- cpsat already uses it, and the
+            # scorer is built on it. This path compared FIRST CHARACTERS, which
+            # over-credits: a requirement for `b1` counted a neighbour typed
+            # `b2` as satisfying it, and `de1` counted `dp1`. §39.4 gave the
+            # generics an exact test and prefix semantics to everything else;
+            # the constructor never adopted either.
+            req_adj = [a for a in (reqs.get(code).adjacency if reqs.get(code) else []) if a]
+            # circulation is placed structurally, so it is not a placement
+            # signal here. EXACT `c`, not a leading c: `cr1` is a room (§39.4).
+            secondary = [a for a in req_adj if a.lower() != "c"]
 
             def _sat(slot, secondary=secondary) -> int:
-                nb_types = {(nb.type or "")[:1].lower() for nb in _nbrs(slot) if nb.type}
-                return sum(1 for a in secondary if a in nb_types)
+                nb_types = [nb.type for nb in _nbrs(slot) if nb.type]
+                return sum(1 for a in secondary
+                           if any(graph_mod.code_matches_requirement(t, a)
+                                  for t in nb_types))
 
             best = max(open_slots, key=lambda L: (_sat(L), L in dominated,
                                                   deg.get(L, 0), -idx[L]))
@@ -1342,16 +1358,21 @@ def _beam_place_rooms(codes: list[str], slots: list, dominated: set,
     the highest-scoring complete placement as ``{leaf: code}``.
     """
     def secondary_of(code: str) -> list[str]:
+        # homemaker-py-1v7: keep the target CODE, not its first letter, and
+        # exclude the circulation generic by an exact test. See the greedy path
+        # above for why.
         r = reqs.get(code)
-        return [a[0].lower() for a in (r.adjacency if r else []) if a and a[0].lower() != "c"]
+        return [a for a in (r.adjacency if r else []) if a and a.lower() != "c"]
 
     def sat(slot, assign: dict, secondary: list[str]) -> int:
-        nb_types = set()
+        nb_types = []
         for nb in _nbrs(slot):
             t = assign.get(nb, nb.type)
             if t:
-                nb_types.add(t[:1].lower())
-        return sum(1 for a in secondary if a in nb_types)
+                nb_types.append(t)
+        return sum(1 for a in secondary
+                   if any(graph_mod.code_matches_requirement(t, a)
+                          for t in nb_types))
 
     beam: list[tuple[int, dict]] = [(0, {})]
     for code in codes:
