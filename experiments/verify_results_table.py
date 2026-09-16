@@ -51,10 +51,20 @@ TABLE = REPO / "experiments" / "results" / "coldstart_baseline.tsv"
 
 
 def current_objective() -> str:
-    r = subprocess.run(
-        ["git", "log", "-1", "--format=%h", "--", "src/homemaker_layout/fitness.py"],
-        cwd=REPO, capture_output=True, text=True)
-    return r.stdout.strip() or "unknown"
+    """The runner's stamp, borrowed rather than re-derived.
+
+    Two copies of this rule drifted apart once already: the runner stamped only
+    `fitness.py` while `geometry.py` could change every leaf's area and aspect,
+    and the ORTHOGONAL_DIVISION switch left no commit at all. A verifier that
+    computes the stamp its own way cannot notice that -- it would simply agree
+    with itself. So it asks the runner.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "_coldstart_runner", REPO / "experiments" / "run_coldstart_baseline.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.objective_commit()
 
 
 def score(programme: str, dom: str) -> "tuple[int, int, int, str] | None":

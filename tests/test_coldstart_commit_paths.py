@@ -128,3 +128,48 @@ def test_a_dirty_tree_blocks_rebase_which_is_why_order_matters(repo):
     r = _git(repo, "pull", "--rebase", "-q", ".", "HEAD")
     assert r.returncode != 0
     assert "unstaged" in (r.stderr + r.stdout).lower()
+
+
+# --------------------------------------------------------------------------- #
+# The objective stamp must name the whole objective (homemaker-py-32t fallout)
+# --------------------------------------------------------------------------- #
+
+def test_the_stamp_covers_geometry_not_just_the_scorer():
+    """geometry.py decides every leaf's area, aspect and width, so a change
+    there changes what every term evaluates. Stamping only fitness.py let an
+    orthogonal-division sweep take the same stamp as a non-orthogonal one --
+    and, because artefact filenames are built from the stamp, write over its
+    results. Two objectives under one name is what §39.32 exists to stop."""
+    src = RUNNER.read_text()
+    i = src.index("def objective_commit")
+    body = src[i:i + 2000]
+    assert "geometry.py" in body, "the stamp ignores geometry.py"
+    assert "fitness.py" in body
+
+
+def test_the_runtime_switch_is_in_the_stamp(monkeypatch):
+    """ORTHOGONAL_DIVISION is selected by the environment so it crosses the
+    worker fork, which means one commit can produce two different objectives.
+    No commit records which ran, so the stamp has to."""
+    mod = _runner()
+    monkeypatch.delenv("HOMEMAKER_ORTHOGONAL_DIVISION", raising=False)
+    off = mod.objective_commit()
+    monkeypatch.setenv("HOMEMAKER_ORTHOGONAL_DIVISION", "1")
+    on = mod.objective_commit()
+    assert off != on, "the same stamp for two different geometries"
+    assert on.endswith("+orth")
+    assert on.startswith(off)
+
+
+def test_the_verifier_does_not_keep_its_own_copy_of_the_rule():
+    """Two copies of this rule drifted apart once already. A verifier that
+    computes the stamp its own way cannot detect that -- it agrees with
+    itself."""
+    verifier = (RUNNER.parent / "verify_results_table.py")
+    if not verifier.is_file():
+        pytest.skip("verifier absent")
+    src = verifier.read_text()
+    i = src.index("def current_objective")
+    body = src[i:i + 1200]
+    assert "objective_commit" in body, (
+        "the verifier re-derives the stamp instead of asking the runner")

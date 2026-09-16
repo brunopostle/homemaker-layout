@@ -38,6 +38,7 @@ from __future__ import annotations
 import argparse
 import csv
 import fcntl
+import os
 import subprocess
 import time
 from contextlib import contextmanager
@@ -68,10 +69,24 @@ def objective_commit() -> str:
     or a test carries the commit it was measured at" -- applied to the table
     that does the quoting.
     """
+    # BOTH files, not just fitness.py. geometry.py decides every leaf's area,
+    # aspect and width, so a change there changes what every term evaluates --
+    # it is as much "the objective" as the scorer is. Stamping only fitness.py
+    # meant an orthogonal-division sweep (homemaker-py-32t) took the SAME stamp
+    # as a non-orthogonal one and would have written over its artefacts: two
+    # objectives under one name, which is precisely what §39.32 exists to stop.
     r = subprocess.run(
-        ["git", "log", "-1", "--format=%h", "--", "src/homemaker_layout/fitness.py"],
+        ["git", "log", "-1", "--format=%h", "--",
+         "src/homemaker_layout/fitness.py", "src/homemaker_layout/geometry.py"],
         cwd=REPO, capture_output=True, text=True)
-    return r.stdout.strip() or "unknown"
+    stamp = r.stdout.strip() or "unknown"
+    # ...and the run-time switch, which no commit records. ORTHOGONAL_DIVISION
+    # is selected by the environment (so it crosses the worker fork), so the
+    # same commit can produce two different objectives; the stamp has to say
+    # which one ran.
+    if os.environ.get("HOMEMAKER_ORTHOGONAL_DIVISION", "") == "1":
+        stamp += "+orth"
+    return stamp
 
 
 def committable(candidates: "list[str]", repo: Path = REPO) -> "list[str]":
