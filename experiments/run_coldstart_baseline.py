@@ -47,6 +47,9 @@ REPO = Path(__file__).resolve().parent.parent
 PROGRAMMES = ["harbor-house", "maple-court", "health-centre", "programme-house"]
 LOCK = REPO / ".git" / "coldstart-git.lock"
 RESULTS = REPO / "experiments" / "results" / "coldstart_baseline.tsv"
+# The branch this runner publishes to. Named once: it appeared as a
+# literal in two git calls, and they must not drift apart.
+BRANCH = "claude/beads-project-intro-fjiez3"
 FIELDS = ["objective", "programme", "seed", "budget", "fails", "hard", "soft",
           "score", "elapsed_s", "dom"]
 
@@ -184,20 +187,38 @@ def record_and_push(row: dict, artefacts: "list[Path]") -> None:
         committed = c.returncode == 0
         if committed:
             for attempt in range(4):
-                _git("pull", "--rebase", "-q", "origin",
-                     "claude/beads-project-intro-fjiez3")
-                if _git("push", "-q", "origin",
-                        "claude/beads-project-intro-fjiez3").returncode == 0:
+                # Push FIRST. The previous shape pulled before every attempt,
+                # including the first, so on a development box -- where the tree
+                # is dirty as a matter of course -- `git pull --rebase` failed
+                # with "cannot pull with rebase: You have unstaged changes"
+                # even when the push needed no reconciling and would have gone
+                # straight through (homemaker-py-cna).
+                if _git("push", "-q", "origin", BRANCH).returncode == 0:
                     pushed = True
                     break
+                # Only now is there something to reconcile: the remote moved.
+                # NO autoStash. It does make the pull succeed on a dirty tree,
+                # but when the stashed edit conflicts with what was pulled it
+                # leaves the tree in a conflicted state (`UU`) with the work in
+                # a stash -- verified, not assumed. The runner does not own this
+                # tree; a loud "not pushed" is recoverable and the commit is
+                # safe locally, whereas conflicting someone's working copy
+                # mid-sweep is not the runner's call to make.
                 time.sleep(2 ** (attempt + 1))
+                _git("pull", "--rebase", "-q", "origin", BRANCH)
 
     if pushed:
         print(f"    pushed: {msg}", flush=True)
     elif committed:
+        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=REPO,
+                               capture_output=True, text=True).stdout.strip()
+        why = ("\n      -- the working tree is dirty, so `git pull --rebase`"
+               " cannot reconcile the moved remote."
+               "\n         Commit or stash your own changes, then `git push`."
+               if dirty else
+               "\n      -- `git push` when git is fixed")
         print(f"    COMMITTED BUT NOT PUSHED: {msg}"
-              f"\n      -- the run is safe in git; `git push` when git is fixed",
-              flush=True)
+              f"\n      -- the run is safe in git{why}", flush=True)
     else:
         print(f"    NOT COMMITTED: {msg}"
               f"\n      -- the .dom/.score/.fails and {RESULTS.name} are on disk"

@@ -82,3 +82,49 @@ def test_add_and_commit_only_succeed_on_the_filtered_list(repo):
     assert _git(repo, "add", "--", *kept).returncode == 0
     assert _git(repo, "commit", "-q", "--only", *kept, "-m", "x").returncode == 0
     assert "a.dom" in _git(repo, "show", "--stat", "--format=", "HEAD").stdout
+
+
+# --------------------------------------------------------------------------- #
+# Push ordering on a dirty tree (homemaker-py-cna)
+# --------------------------------------------------------------------------- #
+
+def test_push_is_attempted_before_any_pull(repo):
+    """The retry loop must push FIRST.
+
+    It used to `git pull --rebase` before every attempt, including the first, so
+    on a development box -- where the tree is dirty as a matter of course -- the
+    pull failed with "cannot pull with rebase: You have unstaged changes" even
+    when the push needed no reconciling at all. A source check, because the bug
+    is an ORDER and there is no value to assert.
+    """
+    src = RUNNER.read_text()
+    body = src[src.index("if committed:"):src.index("if pushed and not missed")
+                if "if pushed and not missed" in src else len(src)]
+    push_at = body.index('_git("push"')
+    pull_at = body.index('_git("pull"')
+    assert push_at < pull_at, (
+        "the pull is attempted before the push -- a dirty tree then blocks a "
+        "push that needed no reconciling (homemaker-py-cna)")
+
+
+def test_the_runner_does_not_autostash_the_owners_tree(repo):
+    """autoStash makes the pull succeed on a dirty tree, but when the stashed
+    edit conflicts with what was pulled it leaves the tree CONFLICTED with the
+    work in a stash. The runner does not own this tree: a loud "not pushed" is
+    recoverable, a conflicted working copy mid-sweep is not its call."""
+    src = RUNNER.read_text()
+    # the USE, not the word: the comment above the pull explains why it is
+    # avoided, and a test that cannot tell those apart is worthless.
+    assert "rebase.autoStash=true" not in src
+    assert "--autostash" not in src.lower().replace("rebase.autostash", "")
+
+
+def test_a_dirty_tree_blocks_rebase_which_is_why_order_matters(repo):
+    """The behaviour the ordering works around, asserted rather than assumed."""
+    (repo / "tracked.txt").write_text("base\n")
+    _git(repo, "add", "tracked.txt")
+    _git(repo, "commit", "-qm", "base")
+    (repo / "tracked.txt").write_text("edited, uncommitted\n")
+    r = _git(repo, "pull", "--rebase", "-q", ".", "HEAD")
+    assert r.returncode != 0
+    assert "unstaged" in (r.stderr + r.stdout).lower()
