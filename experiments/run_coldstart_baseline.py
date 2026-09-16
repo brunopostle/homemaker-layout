@@ -268,7 +268,9 @@ def main() -> None:
     queue = [(p, s) for s in range(args.seeds) for p in args.programmes]
     print(f"{len(queue)} runs, budget {args.budget}, {args.slots} slots, "
           f"checkpoint every {checkpoint_every} evals, seed-major order"
-          f"\nobjective: {objective} (last change to fitness.py)\n",
+          f"\nobjective: {objective} "
+          f"(last change to fitness.py/geometry.py, +orth if the "
+          f"orthogonal-division switch is on)\n",
           flush=True)
     if args.dry_run:
         for p, s in queue:
