@@ -477,7 +477,12 @@ def test_beam_place_rooms_is_deterministic_given_inputs():
         def __init__(self, adjacency):
             self.adjacency = adjacency
 
-    reqs = {"a": Req([("c",)]), "b": Req([("a",)]), "c": Req([])}
+    # homemaker-py-1v7: adjacency entries are CODES (SpaceReq.adjacency is
+    # list[str], and load_programme_dir produces e.g. ["c", "k1"]). This stub
+    # used 1-tuples, which the old first-character rule swallowed silently
+    # because `a[0]` on a tuple returns its first ELEMENT -- so the test never
+    # exercised the type the code actually receives.
+    reqs = {"a": Req(["c"]), "b": Req(["a"]), "c": Req([])}
     slots = [dom.Node(type=None) for _ in range(3)]
     idx = {L: i for i, L in enumerate(slots)}
     deg = {L: 1 for L in slots}
