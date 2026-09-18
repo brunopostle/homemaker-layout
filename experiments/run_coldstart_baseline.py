@@ -146,6 +146,31 @@ def score(dom_path: Path) -> tuple[int, int, int, float]:
     return len(lines), hard, len(lines) - hard, val
 
 
+def record_failure(prog: str, seed: int, log: Path, rc: int,
+                   elapsed: float) -> None:
+    """Put a crashed run's log in git, under a message that says it crashed.
+
+    A failure used to `continue` before any git call, so it left no trace at
+    all in the pushed history -- no row, no artefact, no log. From the far end
+    a programme that crashes on every seed is then indistinguishable from one
+    whose runs are merely slow, which is how an orthogonal-division sweep ran
+    for two days with harbor-house dead in the bootstrap and nothing said so
+    (DESIGN.md §39.44). This is §39.33's lesson again: the results were never
+    at risk, the reporting was.
+
+    No results-table row: a crash produced no fail count, and inventing one
+    would be worse than the silence. The log is the record.
+    """
+    if not log.exists():
+        print(f"    (no log to commit for {prog} seed {seed})", flush=True)
+        return
+    commit_and_push(
+        [str(log.relative_to(REPO))],
+        f"coldstart {prog} seed {seed}: FAILED (rc={rc}, {elapsed}s)",
+        "The run produced no .dom. Committing the log so the failure is\n"
+        "visible from outside the box it ran on.")
+
+
 def record_and_push(row: dict, artefacts: "list[Path]") -> None:
     rows = []
     if RESULTS.exists():
@@ -168,7 +193,14 @@ def record_and_push(row: dict, artefacts: "list[Path]") -> None:
     # along and in-flight runs are never committed as if they were results.
     paths = [str(a.relative_to(REPO)) for a in artefacts if a.exists()]
     paths.append(str(RESULTS.relative_to(REPO)))
+    commit_and_push(paths, msg)
 
+
+def commit_and_push(paths: "list[str]", msg: str, note: str = "") -> None:
+    """Commit exactly ``paths`` under ``msg``, then push with backoff.
+
+    Shared by the result path and the failure path so the two cannot drift.
+    """
     def _git(*argv) -> "subprocess.CompletedProcess":
         """Run one git command and SAY SO when it fails.
 
@@ -194,15 +226,20 @@ def record_and_push(row: dict, artefacts: "list[Path]") -> None:
         print(f"    (not committing {len(dropped)} gitignored path(s): "
               f"{', '.join(sorted(Path(d).name for d in dropped))})", flush=True)
     paths = committable(paths)
+    if not paths:
+        print(f"    NOTHING COMMITTABLE: {msg}", flush=True)
+        return
+
+    body = (note + "\n\n" if note else
+            "Cold-start re-baseline after the DESIGN.md 38.10/38.11 objective\n"
+            "change. Single worker (avoids homemaker-py-b8g), scored by the\n"
+            "shipped scorer from the programme directory.\n\n")
 
     committed = pushed = False
     with git_lock():
         _git("add", "--", *paths)
-        c = _git("commit", "-q", "--only", *paths, "-m", msg + "\n\n"
-                 "Cold-start re-baseline after the DESIGN.md 38.10/38.11 objective\n"
-                 "change. Single worker (avoids homemaker-py-b8g), scored by the\n"
-                 "shipped scorer from the programme directory.\n\n"
-                 "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>\n"
+        c = _git("commit", "-q", "--only", *paths, "-m", msg + "\n\n" + body
+                 + "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>\n"
                  "Claude-Session: https://claude.ai/code/session_01MJ84Feep79Hhm3E4zZJmnB")
         committed = c.returncode == 0
         if committed:
@@ -241,9 +278,8 @@ def record_and_push(row: dict, artefacts: "list[Path]") -> None:
               f"\n      -- the run is safe in git{why}", flush=True)
     else:
         print(f"    NOT COMMITTED: {msg}"
-              f"\n      -- the .dom/.score/.fails and {RESULTS.name} are on disk"
-              f" and complete;\n         nothing is lost, but nothing is in git"
-              f" either", flush=True)
+              f"\n      -- the artefacts are on disk and complete;"
+              f"\n         nothing is lost, but nothing is in git", flush=True)
 
 
 def main() -> None:
@@ -307,11 +343,21 @@ def main() -> None:
             # would report elapsed_s inflated by the suspend. CLOCK_MONOTONIC
             # stops (that is what CLOCK_BOOTTIME is for), so this measures the
             # time the run actually had a CPU.
-            running[proc.pid] = (proc, prog, seed, out, fh, time.monotonic())
+            # `log` belongs in here, not read back from the enclosing scope at
+            # reap time. Python leaks the dispatch loop's variables, so
+            # `record_and_push` was handed whichever log was opened LAST --
+            # i.e. a different, still-running run's. Verified in the two
+            # commits 0069eff and 2e399b6: the health-centre s0 result carries
+            # health-centre s1's log, and the s1 result carries maple-court
+            # s2's. Each finished run therefore lost its own log, and a partial
+            # snapshot of an in-flight job was committed under a message naming
+            # someone else -- exactly what `commit --only` was introduced to
+            # stop, arriving through the argument list instead of the index.
+            running[proc.pid] = (proc, prog, seed, out, log, fh, time.monotonic())
             print(f"  start {prog} seed {seed} -> {out.name}", flush=True)
 
         time.sleep(10)
-        for pid, (proc, prog, seed, out, fh, t0) in list(running.items()):
+        for pid, (proc, prog, seed, out, log, fh, t0) in list(running.items()):
             if proc.poll() is None:
                 continue
             fh.close()
@@ -320,6 +366,7 @@ def main() -> None:
             if not out.exists():
                 print(f"    FAILED {prog} seed {seed} (rc={proc.returncode}, "
                       f"{elapsed}s) -- see the .log", flush=True)
+                record_failure(prog, seed, log, proc.returncode, elapsed)
                 continue
             n, hard, soft, val = score(out)
             print(f"    done {prog} seed {seed}: {n} fails "

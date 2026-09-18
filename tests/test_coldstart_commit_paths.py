@@ -256,3 +256,85 @@ def test_scoring_a_row_ignores_the_ambient_switch(monkeypatch):
     monkeypatch.setenv("HOMEMAKER_ORTHOGONAL_DIVISION", "1")
     assert mod.score(row["programme"], row["dom"], orthogonal=False) == off
     assert mod.score(row["programme"], row["dom"], orthogonal=True) == on
+
+
+# --------------------------------------------------------------------------- #
+# A finished run must be committed with its OWN log, and a crash must leave a
+# trace at all (homemaker-py-32t fallout, DESIGN.md §39.44)
+# --------------------------------------------------------------------------- #
+
+def _main_fn():
+    import ast
+    tree = ast.parse(RUNNER.read_text())
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == "main":
+            return node
+    raise AssertionError("no main() in the runner")
+
+
+def test_the_reap_loop_takes_the_log_from_the_job_it_reaped():
+    """Python leaks a loop's variables, so reading `log` at reap time got
+    whichever log was opened LAST -- a different, still-running job's.
+
+    Verified in the pushed history: commit 0069eff records health-centre seed 0
+    and carries health-centre s1's log; 2e399b6 records seed 1 and carries
+    maple-court s2's. Every finished run lost its own log, and a partial
+    snapshot of an in-flight job rode in under a message naming someone else.
+    The state a reap needs belongs in `running`, not in the enclosing scope.
+    """
+    import ast
+    for node in ast.walk(_main_fn()):
+        if not (isinstance(node, ast.For) and isinstance(node.target, ast.Tuple)):
+            continue
+        names = {n.id for n in ast.walk(node.target) if isinstance(n, ast.Name)}
+        if {"proc", "prog", "seed", "out"} <= names:
+            assert "log" in names, (
+                "the reap loop reads `log` from the dispatch loop's scope, so a "
+                "result is committed with another run's log")
+            return
+    raise AssertionError("no reap loop found in main()")
+
+
+def test_a_crashed_run_is_not_silent_in_git():
+    """A failure used to `continue` before any git call: no row, no artefact,
+    no log. A programme that crashes on every seed then looks, from the far
+    end, exactly like one whose runs are slow -- which is how an orthogonal
+    sweep ran two days with harbor-house dead in the bootstrap."""
+    import ast
+    calls = [n for n in ast.walk(_main_fn())
+             if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+             and n.func.id == "record_failure"]
+    assert calls, "a crashed run records nothing"
+
+    for node in ast.walk(_main_fn()):
+        if (isinstance(node, ast.If) and isinstance(node.test, ast.UnaryOp)
+                and isinstance(node.test.op, ast.Not)):
+            src = ast.dump(node.test)
+            if "exists" in src and "out" in src:
+                assert any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+                           and n.func.id == "record_failure"
+                           for n in ast.walk(node)), (
+                    "the `no .dom` branch does not record the failure")
+                return
+    raise AssertionError("no `not out.exists()` branch found")
+
+
+def test_a_failure_commits_no_results_row():
+    """A crash produced no fail count. Inventing one would be worse than the
+    silence it replaces, so `record_failure` commits the log and nothing else."""
+    import inspect
+    mod = _runner()
+    src = inspect.getsource(mod.record_failure)
+    assert "RESULTS" not in src, "a failure writes a results-table row"
+
+
+def test_record_failure_survives_a_missing_log(capsys, monkeypatch):
+    """The log is opened at dispatch, so it normally exists -- but a failure
+    path that raises would take the whole sweep down with it."""
+    mod = _runner()
+    called = []
+    monkeypatch.setattr(mod, "commit_and_push",
+                        lambda *a, **k: called.append(a))
+    mod.record_failure("harbor-house", 0, Path("/nonexistent/x.log"), 1, 3.0)
+    assert not called
+    assert "no log to commit" in capsys.readouterr().out

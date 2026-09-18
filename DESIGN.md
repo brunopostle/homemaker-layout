@@ -9571,3 +9571,110 @@ it correctly are separate pieces of work, and getting the first right is what
 makes the second's error possible — before §39.42 there was no suffix to
 mis-read. Expect every provenance fix to have a consumer-side half, and go
 looking for it in the same sitting.
+
+### 39.44 The orthogonal sweep was dead on arrival (`homemaker-py-w49`, `homemaker-py-nq3`)
+
+Two days into the cold-start sweep with `HOMEMAKER_ORTHOGONAL_DIVISION=1`, the
+pushed history held **two rows**: health-centre seeds 0 and 1, 5 fails each.
+Nothing from harbor-house, maple-court or programme-house — though
+programme-house runs take 5–7 h, and maple-court **seed 2** was already
+running, which means at least six earlier queue entries had ended.
+
+They had ended by crashing.
+
+#### The degenerate quad
+
+`geometry._orthogonal_b` places the far end of the cut where the chosen plot
+axis meets edge(3,2), as a parameter `t`, and clamps:
+
+```python
+return _interp(c3, c2, min(1.0, max(0.0, t)))
+```
+
+At `t == 1.0` that expression **is** `c2`. The child quad's corners 2 and 3
+then coincide, edge(2) has length zero, and `geometry.angle` —
+
+```python
+return math.acos(max(-1.0, min(1.0, (a * a + b * b - c * c) / (2 * a * b))))
+```
+
+— divides by `2·a·b == 0`. It is reached from `quality_perpendicular`, so the
+factor the orthogonal division was built to make unnecessary is the one that
+detonates on it.
+
+Instrumented on `harbor-house/init.dom`, seed 0:
+
+| | |
+|---|---|
+| orthogonal cuts evaluated | 21092 |
+| clamped to `t ≥ 1` | 5 |
+| clamped to `t ≤ 0` | 0 |
+| corners 2 and 3 at the crash | both `[23.96529425405134, 13.369622852818397]` |
+
+Roughly one cut in four thousand, and one is enough: the run dies in the
+bootstrap population. Reproduced on harbor-house seeds 0 and 2; seed 1 survived
+a 2000-eval probe and programme-house survived 40000. **Every run is a lottery
+whose odds get worse the longer it runs**, which is why a 500 000-eval sweep
+lost most of its queue while short A/B probes — including the harbor 3-arm warm
+start that "settled" the perpendicular question in §39.41 — came back clean.
+
+**What the comment got wrong.** The clamp is deliberate and its note is honest
+about frequency: *"1 of 532 corpus divisions lands outside [0,1], and a clamped
+cut is merely slightly skew, whereas refusing the division would strand a
+topology the search has already committed to."* The frequency was right. The
+consequence was not. A cut clamped to the interior of the edge is slightly
+skew; a cut clamped to its **endpoint** is a collapsed cell, and the clamp
+cannot tell those apart because `min`/`max` map an entire half-line onto the
+single worst point in the range.
+
+The fix is already written two lines above it. When edge(3,2) is parallel to
+the axis, the code falls back to the stored offset — *"no intersection exists
+… keep the stored offset rather than invent."* A `t` outside `[0,1]` is the
+same statement: the axis cannot be honoured inside this quad. It should take
+the same branch. And `angle` should not raise on a degenerate quad at all; it
+is a pure-geometry primitive, and a zero-length edge has no interior angle to
+report.
+
+#### Why nobody could see it
+
+Two reporting defects in the runner, both of the family §39.33 named — *the
+results were never at risk, the reporting was*:
+
+* **A crash left no trace in git.** A run with no `.dom` printed `FAILED` to
+  the runner's stdout and `continue`d before any git call. From any box other
+  than the one it ran on, a programme crashing on every seed looks exactly like
+  a programme whose runs are slow. Two days of it looked like patience.
+* **Each result was committed with someone else's log.** `log` was assigned in
+  the dispatch loop and read in the reap loop, where Python's leaked loop scope
+  hands back whichever log was opened *last* — a different, still-running job's.
+  It is visible in the history: `0069eff` records health-centre s0 and carries
+  health-centre **s1**'s log; `2e399b6` records s1 and carries **maple-court
+  s2**'s. So every finished run lost its own log, and a partial snapshot of an
+  in-flight job rode in under a message naming another programme — precisely
+  what `git commit --only` was introduced to prevent, arriving through the
+  argument list instead of through the index.
+
+Both are fixed: `log` lives in the `running` dict, and `record_failure` commits
+a crashed run's log under a `FAILED` message — with no results-table row, since
+a crash produced no fail count and inventing one would be worse than the
+silence it replaces.
+
+#### What the two surviving rows are worth
+
+| health-centre | fails | hard | soft |
+|---|---|---|---|
+| `99c85ec` (bk9) s0/s1/s2 | 5 / 4 / 6 | 2 / 2 / 2 | 3 / 2 / 4 |
+| `47c604f+orth` s0/s1 | 5 / 5 | 3 / 4 | 2 / 1 |
+
+Total fails are indistinguishable at n=2; hard fails moved 2,2,2 → 3,4. Read
+nothing into it. Note also what this sweep's arm actually was: orthogonal
+division **on** with `quality_perpendicular` still scored — arm C of §39.41,
+not the arm B the `32t` plan is aiming at.
+
+**The general form.** §39.42 and §39.43 were about a stamp and its reader. This
+one is about the same gap one level out: a long-running job reported its
+failures to a terminal and its successes to git, so the record everyone else
+reads could only show good news. Anything that runs for days must write its bad
+outcomes to the same place it writes its good ones — and a guard that maps an
+out-of-range value onto the boundary must be checked at the boundary, because
+that is where it sends everything it rejects.
