@@ -209,3 +209,102 @@ def test_the_exemption_is_read_with_a_null_aware_lookup():
     room = _a_room()
     assert absent.factor_is_asked("perpendicular", room)
     assert not nulled.factor_is_asked("perpendicular", room)
+
+
+# --------------------------------------------------------------------------- #
+# The cut must land INSIDE edge(3,2) (homemaker-py-w49, DESIGN.md §39.44)
+# --------------------------------------------------------------------------- #
+
+# A quad whose orthogonal cut leaves it. At a division of exactly 0.5 the
+# intersection parameter is 1.0 -- the cut lands ON corner 2 -- and at 0.8 it is
+# 1.6, well past it. Found by search, then pinned: the old code clamped both to
+# 1.0 and returned c2 exactly, collapsing the child cell.
+ESCAPING_QUAD = [[0.0, 0.0], [10.0, 0.0], [40.0, 4.0], [35.0, 4.0]]
+
+
+def _level_root(corners, ratio):
+    root = dom_mod.Node(rotation=0, division=[ratio, ratio],
+                        node=[list(c) for c in corners], height=3.0,
+                        elevation=0.0, wall_inner=0.0, wall_outer=0.0)
+    root.left = dom_mod.Node(type="a", parent=root, position="l")
+    root.right = dom_mod.Node(type="a", parent=root, position="r")
+    return root
+
+
+@pytest.mark.parametrize("ratio", [0.5, 0.8, 0.95])
+def test_the_cut_never_lands_on_a_corner(orthogonal, ratio):
+    """`_interp(c3, c2, 1.0)` IS c2. A cut placed there gives the child quad two
+    coincident corners and a zero-length edge, which is what killed harbor-house
+    seed 0 in the bootstrap (5 of 21092 cuts, §39.44)."""
+    root = _level_root(ESCAPING_QUAD, ratio)
+    geometry.clear_cache()
+    b = geometry.coord_b(root)
+    c2, c3 = geometry.coordinate(root, 2), geometry.coordinate(root, 3)
+    assert b != c2 and b != c3, (
+        f"the cut landed on a corner at division {ratio}: {b}")
+
+
+def test_an_escaping_cut_falls_back_to_the_stored_ratio(orthogonal):
+    """When the axis cannot be honoured inside the quad the answer is the one
+    the parallel-edge branch above already gives -- keep the stored offset
+    rather than invent one. Clamping instead mapped the whole half-line onto
+    the single worst point in the range."""
+    ratio = 0.8
+    root = _level_root(ESCAPING_QUAD, ratio)
+    geometry.clear_cache()
+    b = geometry.coord_b(root)
+    c2, c3 = geometry.coordinate(root, 2), geometry.coordinate(root, 3)
+    want = [c3[0] * (1 - ratio) + c2[0] * ratio, c3[1] * (1 - ratio) + c2[1] * ratio]
+    assert b == pytest.approx(want)
+
+
+def test_the_escaping_quad_is_scorable_at_all(orthogonal):
+    """The regression in one line: this used to raise ZeroDivisionError out of
+    `quality_perpendicular` -> `geometry.angle`, and took the whole run down."""
+    root = _level_root(ESCAPING_QUAD, 0.5)
+    geometry.clear_cache()
+    for leaf in root.leaves():
+        for i in range(4):
+            geometry.angle(leaf, i)  # must not raise
+
+
+def test_angle_reports_no_angle_rather_than_raising():
+    """Defence in depth: `_orthogonal_b` no longer manufactures a degenerate
+    quad, but a pure-geometry primitive should not raise on a valid Node.
+
+    0.0 and not pi/2: every caller is scoring closeness to a right angle, so
+    pi/2 would give a collapsed cell a PERFECT score and invite the search to
+    make more of them."""
+    flat = dom_mod.Node(rotation=0, type="a",
+                        node=[[0.0, 0.0], [10.0, 0.0], [10.0, 5.0], [10.0, 5.0]],
+                        height=3.0, elevation=0.0, wall_inner=0.0, wall_outer=0.0)
+    geometry.clear_cache()
+    assert geometry.edge_length(flat, 2) == 0.0, "the fixture is not degenerate"
+    assert geometry.angle(flat, 2) == 0.0
+    assert geometry.angle(flat, 3) == 0.0
+
+
+def test_a_healthy_quad_is_untouched_by_the_guard(orthogonal):
+    """The fallback must be rare and the normal path unchanged: on the whole
+    committed corpus not one cut leaves its quad."""
+    escaped = 0
+    for p in _artefacts():
+        root = dom_mod.load(str(p))
+        geometry.clear_cache()
+        for n in [root] + [d for d in _divided(root)]:
+            if n.divided:
+                b = geometry.coord_b(n)
+                c2, c3 = geometry.coordinate(n, 2), geometry.coordinate(n, 3)
+                if b == c2 or b == c3:
+                    escaped += 1
+    assert escaped == 0, f"{escaped} corpus cuts land on a corner"
+
+
+def _divided(node):
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        yield n
+        for child in (n.left, n.right, n.above):
+            if child is not None:
+                stack.append(child)

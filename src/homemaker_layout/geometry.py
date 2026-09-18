@@ -122,10 +122,32 @@ def _orthogonal_b(n: Node) -> Point:
         # corpus divisions hit this; keep the stored offset rather than invent.
         return _interp(c3, c2, n.division[1])
     t = ((a[0] - c3[0]) * axis[1] - (a[1] - c3[1]) * axis[0]) / den
-    # Clamp rather than refuse: 1 of 532 corpus divisions lands outside [0,1],
-    # and a clamped cut is merely slightly skew, whereas refusing the division
-    # would strand a topology the search has already committed to (§39.38).
-    return _interp(c3, c2, min(1.0, max(0.0, t)))
+    if not 0.0 < t < 1.0:
+        # The orthogonal cut from 'a' does not reach the INTERIOR of edge(3,2):
+        # it crosses the line through that edge beyond corner 2 (t > 1), before
+        # corner 3 (t < 0), or exactly ON a corner (t == 0 or 1). The same
+        # statement as the parallel case above -- the axis cannot be honoured
+        # inside this quad -- so it takes the same answer: keep the stored
+        # offset rather than invent one.
+        #
+        # The interval is OPEN on purpose. t == 1.0 is not a near miss to be
+        # tolerated, it is the degenerate case itself: `_interp(c3, c2, 1.0)`
+        # returns c2 exactly, corners 2 and 3 of the child coincide, and the
+        # cell has zero width. It is reachable from ordinary geometry, not just
+        # from a clamp -- the quad [(0,0),(10,0),(40,4),(35,4)] hits t == 1.0
+        # at a division of exactly 0.5.
+        #
+        # This used to clamp into [0,1], which looked conservative and was the
+        # opposite. `min`/`max` map the whole half-line onto the single worst
+        # point in the range: t == 1.0 makes `_interp(c3, c2, t)` return c2
+        # EXACTLY, so the child quad's corners 2 and 3 coincide, edge(2) has
+        # length zero, and `angle()` divides by `2*a*b == 0`. Measured on
+        # harbor-house seed 0: 5 of 21092 orthogonal cuts clamped to t >= 1,
+        # and one is enough to kill a run in the bootstrap population. The
+        # clamp's note said "merely slightly skew" -- true of the interior of
+        # the edge, false at its endpoints (DESIGN.md §39.44).
+        return _interp(c3, c2, n.division[1])
+    return _interp(c3, c2, t)
 
 
 def _interp(a: Point, b: Point, t: float) -> Point:
@@ -218,6 +240,20 @@ def angle(n: Node, idx: int) -> float:
     degenerate quad would push it out of [-1, 1]."""
     a = edge_length(n, idx)
     b = edge_length(n, (idx + 3) % 4)
+    if a * b == 0.0:
+        # A corner with a zero-length adjacent edge has no interior angle: the
+        # two rays that would define it are the same ray. The cosine rule
+        # divides by `2*a*b` and raised ZeroDivisionError here, taking the
+        # whole run with it (DESIGN.md §39.44).
+        #
+        # 0.0 rather than pi/2, deliberately. Every caller is scoring how close
+        # this corner is to a right angle, so pi/2 would hand a collapsed cell
+        # a PERFECT score and invite the search to make more of them. 0.0 is
+        # the far end of the same scale: the degenerate cell is scored as
+        # maximally non-perpendicular and the search moves away from it.
+        # Defence in depth -- `_orthogonal_b` no longer manufactures these --
+        # but a pure-geometry primitive should not raise on a valid Node.
+        return 0.0
     c = _dist(coordinate(n, (idx + 1) % 4), coordinate(n, (idx + 3) % 4))
     return math.acos(max(-1.0, min(1.0, (a * a + b * b - c * c) / (2 * a * b))))
 

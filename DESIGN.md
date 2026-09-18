@@ -9671,6 +9671,41 @@ nothing into it. Note also what this sweep's arm actually was: orthogonal
 division **on** with `quality_perpendicular` still scored — arm C of §39.41,
 not the arm B the `32t` plan is aiming at.
 
+#### The fix, and the boundary it turns on
+
+The owner's reading was the right one: *the orthogonal division is placing the
+second point of the cut outside the quad.* That is exactly what `t ∉ [0, 1]`
+says — the cut meets the **line** through edge(3,2) beyond corner 2 or before
+corner 3, not the edge itself. `_orthogonal_b` now takes the branch the
+parallel-edge case above it already had, keeping the stored offset, and `angle`
+returns 0.0 rather than raising on a degenerate quad.
+
+`0.0` and not `π/2`, deliberately: every caller is scoring closeness to a right
+angle, so `π/2` would hand a collapsed cell a **perfect** score and invite the
+search to make more of them.
+
+The interval is **open**, and that is not fussiness. `t == 1.0` is not a near
+miss to be tolerated — it *is* the degenerate case, since `_interp(c3, c2, 1.0)`
+returns `c2` exactly. It is reachable from ordinary geometry and not only from
+the old clamp: the quad `[(0,0), (10,0), (40,4), (35,4)]` hits `t == 1.0` at a
+division of exactly **0.5**. A first version of this fix tested `0.0 <= t <= 1.0`
+and would have left that case live; the test written from the reproducer is what
+caught it, before it was pushed rather than after a sweep.
+
+After the fix, on harbor-house seed 0 at 6000 evals:
+
+| | |
+|---|---|
+| orthogonal cuts evaluated | 478358 |
+| cut leaves the quad (fallback taken) | 7 |
+| degenerate quads reaching `angle()` | 0 |
+
+About one cut in 68 000 takes the fallback, so the discontinuity it introduces
+as `t` crosses the boundary is not worth trading a crash for — and `angle`'s
+guard never fires, which says `_orthogonal_b` was the only source. Seeds 0 and 2
+of harbor-house, both of which died in the bootstrap before, now run to
+completion.
+
 **The general form.** §39.42 and §39.43 were about a stamp and its reader. This
 one is about the same gap one level out: a long-running job reported its
 failures to a terminal and its successes to git, so the record everyone else
