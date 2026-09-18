@@ -9745,6 +9745,27 @@ It now checks, before the objective filter, that every row at every objective
 names a file that is still in the tree. A row that cannot be reproduced is not
 a result.
 
+#### Restart is the normal case, so the runner now asks
+
+A sweep at this budget runs for days and gets stopped — three times over §39.44
+alone. There is no resume, so a restart re-runs the whole queue, and because
+artefact names are built from the objective, it overwrites the previous
+attempt's `.dom` files in place while their rows stay in the table. The stamp
+cannot prevent that and was never meant to: two runs of *one* objective
+legitimately share a filename. §39.32's rule separates objectives, not attempts.
+
+So the runner asks, before it starts, instead of finding out afterwards. If the
+table already holds rows at this objective and budget it stops and names them:
+
+* `--resume` keeps those rows and runs only the pairs that are missing — which
+  also makes an interrupted five-day sweep cost only what it has left, rather
+  than starting over;
+* `--restart` drops those rows first, then re-runs everything.
+
+A dry run never edits the table, including under `--restart`: the operator is
+checking what would happen, and destroying the thing they are checking on is
+not an answer.
+
 **The general form.** §39.42 and §39.43 were about a stamp and its reader. This
 one is about the same gap one level out: a long-running job reported its
 failures to a terminal and its successes to git, so the record everyone else

@@ -146,6 +146,34 @@ def score(dom_path: Path) -> tuple[int, int, int, float]:
     return len(lines), hard, len(lines) - hard, val
 
 
+def recorded_pairs(objective: str, budget: int) -> "set[tuple[str, int]]":
+    """(programme, seed) already in the table for this objective and budget."""
+    if not RESULTS.exists():
+        return set()
+    return {(r["programme"], int(r["seed"]))
+            for r in csv.DictReader(RESULTS.open(), delimiter="\t")
+            if r["objective"] == objective and int(r["budget"]) == budget}
+
+
+def drop_rows(objective: str, budget: int) -> int:
+    """Remove this objective+budget's rows from the table; return how many.
+
+    For `--restart`, which is about to re-run those pairs and overwrite the
+    artefacts they name. Dropping the rows first is what keeps the table from
+    describing files that no longer exist: artefact names are built from the
+    objective, so a re-run of the same objective REPLACES them in place, and a
+    row left behind then points at someone else's layout (DESIGN.md §39.44).
+    """
+    rows = list(csv.DictReader(RESULTS.open(), delimiter="\t"))
+    keep = [r for r in rows
+            if not (r["objective"] == objective and int(r["budget"]) == budget)]
+    with RESULTS.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=FIELDS, delimiter="\t")
+        w.writeheader()
+        w.writerows(keep)
+    return len(rows) - len(keep)
+
+
 def record_failure(prog: str, seed: int, log: Path, rc: int,
                    elapsed: float) -> None:
     """Put a crashed run's log in git, under a message that says it crashed.
@@ -297,7 +325,22 @@ def main() -> None:
                          "box at hour 61 loses all of it.")
     ap.add_argument("--programmes", nargs="+", default=PROGRAMMES)
     ap.add_argument("--dry-run", action="store_true")
+    # A restart is the normal case here, not an edge case: these sweeps run for
+    # days and get stopped. There is no resume, so a restart re-runs the whole
+    # queue -- and because artefact names are built from the objective, it
+    # OVERWRITES the earlier attempt's .dom files while their rows stay in the
+    # table describing layouts that no longer exist. That happened on the 32t
+    # sweep (DESIGN.md §39.44). The stamp cannot catch it: two runs of one
+    # objective legitimately share a name. So the runner asks.
+    ap.add_argument("--resume", action="store_true",
+                    help="skip (programme, seed) pairs already recorded at this "
+                         "objective and budget, and keep their rows")
+    ap.add_argument("--restart", action="store_true",
+                    help="re-run those pairs, dropping their now-superseded "
+                         "rows first (their .dom files are overwritten)")
     args = ap.parse_args()
+    if args.resume and args.restart:
+        ap.error("--resume and --restart are opposites; pick one")
     checkpoint_every = (args.checkpoint_every if args.checkpoint_every is not None
                         else max(1, args.budget // 20))
     # Read once, at the start: every row of this sweep is stamped with the same
@@ -307,6 +350,33 @@ def main() -> None:
 
     # seed-major: all programmes at seed 0, then seed 1, ...
     queue = [(p, s) for s in range(args.seeds) for p in args.programmes]
+
+    done = recorded_pairs(objective, args.budget) & set(queue)
+    if done and not (args.resume or args.restart):
+        listing = ", ".join(f"{p} s{s}" for p, s in sorted(done))
+        print(f"objective {objective} already has {len(done)} row(s) in "
+              f"{RESULTS.name} at budget {args.budget}:\n  {listing}\n\n"
+              f"Running the queue again would overwrite the .dom files those "
+              f"rows name,\nleaving the table describing layouts that no longer "
+              f"exist (DESIGN.md §39.44).\nSay which you meant:\n"
+              f"  --resume   keep those rows and run only the {len(queue) - len(done)} "
+              f"remaining pair(s)\n"
+              f"  --restart  drop those rows and re-run everything",
+              flush=True)
+        raise SystemExit(2)
+    if args.resume and done:
+        queue = [(p, s) for p, s in queue if (p, s) not in done]
+        print(f"resuming: {len(done)} pair(s) already recorded at {objective}, "
+              f"{len(queue)} to run", flush=True)
+    elif args.restart and done and not args.dry_run:
+        print(f"restarting: dropped {drop_rows(objective, args.budget)} "
+              f"superseded row(s) at {objective}", flush=True)
+
+    if not queue:
+        print(f"nothing to do: every pair is already recorded at {objective}.",
+              flush=True)
+        return
+
     print(f"{len(queue)} runs, budget {args.budget}, {args.slots} slots, "
           f"checkpoint every {checkpoint_every} evals, seed-major order"
           f"\nobjective: {objective} "

@@ -373,3 +373,118 @@ def test_the_verifier_checks_orphans_before_it_skips():
     assert body.index("orphans") < body.index('if commit != want'), (
         "the orphan check runs after the objective filter, so rows at other "
         "objectives are skipped before they are checked")
+
+
+# --------------------------------------------------------------------------- #
+# A restart must not overwrite the previous attempt's artefacts silently
+# (homemaker-py-9cu, DESIGN.md §39.44)
+# --------------------------------------------------------------------------- #
+
+def _table(tmp_path, rows):
+    import csv as _csv
+    mod = _runner()
+    p = tmp_path / "coldstart_baseline.tsv"
+    with p.open("w", newline="") as fh:
+        w = _csv.DictWriter(fh, fieldnames=mod.FIELDS, delimiter="\t")
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k, "") for k in mod.FIELDS})
+    return p
+
+
+def _row(objective, programme, seed, budget=500000):
+    return dict(objective=objective, programme=programme, seed=seed,
+                budget=budget, fails=1, hard=0, soft=1, score="0.1",
+                elapsed_s=1.0, dom=f"coldstart-{objective}-{budget}-s{seed}.dom")
+
+
+def test_recorded_pairs_is_scoped_to_objective_and_budget(tmp_path, monkeypatch):
+    mod = _runner()
+    monkeypatch.setattr(mod, "RESULTS", _table(tmp_path, [
+        _row("aaa1111", "harbor-house", 0),
+        _row("aaa1111", "maple-court", 1),
+        _row("bbb2222", "harbor-house", 2),          # another objective
+        _row("aaa1111", "health-centre", 0, 2000),   # another budget
+    ]))
+    assert mod.recorded_pairs("aaa1111", 500000) == {
+        ("harbor-house", 0), ("maple-court", 1)}
+
+
+def test_drop_rows_leaves_every_other_objective_alone(tmp_path, monkeypatch):
+    mod = _runner()
+    monkeypatch.setattr(mod, "RESULTS", _table(tmp_path, [
+        _row("aaa1111", "harbor-house", 0),
+        _row("bbb2222", "harbor-house", 0),
+        _row("aaa1111", "maple-court", 0, 2000),
+    ]))
+    assert mod.drop_rows("aaa1111", 500000) == 1
+    left = mod.recorded_pairs("bbb2222", 500000) | mod.recorded_pairs("aaa1111", 2000)
+    assert left == {("harbor-house", 0), ("maple-court", 0)}
+
+
+def _run_main(mod, monkeypatch, argv):
+    import sys as _sys
+    monkeypatch.setattr(_sys, "argv", ["run_coldstart_baseline.py", *argv])
+    return mod.main()
+
+
+def test_a_colliding_sweep_refuses_rather_than_overwriting(tmp_path, monkeypatch,
+                                                           capsys):
+    """This is the failure it exists for: artefact names are built from the
+    objective, so re-running a queue REPLACES the earlier attempt's .dom files
+    while their rows stay behind describing layouts that are gone. The stamp
+    cannot catch it -- two runs of one objective legitimately share a name."""
+    mod = _runner()
+    monkeypatch.setattr(mod, "objective_commit", lambda: "aaa1111")
+    monkeypatch.setattr(mod, "RESULTS", _table(tmp_path, [
+        _row("aaa1111", "harbor-house", 0)]))
+    with pytest.raises(SystemExit) as e:
+        _run_main(mod, monkeypatch,
+                  ["--budget", "500000", "--seeds", "1", "--dry-run"])
+    assert e.value.code == 2
+    out = capsys.readouterr().out
+    assert "--resume" in out and "--restart" in out
+    assert "harbor-house s0" in out
+
+
+def test_resume_runs_only_what_is_missing(tmp_path, monkeypatch, capsys):
+    mod = _runner()
+    monkeypatch.setattr(mod, "objective_commit", lambda: "aaa1111")
+    monkeypatch.setattr(mod, "RESULTS", _table(tmp_path, [
+        _row("aaa1111", "harbor-house", 0)]))
+    _run_main(mod, monkeypatch,
+              ["--budget", "500000", "--seeds", "1", "--resume", "--dry-run"])
+    out = capsys.readouterr().out
+    assert "would run harbor-house seed 0" not in out
+    assert "would run maple-court seed 0" in out
+    # the row it skipped is still there
+    assert mod.recorded_pairs("aaa1111", 500000) == {("harbor-house", 0)}
+
+
+def test_a_dry_run_never_edits_the_table(tmp_path, monkeypatch):
+    """--restart drops rows. A dry run that did it anyway would destroy the
+    thing the operator was checking on."""
+    mod = _runner()
+    monkeypatch.setattr(mod, "objective_commit", lambda: "aaa1111")
+    monkeypatch.setattr(mod, "RESULTS", _table(tmp_path, [
+        _row("aaa1111", "harbor-house", 0)]))
+    _run_main(mod, monkeypatch,
+              ["--budget", "500000", "--seeds", "1", "--restart", "--dry-run"])
+    assert mod.recorded_pairs("aaa1111", 500000) == {("harbor-house", 0)}
+
+
+def test_resume_and_restart_are_mutually_exclusive(tmp_path, monkeypatch):
+    mod = _runner()
+    monkeypatch.setattr(mod, "objective_commit", lambda: "aaa1111")
+    with pytest.raises(SystemExit):
+        _run_main(mod, monkeypatch, ["--resume", "--restart", "--dry-run"])
+
+
+def test_a_fully_recorded_objective_does_nothing(tmp_path, monkeypatch, capsys):
+    mod = _runner()
+    monkeypatch.setattr(mod, "objective_commit", lambda: "aaa1111")
+    monkeypatch.setattr(mod, "RESULTS", _table(tmp_path, [
+        _row("aaa1111", p, 0) for p in mod.PROGRAMMES]))
+    _run_main(mod, monkeypatch,
+              ["--budget", "500000", "--seeds", "1", "--resume", "--dry-run"])
+    assert "nothing to do" in capsys.readouterr().out
