@@ -9671,6 +9671,20 @@ nothing into it. Note also what this sweep's arm actually was: orthogonal
 division **on** with `quality_perpendicular` still scored — arm C of §39.41,
 not the arm B the `32t` plan is aiming at.
 
+The crash as the runner filed it — `coldstart harbor-house seed 0: FAILED
+(rc=1, 100.0s)`, the first artefact of the new failure path, 400 evals into the
+bootstrap:
+
+```
+  File ".../fitness.py", line 1609, in evaluate_leaf
+    f = self.quality_perpendicular(leaf)
+  File ".../fitness.py", line 1341, in quality_perpendicular
+    score *= gaussian(geometry.angle(leaf, i), 1.0, 1.570796, sigma)
+  File ".../geometry.py", line 222, in angle
+    return math.acos(max(-1.0, min(1.0, (a * a + b * b - c * c) / (2 * a * b))))
+ZeroDivisionError: division by zero
+```
+
 #### The fix, and the boundary it turns on
 
 The owner's reading was the right one: *the orthogonal division is placing the
@@ -9705,6 +9719,31 @@ as `t` crosses the boundary is not worth trading a crash for — and `angle`'s
 guard never fires, which says `_orthogonal_b` was the only source. Seeds 0 and 2
 of harbor-house, both of which died in the bootstrap before, now run to
 completion.
+
+#### What the dead sweep left behind
+
+Removed with the fix, because none of it describes a result:
+
+* the two `47c604f+orth` health-centre rows and their `.dom` files. The restart
+  reused the same objective stamp — correctly, the source had not changed yet —
+  so it **overwrote** `coldstart-47c604f+orth-500000-s0.dom` while its row still
+  sat in the table describing the old one;
+* the two in-flight logs the leaked-`log` bug mis-filed, and the harbor-house
+  `FAILED` log, whose stack is quoted above;
+* twelve `*.dom.checkpoint` files the `bk9` sweep committed. They are mid-run
+  scratch that the finished `.dom` supersedes, and they are now gitignored —
+  `committable()` asks git, so that is also what stops the next sweep filing
+  them.
+
+The overwrite is worth naming, because §39.32's stamp does not prevent it and
+was never meant to: two runs of the *same* objective legitimately share a
+filename, so a **restart** silently replaces the previous attempt's artefacts
+while its rows survive. `verify_results_table.py` could not see it either —
+re-scoring only speaks for rows at the current commit, so a row orphaned under
+an older objective was skipped as "another objective" rather than challenged.
+It now checks, before the objective filter, that every row at every objective
+names a file that is still in the tree. A row that cannot be reproduced is not
+a result.
 
 **The general form.** §39.42 and §39.43 were about a stamp and its reader. This
 one is about the same gap one level out: a long-running job reported its

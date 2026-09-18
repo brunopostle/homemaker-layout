@@ -154,6 +154,18 @@ def main() -> int:
     checked = skipped = bad = missing = 0
     live = set()
 
+    # Every row, at EVERY objective, must name an artefact that is still there.
+    # The re-scoring below can only speak for rows at the current commit, so a
+    # row whose .dom was deleted or overwritten under an older objective sat
+    # unchallenged -- which is how two rows describing a crashed sweep outlived
+    # the files they described (DESIGN.md §39.44). A row with no artefact is
+    # not skippable: nothing can ever reproduce it again.
+    orphans = [r for r in rows
+               if not (REPO / "examples" / r["programme"] / r["dom"]).is_file()]
+    for r in orphans:
+        print(f"  ORPHAN ROW  {r['objective']} {r['programme']} s{r['seed']}: "
+              f"{r['dom']} is not in the tree")
+
     for row in rows:
         commit, orthogonal = split_objective(row["objective"])
         # Match on the COMMIT only. Both orthogonal and non-orthogonal rows at
@@ -187,6 +199,11 @@ def main() -> int:
           f"{checked} row(s) verified exactly, "
           f"{bad} mismatched, {missing} artefact(s) missing, "
           f"{skipped} row(s) skipped (other objectives)")
+    if orphans:
+        print(f"{len(orphans)} row(s) name an artefact that no longer exists. "
+              f"A row that cannot be\nreproduced is not a result -- drop it, or "
+              f"restore the file it names.")
+        return 1
     if not checked and not bad and not missing:
         print(f"no rows were measured at the current objective commit ({want}),"
               f"\nwith or without the orthogonal-division switch.\n"

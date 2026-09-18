@@ -338,3 +338,38 @@ def test_record_failure_survives_a_missing_log(capsys, monkeypatch):
     mod.record_failure("harbor-house", 0, Path("/nonexistent/x.log"), 1, 3.0)
     assert not called
     assert "no log to commit" in capsys.readouterr().out
+
+
+def test_every_row_names_an_artefact_that_exists():
+    """At EVERY objective, not just the current one.
+
+    Re-scoring can only speak for rows at the current commit, so a row whose
+    .dom was deleted or overwritten under an older objective went unchallenged.
+    That is how two rows describing a crashed orthogonal sweep outlived the
+    files they described: the artefact was overwritten by a restart, the row
+    stayed, and the verifier skipped it as "another objective" (§39.44).
+    """
+    import csv as _csv
+    repo = RUNNER.parent.parent
+    table = repo / "experiments" / "results" / "coldstart_baseline.tsv"
+    if not table.is_file():
+        pytest.skip("results table absent")
+    orphans = [f"{r['objective']} {r['programme']} s{r['seed']} -> {r['dom']}"
+               for r in _csv.DictReader(table.open(), delimiter="\t")
+               if not (repo / "examples" / r["programme"] / r["dom"]).is_file()]
+    assert not orphans, (
+        "rows naming artefacts that are not in the tree:\n  "
+        + "\n  ".join(orphans))
+
+
+def test_the_verifier_checks_orphans_before_it_skips():
+    """The check must not sit behind the objective filter -- that is the filter
+    that hid the problem."""
+    if not VERIFIER.is_file():
+        pytest.skip("verifier absent")
+    src = VERIFIER.read_text()
+    body = src[src.index("def main("):]
+    assert "orphans" in body, "the verifier does not look for orphaned rows"
+    assert body.index("orphans") < body.index('if commit != want'), (
+        "the orphan check runs after the objective filter, so rows at other "
+        "objectives are skipped before they are checked")

@@ -18,3 +18,10 @@ scratch/
 # per-process shards written by the sharded A/B harnesses; the merged
 # <out>.csv is the artefact worth keeping (experiments/ab_9gj_ramp.py --report)
 experiments/results/*.csv.shard*
+
+# Mid-run scratch from `homemaker-evolve --checkpoint-every`: the search
+# rewrites these every few thousand evals and the finished .dom supersedes
+# them. 12 of them were committed by the bk9 sweep, which is 12 more than any
+# result needs -- `committable()` asks git, so this is also what stops the
+# next sweep from doing it again.
+*.dom.checkpoint
