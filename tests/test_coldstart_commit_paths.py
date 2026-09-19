@@ -488,3 +488,104 @@ def test_a_fully_recorded_objective_does_nothing(tmp_path, monkeypatch, capsys):
     _run_main(mod, monkeypatch,
               ["--budget", "500000", "--seeds", "1", "--resume", "--dry-run"])
     assert "nothing to do" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------- #
+# A failure report must name the failure (DESIGN.md §39.45)
+# --------------------------------------------------------------------------- #
+
+def _diverged(tmp_path):
+    """Two clones that have both moved on: pushing from `a` is rejected."""
+    bare = tmp_path / "remote.git"
+    _git(tmp_path, "init", "-q", "--bare", str(bare))
+    a = tmp_path / "a"
+    a.mkdir()
+    _git(a, "init", "-q", "-b", "main", ".")
+    _git(a, "config", "user.email", "t@t")
+    _git(a, "config", "user.name", "t")
+    (a / "f").write_text("one\n")
+    _git(a, "add", "f")
+    _git(a, "commit", "-qm", "one")
+    _git(a, "remote", "add", "origin", str(bare))
+    _git(a, "push", "-q", "origin", "main")
+
+    b = tmp_path / "b"
+    _git(tmp_path, "clone", "-q", str(bare), str(b))
+    _git(b, "config", "user.email", "t@t")
+    _git(b, "config", "user.name", "t")
+    _git(b, "checkout", "-q", "-B", "main", "origin/main")
+    (b / "g").write_text("two\n")
+    _git(b, "add", "g")
+    _git(b, "commit", "-qm", "two")
+    assert _git(b, "push", "-q", "origin", "main").returncode == 0
+
+    (a / "h").write_text("three\n")
+    _git(a, "add", "h")
+    _git(a, "commit", "-qm", "three")
+    return a
+
+
+def test_a_rejected_push_is_reported_as_a_rejection(tmp_path):
+    """`git push` opens its stderr with the remote URL, so the first line of a
+    rejected push is "To github.com:owner/repo.git" -- the remote it was
+    talking to, not what went wrong. That is what the runner printed for a
+    whole class of failures, under a banner reading GIT FAILED.
+
+    Not hypothetical: it is what the owner saw when a push of mine landed
+    first and the runner's push was rejected. The retry loop recovered, so the
+    only casualty was the diagnosis -- which is the entire job of this line.
+    """
+    mod = _runner()
+    a = _diverged(tmp_path)
+    r = _git(a, "push", "origin", "main")
+    assert r.returncode != 0, "the fixture did not produce a rejection"
+
+    first = (r.stderr or r.stdout or "").strip().splitlines()[0]
+    assert first.startswith("To "), "git changed its output shape"
+
+    line = mod.git_error_line(r)
+    assert "rejected" in line, f"reported {line!r} instead of the rejection"
+    assert not line.startswith("To ")
+
+
+def test_a_real_dirty_tree_rebase_is_reported_by_its_reason(tmp_path):
+    """The other failure the runner actually hits (homemaker-py-cna)."""
+    mod = _runner()
+    _git(tmp_path, "init", "-q", ".")
+    _git(tmp_path, "config", "user.email", "t@t")
+    _git(tmp_path, "config", "user.name", "t")
+    (tmp_path / "tracked.txt").write_text("base\n")
+    _git(tmp_path, "add", "tracked.txt")
+    _git(tmp_path, "commit", "-qm", "base")
+    (tmp_path / "tracked.txt").write_text("edited, uncommitted\n")
+    r = _git(tmp_path, "pull", "--rebase", "-q", ".", "HEAD")
+    assert r.returncode != 0
+    assert "unstaged" in mod.git_error_line(r).lower()
+
+
+def test_the_banner_is_only_skipped_when_something_else_is_there():
+    """Skipping git's chatter must never turn a failure into silence."""
+    mod = _runner()
+
+    class R:
+        returncode = 128
+        stdout = ""
+        stderr = "To github.com:owner/repo.git\nremote: some server noise\n"
+    assert mod.git_error_line(R()).startswith("To github.com")
+
+    class Empty:
+        returncode = 128
+        stdout = stderr = ""
+    assert mod.git_error_line(Empty()) == "exit 128"
+
+
+def test_fatal_outranks_everything():
+    mod = _runner()
+
+    class R:
+        returncode = 128
+        stdout = ""
+        stderr = ("To github.com:owner/repo.git\n"
+                  " ! [rejected]  main -> main (fetch first)\n"
+                  "fatal: could not read Username for 'https://github.com'\n")
+    assert mod.git_error_line(R()).startswith("fatal:")

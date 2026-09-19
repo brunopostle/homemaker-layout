@@ -146,6 +146,42 @@ def score(dom_path: Path) -> tuple[int, int, int, float]:
     return len(lines), hard, len(lines) - hard, val
 
 
+# Lines git prints on the way to an error that do not say what the error was.
+# `git push` opens with the remote URL, so the FIRST stderr line of a rejected
+# push is "To github.com:owner/repo.git" -- which is what the runner reported
+# for a whole class of failures, naming the remote it was talking to instead of
+# what went wrong (DESIGN.md §39.45).
+_GIT_BANNER = ("To ", "remote:", "hint:", "Everything up-to-date", "Enumerating",
+               "Counting", "Compressing", "Writing", "Total ", "Resolving",
+               "Delta compression")
+
+
+def git_error_line(r: "subprocess.CompletedProcess") -> str:
+    """The one line of a failed git command that says what actually went wrong.
+
+    Ordered by how specific the line is, not by where it appears: `fatal:`
+    first, then the `! [rejected] ...` line -- which names the branch AND the
+    reason, and is more use than the `error: failed to push some refs` that
+    follows it -- then `error:`, then the first line that is not git's own
+    progress chatter.
+    """
+    lines = [ln.rstrip() for ln in
+             ((r.stderr or "") + "\n" + (r.stdout or "")).splitlines() if ln.strip()]
+    for ln in lines:
+        if ln.lower().startswith("fatal:"):
+            return ln
+    for ln in lines:
+        if ln.lstrip().startswith("!"):
+            return ln.strip()
+    for ln in lines:
+        if ln.lower().startswith("error:"):
+            return ln
+    for ln in lines:
+        if not ln.startswith(_GIT_BANNER):
+            return ln
+    return lines[0] if lines else f"exit {r.returncode}"
+
+
 def recorded_pairs(objective: str, budget: int) -> "set[tuple[str, int]]":
     """(programme, seed) already in the table for this objective and budget."""
     if not RESULTS.exists():
@@ -243,10 +279,8 @@ def commit_and_push(paths: "list[str]", msg: str, note: str = "") -> None:
         """
         r = subprocess.run(["git", *argv], cwd=REPO, capture_output=True, text=True)
         if r.returncode != 0:
-            err = (r.stderr or r.stdout or "").strip().splitlines()
-            head = err[0] if err else f"exit {r.returncode}"
-            print(f"    GIT FAILED: git {' '.join(argv[:2])} -> {head}",
-                  flush=True)
+            print(f"    GIT FAILED: git {' '.join(argv[:2])} -> "
+                  f"{git_error_line(r)}", flush=True)
         return r
 
     dropped = [p for p in paths if p not in set(committable(paths))]

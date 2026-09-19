@@ -9773,3 +9773,52 @@ reads could only show good news. Anything that runs for days must write its bad
 outcomes to the same place it writes its good ones — and a guard that maps an
 out-of-range value onto the boundary must be checked at the boundary, because
 that is where it sends everything it rejects.
+
+### 39.45 "GIT FAILED" named the remote, not the failure (`homemaker-py-os2`)
+
+The first row of the fixed orthogonal sweep landed with this in the middle of
+it:
+
+```
+    done programme-house seed 0: 1 fails (1h/0s) score 0.216 in 19510.6s
+    GIT FAILED: git push -q -> To github.com:brunopostle/homemaker-layout.git
+    pushed: coldstart programme-house seed 0 @ 500000: 1 fails (1h/0s)
+```
+
+Nothing was lost — the retry loop pulled, rebased and pushed, and `cda977d`
+sits on origin exactly as it should. What failed was the diagnosis, which is
+the whole job of that line.
+
+`git push` opens its stderr with the remote URL, so for a rejected push the
+first line is `To github.com:owner/repo.git`. The reporter took `err[0]`, so it
+printed the remote it was talking to under a banner reading GIT FAILED, and the
+line that says what happened — `! [rejected] … (fetch first)` — went unread.
+Reproduced against real git rather than assumed:
+
+```
+To …/remote.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to '…/remote.git'
+hint: Updates were rejected because the remote contains work that you do not
+```
+
+`git_error_line` now orders by how specific a line is rather than where it
+appears: `fatal:` first, then the `! [rejected]` line — which names the branch
+*and* the reason, and beats the `error: failed to push some refs` that follows
+it — then `error:`, then the first line that is not git's own progress chatter.
+It falls back through to `exit N`, because skipping the banner must never turn
+a failure into silence.
+
+**Why the rejection happened at all**, since it will happen again: the runner
+pushes to the same branch this session does, and a push of mine landed between
+its commit and its push. That is the ordinary case the retry loop was built for
+(§39.33's push-first shape), not a fault. It is also why the wrong line was on
+screen at all — the failures this reporter sees most are the benign ones, which
+is exactly when nobody checks whether the report is any good.
+
+**The general form**, and the third time in this section: a diagnostic is a
+claim, and an untested one is usually wrong. §39.33 fixed a reporter that
+called a failed commit a push; §39.44 fixed one that said nothing at all about
+a crash; this one fixed one that spoke up and said the wrong thing. The
+progression is worth noticing — each fix made the *next* defect visible, and
+none of the three was in the code doing the work.
