@@ -9822,3 +9822,54 @@ called a failed commit a push; §39.44 fixed one that said nothing at all about
 a crash; this one fixed one that spoke up and said the wrong thing. The
 progression is worth noticing — each fix made the *next* defect visible, and
 none of the three was in the code doing the work.
+
+### 39.46 Orthogonal division is adopted on architecture, not on fail counts (`homemaker-py-32t`)
+
+The owner's ruling, which settles what the running sweep is for: **the
+orthogonal stuff is needed whether or not it increases fails.** Internal walls
+parallel or perpendicular to the plot's longest boundary is a requirement of
+the design, restoring what `Urb::Quad::Straighten` used to do (§39.36,
+`homemaker-py-bzv`). A fail count cannot veto it.
+
+That retires `homemaker-py-0an` before it cost anything. The sweep had no
+control arm — nine commits touch `fitness.py`/`geometry.py` between `99c85ec`
+and `1138ff1`, three of them changing the scorer independently of the geometry,
+and there is not one row at `1138ff1` with the switch off. As an A/B that is
+fatal. As a **baseline** it does not matter at all: what the sweep now
+establishes is where the corpus sits under the objective we are keeping.
+
+**The fail count still matters, as a symptom rather than a verdict.** Paired
+against `bk9` at the six matched runs the mean was +4.0 fails, and the owner's
+standing principle cuts both ways here: if the right geometry scores worse, the
+suspicion falls on the objective, not on the geometry.
+
+The obvious suspect was crinkliness — half the orthogonal sweep's fails
+(50 of 133) and already known to be mis-measured (`gvb`, `k54`: 69% of the
+residual sits at `crink == 0`, where no rescaling can order anything). So it
+was measured, with every layout scored by the **current** scorer under the
+geometry it was built with, which holds the scorer fixed and compares only the
+layouts:
+
+| mean per run | total | crinkliness | everything else |
+|---|---|---|---|
+| harbor-house `bk9` (n=3) | 28.7 | 14.3 | 14.3 |
+| harbor-house `orth` (n=2) | 30.5 | 16.0 | 14.5 |
+| maple-court `bk9` (n=3) | 53.3 | 21.3 | 32.0 |
+| maple-court `orth` (n=1) | 64.0 | **18.0** | **46.0** |
+
+**The suspect is innocent, and the hypothesis is falsified.** Harbor's small
+rise (+1.8) is indeed almost all crinkliness (+1.7). But maple-court — which
+carries the whole effect, +10.7 — moved the *other* way on crinkliness
+(21.3 → 18.0, better) and gained 14 fails everywhere else: size, outside edge
+too long, adjacency, access. Crinkliness *improving* under orthogonal division
+is what one would expect from more rectangular cells, and is a point in its
+favour.
+
+So the rise, such as it is, is not the factor we already knew was broken. It
+is one seed of one programme (n=1, against a `bk9` range of 50–59), and
+maple-court s1 and s2 are still running. Nothing to conclude until they land.
+
+**The general form.** A result that confirms the thing you already suspected is
+the one to distrust: crinkliness was the obvious culprit, it is genuinely
+defective, it is half the fail set — and it is not what moved. Held-fixed
+comparisons are cheap; run one before naming a cause.
