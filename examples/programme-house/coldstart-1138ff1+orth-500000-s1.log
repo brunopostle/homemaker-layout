@@ -1,0 +1,109 @@
+seed         : /home/bruno/src/homemaker-layout/examples/programme-house/init.dom
+programme    : programme-house
+budget       : 500000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 1
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/bruno/src/homemaker-layout/examples/programme-house/coldstart-1138ff1+orth-500000-s1.dom
+[    80 evals] best 1.29976e-05 (fails 11) via construct/0
+[   320 evals] best 2.29778e-05 (fails 10) via construct/3
+[   560 evals] best 0.000105691 (fails 8) via construct/6
+[  1360 evals] best 0.000106935 (fails 8) via level_fix noop
+[  3040 evals] best 0.000109618 (fails 8) via level_fix noop
+[  4960 evals] best 0.000442034 (fails 6) via retype 1/rl->b1
+[  5600 evals] best 0.000444358 (fails 6) via crossover r<->r
+[  6320 evals] best 0.000994783 (fails 5) via undivide 0/rr
+[  6720 evals] best 0.000996282 (fails 5) via retype 0/lll->t1
+[  7920 evals] best 0.000997734 (fails 5) via core_undivide noop
+[  8640 evals] best 0.00099793 (fails 5) via retype 0/lr->t2
+[ 12960 evals] best 0.00099805 (fails 5) via crossover rlr<->lrr
+[ 13920 evals] best 0.000998309 (fails 5) via level_compound_fix noop
+[ 14000 evals] best 0.0009984 (fails 5) via core_divide noop
+[ 14720 evals] best 0.000998418 (fails 5) via level_fix noop
+[ 18720 evals] best 0.000998427 (fails 5) via core_divide noop
+[ 22960 evals] best 0.0241281 (fails 4) via level_retype 1/rr<->0/lr
+[ 25120 evals] best 0.0244043 (fails 4) via level_retype 0/llr<->1/ll
+[ 25120 evals] checkpoint -> coldstart-1138ff1+orth-500000-s1.dom.checkpoint (4 fails)
+[ 33680 evals] best 0.0244139 (fails 4) via retype 1/rr->t2
+[ 35280 evals] best 0.0914547 (fails 2) via undivide 0/l
+[ 36400 evals] best 0.0918772 (fails 2) via swap 0/r
+[ 37760 evals] best 0.0988376 (fails 2) via undivide 0/rll
+[ 39040 evals] best 0.104374 (fails 2) via level_retype 0/rlr<->1/rlr
+[ 40240 evals] best 0.104915 (fails 2) via crossover rr<->rr
+[ 41600 evals] best 0.104941 (fails 2) via core_undivide noop
+[ 42160 evals] best 0.104945 (fails 2) via core_undivide noop
+[ 44160 evals] best 0.105153 (fails 2) via crossover rll<->rlll
+[ 60240 evals] best 0.107886 (fails 2) via core_undivide noop
+[ 60240 evals] checkpoint -> coldstart-1138ff1+orth-500000-s1.dom.checkpoint (2 fails)
+[ 61840 evals] best 0.108312 (fails 2) via core_undivide noop
+[ 62560 evals] best 0.108347 (fails 2) via core_undivide noop
+[ 83120 evals] best 0.10835 (fails 2) via core_undivide noop
+[ 83600 evals] best 0.108359 (fails 2) via core_undivide noop
+[ 89280 evals] best 0.108382 (fails 2) via level_retype 0/rrl<->1/rr
+[ 89280 evals] checkpoint -> coldstart-1138ff1+orth-500000-s1.dom.checkpoint (2 fails)
+[ 97440 evals] best 0.108399 (fails 2) via swap 0/r
+
+--- finishing (homemaker-py-3l6): unfold + polish 250000 evals ---
+[finish] unfold: materialised 0 shared-leaf copies
+[   200 evals] best 0.108413 (fails 2) via seed
+[115800 evals] best 0.109799 (fails 2) via core_undivide noop
+[117880 evals] best 0.109802 (fails 2) via crossover rl<->rr
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 21 → 2 fails (applied)
+
+--- done ---
+elapsed      : 19814.9s
+evals        : 750040 across 9374 topologies
+best         : 0.109802 (2 fails) via crossover rl<->rr+collapse
+
+improvement history:
+  [    80] 1.29976e-05  (share:construct/0)
+  [   320] 2.29778e-05  (share:construct/3)
+  [   560] 0.000105691  (share:construct/6)
+  [  1360] 0.000106935  (share:level_fix noop)
+  [  3040] 0.000109618  (share:level_fix noop)
+  [  4960] 0.000442034  (share:retype 1/rl->b1)
+  [  5600] 0.000444358  (share:crossover r<->r)
+  [  6320] 0.000994783  (share:undivide 0/rr)
+  [  6720] 0.000996282  (share:retype 0/lll->t1)
+  [  7920] 0.000997734  (share:core_undivide noop)
+  [  8640] 0.00099793  (share:retype 0/lr->t2)
+  [ 12960] 0.00099805  (share:crossover rlr<->lrr)
+  [ 13920] 0.000998309  (share:level_compound_fix noop)
+  [ 14000] 0.0009984  (share:core_divide noop)
+  [ 14720] 0.000998418  (share:level_fix noop)
+  [ 18720] 0.000998427  (share:core_divide noop)
+  [ 22960] 0.0241281  (share:level_retype 1/rr<->0/lr)
+  [ 25120] 0.0244043  (share:level_retype 0/llr<->1/ll)
+  [ 33680] 0.0244139  (share:retype 1/rr->t2)
+  [ 35280] 0.0914547  (share:undivide 0/l)
+  [ 36400] 0.0918772  (share:swap 0/r)
+  [ 37760] 0.0988376  (share:undivide 0/rll)
+  [ 39040] 0.104374  (share:level_retype 0/rlr<->1/rlr)
+  [ 40240] 0.104915  (share:crossover rr<->rr)
+  [ 41600] 0.104941  (share:core_undivide noop)
+  [ 42160] 0.104945  (share:core_undivide noop)
+  [ 44160] 0.105153  (share:crossover rll<->rlll)
+  [ 60240] 0.107886  (share:core_undivide noop)
+  [ 61840] 0.108312  (share:core_undivide noop)
+  [ 62560] 0.108347  (share:core_undivide noop)
+  [ 83120] 0.10835  (share:core_undivide noop)
+  [ 83600] 0.108359  (share:core_undivide noop)
+  [ 89280] 0.108382  (share:level_retype 0/rrl<->1/rr)
+  [ 97440] 0.108399  (share:swap 0/r)
+  [500200] 0.108413  (polish:seed)
+  [615800] 0.109799  (polish:core_undivide noop)
+  [617880] 0.109802  (polish:crossover rl<->rr)
+written      : /home/bruno/src/homemaker-layout/examples/programme-house/coldstart-1138ff1+orth-500000-s1.dom
