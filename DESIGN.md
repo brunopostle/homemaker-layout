@@ -9873,3 +9873,51 @@ maple-court s1 and s2 are still running. Nothing to conclude until they land.
 the one to distrust: crinkliness was the obvious culprit, it is genuinely
 defective, it is half the fail set — and it is not what moved. Held-fixed
 comparisons are cheap; run one before naming a cause.
+
+### 39.47 The sweep decomposition, ready before the sweep lands (`homemaker-py-32t`)
+
+`experiments/decompose_coldstart.py`. Built while the sweep was still running so
+the summary exists the moment the twelfth row does, rather than being
+reconstructed from memory a month later.
+
+It answers the three questions worth asking of twelve numbers — where the fails
+went, whether anything moved, and whether this sample could have resolved it —
+and it enforces three rules that were previously left to whoever was reading:
+
+* **§39.31: a decomposition is not a result until the sweep is complete.**
+  Missing rows exit 2 rather than quietly averaging over what is there.
+  `--partial` looks anyway and stamps every section PROVISIONAL.
+* **§39.12 clause 3: a fail count is only comparable to one measured by the
+  same objective.** A cross-objective comparison prints the commits separating
+  the two *before* the numbers, so a confound cannot be read as a result.
+* **§38.19/§38.21: print what the sample could have detected.** Via
+  `ab_report`, the MDD sits beside every verdict.
+
+Nothing re-derives a rule that exists elsewhere — the stamp comes from the
+runner, the scorer from `verify_results_table.score_lines` (extracted for this,
+so the scratch-copy discipline and the per-row switch keep one implementation),
+and the statistics from `ab_report`. Three copies of a rule is how §39.42 and
+§39.43 happened.
+
+**It earned itself immediately.** Run against the six rows in hand it retracts
+the +4.0 mean I reported in §39.46:
+
+```
+  -- fails --
+     N=6   99c85ec mean 18.17   1138ff1+orth mean 22.17   1W/4L/1T
+     mean diff -4.000  sd 6.066  95% CI [-10.366, +2.366]
+     minimum detectable difference at N=6: 6.366
+     ** UNDERPOWERED: the observed margin (4.000) is BELOW what N=6 can resolve.
+```
+
+The margin is not small, it is **absent**: N=6 could not have distinguished it
+from zero however it came out, and N≈12 would be needed. The same holds for the
+hard-fail delta (1.333 against an MDD of 2.168). This is §38.21's harbor
+finding recurring — the paired sd is 6.1 fails, so small samples here resolve
+nothing finer than about six.
+
+**The general form.** The discipline that makes a number safe to quote is worth
+more as a program than as a paragraph in a design document, because the
+paragraph is read after the number has already been believed. Two days earlier I
+had quoted that +4.0 with a caveat about confounding and none about power; the
+caveat I did not think to write is the one the tool prints by default.

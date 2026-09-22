@@ -120,8 +120,24 @@ def score(programme: str, dom: str,
     invocation -- and forgetting the variable skipped every orthogonal row
     while reporting "0 mismatched", which reads like success.
     """
+    got = score_lines(programme, dom, orthogonal)
+    if got is None:
+        return None
+    lines, val = got
     from homemaker_layout.fitness import classify_fail_tier
+    hard = sum(1 for ln in lines if classify_fail_tier(ln) == "hard")
+    return len(lines), hard, len(lines) - hard, f"{float(val):.6g}"
 
+
+def score_lines(programme: str, dom: str,
+                orthogonal: bool = False) -> "tuple[list[str], str] | None":
+    """The scorer's raw output for one artefact: (fail lines, score), or None.
+
+    The single place that runs `homemaker-fitness` over a corpus artefact, so
+    the scratch-copy discipline and the per-row switch have one implementation
+    rather than one per consumer. `decompose_coldstart.py` needs the lines
+    themselves, which the counts above throw away.
+    """
     src = REPO / "examples" / programme / dom
     if not src.exists():
         return None
@@ -140,8 +156,7 @@ def score(programme: str, dom: str,
         lines = [ln for ln in (work / f"{dom}.fails").read_text().splitlines()
                  if ln.strip()]
         val = (work / f"{dom}.score").read_text().strip()
-    hard = sum(1 for ln in lines if classify_fail_tier(ln) == "hard")
-    return len(lines), hard, len(lines) - hard, f"{float(val):.6g}"
+    return lines, val
 
 
 def main() -> int:

@@ -1,0 +1,142 @@
+"""The sweep decomposition must group fail families correctly and refuse to
+report an incomplete sweep as a result (DESIGN.md §39.31, §39.47)."""
+
+from __future__ import annotations
+
+import csv
+import importlib.util
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+SCRIPT = Path(__file__).resolve().parent.parent / "experiments" / "decompose_coldstart.py"
+TABLE = (Path(__file__).resolve().parent.parent
+         / "experiments" / "results" / "coldstart_baseline.tsv")
+pytestmark = pytest.mark.skipif(not SCRIPT.is_file(), reason="script absent")
+
+
+def _mod():
+    spec = importlib.util.spec_from_file_location("decompose_coldstart", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# Real lines, taken from scoring the committed corpus -- not invented shapes.
+CASES = [
+    ("0/lllr outside edge too long", "outside edge too long"),
+    ("1/rrll rrlr edge too long", "edge too long"),
+    ("2/llll lllrl edge too long", "edge too long"),
+    ("1/rllr (py) not adjacent to c", "not adjacent to c"),
+    ("0/rrrrll (t9) not adjacent to c", "not adjacent to c"),
+    ("level 0 not connected", "level N not connected"),
+    ("level 1 no outside space", "level N no outside space"),
+    ("0/rlrlr proportion", "proportion"),
+    ("2/llr proportion", "proportion"),
+    ("too few stairs (0, min 1)", "too few stairs (N, min N)"),
+    ("0/ crinkliness", "crinkliness"),
+]
+
+
+@pytest.mark.parametrize("line,want", CASES)
+def test_family_strips_everything_that_is_not_the_kind(line, want):
+    assert _mod().family(line) == want
+
+
+def test_the_second_leaf_id_does_not_split_a_family():
+    """'<a> <b> edge too long' names two leaves. Leaving the second on made one
+    family appear as three families of one -- hiding exactly the concentration
+    the decomposition exists to find."""
+    m = _mod()
+    fams = {m.family(l) for l in ("1/rrll rrlr edge too long",
+                                  "2/llll lllrl edge too long",
+                                  "0/lr rrrr edge too long")}
+    assert fams == {"edge too long"}
+
+
+def test_outside_edge_too_long_stays_its_own_family():
+    """fitness.py raises these from two different checks (lines 1778 and 1795);
+    merging them would hide which one moved."""
+    m = _mod()
+    assert m.family("0/lllr outside edge too long") != m.family("1/a rrlr edge too long")
+
+
+def test_every_committed_fail_line_normalises_to_a_bare_kind():
+    """No family may still carry a leaf id, a room code, or a raw number."""
+    import re
+    m = _mod()
+    v_spec = importlib.util.spec_from_file_location(
+        "verify_results_table", SCRIPT.parent / "verify_results_table.py")
+    v = importlib.util.module_from_spec(v_spec)
+    v_spec.loader.exec_module(v)
+    if not TABLE.is_file():
+        pytest.skip("results table absent")
+    seen = 0
+    for r in csv.DictReader(TABLE.open(), delimiter="\t"):
+        commit, orth = v.split_objective(r["objective"])
+        if commit != v.source_commit():
+            continue
+        got = v.score_lines(r["programme"], r["dom"], orthogonal=orth)
+        if got is None:
+            continue
+        for ln in got[0]:
+            f = m.family(ln)
+            seen += 1
+            assert "/" not in f, f"{ln!r} -> {f!r} still has a leaf path"
+            assert not re.search(r"\d", f.replace("N", "")), f"{ln!r} -> {f!r}"
+            assert not re.match(r"^[lr]+ ", f), f"{ln!r} -> {f!r} starts with a leaf id"
+    if seen == 0:
+        pytest.skip("no rows at the current objective")
+
+
+def test_an_incomplete_sweep_is_refused_not_averaged():
+    """§39.31: a decomposition is not a result until the sweep is complete."""
+    r = subprocess.run([sys.executable, str(SCRIPT)],
+                       capture_output=True, text=True, cwd=SCRIPT.parent.parent)
+    out = r.stdout
+    if "INCOMPLETE" in out:
+        assert r.returncode == 2
+        assert "--partial" in out
+        assert "§39.31" in out or "39.31" in out
+    else:
+        assert r.returncode in (0, 1)
+
+
+def test_partial_marks_every_section_provisional():
+    r = subprocess.run([sys.executable, str(SCRIPT), "--partial"],
+                       capture_output=True, text=True, cwd=SCRIPT.parent.parent)
+    if "PROVISIONAL" not in r.stdout:
+        pytest.skip("the sweep is complete, nothing to mark")
+    assert "Nothing below is a result" in r.stdout
+    for section in ("=== rows", "=== fail families"):
+        i = r.stdout.index(section)
+        assert "PROVISIONAL" in r.stdout[i:i + 60], f"{section} is not marked"
+
+
+def test_the_target_objective_does_not_depend_on_the_environment(monkeypatch):
+    """§39.43: which rows exist is a fact about the table, not about whoever is
+    running this. Deriving the whole stamp from the environment is what made
+    the verifier able to see only half its table."""
+    m = _mod()
+    v_spec = importlib.util.spec_from_file_location(
+        "verify_results_table", SCRIPT.parent / "verify_results_table.py")
+    v = importlib.util.module_from_spec(v_spec)
+    v_spec.loader.exec_module(v)
+    monkeypatch.delenv("HOMEMAKER_ORTHOGONAL_DIVISION", raising=False)
+    off = m.default_target(v)[0]
+    monkeypatch.setenv("HOMEMAKER_ORTHOGONAL_DIVISION", "1")
+    assert m.default_target(v)[0] == off
+
+
+def test_a_cross_objective_comparison_names_the_confound():
+    """§39.12 clause 3. Any commit to fitness.py/geometry.py between the two
+    objectives must be printed before the numbers are."""
+    m = _mod()
+    src = SCRIPT.read_text()
+    assert "separating_commits" in src
+    i = src.index("def main")
+    body = src[i:]
+    assert body.index("separating_commits") < body.index("paired_report"), (
+        "the numbers are printed before the confound that explains them")
