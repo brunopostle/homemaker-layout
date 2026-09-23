@@ -9922,67 +9922,63 @@ paragraph is read after the number has already been believed. Two days earlier I
 had quoted that +4.0 with a caveat about confounding and none about power; the
 caveat I did not think to write is the one the tool prints by default.
 
-### 39.48 `edge too long` does not measure a wall (`homemaker-py-32t` fallout)
+### 39.48 `edge too long` is coherent, and is being removed anyway (`homemaker-py-2ww`)
 
-The owner's reading of the fail census: *the principle is that short lengths of
-wall are automatically braced by cross walls and longer walls would need wind
-posts or ties, but this works against the long single-loaded corridor that we
-are ok with, and doesn't appear in Alexander's patterns at all.*
+**This section replaces a wrong one written earlier the same day.** The first
+version claimed the check "does not measure a wall" and was mistaken about the
+design intent. The correction is the owner's:
 
-The suspicion is right. The mechanism is worse than suspected: **the check does
-not penalise long corridors. It does not measure wall length at all.**
+> wall length was supposed to penalise long **unsupported** lengths of wall, so
+> a long corridor with side rooms would have the side wall supported by the side
+> room partitions, which is good.
 
-`edge_cost` fires on `G[a][b]["width"]`, and that is `geometry._edge_overlap` —
-the **shared segment between two leaves**, not the leaf's wall. A corridor
-abutted by eight rooms has its long wall divided into eight shared segments,
-each well under the cap. Measured over the ten `1138ff1+orth` runs:
+That makes the measurement right. `edge_cost` fires on `G[a][b]["width"]`, which
+is `geometry._edge_overlap` — the span between two leaves — and each side room's
+partition meeting that wall **is** a bracing point. So the shared segment is
+exactly the unsupported span, which is the quantity the structural principle
+cares about. The number of doors off a wall is not irrelevant to it, as I said:
+every one of them arrives with a cross wall.
+
+The measurements from that section stand, and mean the opposite of what I read
+into them. Over the ten `1138ff1+orth` runs:
 
 | circulation leaves with a wall over the 8 m cap | 23 |
 |---|---|
-| …whose every shared segment is *under* the cap | **21 (91%)** |
+| …whose every shared segment is under the cap | 21 (91%) |
 
-with examples:
+A 17.6 m corridor wall with ten rooms off it, widest unsupported span 8.0 m,
+passes. That is the rule **working**: braced every couple of metres, it needs no
+wind posts. Where the 23 fails land — 17 on rooms, 6 on circulation — is not a
+misfire either; those are genuinely long unbraced spans.
 
-| longest wall | widest shared segment | neighbours | check fires? |
-|---|---|---|---|
-| 17.6 m | 8.0 m | 10 | no |
-| 15.1 m | 7.4 m | 11 | no |
-| 11.2 m | 7.7 m | 8 | no |
+**What survives the correction** is only the cap itself: a hardcoded `8.0` in
+`_edge_cap`, with no config key, no recorded derivation and no way for a
+programme to tune or null it, modified only by leaf sharing (`erc.hph`/§13.7).
 
-So a 17.6 m corridor wall — precisely the wall the bracing argument is about —
-sails through, while a 9 m wall between exactly two rooms, braced by a cross
-wall at each end, is flagged. **The number of doors off a wall is not a
-structural property of it.** The check is sensitive to the one thing the
-principle says is irrelevant and blind to the thing it says matters.
+**The ruling, which removes it regardless.** The owner:
 
-The outside variant is better founded: `outside_edge_cost` measures the leaf's
-own plot-boundary edge, which really is one wall. But it skips outside leaves,
-so it is a check on boundary walls specifically, not the general rule.
+> maybe we shouldn't worry about this as there are structural interventions that
+> would do the same thing. I'd vote for removing this rule altogether as it
+> doesn't relate to the human experience of existing in the building.
 
-Where the fails actually land, over the same ten runs (23 in total):
+That is the criterion for what belongs in this objective, stated plainly, and it
+is not about whether a rule is well-formed. A long unbraced wall is a real
+engineering fact with a real engineering answer — a wind post, a tie — that
+costs nothing in plan and changes nothing anyone experiences in the building.
+Spending the search's effort avoiding a condition a structural engineer fixes
+without moving a wall is effort not spent on what the building is like to be in.
+`edge too long` goes, and with it the `share_edge_cap` lever that exists only to
+scale its cap.
 
-| rooms | 17 (74%) |
-|---|---|
-| circulation | 6 (26%) |
+Note what this is **not**: it is not §39.36's case (a factor no operator could
+fix), nor §39.37's (a third question on two degrees of freedom), nor §39.39's
+(questions nobody asked). Those were defects. This is a sound criterion about
+the wrong subject.
 
-Circulation is nonetheless the kind most likely to *exceed* the cap — 26% of
-circulation leaves, against 8% of rooms and 7% of outside — so the check is
-aimed at the right population and mostly misses it.
-
-**And the cap is a hardcoded `8.0`.** No config key, no derivation recorded,
-and no way for a programme to tune or disable it — unlike essentially every
-other criterion, which has a key and the §39.22 declared-null idiom. It is
-modified only by leaf sharing (`erc.hph`/§13.7). A magic number that no
-programme can answer for is exactly what CLAUDE.md warns about: Urb having done
-it this way does not validate it.
-
-Tracked as `homemaker-py-2ww`. Not touched here — the sweep is running.
-
-**The general form, and it is becoming the theme of §39.** `perpendicular`
-scored something no operator could fix (§39.36). `width` asked a third question
-of two degrees of freedom (§39.37). Circulation was charged two questions
-nobody asked it (§39.39). Now `edge too long` measures adjacency granularity
-and calls it wall length. The recurring defect is not severity or tuning — it
-is a criterion whose *measurement* does not correspond to the thing its name
-and rationale claim. Before tuning any factor, check that it measures what it
-says.
+**The general form, corrected.** The first version of this section inferred a
+defect from a measurement without checking the intent against the person who
+held it. The measurement was right and the model in my head was wrong — and the
+write-up was confident enough that it would have propagated. Measuring
+carefully is not the same as understanding what is being measured; when a
+long-standing rule looks incoherent, the likeliest explanation is still that
+someone had a reason, and the cheapest way to find it is to ask.
