@@ -9921,3 +9921,68 @@ more as a program than as a paragraph in a design document, because the
 paragraph is read after the number has already been believed. Two days earlier I
 had quoted that +4.0 with a caveat about confounding and none about power; the
 caveat I did not think to write is the one the tool prints by default.
+
+### 39.48 `edge too long` does not measure a wall (`homemaker-py-32t` fallout)
+
+The owner's reading of the fail census: *the principle is that short lengths of
+wall are automatically braced by cross walls and longer walls would need wind
+posts or ties, but this works against the long single-loaded corridor that we
+are ok with, and doesn't appear in Alexander's patterns at all.*
+
+The suspicion is right. The mechanism is worse than suspected: **the check does
+not penalise long corridors. It does not measure wall length at all.**
+
+`edge_cost` fires on `G[a][b]["width"]`, and that is `geometry._edge_overlap` —
+the **shared segment between two leaves**, not the leaf's wall. A corridor
+abutted by eight rooms has its long wall divided into eight shared segments,
+each well under the cap. Measured over the ten `1138ff1+orth` runs:
+
+| circulation leaves with a wall over the 8 m cap | 23 |
+|---|---|
+| …whose every shared segment is *under* the cap | **21 (91%)** |
+
+with examples:
+
+| longest wall | widest shared segment | neighbours | check fires? |
+|---|---|---|---|
+| 17.6 m | 8.0 m | 10 | no |
+| 15.1 m | 7.4 m | 11 | no |
+| 11.2 m | 7.7 m | 8 | no |
+
+So a 17.6 m corridor wall — precisely the wall the bracing argument is about —
+sails through, while a 9 m wall between exactly two rooms, braced by a cross
+wall at each end, is flagged. **The number of doors off a wall is not a
+structural property of it.** The check is sensitive to the one thing the
+principle says is irrelevant and blind to the thing it says matters.
+
+The outside variant is better founded: `outside_edge_cost` measures the leaf's
+own plot-boundary edge, which really is one wall. But it skips outside leaves,
+so it is a check on boundary walls specifically, not the general rule.
+
+Where the fails actually land, over the same ten runs (23 in total):
+
+| rooms | 17 (74%) |
+|---|---|
+| circulation | 6 (26%) |
+
+Circulation is nonetheless the kind most likely to *exceed* the cap — 26% of
+circulation leaves, against 8% of rooms and 7% of outside — so the check is
+aimed at the right population and mostly misses it.
+
+**And the cap is a hardcoded `8.0`.** No config key, no derivation recorded,
+and no way for a programme to tune or disable it — unlike essentially every
+other criterion, which has a key and the §39.22 declared-null idiom. It is
+modified only by leaf sharing (`erc.hph`/§13.7). A magic number that no
+programme can answer for is exactly what CLAUDE.md warns about: Urb having done
+it this way does not validate it.
+
+Tracked as `homemaker-py-2ww`. Not touched here — the sweep is running.
+
+**The general form, and it is becoming the theme of §39.** `perpendicular`
+scored something no operator could fix (§39.36). `width` asked a third question
+of two degrees of freedom (§39.37). Circulation was charged two questions
+nobody asked it (§39.39). Now `edge too long` measures adjacency granularity
+and calls it wall length. The recurring defect is not severity or tuning — it
+is a criterion whose *measurement* does not correspond to the thing its name
+and rationale claim. Before tuning any factor, check that it measures what it
+says.
