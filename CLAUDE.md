@@ -203,48 +203,63 @@ ruled needs fixing.
 ## Where things stand (2026-09-24)
 
 Read this before planning work; then `bd ready` for the queue and DESIGN.md
-§39.44–§39.49 for the detail.
+§39.44–§39.50 for the detail.
 
-**The orthogonal-division baseline is complete.** Twelve of twelve at objective
-`1138ff1+orth`, 500 000 evals, three seeds, no failed runs, every row reproduced
-exactly by `verify_results_table.py`. `homemaker-py-32t` is closed for its first
-half only — see below.
+**The objective changed after the last baseline, so the corpus is stale — by
+design, not by accident.** `verify_results_table.py` reports every row skipped
+at the current stamp; that is §39.43's designed answer to an objective change.
 
-| programme | s0 | s1 | s2 |
-|---|---|---|---|
-| harbor-house | 27 (4/23) | 34 (4/30) | 30 (9/21) |
-| health-centre | 5 (3/2) | 5 (4/1) | 6 (3/3) |
-| maple-court | 64 (17/47) | 55 (13/42) | 54 (9/45) |
-| programme-house | 1 (1/0) | 2 (1/1) | 1 (0/1) |
+What happened, in order:
 
-Against the `bk9` corpus every margin is **below the MDD at N=12** (fails −1.25
-vs 3.68; hard −0.75 vs 1.54), and the comparison is confounded by nine commits
-besides. It supports no conclusion either way, which is fine: the owner adopted
-orthogonal division as an **architectural requirement**, needed whether or not
-it costs fails (§39.46). Do not reopen that as a fitness question.
+1. The orthogonal-division baseline completed: twelve of twelve at
+   `1138ff1+orth`, no failed runs, every row verified (§39.49). Orthogonal
+   division is adopted as an **architectural requirement**, needed whether or
+   not it costs fails (§39.46) — do not reopen that as a fitness question. The
+   fail-count comparison against `bk9` was both underpowered at N=12 and
+   confounded, and supports no conclusion either way.
+2. Then §39.50 retired two criteria: `edge too long` / `outside edge too long`
+   (with `_edge_cap` and the `share_edge_cap` lever) and `quality_perpendicular`
+   (nulled in `CONF_DEFAULTS`, so no new programme inherits it). Both were owner
+   rulings. Wall cost is bit-for-bit unchanged; only the fail set moved.
 
-**Fail set, 284 over the twelve runs:** crinkliness 111 (39.1%), size 42
-(14.8%), outside edge too long 23 (8.1%), level *n* not connected 18, access 17,
-not adjacent to `c` 15.
+Scoring the §39.49 artefacts under the new objective gives 284 → 256 fails,
+exactly the 28 edge-too-long fails removed. **That is not a new baseline** — the
+search would find different layouts under the new objective. It is only a check
+that the change did what it said.
 
-### The next two changes both alter the objective — land them together
+### Next: re-baseline at the current objective
 
-`homemaker-py-2ww` (delete `edge too long` / `outside edge too long`, the
-`_edge_cap` and the `share_edge_cap` lever) and `homemaker-py-2nr` (delete
-`quality_perpendicular`, the unfinished half of `32t`). Each is decided and
-scoped in its bead; each forces a re-baseline on its own. **One commit, one
-re-baseline** — not two sweeps of seven days each.
+```bash
+HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/run_coldstart_baseline.py \
+    --budget 500000 --seeds 3
+```
 
-Between them they remove ~10% of the current fail set by construction, so the
-next sweep is not comparable to this one at the fail-count level (§39.12
-clause 3). That is expected, not a problem to engineer around.
+Confirm the first line reads `objective: <current commit>+orth` before walking
+away. Seven days of wall clock on a 4-core box; `--resume` picks up only what is
+missing if it is interrupted. **Do not edit `src/` while it runs** (see below),
+and note `homemaker-py-jui`: the stamp is read from `git log`, so a dirty
+`src/` at start-up silently stamps the sweep with the *previous* objective.
+Commit first.
+
+The new sweep is not comparable to §39.49's at the fail-count level — two
+criteria fewer (§39.12 clause 3). Expected, not a problem to engineer around.
 
 ### After that, crinkliness
 
-At 39% of the fail set it dominates everything else, and §39.31 established that
-69% of its residual sits at `crink == 0` — fully buried leaves, where no
-rescaling of the factor can order anything. `homemaker-py-k54` and
-`homemaker-py-gvb` hold the analysis.
+It was 39% of the fail set before this change and is a larger share now that 28
+fails went. §39.31 established that 69% of its residual sits at `crink == 0` —
+fully buried leaves, where no rescaling of the factor can order anything.
+`homemaker-py-k54` and `homemaker-py-gvb` hold the analysis.
+
+### Known limits of the orthogonal geometry
+
+`homemaker-py-ao9`: a slicing cut straightens only the wall family it creates;
+the crossing family is inherited from the plot boundary, so some internal walls
+still run a few degrees off. Measured at 3.3° on programme-house. The real fix
+is `homemaker-py-bzv`, Urb's lost `Straighten()` pass, which moved corners
+rather than cuts. Retiring `quality_perpendicular` means nothing measures that
+residual any more — an accepted trade (the geometry is the fix, not the score),
+recorded so it stays a decision rather than becoming an oversight.
 
 ### The standing principle, in the owner's words
 
@@ -257,7 +272,8 @@ charged two questions nobody asked. **But not every odd-looking rule is
 defective** — §39.48 records a case where the measurement was right and the
 model in the reviewer's head was wrong. When a long-standing rule looks
 incoherent, the likeliest explanation is still that someone had a reason; ask
-before writing it up.
+before writing it up. And §39.50 retired a rule that was working correctly,
+because being correct is not the same as belonging in this objective.
 
 ### Never run a sweep and edit `src/` at the same time
 
