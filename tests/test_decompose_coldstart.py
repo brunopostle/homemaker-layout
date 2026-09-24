@@ -91,6 +91,39 @@ def test_every_committed_fail_line_normalises_to_a_bare_kind():
         pytest.skip("no rows at the current objective")
 
 
+def test_every_committed_fail_line_is_classifiable():
+    """Every fail string the CURRENT evaluator emits must have a tier.
+
+    Re-homed from `test_fitness.py`, which globbed `.fails` off disk. Those are
+    gitignored by-products of whatever objective wrote them, so that guard
+    eventually failed on debris from before the objective stamp existed rather
+    than on a regression (§39.50). Re-scoring the corpus asks the same question
+    of data that is current by construction.
+    """
+    import csv as _csv
+    from homemaker_layout.fitness import classify_fail_tier
+    m = _mod()
+    v_spec = importlib.util.spec_from_file_location(
+        "verify_results_table", SCRIPT.parent / "verify_results_table.py")
+    v = importlib.util.module_from_spec(v_spec)
+    v_spec.loader.exec_module(v)
+    if not TABLE.is_file():
+        pytest.skip("results table absent")
+    target, rows = m.default_target(v)
+    if not rows:
+        pytest.skip("no rows at the current objective")
+    seen = 0
+    for (prog, seed), r in rows.items():
+        _, orth = v.split_objective(r["objective"])
+        got = v.score_lines(prog, r["dom"], orthogonal=orth)
+        if got is None:
+            continue
+        for ln in got[0]:
+            classify_fail_tier(ln)      # raises ValueError if untiered
+            seen += 1
+    assert seen, "scored the corpus and it produced no failures at all"
+
+
 def test_an_incomplete_sweep_is_refused_not_averaged():
     """§39.31: a decomposition is not a result until the sweep is complete."""
     r = subprocess.run([sys.executable, str(SCRIPT)],

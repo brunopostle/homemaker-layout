@@ -10080,3 +10080,77 @@ across that change is meaningless by §39.12 clause 3. And **crinkliness is
 nearly two fifths of everything**, which puts `gvb` and `k54` at the front of
 the queue: §39.31 already established that 69% of the crinkliness residual sits
 at `crink == 0`, where no rescaling of the factor can order anything.
+
+### 39.50 Two criteria retired: `edge too long` and `quality_perpendicular`
+
+Both were decided by the owner, for the same reason stated two different ways,
+and landed in one commit because each alone forces a re-baseline.
+
+**`edge too long` / `outside edge too long` (`homemaker-py-2ww`).** The check is
+sound — §39.48 records me getting that wrong and being corrected. It measures
+the unsupported span between bracing cross-walls, which is the quantity the
+structural principle cares about. It goes anyway:
+
+> there are structural interventions that would do the same thing. I'd vote for
+> removing this rule altogether as it doesn't relate to the human experience of
+> existing in the building.
+
+A long unbraced wall has a real engineering answer — a wind post, a tie — that
+costs nothing in plan and changes nothing anyone experiences in the building.
+Removed with it: `_edge_cap`, the hardcoded 8 m cap nobody could tune, and the
+`share_edge_cap` lever (`erc.hph`/§13.7/§13.8) that existed only to scale it.
+§13.8's A/B verdict is superseded, not wrong.
+
+**`quality_perpendicular` (`homemaker-py-2nr`).** The unfinished half of `32t`,
+whose title always read "…then delete `quality_perpendicular`". The off switch
+was built at §39.41 and never thrown, so the factor was still scored across the
+entire `1138ff1+orth` baseline. §39.41's three-arm warm start had already
+settled that removing it costs nothing: arms B and C differed only in this
+factor and returned identical fail sets.
+
+**Retired in `CONF_DEFAULTS`, not per programme**, and that is the substantive
+choice here. The reason is general — `ORTHOGONAL_DIVISION` supplies right angles
+by construction for *any* plot, not just the four in `examples/` — so nulling
+the four `patterns.config` files would have left a new programme silently
+inheriting a question the geometry already answers. Null rather than deleted, so
+a plot whose geometry does not supply orthogonality can put the question back;
+`test_a_programme_can_still_ask_for_perpendicular` holds that open.
+
+**The cost is untouched.** Both fails lived inside cost functions, so the risk
+was removing a fail and moving the denominator with it. Verified rather than
+reasoned: total wall cost over all twelve artefacts, `edge_cost` +
+`outside_edge_cost`, is **bit-for-bit identical** before and after — same `repr`
+of the float on every one. The score moves only through `0.5 ** len(failures)`
+and the leaf geometric mean.
+
+**Effect on the corpus** (same artefacts, new objective):
+
+| | before | after |
+|---|---|---|
+| harbor-house | 91 | 81 |
+| health-centre | 16 | 16 |
+| maple-court | 173 | 155 |
+| programme-house | 4 | 4 |
+| **total** | **284** | **256** |
+
+−28, exactly the 23 `outside edge too long` plus 5 `edge too long` of §39.49's
+census. `quality_perpendicular` removes none: it was scored on every leaf but
+never fell below `FAIL_THRESHOLD` on these artefacts, so it moved `value`
+without ever producing a failure — a factor that cost score without ever
+reporting anything, which is its own small argument for retiring it.
+
+**Two guards changed rather than deleted.** `test_classify_fail_tier_checks_any
+_native_fails_artefacts_present` globbed every `.fails` in `examples/` and asked
+today's classifier to understand them. But a `.fails` is a by-product of the
+objective that wrote it, and those files are gitignored debris: retiring
+`edge too long` made it fail on `coldstart-500000-s0.dom.fails`, named before
+the objective stamp existed at all (§39.32). A guard whose input is arbitrarily
+stale reports the past, not a regression. It now re-scores the current corpus,
+in `test_decompose_coldstart.py`. And `test_perpendicular_is_scored_by_default`
+is inverted rather than dropped, since "what the default is" is exactly what
+changed.
+
+**The corpus is now stale, correctly.** `verify_results_table.py` reports every
+row skipped at the new stamp — §39.43's designed answer to an objective change,
+and a reminder that the next sweep is not comparable to §39.49's at the
+fail-count level (§39.12 clause 3).

@@ -179,9 +179,21 @@ def _a_room():
                 if l.type not in ("C", "O", "S"))
 
 
-def test_perpendicular_is_scored_by_default():
-    """The exemption must be opt-in: nothing changes until a config asks."""
+def test_perpendicular_is_retired_by_default():
+    """Inverted at §39.50. It WAS scored by default while the exemption was
+    opt-in; the factor is now retired in CONF_DEFAULTS, because the reason is
+    general -- ORTHOGONAL_DIVISION supplies right angles by construction for
+    any plot -- so a new programme must not silently inherit the question."""
     fit, room = _conf(), _a_room()
+    assert not fit.factor_is_asked("perpendicular", room)
+    assert fit.quality_perpendicular(room) == 1.0
+
+
+def test_a_programme_can_still_ask_for_perpendicular():
+    """Retired, not deleted. The key and the Gaussian remain, so a plot whose
+    geometry does not supply right angles can put the question back."""
+    fit = _conf(perpendicular_inside=0.3, perpendicular_outside=10.0)
+    room = _a_room()
     assert fit.factor_is_asked("perpendicular", room)
     assert fit.quality_perpendicular(room) < 1.0
 
@@ -201,13 +213,15 @@ def test_the_exemption_is_read_with_a_null_aware_lookup():
     the sigma with it would fall through to CONF_DEFAULTS and score the leaf
     anyway -- the §39.22 trap. `_generic_param` distinguishes them, and this
     asserts the distinction rather than the mechanism."""
-    absent = _conf()
+    # Since §39.50 the DEFAULT is null, so the pair runs the other way round:
+    # a sigma present in the config against the null default.
+    asked = _conf(perpendicular_inside=0.3)
     nulled = _conf(perpendicular_inside=None)
-    assert absent.conf("perpendicular_inside") == nulled.conf("perpendicular_inside"), (
-        "conf() is expected to be blind here -- if it stops being, this test's "
-        "premise is gone but the behaviour below is what matters")
+    assert nulled.conf("perpendicular_inside") == _conf().conf("perpendicular_inside"), (
+        "conf() is expected to be blind to absent-vs-null -- if it stops being, "
+        "this test's premise is gone but the behaviour below is what matters")
     room = _a_room()
-    assert absent.factor_is_asked("perpendicular", room)
+    assert asked.factor_is_asked("perpendicular", room)
     assert not nulled.factor_is_asked("perpendicular", room)
 
 

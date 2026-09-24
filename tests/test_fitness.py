@@ -234,56 +234,6 @@ def _shared_leaf(type_: str = "k1", k: int = 3) -> Node:
     return leaf
 
 
-def test_edge_cap_flat_by_default():
-    # no leaf_sharing → flat 8 m regardless of any share stamp
-    fit = Fitness()
-    assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(8.0)
-
-
-def test_edge_cap_flat_when_lever_off_even_with_sharing():
-    # leaf_sharing on but the hph lever explicitly off → still flat (control arm).
-    # Post-§13.8 the lever defaults ON under sharing, so the control must pin it.
-    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": False})
-    assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(8.0)
-
-
-def test_edge_cap_scales_by_share_when_lever_on():
-    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": True})
-    assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(24.0)
-
-
-def test_edge_cap_defaults_on_under_leaf_sharing():
-    # §13.8 default flip: leaf_sharing on, lever unset → cap scales by share
-    fit = Fitness(conf={"leaf_sharing": True})
-    assert fit._edge_cap(_shared_leaf(k=3)) == pytest.approx(24.0)
-
-
-def test_edge_cap_unshared_leaf_keeps_flat_cap():
-    # a non-shared leaf (the narrow-sliver pathology) is never relaxed
-    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": True})
-    assert fit._edge_cap(_leaf("k1")) == pytest.approx(8.0)
-
-
-def test_edge_cap_stale_share_type_ignored():
-    # retyped leaf whose stamp no longer matches type → share invalid → flat
-    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": True})
-    leaf = _shared_leaf("k1", k=3)
-    leaf.type = "b1"  # retyped; share_type still "k1"
-    assert fit._edge_cap(leaf) == pytest.approx(8.0)
-
-
-def test_edge_cap_uses_largest_share_among_adjoining_leaves():
-    # an interior wall takes the max share of the two leaves it separates
-    fit = Fitness(conf={"leaf_sharing": True, "share_edge_cap": True})
-    cap = fit._edge_cap(_leaf("k1"), _shared_leaf("b1", k=2))
-    assert cap == pytest.approx(16.0)
-
-
-# --------------------------------------------------------------------------- #
-# Stair helpers
-# --------------------------------------------------------------------------- #
-
-
 def test_risers_number_exact_division():
     # 2.0 / 0.25 = 8.0 exactly → returns 8
     assert Fitness._risers_number(2.0, 0.25) == 8
@@ -424,8 +374,6 @@ def test_classify_fail_tier_hard(fail_str):
     "0/lr width",
     "0/lr crinkliness",
     "0/lr access",
-    "0/lr lrr edge too long",
-    "lr outside edge too long",
     "staircase volume",
 ])
 def test_classify_fail_tier_soft(fail_str):
@@ -505,22 +453,16 @@ def test_classify_fail_tier_rejects_an_unknown_fail_string():
         classify_fail_tier("0/lr something nobody has ever emitted")
 
 
-def test_classify_fail_tier_checks_any_native_fails_artefacts_present():
-    """If a working tree happens to carry .fails artefacts, check them too --
-    but never require them to exist."""
-    import glob
-
-    repo_root = Path(__file__).resolve().parent.parent
-    for path in glob.glob(str(repo_root / "examples" / "**" / "*.fails"),
-                          recursive=True):
-        with open(path) as f:
-            first = f.readline()
-            if first.startswith("---"):
-                continue      # legacy Perl-oracle YAML, not this evaluator
-            lines = [first.rstrip("\n")] + [ln.rstrip("\n") for ln in f]
-        for line in lines:
-            if line:
-                classify_fail_tier(line)
+# `test_classify_fail_tier_checks_any_native_fails_artefacts_present` was here.
+# It globbed every `.fails` in examples/ and required today's classifier to
+# understand all of them -- but a `.fails` is a by-product of whatever objective
+# produced it, and those files are gitignored debris that can outlive several.
+# Retiring `edge too long` (§39.50) made it fail on artefacts named
+# `coldstart-500000-s0.dom.fails`, from before the objective stamp existed at
+# all (§39.32). A guard whose input is arbitrarily stale reports the past, not
+# a regression. The check it was making now lives in
+# `test_decompose_coldstart.py::test_every_committed_fail_line_is_classifiable`,
+# which RE-SCORES the current corpus instead of reading whatever is on disk.
 
 
 # --------------------------------------------------------------------------- #
