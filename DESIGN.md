@@ -10226,3 +10226,57 @@ fixing them rather than tolerating the skip. It re-read the table through a
 helper and dropped a row by identity — different objects from a different read,
 so nothing was dropped, the sweep read as complete, and it would have asserted
 PROVISIONAL against a finished sweep forever.
+
+### 39.52 A terrace over a courtyard is air (`homemaker-py-xhw`)
+
+The owner, reading the programme-house plan rather than the fail list:
+
+> there was a fail on no first floor outdoor space, but there is a family
+> bathroom on the ground floor and a second bedroom on the first floor, these
+> could both be on a second floor and all have outdoor space.
+
+**The objective is behaving correctly, and the plan reading is right.** Level 1
+*does* carry an `O` leaf — the search tried. It does not count because
+`has_outdoor_space` is only set for a leaf that `is_usable`, and an outside leaf
+above ground is usable only if `is_supported`. Level 1's outdoor space (id `ll`,
+7.2 m²) sits directly above level 0's (id `ll`, 7.2 m²): a terrace over a
+two-storey void. `force_roof_garden` is right to reject it, and the fix really is
+a third storey, so that level 1's outdoor space can sit over enclosed rooms.
+
+**Why the search did not get there.** `mutate_level_add` exists and works —
+every `init.dom` is one storey, so every run climbs at least to
+`storey_minimum`. But it duplicates the top storey with every named room retyped
+to generic `C`/`O`, so the new storey arrives empty and the rooms must migrate
+up over several later mutations. Measured on this artefact, one `level_add`
+scores **1.7%–40%** of its 2-storey parent across five draws. That is a 60–98%
+drop to be carried before any of it pays back.
+
+Across all 36 artefacts at three objectives, **35 sit at their programme's
+`storey_minimum`**:
+
+| programme | storeys found | minimum / limit |
+|---|---|---|
+| harbor-house | 2 | 2 / 3 |
+| health-centre | 1 | 1 / 2 |
+| maple-court | 3 | 3 / 4 |
+| programme-house | 2, twice 3 | 2 / 5 |
+
+So climbing above the minimum happens and almost never survives.
+
+**What is not established.** Whether the owner's arrangement would actually
+score better is *unknown*, and the temptation to assert it should be resisted.
+Re-scored at today's objective the two 3-storey programme-house artefacts give
+0.0803 and 0.0085 against a 2-storey spread of 0.0069–0.221 — a 32× range, so
+n=2 settles nothing. My first hypothesis, that extra storeys are penalised
+through `cost` in `value / cost`, is **not supported** by that data and is
+recorded here only so nobody repeats it as if it were.
+
+**The experiment that decides it** is to build the owner's layout — three
+storeys, `t2` and `b2` on level 2, outdoor space over enclosed space on each
+level — and score it against the 0.221 best. Both outcomes are worth having. If
+it scores higher, this is a reachability problem and the fix is an operator that
+adds a storey *and* migrates rooms into it in one move. If it scores lower, it is
+an objective problem of the sharpest kind: the architecturally correct answer,
+visible by eye from the plan, loses on the numbers. That is the standing
+principle at full strength, and it is the reason to run the experiment rather
+than to guess.
