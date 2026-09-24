@@ -9322,6 +9322,13 @@ now does that: `coord_b` places the cut parallel or perpendicular to the plot's
 **longest boundary** (the owner's rule), using the ratio-independent axis choice
 §39.38 settled and clamping the one-in-532 case that falls outside [0, 1].
 
+> **Superseded in part by §39.44.** That clamp was a defect: at `t == 1.0` it
+> places the cut exactly on a corner, collapsing the child cell, and it killed
+> most of the first orthogonal sweep. `_orthogonal_b` now falls back to the
+> stored offset for any `t` outside the **open** interval. Everything else in
+> this section stands — the corpus measured under the fix gives 54.0% exactly
+> square over 539 leaves, against the 54.1% predicted here.
+
 **Default OFF.** It changes the geometry of every layout, so it is a new
 objective under §39.32, not a tweak. `test_orthogonal_division.py` asserts the
 default, and asserts that with the flag off the stored geometry is reproduced
@@ -9471,6 +9478,19 @@ corner deviation 1.845° → 0.705°, on a real programme with 55 leaves.
 Whether the geometry should land still needs
 `HOMEMAKER_ORTHOGONAL_DIVISION=1` over a cold sweep, judged against the current
 corpus on the §39.12/§39.31 discipline.
+
+> **Answered, and not the way this paragraph expected (§39.46, §39.49).** The
+> cold sweep ran — twelve of twelve at `1138ff1+orth` — and it cannot decide the
+> question: every margin against `bk9` is below the MDD at N=12, and the
+> comparison is confounded by nine commits besides. The owner settled it on
+> other grounds: orthogonal division is an architectural requirement, needed
+> whether or not it costs fails, so no fail count was ever going to veto it.
+>
+> **The factor has NOT gone.** `quality_perpendicular` is still scored by all
+> four programmes — no `patterns.config` sets `perpendicular_inside` or
+> `perpendicular_outside` to null, so they fall through to `CONF_DEFAULTS`. The
+> off switch exists; nobody has thrown it. That is `homemaker-py-2nr`, and it is
+> the unfinished half of `32t`.
 
 
 ### 39.42 The objective stamp did not name the whole objective (`homemaker-py-32t`)
@@ -10037,6 +10057,21 @@ against a `bk9` range of 50–59.
 | not adjacent to c | 15 | 5.3% |
 | proportion | 10 | 3.5% |
 | inaccessible usable space | 10 | 3.5% |
+
+**And the maple-court scare resolves as a null** (`homemaker-py-dlx`, closed).
+At n=1 the held-fixed comparison showed maple-court gaining 14 fails outside
+crinkliness, which looked like the one substantive effect in the sweep. With all
+three seeds:
+
+| held fixed, mean per run | total | crinkliness | everything else |
+|---|---|---|---|
+| harbor-house `bk9` → `orth` | 28.7 → 30.3 | 14.3 → 14.0 | 14.3 → 16.3 |
+| maple-court `bk9` → `orth` | 53.3 → 57.7 | 21.3 → 22.3 | 32.0 → 35.3 |
+
+maple-court's "everything else" delta falls from +14.0 to **+3.3**, against an
+MDD of 36.4. Every cell of that table is underpowered at n=3. The +14 was one
+seed of one programme, and the question it raised — which factor is orthogonal
+division costing — has no answer because there is no effect to attribute.
 
 Two things follow. `edge too long` and `outside edge too long` together are 28
 fails, 9.9% of the set, and are about to be deleted (`homemaker-py-2ww`,

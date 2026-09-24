@@ -112,9 +112,19 @@ def test_restoring_the_parameter_restores_the_old_behaviour(name):
         gained = set(f_on) - set(f_off)
         assert not (set(f_off) - set(f_on)), (
             f"{p.name}: restoring the width requirement removed a failure")
-        assert all(f.endswith(" width") for f in gained), (
+        # Two shapes, both of them a width fail. A leaf that is too narrow says
+        # "<id> width"; a MISSING required room says "missing <code>: would need
+        # width check", because the cascade bills a missing room exactly the
+        # checks a present one faces (§38.12, homemaker-py-s34 -- the test
+        # below pins that rule). Accepting only the first shape was fine until
+        # the corpus first contained a missing required room, which the
+        # 1138ff1+orth sweep supplied in maple-court s1.
+        def is_width_fail(f: str) -> bool:
+            return f.endswith(" width") or f.endswith(": would need width check")
+
+        assert all(is_width_fail(f) for f in gained), (
             f"{p.name}: restoring it changed something other than width: "
-            f"{sorted(gained)}")
+            f"{sorted(f for f in gained if not is_width_fail(f))}")
 
 
 def test_the_missing_room_cascade_bills_only_checks_a_present_room_faces():

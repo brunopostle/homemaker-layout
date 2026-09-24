@@ -137,6 +137,41 @@ Key modules:
 - `evolve.py` — `homemaker-evolve` CLI entry point
 - `bubble.py` — 3D bubble-diagram adjacency fitness-signal prototype (DESIGN.md §27, `mi7`); validated NULL, not wired into `fitness.py` — reference only, do not build on without a new formulation
 
+### `HOMEMAKER_ORTHOGONAL_DIVISION` — a runtime switch that changes the objective
+
+`geometry.py` reads this from the environment at import. With it set to `1`,
+`coord_b` places every division parallel or perpendicular to the plot's longest
+boundary (DESIGN.md §39.38/§39.40/§39.44) instead of inheriting the plot's skew.
+**It changes the geometry of every layout, so it is a different objective**, and
+it leaves no commit — which is why the objective stamp carries a `+orth` suffix
+(§39.42).
+
+Three consequences that bite:
+
+- **Score a `+orth` artefact with the switch on, or you get a different
+  layout.** `verify_results_table.py` handles this per row; if you score by hand,
+  set the variable.
+- The current baseline, `coldstart-1138ff1+orth-500000-s*.dom`, was measured
+  with it **on**. The older `coldstart-055d710-*` and `coldstart-99c85ec-*`
+  corpora were measured with it **off**, and are at different objectives besides.
+- It defaults **off**, so a bare `pytest` or `homemaker-fitness` run is the
+  non-orthogonal objective.
+
+### Experiment tooling you will want before writing your own
+
+- `experiments/run_coldstart_baseline.py` — the 12-run sweep. Refuses to start
+  if the table already holds rows at this objective and budget; `--resume` runs
+  only what is missing, `--restart` drops those rows first (§39.44).
+- `experiments/verify_results_table.py` — every row in `coldstart_baseline.tsv`
+  re-scored from its committed artefact. Run it after any sweep and after any
+  change to the objective, where it should report every row skipped (§39.43).
+- `experiments/decompose_coldstart.py` — per-programme deltas, fail-family
+  census, and the MDD beside every verdict. Refuses to report an incomplete
+  sweep; `--partial` marks it PROVISIONAL (§39.47).
+- `experiments/ab_report.py` — the paired statistics the above borrows. **Use
+  it rather than computing a mean difference by hand**: this project has twice
+  reported margins its sample could not resolve (§38.19/§38.21, §39.47).
+
 ## Conventions & Patterns
 
 ### Scoring .dom files
@@ -164,3 +199,69 @@ looks odd is **not** thereby validated by "Urb did it this way". Several
 defects found in §39 were carried straight over from the Perl — see §39.19 on
 `value_supported`, and `homemaker-py-hxi` on circulation, which the owner has
 ruled needs fixing.
+
+## Where things stand (2026-09-24)
+
+Read this before planning work; then `bd ready` for the queue and DESIGN.md
+§39.44–§39.49 for the detail.
+
+**The orthogonal-division baseline is complete.** Twelve of twelve at objective
+`1138ff1+orth`, 500 000 evals, three seeds, no failed runs, every row reproduced
+exactly by `verify_results_table.py`. `homemaker-py-32t` is closed for its first
+half only — see below.
+
+| programme | s0 | s1 | s2 |
+|---|---|---|---|
+| harbor-house | 27 (4/23) | 34 (4/30) | 30 (9/21) |
+| health-centre | 5 (3/2) | 5 (4/1) | 6 (3/3) |
+| maple-court | 64 (17/47) | 55 (13/42) | 54 (9/45) |
+| programme-house | 1 (1/0) | 2 (1/1) | 1 (0/1) |
+
+Against the `bk9` corpus every margin is **below the MDD at N=12** (fails −1.25
+vs 3.68; hard −0.75 vs 1.54), and the comparison is confounded by nine commits
+besides. It supports no conclusion either way, which is fine: the owner adopted
+orthogonal division as an **architectural requirement**, needed whether or not
+it costs fails (§39.46). Do not reopen that as a fitness question.
+
+**Fail set, 284 over the twelve runs:** crinkliness 111 (39.1%), size 42
+(14.8%), outside edge too long 23 (8.1%), level *n* not connected 18, access 17,
+not adjacent to `c` 15.
+
+### The next two changes both alter the objective — land them together
+
+`homemaker-py-2ww` (delete `edge too long` / `outside edge too long`, the
+`_edge_cap` and the `share_edge_cap` lever) and `homemaker-py-2nr` (delete
+`quality_perpendicular`, the unfinished half of `32t`). Each is decided and
+scoped in its bead; each forces a re-baseline on its own. **One commit, one
+re-baseline** — not two sweeps of seven days each.
+
+Between them they remove ~10% of the current fail set by construction, so the
+next sweep is not comparable to this one at the fail-count level (§39.12
+clause 3). That is expected, not a problem to engineer around.
+
+### After that, crinkliness
+
+At 39% of the fail set it dominates everything else, and §39.31 established that
+69% of its residual sits at `crink == 0` — fully buried leaves, where no
+rescaling of the factor can order anything. `homemaker-py-k54` and
+`homemaker-py-gvb` hold the analysis.
+
+### The standing principle, in the owner's words
+
+> We want to do the right thing; chasing scores is of no value if they depend on
+> flawed logic.
+
+Applied repeatedly through §39: `perpendicular` scored what no operator could
+fix, `width` asked a third question of two degrees of freedom, circulation was
+charged two questions nobody asked. **But not every odd-looking rule is
+defective** — §39.48 records a case where the measurement was right and the
+model in the reviewer's head was wrong. When a long-standing rule looks
+incoherent, the likeliest explanation is still that someone had a reason; ask
+before writing it up.
+
+### Never run a sweep and edit `src/` at the same time
+
+Worker runs are separate `homemaker-evolve` processes reading the editable
+install, and the objective stamp is read once at start-up. A mid-sweep commit to
+`src/` silently splits the sweep in two. `experiments/` and `tests/` are safe to
+change while one runs; `src/` is not.

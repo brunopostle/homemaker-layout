@@ -104,15 +104,46 @@ def test_an_incomplete_sweep_is_refused_not_averaged():
         assert r.returncode in (0, 1)
 
 
-def test_partial_marks_every_section_provisional():
-    r = subprocess.run([sys.executable, str(SCRIPT), "--partial"],
-                       capture_output=True, text=True, cwd=SCRIPT.parent.parent)
-    if "PROVISIONAL" not in r.stdout:
-        pytest.skip("the sweep is complete, nothing to mark")
-    assert "Nothing below is a result" in r.stdout
+def test_partial_marks_every_section_provisional(tmp_path, monkeypatch, capsys):
+    """Builds its own incomplete sweep rather than waiting for one.
+
+    This used to run the script against the live table and skip when the sweep
+    was complete -- so the moment the sweep finished, the guard stopped running
+    and nothing said so. That is §39.20 exactly: parity tests that skipped on
+    every clean checkout and were believed to be passing for years.
+    """
+    import csv as _csv
+    m = _mod()
+    if not TABLE.is_file():
+        pytest.skip("results table absent")
+    v_spec = importlib.util.spec_from_file_location(
+        "verify_results_table", SCRIPT.parent / "verify_results_table.py")
+    v = importlib.util.module_from_spec(v_spec)
+    v_spec.loader.exec_module(v)
+
+    rows = list(_csv.DictReader(TABLE.open(), delimiter="\t"))
+    target, _ = m.default_target(v)
+    live = [r for r in rows if r["objective"] == target]
+    if len(live) < 2:
+        pytest.skip("need at least two rows at the current objective")
+
+    # the same table minus one row, so the sweep reads as incomplete
+    short = tmp_path / "coldstart_baseline.tsv"
+    with short.open("w", newline="") as fh:
+        w = _csv.DictWriter(fh, fieldnames=list(rows[0]), delimiter="\t")
+        w.writeheader()
+        w.writerows([r for r in rows if r is not live[-1]])
+    monkeypatch.setattr(m, "TABLE", short)
+
+    import sys as _sys
+    monkeypatch.setattr(_sys, "argv", ["decompose_coldstart.py", "--partial"])
+    assert m.main() == 0
+    out = capsys.readouterr().out
+    assert "PROVISIONAL" in out
+    assert "Nothing below is a result" in out
     for section in ("=== rows", "=== fail families"):
-        i = r.stdout.index(section)
-        assert "PROVISIONAL" in r.stdout[i:i + 60], f"{section} is not marked"
+        i = out.index(section)
+        assert "PROVISIONAL" in out[i:i + 60], f"{section} is not marked"
 
 
 def test_the_target_objective_does_not_depend_on_the_environment(monkeypatch):
