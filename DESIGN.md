@@ -9982,3 +9982,66 @@ write-up was confident enough that it would have propagated. Measuring
 carefully is not the same as understanding what is being measured; when a
 long-standing rule looks incoherent, the likeliest explanation is still that
 someone had a reason, and the cheapest way to find it is to ask.
+
+### 39.49 The orthogonal-division baseline, complete (`homemaker-py-32t`)
+
+Twelve of twelve, `1138ff1+orth`, 500 000 evals, three seeds, seven days of
+wall clock. No run failed. `verify_results_table.py` reproduces every row
+exactly from its committed artefact.
+
+| programme | s0 | s1 | s2 |
+|---|---|---|---|
+| harbor-house | 27 (4/23) | 34 (4/30) | 30 (9/21) |
+| health-centre | 5 (3/2) | 5 (4/1) | 6 (3/3) |
+| maple-court | 64 (17/47) | 55 (13/42) | 54 (9/45) |
+| programme-house | 1 (1/0) | 2 (1/1) | 1 (0/1) |
+
+**Against `bk9`, nothing moved.** Paired on all twelve (programme, seed):
+
+| | mean diff | MDD at N=12 | verdict |
+|---|---|---|---|
+| fails | −1.25 | 3.68 | underpowered; N≈85 needed |
+| hard | −0.75 | 1.54 | underpowered; N≈43 needed |
+| soft | −0.50 | 3.28 | underpowered; N≈412 needed |
+
+3W/6L/3T on fails, p=0.47. Every margin is below what this sample could have
+resolved, so the honest statement is **not** "orthogonal division costs 1.25
+fails" but "this experiment cannot distinguish its cost from zero". Note also
+that the comparison is confounded — nine commits separate the two objectives
+(§39.46, `homemaker-py-0an`) — so even a resolvable margin would not have been
+attributable. Two independent reasons to draw no conclusion, which is the
+correct outcome: the geometry was adopted on architecture, not on this number.
+
+Worth recording how that number behaved as the sample grew, because it is the
+clearest vindication of §39.47 in the file:
+
+| rows | 6 | 10 | 11 | **12** |
+|---|---|---|---|---|
+| mean diff, fails | −4.00 | −1.20 | −1.09 | **−1.25** |
+
+At six rows I reported −4.00 to the owner with a caveat about confounding and
+none about power. The MDD was 6.37 at the time; the margin was already absent,
+and it collapsed by two thirds as the remaining seeds landed. maple-court s0's
+64 was simply the high end of its own spread — s1 and s2 came in at 55 and 54,
+against a `bk9` range of 50–59.
+
+**Where the fail set sits now** (284 fails over twelve runs):
+
+| | | |
+|---|---|---|
+| crinkliness | 111 | 39.1% |
+| size | 42 | 14.8% |
+| outside edge too long | 23 | 8.1% |
+| level *n* not connected | 18 | 6.3% |
+| access | 17 | 6.0% |
+| not adjacent to c | 15 | 5.3% |
+| proportion | 10 | 3.5% |
+| inaccessible usable space | 10 | 3.5% |
+
+Two things follow. `edge too long` and `outside edge too long` together are 28
+fails, 9.9% of the set, and are about to be deleted (`homemaker-py-2ww`,
+§39.48) — so the next baseline drops those by construction, and the comparison
+across that change is meaningless by §39.12 clause 3. And **crinkliness is
+nearly two fifths of everything**, which puts `gvb` and `k54` at the front of
+the queue: §39.31 already established that 69% of the crinkliness residual sits
+at `crink == 0`, where no rescaling of the factor can order anything.
