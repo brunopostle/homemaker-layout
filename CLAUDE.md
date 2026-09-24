@@ -151,17 +151,21 @@ Three consequences that bite:
 - **Score a `+orth` artefact with the switch on, or you get a different
   layout.** `verify_results_table.py` handles this per row; if you score by hand,
   set the variable.
-- The current baseline, `coldstart-1138ff1+orth-500000-s*.dom`, was measured
-  with it **on**. The older `coldstart-055d710-*` and `coldstart-99c85ec-*`
-  corpora were measured with it **off**, and are at different objectives besides.
+- Corpora on disk: `coldstart-1138ff1+orth-*` was measured with it **on** but is
+  at a **superseded objective** (§39.50 retired two criteria after it). The older
+  `coldstart-055d710-*` and `coldstart-99c85ec-*` were measured with it **off**,
+  at different objectives again. **There is currently no corpus at the live
+  objective** — one is being swept.
 - It defaults **off**, so a bare `pytest` or `homemaker-fitness` run is the
   non-orthogonal objective.
 
 ### Experiment tooling you will want before writing your own
 
 - `experiments/run_coldstart_baseline.py` — the 12-run sweep. Refuses to start
-  if the table already holds rows at this objective and budget; `--resume` runs
-  only what is missing, `--restart` drops those rows first (§39.44).
+  if the table already holds rows at this objective and budget (`--resume` runs
+  only what is missing, `--restart` drops those rows first, §39.44), and refuses
+  if `fitness.py` or `geometry.py` are uncommitted, since the stamp comes from
+  `git log` and would name the commit before the edits (§39.51).
 - `experiments/verify_results_table.py` — every row in `coldstart_baseline.tsv`
   re-scored from its committed artefact. Run it after any sweep and after any
   change to the objective, where it should report every row skipped (§39.43).
@@ -203,11 +207,15 @@ ruled needs fixing.
 ## Where things stand (2026-09-24)
 
 Read this before planning work; then `bd ready` for the queue and DESIGN.md
-§39.44–§39.50 for the detail.
+§39.44–§39.51 for the detail.
 
-**The objective changed after the last baseline, so the corpus is stale — by
-design, not by accident.** `verify_results_table.py` reports every row skipped
-at the current stamp; that is §39.43's designed answer to an objective change.
+**A re-baseline sweep is running** at objective `c836457+orth`, on an 8-core box
+separate from the laptop, started 2026-09-24. Until it lands there is **no
+corpus at the live objective**: `verify_results_table.py` reports every row
+skipped, which is §39.43's designed answer to an objective change, not a fault.
+
+**While it runs, `src/` is frozen** (see the last section). `experiments/`,
+`tests/` and the docs are safe to change.
 
 What happened, in order:
 
@@ -221,25 +229,63 @@ What happened, in order:
    (with `_edge_cap` and the `share_edge_cap` lever) and `quality_perpendicular`
    (nulled in `CONF_DEFAULTS`, so no new programme inherits it). Both were owner
    rulings. Wall cost is bit-for-bit unchanged; only the fail set moved.
+3. Then §39.51 closed the gap that `objective_commit` could not see the working
+   tree. The runner now refuses to start when the objective's own source is
+   uncommitted. It also un-skipped three guards that had keyed on *rows at the
+   current objective* and so stopped running for the whole window between an
+   objective change and its re-baseline.
 
 Scoring the §39.49 artefacts under the new objective gives 284 → 256 fails,
 exactly the 28 edge-too-long fails removed. **That is not a new baseline** — the
 search would find different layouts under the new objective. It is only a check
 that the change did what it said.
 
-### Next: re-baseline at the current objective
+### The re-baseline (running since 2026-09-24; re-read this before restarting it)
 
 ```bash
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/run_coldstart_baseline.py \
-    --budget 500000 --seeds 3
+    --budget 500000 --seeds 3 --slots $(nproc)
 ```
 
-Confirm the first line reads `objective: <current commit>+orth` before walking
-away. Seven days of wall clock on a 4-core box; `--resume` picks up only what is
-missing if it is interrupted. **Do not edit `src/` while it runs** (see below),
-and note `homemaker-py-jui`: the stamp is read from `git log`, so a dirty
-`src/` at start-up silently stamps the sweep with the *previous* objective.
-Commit first.
+**Set `--slots` to the core count** (it defaults to 4, the old laptop). Each run
+is a single-worker `homemaker-evolve`, so slots are the only parallelism.
+**Pin the BLAS threads** — nothing in the repo does it, and without it every
+slot's scipy tries to use every core, which at 8 slots can be slower than 4.
+
+Makespan, simulated against the measured per-run times of the `1138ff1+orth`
+sweep (4-core-laptop numbers, so upper bounds on a faster box):
+
+| slots | makespan |
+|---|---|
+| 4 | 118 h |
+| 8 | 63 h |
+| 12 | 60 h |
+
+436 core-hours of work in total. 8 slots is within ~3 h of the perfect-packing
+bound, which is set by maple-court s0 alone — the longest single run — so more
+slots than cores buys nothing. **Run all twelve on one machine**: the
+single-worker design avoids `homemaker-py-b8g`, but that does not make results
+portable across CPUs, and a baseline split over two boxes is not internally
+comparable.
+
+**The stamp is not `HEAD`** — it is the last commit that touched
+`fitness.py` or `geometry.py`, which is usually an older commit, because most
+work does not touch the objective. Getting this wrong once already sent someone
+looking for the wrong string. Derive it, do not guess:
+
+```bash
+git log -1 --format=%h -- src/homemaker_layout/fitness.py \
+                          src/homemaker_layout/geometry.py
+```
+
+and confirm the runner's first line matches, with `+orth` appended.
+
+`--resume` picks up only what is missing if it is interrupted, and **do not edit
+`src/` while it runs** (see below). A dirty objective source no longer needs
+watching for: the runner refuses to start over uncommitted `fitness.py` or
+`geometry.py`, before the stamp is taken, with no override (§39.51). A dirty
+`src/` file that is *not* the objective warns and continues.
 
 The new sweep is not comparable to §39.49's at the fail-count level — two
 criteria fewer (§39.12 clause 3). Expected, not a problem to engineer around.

@@ -2033,6 +2033,13 @@ any future floor work, distinct from the crinkliness regime Phase-8 addressed.
 
 ### 13.8 Experiment: share-aware edge-too-long cap (`homemaker-py-hph`) — DONE (positive, harmless)
 
+> **SUPERSEDED at §39.50.** `edge too long` and the `share_edge_cap` lever it
+> scales were both removed: the criterion was sound but structural, and the
+> owner ruled that a condition a wind post fixes without moving a wall does not
+> belong in an objective about the experience of a building. The verdict below
+> was not wrong — the knob, the cap, `_edge_cap` and the tests named here simply
+> no longer exist. Kept for the reasoning, not as a description of the code.
+
 §13.7's follow-up observation (edge-too-long = harbor's top class, 6 fails) is the
 seed. **Dissection first** (`experiments/diag_edge_too_long.py` on the 500k probe
 best): the 6 fails are only **2 distinct locations**. (1) DOMINANT ~4/6: leaf
@@ -2083,6 +2090,13 @@ maple 80.3→74.0 become the new full-stack baseline). Repro:
 `experiments/diag_edge_too_long.py`, `experiments/run_shareedge_ab.sh`.
 
 ### 13.9 Flip `share_edge_cap` default-ON + rebaseline §13.x floor (`homemaker-py-rq2`) — DONE
+
+> **SUPERSEDED at §39.50.** `edge too long` and the `share_edge_cap` lever it
+> scales were both removed: the criterion was sound but structural, and the
+> owner ruled that a condition a wind post fixes without moving a wall does not
+> belong in an objective about the experience of a building. The verdict below
+> was not wrong — the knob, the cap, `_edge_cap` and the tests named here simply
+> no longer exist. Kept for the reasoning, not as a description of the code.
 
 Acting on the §13.8 recommendation. `Fitness.__init__` now defaults the
 share-aware edge cap to `self._leaf_sharing` when `share_edge_cap` is unset:
@@ -4095,6 +4109,17 @@ substitution, not a new modelling assumption.
 > 52 usable leaves are square** (minimum corner deviation 0.434°, median
 > 1.661°). A `Straighten()` equivalent is needed and is missing, which is why
 > `quality_perpendicular` is a constant tax the search cannot act on.
+>
+> **Partly answered since, and the numbers above are pre-§39.40.** Orthogonal
+> division (`HOMEMAKER_ORTHOGONAL_DIVISION`) supplies the missing property for
+> the wall family a cut *creates*: 54.0% of leaves in the current corpus are
+> exactly square, median corner deviation 0.000°. It cannot supply it for the
+> crossing family, which is inherited from the plot boundary
+> (`homemaker-py-ao9`) — so a `Straighten()` equivalent is still wanted, and
+> `homemaker-py-bzv` is still open. The tax is gone either way:
+> `quality_perpendicular` was retired at §39.50, so nothing measures the
+> residual now. That is the accepted trade — the geometry is the fix, not the
+> score.
 
 **Correction 2 (caught in review, and this one REGRESSED accuracy before
 being fixed properly): which dimension sums is not a matter of degree.**
@@ -9486,11 +9511,11 @@ corpus on the §39.12/§39.31 discipline.
 > other grounds: orthogonal division is an architectural requirement, needed
 > whether or not it costs fails, so no fail count was ever going to veto it.
 >
-> **The factor has NOT gone.** `quality_perpendicular` is still scored by all
-> four programmes — no `patterns.config` sets `perpendicular_inside` or
-> `perpendicular_outside` to null, so they fall through to `CONF_DEFAULTS`. The
-> off switch exists; nobody has thrown it. That is `homemaker-py-2nr`, and it is
-> the unfinished half of `32t`.
+> **The factor is gone, at §39.50.** It outlived this paragraph by some months:
+> the off switch was built here and never thrown, so `quality_perpendicular` was
+> still scored across the entire `1138ff1+orth` baseline. It is now retired in
+> `CONF_DEFAULTS` — null, not deleted, so a plot whose geometry does not supply
+> right angles can ask again.
 
 
 ### 39.42 The objective stamp did not name the whole objective (`homemaker-py-32t`)
@@ -10074,8 +10099,8 @@ seed of one programme, and the question it raised — which factor is orthogonal
 division costing — has no answer because there is no effect to attribute.
 
 Two things follow. `edge too long` and `outside edge too long` together are 28
-fails, 9.9% of the set, and are about to be deleted (`homemaker-py-2ww`,
-§39.48) — so the next baseline drops those by construction, and the comparison
+fails, 9.9% of the set, and were deleted at §39.50 (`homemaker-py-2ww`,
+reasoning in §39.48) — so the next baseline drops those by construction, and the comparison
 across that change is meaningless by §39.12 clause 3. And **crinkliness is
 nearly two fifths of everything**, which puts `gvb` and `k54` at the front of
 the queue: §39.31 already established that 69% of the crinkliness residual sits
