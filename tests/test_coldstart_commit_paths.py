@@ -589,3 +589,134 @@ def test_fatal_outranks_everything():
                   " ! [rejected]  main -> main (fetch first)\n"
                   "fatal: could not read Username for 'https://github.com'\n")
     assert mod.git_error_line(R()).startswith("fatal:")
+
+
+# --------------------------------------------------------------------------- #
+# The stamp must describe the code that is actually running
+# (homemaker-py-jui, DESIGN.md §39.51)
+# --------------------------------------------------------------------------- #
+
+def _repo_with_objective_sources(tmp_path):
+    """A git repo carrying the two files the objective stamp is computed from."""
+    mod = _runner()
+    _git(tmp_path, "init", "-q", ".")
+    _git(tmp_path, "config", "user.email", "t@t")
+    _git(tmp_path, "config", "user.name", "t")
+    for rel in mod.OBJECTIVE_SOURCES:
+        f = tmp_path / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("# committed\n")
+    (tmp_path / "src" / "homemaker_layout" / "driver.py").write_text("# committed\n")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-qm", "base")
+    return tmp_path
+
+
+def test_a_clean_tree_reports_nothing_dirty(tmp_path):
+    mod = _runner()
+    repo = _repo_with_objective_sources(tmp_path)
+    assert mod.uncommitted_objective_sources(repo) == []
+    assert mod.other_dirty_sources(repo) == []
+
+
+@pytest.mark.parametrize("which", [0, 1])
+def test_an_edited_objective_source_is_detected(tmp_path, which):
+    """Either file. geometry.py counts as much as fitness.py -- §39.42 settled
+    that, and this is the same rule reaching the working tree."""
+    mod = _runner()
+    repo = _repo_with_objective_sources(tmp_path)
+    rel = mod.OBJECTIVE_SOURCES[which]
+    (repo / rel).write_text("# edited, not committed\n")
+    assert mod.uncommitted_objective_sources(repo) == [rel]
+
+
+def test_a_staged_but_uncommitted_edit_still_counts(tmp_path):
+    """`git log` cannot see the index either. Staging is not committing."""
+    mod = _runner()
+    repo = _repo_with_objective_sources(tmp_path)
+    rel = mod.OBJECTIVE_SOURCES[0]
+    (repo / rel).write_text("# staged\n")
+    _git(repo, "add", "--", rel)
+    assert mod.uncommitted_objective_sources(repo) == [rel]
+
+
+def test_a_dirty_non_objective_source_is_separated_out(tmp_path):
+    """An edited driver.py changes how the search moves, not what it is scored
+    against -- a warning, not a refusal, and it must not be confused with one."""
+    mod = _runner()
+    repo = _repo_with_objective_sources(tmp_path)
+    (repo / "src/homemaker_layout/driver.py").write_text("# edited\n")
+    assert mod.uncommitted_objective_sources(repo) == []
+    assert mod.other_dirty_sources(repo) == ["src/homemaker_layout/driver.py"]
+
+
+def test_the_stamp_and_the_dirty_check_read_the_same_files():
+    """Two lists of "what the objective is" would drift, which is exactly how
+    §39.42 happened. There is one constant."""
+    mod = _runner()
+    src = RUNNER.read_text()
+    i = src.index("def objective_commit")
+    body = src[i:i + 2000]
+    assert "OBJECTIVE_SOURCES" in body, "the stamp hardcodes its own file list"
+    i = src.index("def uncommitted_objective_sources")
+    assert "OBJECTIVE_SOURCES" in src[i:i + 1500]
+
+
+def test_a_sweep_refuses_to_start_over_uncommitted_objective_edits(monkeypatch,
+                                                                   capsys):
+    """The whole point: a week of runs stamped with the commit BEFORE the edits
+    that scored them, and artefacts named from it that can overwrite that
+    objective's."""
+    mod = _runner()
+    monkeypatch.setattr(mod, "uncommitted_objective_sources",
+                        lambda *a, **k: ["src/homemaker_layout/fitness.py"])
+    import sys as _sys
+    monkeypatch.setattr(_sys, "argv",
+                        ["run_coldstart_baseline.py", "--seeds", "1", "--dry-run"])
+    with pytest.raises(SystemExit) as e:
+        mod.main()
+    assert e.value.code == 2
+    out = capsys.readouterr().out
+    assert "src/homemaker_layout/fitness.py" in out
+    assert "no override" in out
+    assert "would run" not in out, "it listed the queue despite refusing"
+
+
+def test_a_dirty_non_objective_source_warns_but_runs(monkeypatch, capsys):
+    mod = _runner()
+    monkeypatch.setattr(mod, "uncommitted_objective_sources", lambda *a, **k: [])
+    monkeypatch.setattr(mod, "other_dirty_sources",
+                        lambda *a, **k: ["src/homemaker_layout/driver.py"])
+    monkeypatch.setattr(mod, "objective_commit", lambda: "deadbee")
+    monkeypatch.setattr(mod, "recorded_pairs", lambda *a, **k: set())
+    import sys as _sys
+    monkeypatch.setattr(_sys, "argv",
+                        ["run_coldstart_baseline.py", "--seeds", "1", "--dry-run"])
+    mod.main()
+    out = capsys.readouterr().out
+    assert "WARNING" in out and "driver.py" in out
+    assert "would run" in out, "a non-objective edit must not stop the sweep"
+
+
+def test_the_refusal_happens_before_the_stamp_is_taken():
+    """A stamp computed over uncommitted edits is a label for an objective that
+    exists nowhere. Order is the whole fix, and there is no value to assert."""
+    src = RUNNER.read_text()
+    body = src[src.index("def main("):]
+    assert (body.index("uncommitted_objective_sources")
+            < body.index("objective = objective_commit()")), (
+        "the stamp is taken before the tree is checked")
+
+
+def test_the_verifier_explains_mismatches_when_the_tree_is_dirty():
+    """A wall of mismatches has one likely cause and one unlikely one. Saying
+    which is the difference between "the table drifted" and "you have edits"."""
+    if not VERIFIER.is_file():
+        pytest.skip("verifier absent")
+    src = VERIFIER.read_text()
+    body = src[src.index("def main("):]
+    assert "uncommitted_objective_sources" in body, (
+        "the verifier never mentions a dirty objective source")
+    # gated on there being something to explain, or it is just noise
+    i = body.index("uncommitted_objective_sources")
+    assert "bad or missing" in body[i:i + 300]

@@ -214,6 +214,18 @@ def main() -> int:
           f"{checked} row(s) verified exactly, "
           f"{bad} mismatched, {missing} artefact(s) missing, "
           f"{skipped} row(s) skipped (other objectives)")
+    # A dirty objective source is the likeliest cause of a wall of mismatches,
+    # and the least obvious: the rows were measured by a commit, and they are
+    # being re-scored by a working tree that is not that commit. Saying so is
+    # the difference between "the table drifted" and "you have edits" (§39.51).
+    dirty = _runner().uncommitted_objective_sources()
+    if dirty and (bad or missing):
+        print("\n  NOTE: the objective's own source is not committed --"
+              + "".join(f"\n        {d}" for d in dirty)
+              + "\n        so these rows are being re-scored by code that is "
+                "not the commit\n        they name. Expect mismatches until "
+                "you commit or revert.")
+
     if orphans:
         print(f"{len(orphans)} row(s) name an artefact that no longer exists. "
               f"A row that cannot be\nreproduced is not a result -- drop it, or "

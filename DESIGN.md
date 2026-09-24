@@ -10154,3 +10154,50 @@ changed.
 row skipped at the new stamp — §39.43's designed answer to an objective change,
 and a reminder that the next sweep is not comparable to §39.49's at the
 fail-count level (§39.12 clause 3).
+
+### 39.51 The stamp could not see the working tree (`homemaker-py-jui`)
+
+`objective_commit()` asks `git log`, and git log cannot see uncommitted edits.
+So a sweep started over a dirty `fitness.py` or `geometry.py` stamps every row —
+and names every artefact — with the commit **before** the edits that actually
+scored it. A week of runs labelled as an objective that is not theirs, under
+filenames that can overwrite the real one's. §39.42 again, arriving through the
+working tree rather than through the file list.
+
+Found the honest way rather than by inspection: while landing §39.50 the
+verifier reported *twelve mismatched* rows at `1138ff1+orth`. It had correctly
+noticed that scoring had changed and wrongly attributed it to the objective that
+had not. One commit later the same command reported all rows skipped, which is
+the right answer — the difference was only that the change had a commit to name.
+
+**The runner now refuses to start**, naming the files, before the stamp is
+taken. No override: a `+dirty` stamp would label a working tree that is gone the
+moment it is committed or reverted, so nobody could ever check it, which is
+worse than a sweep that did not start. A dirty `src/` file that is *not* part of
+the objective — `driver.py`, `operators.py` — warns instead and continues: it
+changes how the search moves, not what it is scored against, so the rows stay
+correctly labelled and only reproducibility is lost. That distinction is the
+whole design, and the two cases have separate tests.
+
+`OBJECTIVE_SOURCES` is now a single constant that both `objective_commit` and
+the dirty check read, because two lists of "what the objective is" drifting
+apart is exactly how §39.42 happened. The verifier also names a dirty objective
+source when it reports mismatches, since that is the likeliest cause of a wall
+of them and the least obvious.
+
+**Three guards had quietly stopped running**, and the fix belongs here because
+the cause is the same. `test_decompose_coldstart.py`'s corpus checks keyed on
+*rows at the current objective* — so the moment an objective changed they
+skipped, for the entire week between the change and its re-baseline, which is
+precisely the window in which the evaluator is being edited. But those tests ask
+what **today's** evaluator emits; the artefact is only input geometry, and the
+objective it was measured at is irrelevant to the question. They now take the
+fullest objective in the table, whichever it is. §39.20's lesson, for the third
+time: a test that skips is a test that is not running, and nobody reads the skip
+count.
+
+The last of the three then failed for a real reason, which is the argument for
+fixing them rather than tolerating the skip. It re-read the table through a
+helper and dropped a row by identity — different objects from a different read,
+so nothing was dropped, the sweep read as complete, and it would have asserted
+PROVISIONAL against a finished sweep forever.

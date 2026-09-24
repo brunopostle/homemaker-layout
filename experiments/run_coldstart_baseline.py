@@ -58,6 +58,11 @@ FIELDS = ["objective", "programme", "seed", "budget", "fails", "hard", "soft",
 # runner, `verify_results_table.py`, and anything that re-scores an artefact.
 ORTH_ENV = "HOMEMAKER_ORTHOGONAL_DIVISION"
 ORTH_SUFFIX = "+orth"
+# The files the stamp is computed from -- named once, because `objective_commit`
+# and `uncommitted_objective_sources` must agree about what "the objective" is,
+# and two copies of that rule is how §39.42 happened.
+OBJECTIVE_SOURCES = ("src/homemaker_layout/fitness.py",
+                     "src/homemaker_layout/geometry.py")
 
 
 def objective_commit() -> str:
@@ -81,8 +86,7 @@ def objective_commit() -> str:
     # as a non-orthogonal one and would have written over its artefacts: two
     # objectives under one name, which is precisely what §39.32 exists to stop.
     r = subprocess.run(
-        ["git", "log", "-1", "--format=%h", "--",
-         "src/homemaker_layout/fitness.py", "src/homemaker_layout/geometry.py"],
+        ["git", "log", "-1", "--format=%h", "--", *OBJECTIVE_SOURCES],
         cwd=REPO, capture_output=True, text=True)
     stamp = r.stdout.strip() or "unknown"
     # ...and the run-time switch, which no commit records. ORTHOGONAL_DIVISION
@@ -92,6 +96,42 @@ def objective_commit() -> str:
     if os.environ.get(ORTH_ENV, "") == "1":
         stamp += ORTH_SUFFIX
     return stamp
+
+
+def uncommitted(paths, repo: Path = REPO) -> "list[str]":
+    """Which of ``paths`` differ from HEAD -- staged, unstaged or untracked."""
+    r = subprocess.run(["git", "status", "--porcelain", "--", *paths],
+                       cwd=repo, capture_output=True, text=True)
+    return sorted(ln[3:].strip() for ln in r.stdout.splitlines() if ln.strip())
+
+
+def uncommitted_objective_sources(repo: Path = REPO) -> "list[str]":
+    """The objective's own source files that are not in any commit.
+
+    `objective_commit` asks `git log`, and git log cannot see the working tree.
+    So a sweep started over uncommitted edits to `fitness.py` or `geometry.py`
+    stamps every row -- and names every artefact -- with the commit BEFORE those
+    edits: a week of runs labelled as an objective that is not the one that
+    scored them, and filenames that can overwrite the real one's. That is §39.42
+    again, arriving through the working tree instead of through the file list
+    (homemaker-py-jui).
+
+    Caught the honest way: while landing §39.50 the verifier reported twelve
+    mismatches at the old stamp, having correctly noticed that scoring had
+    changed and wrongly attributed it to the objective that had not.
+    """
+    return uncommitted(OBJECTIVE_SOURCES, repo)
+
+
+def other_dirty_sources(repo: Path = REPO) -> "list[str]":
+    """Dirty `src/` files that are NOT part of the objective.
+
+    A different and lesser problem, so it warns rather than refuses. An edited
+    `driver.py` or `operators.py` changes how the search moves but not what it
+    is scored against, so the rows are still labelled correctly -- they just
+    cannot be reproduced from any commit.
+    """
+    return [p for p in uncommitted(["src"], repo) if p not in OBJECTIVE_SOURCES]
 
 
 def committable(candidates: "list[str]", repo: Path = REPO) -> "list[str]":
@@ -377,6 +417,31 @@ def main() -> None:
         ap.error("--resume and --restart are opposites; pick one")
     checkpoint_every = (args.checkpoint_every if args.checkpoint_every is not None
                         else max(1, args.budget // 20))
+    # Before the stamp is taken, not after: a stamp computed over uncommitted
+    # edits is a label for an objective that does not exist anywhere (§39.51).
+    dirty = uncommitted_objective_sources()
+    if dirty:
+        print(f"the objective's own source is not committed:\n"
+              + "".join(f"  {p}\n" for p in dirty)
+              + f"\n`objective_commit` asks `git log`, which cannot see the "
+                f"working tree, so every\nrow of this sweep would be stamped "
+                f"with the commit BEFORE these edits -- and the\nartefacts "
+                f"named from it, where they can overwrite that objective's "
+                f"(DESIGN.md\n§39.32, §39.51).\n\n"
+                f"Commit them and run again. There is deliberately no override: "
+                f"a stamp nobody\ncan check is worse than a sweep that did not "
+                f"start.",
+              flush=True)
+        raise SystemExit(2)
+    stale = other_dirty_sources()
+    if stale:
+        print(f"WARNING: {len(stale)} uncommitted src/ file(s) that are not the "
+              f"objective:\n" + "".join(f"  {p}\n" for p in stale)
+              + "These do not change what the runs are scored against, so the "
+                "rows stay\ncorrectly labelled -- but the search that produced "
+                "them is not in any commit,\nso nobody can reproduce it. "
+                "Continuing.\n", flush=True)
+
     # Read once, at the start: every row of this sweep is stamped with the same
     # objective, and a mid-sweep edit to fitness.py would otherwise split the
     # sweep in two without saying so.

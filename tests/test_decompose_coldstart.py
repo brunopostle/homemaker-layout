@@ -24,6 +24,37 @@ def _mod():
     return mod
 
 
+def _verifier_mod():
+    spec = importlib.util.spec_from_file_location(
+        "verify_results_table", SCRIPT.parent / "verify_results_table.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _rows_to_score():
+    """(objective, rows) for the fullest objective in the table, current or not.
+
+    These tests ask what TODAY'S evaluator emits; the artefact is only input
+    geometry, so the objective it was measured at does not have to be the
+    current one. Keying on the current objective meant all three stopped running
+    the moment an objective changed -- i.e. for the whole week between a change
+    and the sweep that re-baselines it, which is precisely when the evaluator is
+    being edited. §39.20 is the standing lesson: a test that skips is a test
+    that is not running, and nobody reads the skip count.
+    """
+    import csv as _csv
+    import collections
+    if not TABLE.is_file():
+        pytest.skip("results table absent")
+    rows = list(_csv.DictReader(TABLE.open(), delimiter="\t"))
+    if not rows:
+        pytest.skip("results table is empty")
+    by = collections.Counter(r["objective"] for r in rows)
+    obj = by.most_common(1)[0][0]
+    return obj, [r for r in rows if r["objective"] == obj]
+
+
 # Real lines, taken from scoring the committed corpus -- not invented shapes.
 CASES = [
     ("0/lllr outside edge too long", "outside edge too long"),
@@ -67,17 +98,11 @@ def test_every_committed_fail_line_normalises_to_a_bare_kind():
     """No family may still carry a leaf id, a room code, or a raw number."""
     import re
     m = _mod()
-    v_spec = importlib.util.spec_from_file_location(
-        "verify_results_table", SCRIPT.parent / "verify_results_table.py")
-    v = importlib.util.module_from_spec(v_spec)
-    v_spec.loader.exec_module(v)
-    if not TABLE.is_file():
-        pytest.skip("results table absent")
+    v = _verifier_mod()
+    _, rows = _rows_to_score()
     seen = 0
-    for r in csv.DictReader(TABLE.open(), delimiter="\t"):
-        commit, orth = v.split_objective(r["objective"])
-        if commit != v.source_commit():
-            continue
+    for r in rows:
+        _, orth = v.split_objective(r["objective"])
         got = v.score_lines(r["programme"], r["dom"], orthogonal=orth)
         if got is None:
             continue
@@ -87,8 +112,7 @@ def test_every_committed_fail_line_normalises_to_a_bare_kind():
             assert "/" not in f, f"{ln!r} -> {f!r} still has a leaf path"
             assert not re.search(r"\d", f.replace("N", "")), f"{ln!r} -> {f!r}"
             assert not re.match(r"^[lr]+ ", f), f"{ln!r} -> {f!r} starts with a leaf id"
-    if seen == 0:
-        pytest.skip("no rows at the current objective")
+    assert seen, "scored the corpus and it produced no failures at all"
 
 
 def test_every_committed_fail_line_is_classifiable():
@@ -97,25 +121,16 @@ def test_every_committed_fail_line_is_classifiable():
     Re-homed from `test_fitness.py`, which globbed `.fails` off disk. Those are
     gitignored by-products of whatever objective wrote them, so that guard
     eventually failed on debris from before the objective stamp existed rather
-    than on a regression (§39.50). Re-scoring the corpus asks the same question
-    of data that is current by construction.
+    than on a regression (§39.50). Re-scoring asks the same question of data
+    that is current by construction.
     """
-    import csv as _csv
     from homemaker_layout.fitness import classify_fail_tier
-    m = _mod()
-    v_spec = importlib.util.spec_from_file_location(
-        "verify_results_table", SCRIPT.parent / "verify_results_table.py")
-    v = importlib.util.module_from_spec(v_spec)
-    v_spec.loader.exec_module(v)
-    if not TABLE.is_file():
-        pytest.skip("results table absent")
-    target, rows = m.default_target(v)
-    if not rows:
-        pytest.skip("no rows at the current objective")
+    v = _verifier_mod()
+    _, rows = _rows_to_score()
     seen = 0
-    for (prog, seed), r in rows.items():
+    for r in rows:
         _, orth = v.split_objective(r["objective"])
-        got = v.score_lines(prog, r["dom"], orthogonal=orth)
+        got = v.score_lines(r["programme"], r["dom"], orthogonal=orth)
         if got is None:
             continue
         for ln in got[0]:
@@ -155,10 +170,18 @@ def test_partial_marks_every_section_provisional(tmp_path, monkeypatch, capsys):
     v_spec.loader.exec_module(v)
 
     rows = list(_csv.DictReader(TABLE.open(), delimiter="\t"))
-    target, _ = m.default_target(v)
+    # Any objective with rows, not necessarily the current one -- the script
+    # takes `--objective`, and what is under test is the PROVISIONAL marking,
+    # not which sweep is live. Keying on the current objective made this skip
+    # for the whole window between an objective change and its re-baseline.
+    target, _ = _rows_to_score()
+    # filtered from THIS read of the table: `_rows_to_score` opens its own, so
+    # its row objects are different objects and identity-dropping one of them
+    # silently drops nothing -- which left the table complete and the test
+    # asserting PROVISIONAL against a finished sweep.
     live = [r for r in rows if r["objective"] == target]
     if len(live) < 2:
-        pytest.skip("need at least two rows at the current objective")
+        pytest.skip("need at least two rows at one objective")
 
     # the same table minus one row, so the sweep reads as incomplete
     short = tmp_path / "coldstart_baseline.tsv"
@@ -169,7 +192,9 @@ def test_partial_marks_every_section_provisional(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(m, "TABLE", short)
 
     import sys as _sys
-    monkeypatch.setattr(_sys, "argv", ["decompose_coldstart.py", "--partial"])
+    monkeypatch.setattr(_sys, "argv",
+                        ["decompose_coldstart.py", "--partial",
+                         "--objective", target])
     assert m.main() == 0
     out = capsys.readouterr().out
     assert "PROVISIONAL" in out
