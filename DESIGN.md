@@ -10790,3 +10790,67 @@ fail like every other building-level criterion.
 `m3s` is therefore not a deletion. It is: flip the rule to a cap, drop the floor,
 add the missing fail. Direction awaiting the owner's confirmation; the
 measurements above are not.
+
+### 39.59 The four usable-space rulings, landed
+
+Commit `691cc21`. All four change the objective, so they land together and one
+re-baseline covers them. Owner's rulings of 2026-09-25 (§39.56–§39.58).
+
+| bead | change |
+|---|---|
+| `m3s` | the internal-area rule becomes a **cap** at 1.2× — `area_cap`, None-able per programme — and gains the `fail()` it never had |
+| `k7c` | `adjacency: [o]` requires a **usable** outside space; a void no longer counts |
+| `v8n` | a void **costs nothing and earns nothing** — no area cost, no boundary cost, no value |
+| `w2k` | regression test: every indoor\|outdoor wall is charged at the external rate |
+
+`v8n`'s predicate is narrow on purpose. A void is *above ground, unsupported
+and uncovered*. Level 0 is excluded because that is the yard the 10/m² rate was
+written for, and a covered-unsupported leaf is excluded because it already
+draws its own `unsupported covered outside` fail — zeroing its cost would remove
+the economic pressure against it while leaving the fail in place. `k7c` uses
+`is_usable`, the broader predicate, because there the question is only "can
+someone stand on it".
+
+#### What it does to the committed artefacts
+
+| programme | s | was | now | Δ |
+|---|---|---|---|---|
+| harbor-house | 0,1,2 | 29, 27, 25 | 29, 27, 25 | 0, 0, 0 |
+| health-centre | 0,1,2 | 4, 5, 8 | 4, 5, 8 | 0, 0, 0 |
+| maple-court | 0,1,2 | 51, 54, 41 | 53, 57, 43 | +2, +3, +2 |
+| programme-house | 0,1,2 | 1, 2, 1 | 1, 2, 1 | 0, 0, 0 |
+| **total** | | **248** | **255** | **+7** |
+
+Exactly +4 `not adjacent to o` (the void credits withdrawn — 1 such fail before,
+5 after) and +3 `excess internal area` (the cap, all maple-court, which is the
+only programme over 1.59×). Nothing else moved, which is the point: `v8n`
+changes costs, not fails, and `w2k` changes nothing at all.
+
+**This is not a new baseline.** The search would find different layouts under
+the new objective — `m3s` in particular removes the incentive that was buying
+storeys, so topologies should shift. It is only the §39.50-style check that the
+changes did what they said. `verify_results_table.py` will now report every row
+skipped; that is §39.43 working.
+
+#### A drift filed at landing rather than found later
+
+`homemaker-py-q4t`. `k7c` tightened `graph.has_adjacency`, but `cpsat._matches`
+decides which *code* goes in which slot, and usability is a property of the
+**slot** — so the CP-SAT model cannot express the tightened relation and now
+optimises a slightly different one than the scorer checks. It is P2, not P1,
+because cpsat seeds and repairs but never scores: the cost is worse seeds, not
+wrong scores.
+
+It is filed at all because this exact class of drift has bitten once before,
+and the test that caught it says so in its own docstring — §39.4 tightened
+`has_adjacency` while `cpsat._matches` went on matching by raw prefix. Two
+programmes were kept in that test specifically to make the drift visible
+instead of looking like noise. Worth noting that the guard worked as designed:
+the divergence was visible at the moment of the change, not a season later.
+
+#### The one place the rulings did not reach
+
+`homemaker-py-e4r` — an operator that places outdoor space over *enclosed*
+space — is search-side, not objective-side. It can land independently and does
+not need to wait for the re-baseline. It is what actually lets the search
+exploit `k7c` and `v8n` rather than merely being scored by them.

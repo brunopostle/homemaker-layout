@@ -216,26 +216,38 @@ ruled needs fixing.
 ## Where things stand (2026-09-25)
 
 Read this before planning work; then `bd ready` for the queue and DESIGN.md
-§39.44–§39.58 for the detail.
+§39.44–§39.59 for the detail.
 
-**The re-baseline landed.** Twelve of twelve at `c836457+orth`, no failed runs,
-all twelve verified exactly by `verify_results_table.py`. **248 fails** across
-the corpus — crinkliness 39.1%, size 11.7%, `not adjacent to c` 9.7%, access
-8.1%. That is the live baseline; compare nothing to the `1138ff1+orth` or
-`99c85ec` numbers (§39.12 clause 3).
+**The `c836457+orth` re-baseline completed and was then superseded the same
+day.** Twelve of twelve, no failed runs, all twelve verified exactly — 248
+fails, crinkliness 39.1%, size 11.7%, `not adjacent to c` 9.7%, access 8.1%.
+It is the last COMPLETE corpus, and the right thing to compare the next sweep
+against, but it is **no longer at the live objective**: §39.59 landed four
+changes hours after it finished. Compare nothing to `1138ff1+orth` or
+`99c85ec` at all (§39.12 clause 3).
 
 **`src/` is unfrozen** — no sweep is running. It re-freezes the moment one
-starts (see the last section).
+starts (see the last section), which is the next thing that should happen.
 
-**Four objective changes are queued and should land together**, so one
-re-baseline covers them all: `homemaker-py-k7c` (adjacency to a void),
-`homemaker-py-m3s` (the internal-area rule is a **cap**, not a floor — §39.58,
-direction pending the owner's confirmation),
-`homemaker-py-v8n` (voids above outdoor space must cost nothing) and
-`homemaker-py-w2k` (regression test only — indoor|outdoor walls already cost
-as external, measured, so this locks in behaviour rather than changing it).
-`homemaker-py-e4r` (an operator placing outdoor space over enclosed space) is
-search-side, not objective-side, and can land independently.
+**The four objective changes landed** in `691cc21` (§39.59): `homemaker-py-m3s`
+(the internal-area rule is now a **cap** at 1.2x, `area_cap`, and registers a
+fail), `homemaker-py-k7c` (`adjacency: [o]` needs a *usable* outside space),
+`homemaker-py-v8n` (a void costs and earns nothing) and `homemaker-py-w2k`
+(regression test on indoor|outdoor wall costing). Re-scoring the twelve
+committed artefacts gives 248 -> 255 fails, exactly +4 `not adjacent to o` and
++3 `excess internal area` -- **not a new baseline**, just the check that the
+changes did what they said.
+
+**So the objective has moved and there is again no corpus at it.** The stamp is
+no longer `c836457`; derive it (see below) before starting the re-baseline.
+`verify_results_table.py` reporting every row skipped is §39.43 working.
+
+Still open and NOT part of that bundle, both search-side, so neither needs to
+wait for the re-baseline: `homemaker-py-e4r` (an operator placing outdoor space
+over enclosed space -- what actually lets the search exploit k7c/v8n rather
+than merely be scored by them) and `homemaker-py-q4t` (cpsat's adjacency model
+cannot express k7c's usability test, so it optimises a slightly different
+relation than the scorer checks -- worse seeds, not wrong scores).
 
 What happened, in order:
 
