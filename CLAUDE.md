@@ -24,29 +24,63 @@ bd close <id>         # Complete work
 
 ### Running `bd` in a remote agent container
 
-**A container restart removes `bd` entirely.** It is a Go binary installed into
-`/root/go/bin`, not part of the repo, so it does not survive. `bd create` then
-fails *silently* under `&&` chaining and the work looks done — that is how a
-bead id that never existed reached DESIGN.md once (§39.53). Check `command -v
-bd` before relying on it, and if it is gone, append the record straight to
-`.beads/issues.jsonl` (it is plain JSONL, git-tracked, and is the thing that
-actually carries issue state — see below). Match an existing record's keys
-exactly and re-parse the file afterwards.
+**Assume `bd` is absent, not merely off `PATH`.** A container restart removes it
+— it is a Go binary, not part of the repo. The older advice here said it lives
+at `/root/go/bin/bd` and only needs `export PATH="$PATH:/root/go/bin"`; that is
+worth trying first, but on 2026-09-25 **`/root/go` did not exist at all**, so
+treat "check `/root/go/bin`" as one possibility rather than the answer. Either
+way `bd create` fails *silently* under `&&` chaining and the work looks done —
+that is how a bead id that never existed reached DESIGN.md once (§39.53).
 
-**`bd` is installed at `/root/go/bin/bd`, and that directory is not on `PATH`.**
-So `command -v bd` finds nothing and a bare `bd` reports `command not found`,
-which looks exactly like "beads is not available here". It is available. Run
-`export PATH="$PATH:/root/go/bin"` first, and never conclude beads is missing
-from `command not found` without checking `/root/go/bin`.
+So: `command -v bd || ls /root/go/bin`, and if it is genuinely gone, either
+install it (below) or append the record straight to `.beads/issues.jsonl` —
+plain JSONL, git-tracked, and the thing that actually carries issue state. Match
+an existing record's keys exactly, **preserve the other lines byte-for-byte**
+(rewriting the file with `json.dumps` reorders keys on every record and churns
+all ~200 lines for nothing), and re-parse the file afterwards.
 
-**Issues persist; memories do not.** `.beads/issues.jsonl` is git-tracked, so
-`bd export -o .beads/issues.jsonl` followed by a commit is what actually carries
-issue state out of a container. The Dolt database under `.beads/embeddeddolt/`
-is gitignored, `bd export` omits memories unless asked, and `sync.remote` is a
-`git+ssh://` URL that an agent container cannot use — containers have no `ssh`
-binary. **A `bd remember` written in a container therefore reaches nobody.**
-Put anything durable in `DESIGN.md` (findings) or this file (how to work here),
-and leave `bd remember` for sessions running on the owner's own machine.
+**Installing it, if you need it.** `go install` alone is not enough — the build
+fails on `unicode/uregex.h`, a cgo dependency of Dolt's regex library:
+
+```bash
+apt-get install -y libicu-dev          # the missing piece; you are root
+go install github.com/steveyegge/beads/cmd/bd@v1.3.0
+export PATH="$PATH:/root/go/bin"
+bd metrics off                          # it phones home by default
+```
+
+Roughly 10 minutes and ~200 MB, and it dies with the container.
+
+**But installing it does not give you a working database**, and this is the part
+worth reading before you spend the ten minutes. `bd bootstrap` clones the remote
+Dolt DB and then refuses it: the remote is at schema **v32** and bd 1.3.0 wants
+**v66**. bd will not auto-migrate a remote-backed clone, because migrating one
+independently forks the schema and `bd dolt pull` can no longer merge. It asks
+for exactly ONE designated migrator — **that is the owner's call and not an
+agent's**, since `bd migrate --force && bd dolt push` rewrites the shared issue
+DB and any older `bd` stops reading it.
+
+A local-only DB does work (`bd init --prefix homemaker-py` with no remote, then
+`bd import .beads/issues.jsonl`) and loads all the issues correctly. The catch
+is that `bd export` rewrites every line — key ordering and dependency-list
+ordering — so the first export lands a ~200-line diff on a git-tracked file. The
+round-trip was verified **semantically lossless** (zero records differ; four
+closed issues gain a `closed_at` they were missing), so the churn is cosmetic —
+but it is still churn, and **the owner's standing preference is to leave bd
+unconfigured in containers and hand-edit the JSONL.** Do that unless told
+otherwise.
+
+**Issues persist; memories do not** — but not for the reason this file used to
+give. `.beads/issues.jsonl` is git-tracked, so an export followed by a commit is
+what carries issue state out of a container. The Dolt database under
+`.beads/embeddeddolt/` is gitignored and `bd export` omits memories unless
+asked. This file previously added that `sync.remote` is a `git+ssh://` URL "an
+agent container cannot use — containers have no `ssh` binary". There is indeed
+no `ssh` here, **but `bd bootstrap` reached that URL and cloned from it anyway**
+— bd resolves `git+ssh://` over HTTPS itself. So the ssh premise is wrong; what
+actually stops a container is the schema gate above. Either way `bd remember`
+from a container is not something to rely on: put durable findings in
+`DESIGN.md` and durable working knowledge here.
 
 ### Room-code namespaces (DESIGN.md §39.4/§39.6)
 
