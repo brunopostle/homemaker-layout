@@ -1477,7 +1477,16 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
         from . import cpsat
         room_set = set(room_slots)
         neighbors = {L: {nb for nb in _nbrs(L) if nb in room_set} for L in room_slots}
-        context_types = {L: {nb.type for nb in _nbrs(L) if nb.type and nb not in room_set}
+        # homemaker-py-q4t (§39.64): an outside neighbour counts only when it
+        # is USABLE (k7c). `context_types` is a set of type STRINGS, so an
+        # unsupported void reaches the model as a plain "O" and CP-SAT credits
+        # it as a constant-1 satisfaction of `adjacency: [o]` that the scorer
+        # then refuses. Filtered with the scorer's OWN predicate rather than a
+        # reimplementation here -- dropping the whole neighbour is exactly
+        # right, since its only contribution was that "O"/"S".
+        context_types = {L: {nb.type for nb in _nbrs(L)
+                             if nb.type and nb not in room_set
+                             and graph_mod.satisfies_as_outside(nb)}
                          for L in room_slots}
         _lim = {} if cpsat_limits is None else dict(
             zip(("time_limit_s", "deterministic_limit"), cpsat_limits))
@@ -1509,7 +1518,11 @@ def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,
             secondary = [a for a in req_adj if a.lower() != "c"]
 
             def _sat(slot, secondary=secondary) -> int:
-                nb_types = [nb.type for nb in _nbrs(slot) if nb.type]
+                # q4t (§39.64): same narrowing as the cpsat path above. This
+                # heuristic is the DEFAULT seeder, so it was the one actually
+                # placing rooms against voids.
+                nb_types = [nb.type for nb in _nbrs(slot)
+                            if nb.type and graph_mod.satisfies_as_outside(nb)]
                 return sum(1 for a in secondary
                            if any(graph_mod.code_matches_requirement(t, a)
                                   for t in nb_types))
@@ -1557,7 +1570,11 @@ def _beam_place_rooms(codes: list[str], slots: list, dominated: set,
         nb_types = []
         for nb in _nbrs(slot):
             t = assign.get(nb, nb.type)
-            if t:
+            # q4t (§39.64): an unusable outside neighbour counts for nothing,
+            # as `graph.has_adjacency` has held since k7c. Usability is a
+            # property of what is built BELOW the slot, so it is unaffected by
+            # the hypothetical assignment `t` and stays valid mid-beam.
+            if t and graph_mod.satisfies_as_outside(nb):
                 nb_types.append(t)
         return sum(1 for a in secondary
                    if any(graph_mod.code_matches_requirement(t, a)
@@ -1615,7 +1632,8 @@ def _cpsat_relabel_settled(lvl: dom.Node, reqs) -> None:
     neighbors = {L: {nb for nb in G.neighbors(L) if nb in room_set}
                 for L in room_slots if G.has_node(L)}
     context_types = {L: {nb.type for nb in G.neighbors(L)
-                         if nb.type and nb not in room_set}
+                         if nb.type and nb not in room_set
+                         and graph_mod.satisfies_as_outside(nb)}  # q4t, §39.64
                      for L in room_slots if G.has_node(L)}
     result = cpsat.solve_room_labels(room_slots, codes, reqs, neighbors, context_types)
     if result:
@@ -2015,7 +2033,8 @@ def mutate_reassign(root: dom.Node, rng: np.random.Generator,
     neighbors = {L: {nb for nb in G.neighbors(L) if nb in room_set}
                 for L in room_slots if G.has_node(L)}
     context_types = {L: {nb.type for nb in G.neighbors(L)
-                         if nb.type and nb not in room_set}
+                         if nb.type and nb not in room_set
+                         and graph_mod.satisfies_as_outside(nb)}  # q4t, §39.64
                      for L in room_slots if G.has_node(L)}
     result = cpsat.solve_room_labels(room_slots, codes, reqs, neighbors, context_types)
     if not result or all(leaf.type == code for leaf, code in result.items()):

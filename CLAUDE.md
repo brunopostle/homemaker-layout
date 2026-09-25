@@ -339,8 +339,8 @@ attribute):
 | bead | | |
 |---|---|---|
 | `homemaker-py-e4r` | P1 | **LANDED 2026-09-25, default off** (§39.62). `operators.mutate_support_outside`, behind `--support-outside`. Locally it clears `no outside space` on all 7 artefacts where it has a move (of 9 that carry the fail), at a median fail cost of zero. What is NOT done is the A/B — see `homemaker-py-3wq`. Two things §39.53's sketch got wrong are recorded in §39.62; read them before touching this. |
+| `homemaker-py-q4t` | — | **CLOSED 2026-09-25** (§39.64). It was three seeders, not just cpsat: the greedy default and the beam had the same defect. All five sites now route through `graph.satisfies_as_outside`, the scorer's own predicate. Greedy seeds: 32 → 25 `not adjacent to o` fails, and exactly seven fewer fails overall. |
 | `homemaker-py-7kd` | P2 | the gap e4r leaves: a middle storey where every leaf is built over or is the last thing propping the terrace above. Needs a compound cross-level move. §39.62 says not to start it until 3wq reports. |
-| `homemaker-py-q4t` | P2 | cpsat's model cannot express k7c's usability test, so it optimises a slightly different relation than the scorer checks. Worse seeds, not wrong scores. |
 | `homemaker-py-4e7` | P2 | `merge_divided` mints a ground-floor sahn *after* `preprocess_building` has converted S→O, so an S survives with `allow_sahn_circulation = 0`. Reproduced on a committed artefact; fix and unit-test. **It is an OBJECTIVE change** — `dom.py` is in `OBJECTIVE_SOURCES` (§39.63) and `score_with_fails` calls `merge_divided` directly — so it moves the stamp and the next sweep measures it. Still landable (it is a plain defect), but record the expected direction first and do not file it under "search-side". |
 | `homemaker-py-8oq` | P2 | review the `2g7.7` LLM-repair-operator plan with a more capable model. Pure reading. |
 

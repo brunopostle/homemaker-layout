@@ -11129,6 +11129,120 @@ stay out of the scoring path. `test_coldstart_commit_paths.py`'s
 per-source test now parametrises over the whole list instead of indices `[0, 1]`,
 so it cannot quietly stop covering a source the list gains.
 
+**One consequence, found by the widening itself.** Four tests in
+`test_coldstart_commit_paths.py` drive `main()` to check the collision, resume
+and dry-run logic, and did not stub the uncommitted-source refusal -- so they
+read the real working tree. With two files in the set that was invisible;
+with five it fires constantly, and the first thing it caught was this session's
+own uncommitted `graph.py` (§39.64), failing four tests that have nothing to do
+with the working tree. `_run_main` now stubs both dirty-source checks. The
+refusal keeps its own two tests, where it is the subject rather than the
+weather.
+
 Both previous corrections to this list — `fitness.py` alone, then
 `+ geometry.py` — were found by someone reading the code and noticing. This one
 was too. The difference is that the next one will be found by a test.
+
+### 39.64 The seeders were still crediting voids the scorer had stopped crediting (`homemaker-py-q4t`)
+
+`graph.has_adjacency` has required a USABLE outside neighbour since `k7c`
+(§39.58): an unsupported void above ground is a hole, not a terrace, and eleven
+rooms across the corpus had been credited with outdoor adjacency they did not
+have. The scorer was fixed. Three seeders that decide the same question were
+not.
+
+**The bead named one of them. There were three.** `homemaker-py-q4t` was filed
+against `cpsat`, whose model receives `context_types` — a set of type STRINGS —
+so an unsupported void arrives as a plain `"O"` and is credited as a constant-1
+satisfaction. Reading for the fix turned up the same defect in the greedy room
+placement inside `_assign_adjacency_aware` and again in `_beam_place_rooms`,
+each building its own list of neighbour types with no usability test. The greedy
+one is the **default** seeder, so it was the one actually placing rooms against
+voids in every run anyone has done.
+
+**The drift, in one measurement.** Two storeys, ground `O` | `k1`, upper `O` |
+`r1`, so the upper `O` sits over the yard:
+
+| | |
+|---|---|
+| `dom.is_usable(upper O)` | `False` |
+| `graph.has_adjacency(r1, "o")` — the scorer | `False` |
+| `context_types` handed to CP-SAT | `{"O"}` → credited |
+
+**Fixed with one copy of the rule, not four.** `graph._satisfies_as_outside`
+became public `graph.satisfies_as_outside` and all five sites import it (the
+three `context_types` builders, the greedy `_sat`, the beam `sat`). This is the
+same remedy `code_matches_requirement` got in §39.4 — after the same drift, in
+the same function, for the same reason — and the same shape as §39.63 one
+section earlier. Dropping the whole neighbour is exactly right rather than
+merely convenient: an outside leaf's only contribution to any requirement is its
+`"O"`/`"S"`, and `satisfies_as_outside` returns `True` for every indoor
+neighbour, so nothing else is touched.
+
+The predicate also had to be the *shared* one rather than a bare `is_usable`
+call. `is_usable` is `False` for an indoor room that happens to sit over a yard,
+and filtering on it directly would have dropped legitimate indoor neighbours on
+upper storeys — a test holds that line.
+
+**Measured on the default greedy seeder** (8 seeds × 3 programmes, fresh
+constructed seeds, no evolution — `experiments/diag_q4t_seed_adjacency.py`):
+
+| | `not adjacent to o` | all fails |
+|---|---|---|
+| before | 32 | 2389 |
+| after | **25** | **2382** |
+
+Seven adjacency fails removed and **exactly seven** fewer fails in total, so
+nothing was traded for them. All of it on maple-court (1.88 → 1.00 per seed),
+which declares six codes with an outside adjacency — more than any other corpus
+programme. harbor-house and health-centre were unchanged at this seed count.
+
+**And on `cpsat`, the seeder the bead was actually filed against, it barely
+shows** — same protocol, `assign_solver="cpsat"`:
+
+| | `not adjacent to o` | all fails |
+|---|---|---|
+| before | 1 | 2518 |
+| after | **0** | 2520 |
+
+One adjacency fail across twenty-four seeds, against seven for the greedy path,
+and total fails move +2 the other way — a wash that this sample cannot resolve
+either direction, reported rather than dropped. The reading is not that q4t was
+wrong but that its emphasis was: **the seeder whose drift mattered is the
+DEFAULT one**, which the bead mentioned only as an afterthought ("ALSO CHECK
+operators.py's constructive adjacency heuristic"). cpsat is off by default and
+its exact solve lands room codes well enough that the void case rarely arises;
+the greedy heuristic, which every run uses, walked into it seven times in the
+same sample. That is the second time in this session that a bead's own framing
+pointed away from the larger half of its problem (§39.62 was the first), and
+the cure both times was to census the corpus before writing code.
+
+**programme-house cannot show this at all**: it declares no outside adjacency
+anywhere. Worth knowing before reaching for it as the default test case, which
+is the reflex here.
+
+**This is not an objective change**, and as of §39.63 that is a checked claim
+rather than an asserted one: `operators.py` and `cpsat.py` are outside
+`OBJECTIVE_SOURCES`, `tests/test_objective_sources.py` holds them there, and no
+score loads either. So it needs no re-baseline and must not be bundled into one
+— the bead said so and it is now verifiable.
+
+**What it does NOT establish.** Better seeds are not a better search. A seeder
+that starts closer may still converge to the same place, and this measurement
+stops at the seed deliberately — the search question is a sweep question and is
+not being smuggled in.
+
+**Tests** (`tests/test_q4t_seeder_adjacency.py`), verified by making them fail:
+stubbing `satisfies_as_outside` back to `lambda nb: True` — which reproduces
+the pre-q4t seeders exactly, since it is now the single copy — fails three of
+them, including the end-to-end maple-court guard. That guard asserts a
+DIRECTION (fewer adjacency fails, no more fails overall) rather than the
+margin, per §38.19/§38.21. One test is honestly labelled a property test
+rather than a guard: the fix only ever removes credit, so it turns a strict
+preference for the void into a tie rather than into a strict preference the
+other way, and both arms pass it.
+
+A literal scan for hand-spelled `("O", "S")` tuples inside the seeders was
+written and then removed: the legitimate constant `("C", "O", "S")` makes it
+fire on noise, and a guard that cries wolf is deleted in irritation the first
+time it blocks someone. Recorded so it is not re-invented.

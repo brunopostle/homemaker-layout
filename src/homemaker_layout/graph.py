@@ -464,8 +464,16 @@ def _adjacency_target(target_code: str):
     return tc
 
 
-def _satisfies_as_outside(nb: Node) -> bool:
+def satisfies_as_outside(nb: Node) -> bool:
     """True unless ``nb`` is an outside space that cannot be stood in.
+
+    PUBLIC because it is the single definition of "does this neighbour count",
+    and the seeders need it too. ``cpsat``'s model and ``operators``'
+    greedy/beam room placement each decide the same question while building a
+    seed; when they answered it their own way they optimised a relation the
+    scorer does not check (homemaker-py-q4t, §39.64), which is the same defect
+    ``code_matches_requirement`` was made public to prevent (§39.4) and the same
+    shape as §39.63. One copy, imported.
 
     homemaker-py-k7c (DESIGN.md §39.56/§39.58). A programme asking for
     ``adjacency: [o]`` wants a terrace or a balcony -- somewhere usable. An
@@ -510,12 +518,12 @@ def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
     tc = _adjacency_target(target_code)
     for nb in G.neighbors(node):
         if (_codes_match_prefix(leaf_codes(nb, colocate_pairs, multi_use), tc)
-                and _satisfies_as_outside(nb)):
+                and satisfies_as_outside(nb)):
             return True
         # neighbour might be a merged branch — check its leaves
         for nl in (nb.leaves() if nb.divided else []):
             if (_codes_match_prefix(leaf_codes(nl, colocate_pairs, multi_use), tc)
-                    and _satisfies_as_outside(nl)):
+                    and satisfies_as_outside(nl)):
                 return True
     return False
 

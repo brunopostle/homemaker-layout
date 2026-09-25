@@ -423,7 +423,20 @@ def test_drop_rows_leaves_every_other_objective_alone(tmp_path, monkeypatch):
 
 
 def _run_main(mod, monkeypatch, argv):
+    """Drive `main()` with the WORKING TREE's state stubbed out.
+
+    These tests are about the collision / resume / dry-run logic, and `main()`
+    also refuses to start over an uncommitted objective source (§39.51). Left
+    unstubbed, that refusal reads the real repo, so the whole group failed
+    whenever a developer had one of `OBJECTIVE_SOURCES` open -- which §39.63
+    made far likelier by widening that set from two files to five. The refusal
+    has its own tests below (`test_a_sweep_refuses_to_start_over_uncommitted_
+    objective_edits`, `test_a_dirty_non_objective_source_warns_but_runs`);
+    here it is noise that fails the wrong test.
+    """
     import sys as _sys
+    monkeypatch.setattr(mod, "uncommitted_objective_sources", lambda *a, **k: [])
+    monkeypatch.setattr(mod, "other_dirty_sources", lambda *a, **k: [])
     monkeypatch.setattr(_sys, "argv", ["run_coldstart_baseline.py", *argv])
     return mod.main()
 
