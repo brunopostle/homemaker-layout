@@ -10597,3 +10597,82 @@ quantity, and the case for deleting the rule goes away.
 The multiplier is the owner's to pick — 1.0 says "the rooms must total what the
 programme asked for", 0.9 allows a tenth of slack — and it decides how hard the
 rule bites on a corpus that is currently undersized throughout.
+
+### 39.57 The overall-size rule is redundant *and* blind — delete it
+
+The owner's question closed §39.56's third ruling in a way neither of my two
+previous positions anticipated: *"Surely we score against missing rooms and room
+sizes, so why do we need an overall size?"*
+
+We don't. Measured over the ten artefacts at `c836457+orth`:
+
+| programme | s | internal | circ | rooms | req | g1.2 | g1.0 | prodQS | size fails |
+|---|---|---|---|---|---|---|---|---|---|
+| harbor-house | 0 | 1236.1 | 393.5 | 842.6 | 835.0 | 1.000 | 1.000 | 0.0000 | 8 |
+| harbor-house | 1 | 977.8 | 346.0 | 631.8 | 835.0 | 0.987 | 1.000 | 0.0000 | 8 |
+| harbor-house | 2 | 992.6 | 271.1 | 721.5 | 835.0 | 0.998 | 1.000 | 0.0000 | 2 |
+| health-centre | 0 | 319.0 | 77.6 | 241.4 | 240.0 | 1.000 | 1.000 | 0.0021 | 0 |
+| health-centre | 1 | 294.9 | 61.0 | 233.9 | 240.0 | 1.000 | 1.000 | 0.0000 | 1 |
+| maple-court | 0 | 1662.8 | 611.4 | 1051.4 | 1015.0 | 1.000 | 1.000 | 0.0000 | 7 |
+| maple-court | 1 | 1780.3 | 524.8 | 1255.5 | 1015.0 | 1.000 | 1.000 | 0.0000 | 11 |
+| programme-house | 0 | 94.3 | 30.0 | 64.3 | 75.0 | 1.000 | 1.000 | 0.0159 | 1 |
+| programme-house | 1 | 88.3 | 18.1 | 70.2 | 75.0 | 0.992 | 1.000 | 0.0098 | 0 |
+| programme-house | 2 | 88.7 | 25.5 | 63.2 | 75.0 | 0.995 | 1.000 | 0.0138 | 0 |
+
+**It is inert.** Worst factor 0.987 — a 1.3% value penalty. It has no `fail()`
+call at all (`fitness.py:2140-2142`), so it cannot fail anything, and the
+gaussian never approaches `FAIL_THRESHOLD`. Deleting it changes no fails and
+moves value by at most 1.3% on four of ten rows.
+
+§39.56 reported four of these rows as *failing* this rule. They were not fails,
+they were sub-2% penalties; the "worst ×0.981" printed in that same table should
+have made the rule's inertness obvious and did not. The error was measuring
+whether the floor was *met* and never asking whether meeting it carried
+information.
+
+**It is redundant in the direction it can see.** It is a one-sided minimum. If
+every required room is present at target, `internal >= sum(size*count)` follows
+automatically, because `internal` counts the rooms *plus* circulation. So it can
+only bite when rooms are undersized — which `quality_size` (`fitness.py:1622`)
+already catches per leaf, with a hard fail below 0.1, compounding
+multiplicatively across leaves. `prodQS` runs 0.0000–0.016 against the global
+rule's 0.987–1.000. Every row where the global rule bites is a row where the
+per-room product has already collapsed by three to five orders of magnitude, and
+there is no row where it bites alone.
+
+**It is blind in the direction that matters.** A sum cannot detect
+maldistribution, and maldistribution is the live failure mode. harbor-house s0
+totals 842.6 m² of room area against a 835.0 m² requirement — 101%, a clean pass
+on any rooms-only variant — while *eight* rooms fail size inside that total. The
+overshoots pay for the shortfalls: `r` at 33.0 m² (target 10, ×3.30) and `n` at
+77.6 (target 60) cancel `k1` at 17.1 (target 30) and `da1` at 22.4 (target 60,
+×0.37). The aggregate says fine; the building is not. This is what §39.56's
+rooms-only variants would have inherited unchanged — they re-ask a question
+`quality_size` answers strictly better.
+
+**What the 1.2 actually encodes.** `min_required` sums only non-generic codes, so
+the requirement side *excludes* circulation while `actual_internal` *includes*
+it. The 1.2 is the fudge bridging that mismatch, and its only independent content
+is therefore "have at least 20% non-room internal area" — §39.54's exploit
+restated as a rule.
+
+**Nothing is lost on the bloat side.** The rule is a minimum and never policed
+oversized circulation anyway. That is already priced in the denominator —
+`inside` at 200/m² plus its walls, earning no value — and `score = value / cost`
+is the right mechanism for it. `size_circulation` and `ratio_circulation` are
+both `None` by default (§39.23/§39.24), deliberately.
+
+So `m3s` becomes a deletion: the `min_required`/`actual_internal` block, and
+`_area_internal` with it if nothing else consumes it. There is no multiplier to
+pick; §39.56's "owner to pick 1.0 or 0.9" question is void.
+
+One real question survives, in the right place. The corpus is undersized
+throughout, and `q_size` 0.125 against `FAIL_THRESHOLD` 0.1 tolerates a room at
+roughly 57% of target before failing. Whether that sigma is too wide is a
+question about the *per-room* measure — where distribution is visible — and is
+not answered by bolting an aggregate on the side. It is not part of `m3s`.
+
+This is the third position recorded on this rule in two days (§39.55 remove,
+§39.56 repair, §39.57 delete). The oscillation came from arguing about the rule's
+*form* without once measuring what it caught. The measurement took twenty
+minutes and settled it.
