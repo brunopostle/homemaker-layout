@@ -10604,7 +10604,7 @@ The owner's question closed §39.56's third ruling in a way neither of my two
 previous positions anticipated: *"Surely we score against missing rooms and room
 sizes, so why do we need an overall size?"*
 
-We don't. Measured over the ten artefacts at `c836457+orth`:
+We don't. Measured over the complete twelve-run sweep at `c836457+orth`:
 
 | programme | s | internal | circ | rooms | req | g1.2 | g1.0 | prodQS | size fails |
 |---|---|---|---|---|---|---|---|---|---|
@@ -10613,8 +10613,10 @@ We don't. Measured over the ten artefacts at `c836457+orth`:
 | harbor-house | 2 | 992.6 | 271.1 | 721.5 | 835.0 | 0.998 | 1.000 | 0.0000 | 2 |
 | health-centre | 0 | 319.0 | 77.6 | 241.4 | 240.0 | 1.000 | 1.000 | 0.0021 | 0 |
 | health-centre | 1 | 294.9 | 61.0 | 233.9 | 240.0 | 1.000 | 1.000 | 0.0000 | 1 |
+| health-centre | 2 | 325.1 | 78.8 | 246.3 | 240.0 | 1.000 | 1.000 | 0.0065 | 0 |
 | maple-court | 0 | 1662.8 | 611.4 | 1051.4 | 1015.0 | 1.000 | 1.000 | 0.0000 | 7 |
 | maple-court | 1 | 1780.3 | 524.8 | 1255.5 | 1015.0 | 1.000 | 1.000 | 0.0000 | 11 |
+| maple-court | 2 | 1828.0 | 592.7 | 1235.3 | 1015.0 | 1.000 | 1.000 | 0.0000 | 5 |
 | programme-house | 0 | 94.3 | 30.0 | 64.3 | 75.0 | 1.000 | 1.000 | 0.0159 | 1 |
 | programme-house | 1 | 88.3 | 18.1 | 70.2 | 75.0 | 0.992 | 1.000 | 0.0098 | 0 |
 | programme-house | 2 | 88.7 | 25.5 | 63.2 | 75.0 | 0.995 | 1.000 | 0.0138 | 0 |
@@ -10622,7 +10624,7 @@ We don't. Measured over the ten artefacts at `c836457+orth`:
 **It is inert.** Worst factor 0.987 — a 1.3% value penalty. It has no `fail()`
 call at all (`fitness.py:2140-2142`), so it cannot fail anything, and the
 gaussian never approaches `FAIL_THRESHOLD`. Deleting it changes no fails and
-moves value by at most 1.3% on four of ten rows.
+moves value by at most 1.3% on four of twelve rows.
 
 §39.56 reported four of these rows as *failing* this rule. They were not fails,
 they were sub-2% penalties; the "worst ×0.981" printed in that same table should

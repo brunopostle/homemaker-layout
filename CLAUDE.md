@@ -213,18 +213,28 @@ defects found in §39 were carried straight over from the Perl — see §39.19 o
 `value_supported`, and `homemaker-py-hxi` on circulation, which the owner has
 ruled needs fixing.
 
-## Where things stand (2026-09-24)
+## Where things stand (2026-09-25)
 
 Read this before planning work; then `bd ready` for the queue and DESIGN.md
-§39.44–§39.51 for the detail.
+§39.44–§39.57 for the detail.
 
-**A re-baseline sweep is running** at objective `c836457+orth`, on an 8-core box
-separate from the laptop, started 2026-09-24. Until it lands there is **no
-corpus at the live objective**: `verify_results_table.py` reports every row
-skipped, which is §39.43's designed answer to an objective change, not a fault.
+**The re-baseline landed.** Twelve of twelve at `c836457+orth`, no failed runs,
+all twelve verified exactly by `verify_results_table.py`. **248 fails** across
+the corpus — crinkliness 39.1%, size 11.7%, `not adjacent to c` 9.7%, access
+8.1%. That is the live baseline; compare nothing to the `1138ff1+orth` or
+`99c85ec` numbers (§39.12 clause 3).
 
-**While it runs, `src/` is frozen** (see the last section). `experiments/`,
-`tests/` and the docs are safe to change.
+**`src/` is unfrozen** — no sweep is running. It re-freezes the moment one
+starts (see the last section).
+
+**Four objective changes are queued and should land together**, so one
+re-baseline covers them all: `homemaker-py-k7c` (adjacency to a void),
+`homemaker-py-m3s` (delete the internal-area floor, §39.57),
+`homemaker-py-v8n` (voids above outdoor space must cost nothing) and
+`homemaker-py-w2k` (regression test only — indoor|outdoor walls already cost
+as external, measured, so this locks in behaviour rather than changing it).
+`homemaker-py-e4r` (an operator placing outdoor space over enclosed space) is
+search-side, not objective-side, and can land independently.
 
 What happened, in order:
 
