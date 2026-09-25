@@ -10431,3 +10431,84 @@ this one accidental.
 
 Tracked as `homemaker-py-k7c` (the adjacency defect) and `homemaker-py-m3s`
 (the `1.2` area floor, and whether circulation should pay it).
+
+### 39.55 Two rulings: the area floor goes, and a void costs nothing
+
+The owner, on §39.54:
+
+> So this rule that tries to fit the overall area of the building encourages
+> useless circulation space, maybe we have to remove this rule. Outside space
+> above outside space has no intrinsic value or cost (other than creating window
+> potential for adjacent rooms), the 10/m² cost for unsupported outdoor space is
+> a cost for ground floor yard space, ie a different kind of unsupported outdoor
+> space, voids above have no costs.
+
+#### The parenthetical retracts §39.54's adjacency finding
+
+*"other than creating window potential for adjacent rooms"* is a ruling, and it
+says the thing §39.54 filed as a defect is correct. A void is a light well: a
+room beside it can have a window, which is exactly what `adjacency: [o]`
+credits. The eleven maple-court instances — `lo1` and `gy1` facing a column of
+air above a courtyard — are a lounge and a gym looking into a light well, and
+being credited for it is right.
+
+`homemaker-py-k7c` is reclassified from bug to question, and the question left
+is narrow: a light well needs a minimum width to deliver light, and nothing
+checks that. Not a defect until someone decides what that minimum is.
+
+That is twice in three sections that I have read a deliberate mechanism as a
+defect — §39.48 on `edge too long`, now this. Both times the code was right and
+the model in my head was wrong. The pattern is mine, not the codebase's.
+
+#### A void costs nothing (`homemaker-py-k7c` → `homemaker-py-v8n`)
+
+The `outside` rate of 10/m² prices **ground-floor yard**: real ground, levelled
+and surfaced. A void above outdoor space is not that, and is charged it only
+because `leaf_cost` reaches its `else` branch. Corpus-wide, separating the two
+conditions that `is_usable == False` currently lumps together:
+
+| | count | current leaf + boundary cost |
+|---|---|---|
+| **void** — open sky over outdoor space | **72** | **51,533** |
+| covered, unsupported — building above, nothing below | 7 | 42,111 |
+
+Only the first is being ruled on. The second already raises `unsupported
+covered outside` as a fail and keeps its `outside_covered` rate of 110/m².
+
+Scope of the change: `leaf_cost` and `outside_edge_cost` both return 0 for an
+outside leaf that is above ground, unsupported **and uncovered**. Level 0
+unsupported outdoor keeps 10/m², which is the yard the rate was written for.
+
+**One sub-decision left**, and it is not obvious: the wall between a void and
+the room or corridor beside it. `edge_cost` charges it today. That wall is the
+*room's* external wall and exists whatever is beyond it — if the void were not
+modelled at all the room would pay `outside_edge_cost` for the same face — so
+zeroing it would make one face of that room free. My reading is that the wall
+stays charged and only the void's own leaf and boundary costs go, but the owner
+should say.
+
+#### The internal-area floor goes (`homemaker-py-m3s`)
+
+It is mostly inert and occasionally distorting — the worst combination. Across
+the 44-artefact corpus only **9** pay any penalty at all, and six of those pay
+between ×0.98 and ×0.997:
+
+| | |
+|---|---|
+| harbor-house `055d710` s0 | ×0.9182 |
+| programme-house `055d710` s0 | ×0.8188 |
+| programme-house `99c85ec` s2 | ×0.9537 |
+| the other six | ×0.981 – ×0.997 |
+
+So four fifths of the time it does nothing, and the rest of the time it is worth
+up to ×1.8 — enough to buy a whole storey of corridor, which is what §39.54
+caught it doing. A rule that silent and that sharp is not earning its place.
+
+**But it is the only global backstop against an undersized building, and the
+per-room check is weaker than it looks.** §39.54's zero-fail layout has a living
+room at 18.7 m² against a 35 m² target, passing because `q_size` 0.125 clears a
+`FAIL_THRESHOLD` of 0.1. Remove the area floor and nothing global replaces it;
+what should hold the line is the per-room `size` gaussian, and on this evidence
+it tolerates half-size rooms. **The two are one question**: the floor is a weak
+global patch over a weak local check, and removing the patch without looking at
+the check would leave undersizing entirely unpoliced. `m3s` carries both halves.
