@@ -229,3 +229,82 @@ def test_a_cross_objective_comparison_names_the_confound():
     body = src[i:]
     assert body.index("separating_commits") < body.index("paired_report"), (
         "the numbers are printed before the confound that explains them")
+
+
+# --------------------------------------------------------------------------- #
+# DESIGN.md §39.61 — the family census is re-scored with TODAY'S code, while
+# each row was recorded by the scorer of its own objective. The script used to
+# assert "reproduces the rows exactly" unconditionally, and went on asserting it
+# after §39.59 moved the objective, while the two totals differed by seven.
+# --------------------------------------------------------------------------- #
+def _complete_objective_rows():
+    """(target, rows) for an objective whose artefacts are all present."""
+    import csv as _csv
+    if not TABLE.is_file():
+        pytest.skip("results table absent")
+    rows = list(_csv.DictReader(TABLE.open(), delimiter="\t"))
+    target, _ = _rows_to_score()
+    live = [r for r in rows if r["objective"] == target]
+    if len(live) < 2:
+        pytest.skip("need at least two rows at one objective")
+    return target, rows, live
+
+
+def _write_table(tmp_path, rows):
+    import csv as _csv
+    out = tmp_path / "coldstart_baseline.tsv"
+    with out.open("w", newline="") as fh:
+        w = _csv.DictWriter(fh, fieldnames=list(rows[0]), delimiter="\t")
+        w.writeheader()
+        w.writerows(rows)
+    return out
+
+
+def _run(m, monkeypatch, capsys, table, target):
+    import sys as _sys
+    monkeypatch.setattr(m, "TABLE", table)
+    monkeypatch.setattr(_sys, "argv",
+                        ["decompose_coldstart.py", "--objective", target])
+    assert m.main() == 0
+    return capsys.readouterr().out
+
+
+def test_a_census_that_does_not_reproduce_its_rows_says_so(
+        tmp_path, monkeypatch, capsys):
+    """The failure this guards is silent: plausible percentages, wrong census."""
+    m = _mod()
+    target, rows, live = _complete_objective_rows()
+    victim = dict(live[0])
+    victim["fails"] = str(int(victim["fails"]) + 7)
+    patched = [victim if r["objective"] == target
+               and r["programme"] == victim["programme"]
+               and r["seed"] == victim["seed"] else r for r in rows]
+
+    out = _run(m, monkeypatch, capsys, _write_table(tmp_path, patched), target)
+    assert "RE-SCORED UNDER A DIFFERENT OBJECTIVE" in out
+    assert f"{victim['programme']} s{victim['seed']}" in out
+    assert "reproduces the rows exactly" not in out
+
+
+def test_the_reproduces_exactly_claim_is_made_only_when_it_is_true(
+        tmp_path, monkeypatch, capsys):
+    """The other half. A guard that can only fire is as useless as one that
+    cannot: this pins the claim to the case where it actually holds."""
+    m = _mod()
+    v = _verifier_mod()
+    target, rows, live = _complete_objective_rows()
+
+    honest = []
+    for r in rows:
+        if r["objective"] != target:
+            honest.append(r)
+            continue
+        _, orth = v.split_objective(r["objective"])
+        got = v.score_lines(r["programme"], r["dom"], orthogonal=orth)
+        if got is None:
+            pytest.skip(f"artefact missing for {r['programme']} s{r['seed']}")
+        honest.append(dict(r, fails=str(len(got[0]))))
+
+    out = _run(m, monkeypatch, capsys, _write_table(tmp_path, honest), target)
+    assert "reproduces the rows exactly" in out
+    assert "RE-SCORED UNDER A DIFFERENT OBJECTIVE" not in out

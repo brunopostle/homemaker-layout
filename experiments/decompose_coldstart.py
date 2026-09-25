@@ -187,9 +187,9 @@ def main() -> int:
 
     # ------------------------------------------------------------ families --
     print(f"\n=== fail families{provisional} ===")
-    print("(re-scored from the committed artefacts; reproduces the rows exactly)")
     fam: "dict[str, collections.Counter]" = {}
     pooled: collections.Counter = collections.Counter()
+    drift: list[tuple] = []
     for (p, s), r in sorted(t_rows.items()):
         _, orth = v.split_objective(r["objective"])
         got = v.score_lines(p, r["dom"], orthogonal=orth)
@@ -199,6 +199,28 @@ def main() -> int:
         for ln in got[0]:
             fam.setdefault(p, collections.Counter())[family(ln)] += 1
             pooled[family(ln)] += 1
+        # The census is re-scored with TODAY'S code. The row was recorded by the
+        # scorer of its own objective. Those agree only while the objective has
+        # not moved since -- so check, rather than claiming it (DESIGN.md
+        # §39.61). This block used to print "reproduces the rows exactly"
+        # unconditionally, and went on printing it after §39.59 moved the
+        # objective, while the two totals differed by seven.
+        if len(got[0]) != int(r["fails"]):
+            drift.append((p, s, int(r["fails"]), len(got[0])))
+    if drift:
+        print("*** RE-SCORED UNDER A DIFFERENT OBJECTIVE THAN THE ROWS WERE "
+              "RECORDED AT ***")
+        print(f"    {len(drift)} of {len(t_rows)} row(s) do not reproduce. The "
+              f"families below are\n    what TODAY'S code says about these "
+              f"artefacts, NOT the census of {target}:")
+        for p, s, was, now in drift:
+            print(f"      {p} s{s}: recorded {was}, re-scored {now} ({now-was:+d})")
+        print("    Neither number is wrong; they answer different questions "
+              "(§39.12 clause 3).\n    For the census AS RECORDED, read the rows "
+              "above, or check out the\n    objective's own commit.")
+    else:
+        print("(re-scored from the committed artefacts; reproduces the rows "
+              "exactly)")
     for p in programmes:
         c = fam.get(p)
         if not c:

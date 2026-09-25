@@ -10854,3 +10854,87 @@ the divergence was visible at the moment of the change, not a season later.
 space — is search-side, not objective-side. It can land independently and does
 not need to wait for the re-baseline. It is what actually lets the search
 exploit `k7c` and `v8n` rather than merely being scored by them.
+
+### 39.60 The pause, and the discipline it needs
+
+The box that runs sweeps is unavailable from 2026-09-25 for a few days. There is
+no corpus at the live objective (`691cc21+orth`) and none can be made until it
+returns. This section exists so the pause is a recorded decision rather than a
+gap someone later mistakes for neglect.
+
+**The tempting error is to keep landing objective changes**, on the reasoning
+that one re-baseline will cover them all. It will. But §39.12 clause 3 then
+bites from the other end: a single sweep measures the *net* effect of everything
+landed since the last one, and nothing can be attributed to any individual
+change. Land six changes and sweep once, and the result is one number that
+answers no question anyone asked.
+
+§39.59's four landed together anyway, and the distinction matters. They were
+**owner rulings and a plain defect** — a void is not a terrace, a hole costs
+nothing, a wall between indoors and outdoors is external, the area rule is a cap.
+Their rightness does not depend on the measurement, so bundling them costs
+nothing: the sweep is a *check*, and each one's expected direction was written
+down before it ran (§39.59's +4/+3 table). That is what makes a bundle legible.
+
+So the rule for the pause is not "change nothing". It is:
+
+- Search-side work is free — it does not change the objective and costs the
+  eventual sweep nothing to attribute.
+- An objective change lands only if it is a ruling or a defect, where
+  correctness is the criterion. If the question is "would this score better",
+  it is a sweep question: design it, file it, leave it.
+- Either way, record the expected direction before the sweep, so the sweep reads
+  as a check and not as a discovery.
+
+The obvious next piece of work is `homemaker-py-e4r`, and not only because it is
+unblocked. `k7c` and `v8n` made the objective say the right thing about outdoor
+space over a void — but §39.53 established that *nothing in the operator set is
+aimed at the relation they turn on*. Until an operator can place outdoor space
+over enclosed space, the search is being scored on a distinction it has no move
+to act on. That is this project's recurring failure mode, named in §39 more than
+once: `perpendicular` scored what no operator could fix. Landing the objective
+half of a change and not the search half is how a rule becomes noise.
+
+### 39.61 `decompose_coldstart.py` claimed a reproduction it had stopped performing
+
+Found while verifying the figures this session's documentation cites — which is
+the only reason it was found at all, and an argument for checking a number
+before quoting it rather than after.
+
+The script prints two things: a `=== rows ===` block read from
+`coldstart_baseline.tsv`, and a `=== fail families ===` census **re-scored from
+the committed artefacts with today's code**. Under the header of the second it
+printed, unconditionally:
+
+```
+(re-scored from the committed artefacts; reproduces the rows exactly)
+```
+
+Those two agree only while the objective has not moved since the rows were
+recorded. §39.59 moved it. So the tool went on printing the claim while its own
+two totals differed by seven — rows summing to 248, families to 255 — with
+nothing marking which was which:
+
+| | crinkliness | size |
+|---|---|---|
+| as recorded at `c836457+orth` (248 fails) | 39.1% | 11.7% |
+| re-scored today (255 fails) | 38.0% | 11.4% |
+
+Both numbers are correct; they answer different questions. The defect is that
+the tool asserted they were the same question. Percentages that move by one part
+in a hundred are exactly the kind that get quoted, compared across sections, and
+never questioned — this is §39.20's lesson (a check believed to be running for
+years) in a reporting tool rather than a test.
+
+**Fixed**: the census now compares each re-scored count against its recorded row
+and, on any divergence, replaces the claim with a banner naming every row that
+moved and by how much — here, maple-court s0/s1/s2 at +2/+3/+2, which is §39.59's
+measurement arriving independently. When they do agree it still says so, because
+a guard that can only fire is worth as little as one that cannot.
+
+Two tests hold both halves (`tests/test_decompose_coldstart.py`): one perturbs a
+row and requires the banner, the other rewrites every row to its re-scored count
+and requires the claim.
+
+This does not change any number already recorded in this document. §39.59's
++4/+3 delta was measured directly, not through this tool.

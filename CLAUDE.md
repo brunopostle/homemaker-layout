@@ -160,11 +160,15 @@ Three consequences that bite:
 - **Score a `+orth` artefact with the switch on, or you get a different
   layout.** `verify_results_table.py` handles this per row; if you score by hand,
   set the variable.
-- Corpora on disk: `coldstart-1138ff1+orth-*` was measured with it **on** but is
-  at a **superseded objective** (§39.50 retired two criteria after it). The older
+- Corpora on disk, newest first. `coldstart-c836457+orth-*` is the **newest
+  complete** one (12/12, all verified) and the right comparison for the next
+  sweep, but §39.59 moved the objective hours after it finished, so it is one
+  generation behind. `coldstart-1138ff1+orth-*` is two behind (§39.50 retired
+  two criteria after it); both were measured with the switch **on**. The older
   `coldstart-055d710-*` and `coldstart-99c85ec-*` were measured with it **off**,
-  at different objectives again. **There is currently no corpus at the live
-  objective** — one is being swept.
+  at different objectives again — do not compare to these at all.
+  **There is no corpus at the live objective (`691cc21+orth`) and no sweep is
+  running**; the box is unavailable until ~2026-09-29.
 - It defaults **off**, so a bare `pytest` or `homemaker-fitness` run is the
   non-orthogonal objective.
 
@@ -180,7 +184,11 @@ Three consequences that bite:
   change to the objective, where it should report every row skipped (§39.43).
 - `experiments/decompose_coldstart.py` — per-programme deltas, fail-family
   census, and the MDD beside every verdict. Refuses to report an incomplete
-  sweep; `--partial` marks it PROVISIONAL (§39.47).
+  sweep; `--partial` marks it PROVISIONAL (§39.47). **Its rows come from the
+  table; its family census is re-scored with today's code.** Those agree only
+  until the objective moves, after which it prints a banner naming every row
+  that no longer reproduces (§39.61) — read it, because the percentages shift
+  by about a point and look perfectly plausible either way.
 - `experiments/ab_report.py` — the paired statistics the above borrows. **Use
   it rather than computing a mean difference by hand**: this project has twice
   reported margins its sample could not resolve (§38.19/§38.21, §39.47).
@@ -216,7 +224,7 @@ ruled needs fixing.
 ## Where things stand (2026-09-25)
 
 Read this before planning work; then `bd ready` for the queue and DESIGN.md
-§39.44–§39.59 for the detail.
+§39.44–§39.61 for the detail.
 
 **The `c836457+orth` re-baseline completed and was then superseded the same
 day.** Twelve of twelve, no failed runs, all twelve verified exactly — 248
@@ -226,8 +234,10 @@ against, but it is **no longer at the live objective**: §39.59 landed four
 changes hours after it finished. Compare nothing to `1138ff1+orth` or
 `99c85ec` at all (§39.12 clause 3).
 
-**`src/` is unfrozen** — no sweep is running. It re-freezes the moment one
-starts (see the last section), which is the next thing that should happen.
+**No sweep is running and the box that runs one is unavailable for a few days
+(from 2026-09-25).** So `src/` is unfrozen and stays that way until the box is
+back — it re-freezes the moment a sweep starts (see the last section). Read
+*Working while the box is away* below before planning anything.
 
 **The four objective changes landed** in `691cc21` (§39.59): `homemaker-py-m3s`
 (the internal-area rule is now a **cap** at 1.2x, `area_cap`, and registers a
@@ -239,17 +249,82 @@ committed artefacts gives 248 -> 255 fails, exactly +4 `not adjacent to o` and
 changes did what they said.
 
 **So the objective has moved and there is again no corpus at it.** The stamp is
-no longer `c836457`; derive it (see below) before starting the re-baseline.
-`verify_results_table.py` reporting every row skipped is §39.43 working.
+now **`691cc21+orth`** — but derive it rather than trusting this line, which
+goes stale the next time anyone touches `fitness.py` or `geometry.py` (the
+command is under *Running the re-baseline* below). `verify_results_table.py`
+reporting all 48 rows skipped is §39.43 working, not a fault.
 
-Still open and NOT part of that bundle, both search-side, so neither needs to
-wait for the re-baseline: `homemaker-py-e4r` (an operator placing outdoor space
-over enclosed space -- what actually lets the search exploit k7c/v8n rather
-than merely be scored by them) and `homemaker-py-q4t` (cpsat's adjacency model
-cannot express k7c's usability test, so it optimises a slightly different
-relation than the scorer checks -- worse seeds, not wrong scores).
+The queue, and which parts of it the missing box actually blocks, is the next
+section.
 
-What happened, in order:
+### Working while the box is away (2026-09-25 →)
+
+**What still works in a container**, so none of this is blocked:
+
+- The full test suite: `pytest` is ~6m30s, 551 tests. Run it.
+- Scoring committed artefacts: `homemaker-fitness`, or `Fitness.score_with_fails`
+  in a loop over the twelve `.dom` files, is seconds per file. Every measurement
+  in §39.54–§39.59 was made this way.
+- The diagnostics in `experiments/` that read committed artefacts —
+  `verify_results_table.py`, `decompose_coldstart.py`, `diag_area_rule_m3s.py`
+  and friends.
+
+**What does not**: anything that calls `homemaker-evolve` at a real budget. A
+single 500k run is hours; the sweep is 436 core-hours. So no sweeps, no A/Bs, no
+"does this change help" question of any kind.
+
+**The trap to avoid.** It is tempting to keep landing objective changes on the
+grounds that one re-baseline will cover them all. It will — but §39.12 clause 3
+then bites from the other side: a single sweep measures the NET effect of
+everything landed since the last one, and nothing can be attributed to any
+individual change. §39.59's four landed together for a good reason (they were
+owner rulings, where correctness is the criterion and the sweep is only a
+check), and each one's expected direction was recorded *before* the sweep so it
+can be read as a check rather than a discovery. Keep to that discipline:
+
+- **Prefer search-side work**, which does not change the objective at all and so
+  costs the eventual sweep nothing.
+- **For an objective change, land it only if it is an owner ruling or a plain
+  defect** — something whose rightness does not depend on the measurement. If
+  the question is "would this score better", it is a sweep question: design it,
+  file it, and leave it.
+- Either way, write down what you expect the sweep to show, before it runs.
+
+**The queue, split by whether it needs the box.** `bd ready` for the full list;
+this is the reading of it as of 2026-09-25.
+
+Workable now, search-side (no objective change, nothing for the sweep to
+attribute):
+
+| bead | | |
+|---|---|---|
+| `homemaker-py-e4r` | P1 | an operator that places outdoor space over *enclosed* space, or repairs a terrace stranded over a void. §39.53 established the target is real and reachable and that nothing in the operator set aims at it. **This is the one that makes k7c and v8n actionable by the search** rather than merely scored — the obvious next thing. |
+| `homemaker-py-q4t` | P2 | cpsat's model cannot express k7c's usability test, so it optimises a slightly different relation than the scorer checks. Worse seeds, not wrong scores. |
+| `homemaker-py-4e7` | P2 | `merge_divided` mints a ground-floor sahn *after* `preprocess_building` has converted S→O, so an S survives with `allow_sahn_circulation = 0`. Reproduced on a committed artefact; fix and unit-test. |
+| `homemaker-py-8oq` | P2 | review the `2g7.7` LLM-repair-operator plan with a more capable model. Pure reading. |
+
+Designable now, but **cannot be validated** until the box is back, so file the
+design and do not land on a hunch:
+
+| bead | | |
+|---|---|---|
+| `homemaker-py-k54` | P2 | grade fully-buried leaves by burial depth. 69% of the crinkliness residual is at `crink == 0`, where rescaling cannot order anything. Objective change. |
+| `homemaker-py-gvb` | P2 | crinkliness is tiered SOFT but is mostly topological, which the inner loop cannot reach. Changes the comparator, so search-side — but its whole point is a search effect, which is a sweep question. |
+| `homemaker-py-ecx` | P2 | should an outside leaf's value depend on the daylight it delivers? Objective change, and a live one: §39.17 measured harbor putting 50 m² of courtyard on a frontage-starved ground floor and 223 m² on a first floor that already has 1.3–1.8× the frontage it needs. |
+| `homemaker-py-bzv` / `ao9` | P1 | Urb's lost `Straighten()` pass. Orthogonal division replaced half of it; the inherited wall family still runs ~3.3° off. Geometry, so it changes every layout. |
+
+Needs the box outright — do not start these in a container:
+
+`homemaker-py-57z` (needs a live plateau seed), `homemaker-py-2g7.9` (a racing
+harness, whose whole point is using all the cores), `homemaker-py-2g7.2`
+(calibration against human reference designs), and the `691cc21+orth`
+re-baseline itself.
+
+### How the objective got here (history — none of this is live)
+
+Three objective generations in three days, which is why every fail count in this
+repo carries a stamp. Read this to understand a number you find, not to plan
+work:
 
 1. The orthogonal-division baseline completed: twelve of twelve at
    `1138ff1+orth`, no failed runs, every row verified (§39.49). Orthogonal
@@ -266,13 +341,19 @@ What happened, in order:
    uncommitted. It also un-skipped three guards that had keyed on *rows at the
    current objective* and so stopped running for the whole window between an
    objective change and its re-baseline.
+4. Then the `c836457+orth` re-baseline ran and completed — 248 fails, 12/12
+   verified — and §39.59 moved the objective again hours later, to
+   `691cc21+orth`, which nothing has yet swept.
 
-Scoring the §39.49 artefacts under the new objective gives 284 → 256 fails,
-exactly the 28 edge-too-long fails removed. **That is not a new baseline** — the
-search would find different layouts under the new objective. It is only a check
-that the change did what it said.
+Two "check, not baseline" figures live in that history and are routinely
+misread as results. §39.50: scoring the §39.49 artefacts under the new objective
+gave 284 → 256, exactly the 28 edge-too-long fails removed. §39.59: scoring the
+`c836457+orth` artefacts under the new objective gave 248 → 255, exactly +4
+`not adjacent to o` and +3 `excess internal area`. **Neither is a baseline** —
+in both cases the search would find different layouts under the new objective.
+They only check that a change did what it said.
 
-### The re-baseline (running since 2026-09-24; re-read this before restarting it)
+### Running the re-baseline (NOT running now — re-read this before starting it)
 
 ```bash
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
@@ -319,15 +400,31 @@ watching for: the runner refuses to start over uncommitted `fitness.py` or
 `geometry.py`, before the stamp is taken, with no override (§39.51). A dirty
 `src/` file that is *not* the objective warns and continues.
 
-The new sweep is not comparable to §39.49's at the fail-count level — two
-criteria fewer (§39.12 clause 3). Expected, not a problem to engineer around.
+**The next sweep is not comparable to `c836457+orth`'s 248 at the fail-count
+level** — §39.59 added a criterion (`excess internal area`) and tightened
+another (`not adjacent to o`), so the fail SET moved (§39.12 clause 3). Expected,
+not a problem to engineer around. What it is fair to compare is the shape:
+per-programme deltas and the family census, where **crinkliness at 39.1% and
+size at 11.7%** — as recorded at `c836457+orth`, 248 fails — are the numbers to
+beat.
+
+Quote those two figures carefully. `decompose_coldstart.py --objective
+c836457+orth` re-scores the committed artefacts with **today's** code, so it now
+reports 38.0% and 11.4% against a 255-fail total. Both are right and they answer
+different questions; the script says so in a banner when the two diverge, but
+only since §39.61 — before that it claimed to reproduce the rows exactly while
+differing from them by seven.
 
 ### After that, crinkliness
 
-It was 39% of the fail set before this change and is a larger share now that 28
-fails went. §39.31 established that 69% of its residual sits at `crink == 0` —
-fully buried leaves, where no rescaling of the factor can order anything.
-`homemaker-py-k54` and `homemaker-py-gvb` hold the analysis.
+**39.1% of the fail set** — 97 of the 248 fails in the `c836457+orth` census,
+far and away the largest family, with `size` second at 11.7%. §39.31 established
+that 69% of its residual sits at `crink == 0` — fully buried leaves, where no
+rescaling of the factor can order anything. `homemaker-py-k54` and
+`homemaker-py-gvb` hold the analysis.
+
+Both change how the objective or the comparator behaves, so neither can be
+*validated* without the box; both can be designed and implemented without it.
 
 ### Known limits of the orthogonal geometry
 
