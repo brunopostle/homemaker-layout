@@ -1,2 +1,3 @@
 arm	seed	objective	budget	storeys	fails	hard	soft	roof_fail	score	elapsed_s	dom	fail_list
 armA	0	c836457+orth	2000	2	6	4	2	1	0.000454805	20.0	xhw-armA-s0.dom	1 inaccessible usable space | 1 inaccessible usable space | 1/rr access | level 0 no outside space | staircase volume | too few stairs (0, min 1)
+armB	0	c836457+orth	2000	3	7	4	3	1	0.000171089	22.7	xhw-armB-s0.dom	0/rll (b1) not adjacent to c | 0/rll access | 0/rlr width | level 1 no outside space | staircase volume | too few stairs (0, min 1) | too many spaces: b1 (found 2, expected 1)
