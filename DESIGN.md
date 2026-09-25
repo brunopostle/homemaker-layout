@@ -10341,3 +10341,93 @@ measuring the same thing the baseline does.
 over enclosed space, or repairs a terrace that is over a void. One run in six is
 the number to beat, and unlike the storey count it is aimed at the thing that
 actually decides the fail.
+
+### 39.54 What actually pays for the third storey, and a void that counts as outdoors
+
+Two questions from the owner about §39.53's zero-fail layout: the top floor is
+only stair and roof terrace, so deleting it should score better; and an outdoor
+space above another outdoor space "has always been a noop, basically not a space
+at all — is there code that treats it as something else?"
+
+Neither guess landed where expected, and the answers are worse than the guesses.
+
+#### Deleting the top floor makes it worse, and the reason is not the terrace
+
+| | score | fails |
+|---|---|---|
+| as found, 3 storeys | **0.2635** | 0 |
+| top floor removed | 0.1617 | 0 |
+
+Not a re-solve artefact — raw truncation and `mutate_level_delete` agree to six
+figures. And **not** the roof terrace's value either: removing the floor
+*improves* the storey ratio, 0.2533 → 0.2808. The building-level factor is what
+pays:
+
+```python
+min_required = sum(req.size * req.count for non-generic reqs) * 1.2
+if self._area_internal(root) < min_required:
+    factor *= gaussian(actual_internal, 1.0, min_required, min_required * 0.15)
+```
+
+| | internal area | floor (1.2×75.0) | penalty |
+|---|---|---|---|
+| 3 storeys | 88.7 | 90.0 | ×0.9955 |
+| 2 storeys | 75.3 | 90.0 | ×0.5524 |
+
+A 1.80× swing, against an observed score ratio of 1.63×. **The third storey is
+bought by an internal-area floor, and what satisfies it is the storey's
+circulation** — 13.4 m² of corridor counts as internal area exactly as a room
+would. The owner's reading was right in substance: the programme does not ask
+for that floor. An unexplained `1.2` does, and a corridor can pay it.
+
+#### Which means §39.53 over-praised that layout, and I should not have
+
+Called it "the best programme-house result" on its score and zero fails without
+looking at the rooms:
+
+| room | target | actual | `q_size` |
+|---|---|---|---|
+| Living/Dining/Kitchen | 35.0 | **18.7** | 0.125 |
+| Second Bedroom | 12.0 | **6.0** | 0.133 |
+| Master Bedroom | 16.0 | **9.5** | 0.270 |
+| Ensuite | 5.0 | 6.0 | 0.810 |
+
+`FAIL_THRESHOLD` is 0.1, so a living room at 53% of target clears it by 0.025.
+Every habitable room is roughly half size. The building is far too small for its
+programme, and rather than grow the rooms the search grew a corridor to clear
+the area floor — the two findings are the same finding. "Zero fails" meant the
+fail set was empty, not that the house was good, and I reported the first as if
+it were the second.
+
+#### A void above outdoor space does count as outdoors — 11 times in the corpus
+
+`leaf_cost` already distinguishes it correctly: unsupported outside is charged
+the `outside` rate (10/m², 186.9 here) rather than `outside_supported`
+(110/m²). `is_covered` correctly needs an *indoor* leaf above, so open sky over
+open space is not "covered". It is not free, though: on this artefact it also
+draws `outside_edge_cost` 614.2 and a shared-wall `edge_cost` of 2040.9.
+
+The real answer is elsewhere. `graph.py:118` removes non-usable nodes, with a
+comment naming this exact case — *"Remove non-usable nodes (outside above
+outside etc.)"* — but that is the **circulation** graph. `check_adjacency` is
+handed `graph_base_pre`, where they survive. So a void satisfies a room's
+`adjacency: [o]`.
+
+Not latent. Across the corpus, rooms whose **only** outside neighbour is a void,
+and which pass anyway:
+
+| | |
+|---|---|
+| `055d710` s0/s1/s2 | `lo1` ×2, `gy1` ×3 |
+| `99c85ec` s0/s1/s2 | `lo1` ×1, `gy1` ×2 |
+| `1138ff1+orth` s0/s1 | `lo1` ×2, `gy1` ×1 |
+
+Eleven instances, all three objectives, in maple-court — a lounge and a gym that
+are required to face outdoor space, face a column of air above a courtyard, and
+are credited with a view. The owner notes a planned exception where a sahn
+should reach another sahn above by external stair; that is the courtyard
+feature, and it is a reason to make the rule deliberate rather than to leave
+this one accidental.
+
+Tracked as `homemaker-py-k7c` (the adjacency defect) and `homemaker-py-m3s`
+(the `1.2` area floor, and whether circulation should pay it).
