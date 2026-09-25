@@ -10600,11 +10600,18 @@ rule bites on a corpus that is currently undersized throughout.
 
 ### 39.57 The overall-size rule is redundant *and* blind — delete it
 
+> **Superseded by §39.58.** The "inert" claim below is wrong — it measures
+> satisfied layouts, and §39.54 had already measured the floor binding on
+> topology (a 1.80× swing). The redundancy and blindness arguments hold
+> against the rule *as a floor* only, and the owner's reading is that it was
+> a **cap**. Read §39.58 before acting on anything here.
+
 The owner's question closed §39.56's third ruling in a way neither of my two
 previous positions anticipated: *"Surely we score against missing rooms and room
 sizes, so why do we need an overall size?"*
 
-We don't. Measured over the complete twelve-run sweep at `c836457+orth`:
+We don't. Measured over the complete twelve-run sweep at `c836457+orth`
+(`experiments/diag_area_rule_m3s.py`):
 
 | programme | s | internal | circ | rooms | req | g1.2 | g1.0 | prodQS | size fails |
 |---|---|---|---|---|---|---|---|---|---|
@@ -10678,3 +10685,108 @@ This is the third position recorded on this rule in two days (§39.55 remove,
 §39.56 repair, §39.57 delete). The oscillation came from arguing about the rule's
 *form* without once measuring what it caught. The measurement took twenty
 minutes and settled it.
+
+### 39.58 The area rule as a *cap* — and the retraction of §39.57's "inert"
+
+Owner: *"I think the 20% rule was 'no more than 20%' rather than a requirement."*
+
+#### First, §39.57's central claim was wrong
+
+§39.57 called the rule inert on the evidence that its worst factor across the
+twelve committed artefacts is 0.987. That measures **satisfied layouts**, and a
+rule that shapes behaviour and is then obeyed looks exactly like a rule with no
+teeth. §39.54 had already measured the counter-example, four sections earlier in
+this same document:
+
+| programme-house s2 | internal area | floor (1.2×75.0) | factor |
+|---|---|---|---|
+| 3 storeys | 88.7 | 90.0 | ×0.9955 |
+| 2 storeys | 75.3 | 90.0 | ×0.5524 |
+
+A 1.80× swing at the margin. The floor is *binding on topology* — it buys a
+third storey that the programme never asked for — and it reads as inert only
+because the search pays it, in circulation. "Deleting it changes no fails and
+moves value by at most 1.3%" is true only holding the layouts frozen, which is
+precisely the error CLAUDE.md warns about in its own words: *"That is not a new
+baseline — the search would find different layouts under the new objective."*
+Made while quoting it.
+
+So §39.57's *conclusion* (delete) rested on a false premise. Its redundancy and
+blindness arguments still hold against the rule **as a floor**, and neither
+touches the rule as a cap.
+
+#### Second, the cap is not redundant, and it discriminates
+
+Nothing in the objective caps circulation. `size_circulation` and
+`ratio_circulation` are both `None` by default (§39.23/§39.24), and `quality_size`
+returns 1.0 for a circulation leaf. So a cap on total internal area is the only
+statement of "a house with minimal circulation is efficient" anywhere in the
+objective — it duplicates nothing.
+
+Measured over the twelve-run sweep at `c836457+orth`, a one-sided gaussian on
+the *upper* side:
+
+| programme | s | internal | req | ratio | circ % | cap 1.2 | cap 1.3 | cap 1.5 |
+|---|---|---|---|---|---|---|---|---|
+| harbor-house | 0 | 1236.1 | 835.0 | 1.48 | 31.8 | 0.297 | 0.652 | 1.000 |
+| harbor-house | 1 | 977.8 | 835.0 | 1.17 | 35.4 | 1.000 | 1.000 | 1.000 |
+| harbor-house | 2 | 992.6 | 835.0 | 1.19 | 27.3 | 1.000 | 1.000 | 1.000 |
+| health-centre | 0 | 319.0 | 240.0 | 1.33 | 24.3 | 0.773 | 0.989 | 1.000 |
+| health-centre | 1 | 294.9 | 240.0 | 1.23 | 20.7 | 0.987 | 1.000 | 1.000 |
+| health-centre | 2 | 325.1 | 240.0 | 1.35 | 24.2 | 0.691 | 0.961 | 1.000 |
+| maple-court | 0 | 1662.8 | 1015.0 | 1.64 | 36.8 | 0.052 | 0.222 | 0.828 |
+| maple-court | 1 | 1780.3 | 1015.0 | 1.75 | 29.5 | 0.009 | 0.067 | 0.529 |
+| maple-court | 2 | 1828.0 | 1015.0 | 1.80 | 32.4 | 0.004 | 0.037 | 0.409 |
+| programme-house | 0 | 94.3 | 75.0 | 1.26 | 31.8 | 0.951 | 1.000 | 1.000 |
+| programme-house | 1 | 88.3 | 75.0 | 1.18 | 20.5 | 1.000 | 1.000 | 1.000 |
+| programme-house | 2 | 88.7 | 75.0 | 1.18 | 28.7 | 1.000 | 1.000 | 1.000 |
+
+The cap **separates the corpus** where the floor does not: maple-court, at
+1.64–1.80× the programme with 29–37% circulation, is hit hard; the lean
+programme-house runs at 1.18× pass untouched. That is a rule doing work.
+
+Note what the ratio column is and is not. Internal area over *declared room*
+area includes walls, so 1.0 is unreachable and some margin is structural rather
+than waste. The corpus clusters at 1.17–1.35 with maple-court alone above 1.48,
+which is what makes a cap somewhere in 1.2–1.3 discriminating rather than
+uniform.
+
+#### Provenance cannot be recovered, so this rests on the merits
+
+`git log` begins 2026-07-30 (`391f510`) with the whole tree already in place, so
+the port predates the history. The Perl is gone (§39.21). The only trace of the
+original is the docstring `"""Building factor; mirrors
+``evaluate_building_program_driven``."""` — a name, not a direction. A sign flip
+in the port is not an exotic hypothesis here: §39.19's `value_supported` and
+`homemaker-py-hxi`'s circulation charge were both defects carried straight over
+from the Perl, and CLAUDE.md already records that "Urb did it this way" validates
+nothing.
+
+One piece of textual evidence sits in this document. §39.25 justified removing
+`ratio_outside` on the ground that the min-area factor *"bounds non-room space
+directly, where a fraction only does so by proxy."* **A floor cannot bound
+non-room space** — only a cap can. §39.25 read the code correctly (it says
+"minimum", and "≥") and then reasoned from the behaviour a cap would have. So at
+least one earlier decision in this project was taken on the strength of a
+property the rule does not possess, which is weak evidence for what the rule was
+*meant* to be and strong evidence that the floor has been quietly mis-modelled
+more than once.
+
+#### Two things to settle before this lands
+
+1. **Cap only, or two-sided?** The floor half remains redundant with
+   `quality_size` and blind to maldistribution (§39.57's surviving arguments), and
+   it is the half that buys useless storeys. Recommendation: replace, not
+   supplement — the rule becomes a cap and the floor goes.
+2. **The multiplier**, and it now matters in a way it did not under the floor:
+   at 1.2 the cap fails (crosses `FAIL_THRESHOLD`) above 1.59× the programme, at
+   1.3 above 1.72×, at 1.5 above 1.98×.
+
+And a defect to fix in passing either way: the block has **no `fail()` call**
+(`fitness.py:2140-2142`), so maple-court s2 would take a silent ×0.004 — a 250×
+value penalty that appears in no `.fails` file. A cap this sharp must register a
+fail like every other building-level criterion.
+
+`m3s` is therefore not a deletion. It is: flip the rule to a cap, drop the floor,
+add the missing fail. Direction awaiting the owner's confirmation; the
+measurements above are not.

@@ -216,7 +216,7 @@ ruled needs fixing.
 ## Where things stand (2026-09-25)
 
 Read this before planning work; then `bd ready` for the queue and DESIGN.md
-§39.44–§39.57 for the detail.
+§39.44–§39.58 for the detail.
 
 **The re-baseline landed.** Twelve of twelve at `c836457+orth`, no failed runs,
 all twelve verified exactly by `verify_results_table.py`. **248 fails** across
@@ -229,7 +229,8 @@ starts (see the last section).
 
 **Four objective changes are queued and should land together**, so one
 re-baseline covers them all: `homemaker-py-k7c` (adjacency to a void),
-`homemaker-py-m3s` (delete the internal-area floor, §39.57),
+`homemaker-py-m3s` (the internal-area rule is a **cap**, not a floor — §39.58,
+direction pending the owner's confirmation),
 `homemaker-py-v8n` (voids above outdoor space must cost nothing) and
 `homemaker-py-w2k` (regression test only — indoor|outdoor walls already cost
 as external, measured, so this locks in behaviour rather than changing it).
