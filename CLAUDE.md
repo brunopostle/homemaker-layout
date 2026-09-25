@@ -24,6 +24,15 @@ bd close <id>         # Complete work
 
 ### Running `bd` in a remote agent container
 
+**A container restart removes `bd` entirely.** It is a Go binary installed into
+`/root/go/bin`, not part of the repo, so it does not survive. `bd create` then
+fails *silently* under `&&` chaining and the work looks done — that is how a
+bead id that never existed reached DESIGN.md once (§39.53). Check `command -v
+bd` before relying on it, and if it is gone, append the record straight to
+`.beads/issues.jsonl` (it is plain JSONL, git-tracked, and is the thing that
+actually carries issue state — see below). Match an existing record's keys
+exactly and re-parse the file afterwards.
+
 **`bd` is installed at `/root/go/bin/bd`, and that directory is not on `PATH`.**
 So `command -v bd` finds nothing and a bare `bd` reports `command not found`,
 which looks exactly like "beads is not available here". It is available. Run

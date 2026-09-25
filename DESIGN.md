@@ -10280,3 +10280,64 @@ an objective problem of the sharpest kind: the architecturally correct answer,
 visible by eye from the plan, loses on the numbers. That is the standing
 principle at full strength, and it is the reason to run the experiment rather
 than to guess.
+
+### 39.53 The owner's layout exists, scores best, and is found one run in six (`homemaker-py-xhw`)
+
+§39.52 left one question open and refused to guess at it: is the 3-storey
+arrangement the owner could see in the plan a *reachability* problem or an
+*objective* problem? Matched A/B, 12 runs, objective `c836457+orth`, 500 000
+evals, six seeds, one variable — arm A is programme-house as shipped
+(`storey_minimum: 2`), arm B forces `>= 3`. Every output scored under arm A's
+config, so arm B is never credited for its own gate.
+
+**The answer is reachability, and the arms are indistinguishable.**
+
+| | arm A (free) | arm B (≥3) | MDD at N=6 |
+|---|---|---|---|
+| fails | 1.83 | 1.83 | 2.48 |
+| hard | 1.00 | 1.33 | 1.08 |
+| score | 0.115 | 0.112 | 0.233 |
+
+3W/3L on both fails and score; every margin below what N=6 could resolve. **The
+storey count is not the variable.**
+
+**But the layout the owner described exists, and it is the best programme-house
+result at this objective.** `armB` seed 3, zero fails, score **0.2635** against
+a next-best 0.2134:
+
+| level | contents |
+|---|---|
+| 0 | Living/Dining/Kitchen, circulation, sahn 9.5 m², **Second Bedroom**, Ground Floor WC |
+| 1 | **outside 18.7 m², supported**, circulation, Master Bedroom, Ensuite, **Guest Bathroom** |
+| 2 | **outside 19.6 m², supported**, circulation |
+
+Three storeys, and every level's outdoor space sits over enclosed space below,
+so all of it is usable and `force_roof_garden` is satisfied everywhere. The
+arrangement differs from the owner's sketch in the details — the guest bathroom
+moved up only to level 1 and the second bedroom moved *down* to level 0, leaving
+level 2 as circulation plus roof terrace — but the principle is exactly theirs,
+and the search found it unaided.
+
+**So the objective is not the problem: the right answer wins when it is found.**
+It is found one run in six, and forcing three storeys does not help — **5 of 6**
+arm B runs still fail `no outside space`, against 4 of 6 in arm A. Given a third
+floor the search simply stacks another terrace over another void. What decides
+the fail is not how many storeys there are but *what sits underneath the outdoor
+space*, and nothing in the operator set is aimed at that.
+
+That refines §39.52's diagnosis, which framed this around storey count — my
+framing, and the A/B says it was the wrong variable. Arm A also picked three
+storeys in three of six seeds without being told to, so the "35 of 36 artefacts
+sit at `storey_minimum`" observation in §39.52 is weaker than it looked: at this
+objective the search climbs above the minimum about half the time and simply
+gains nothing by it.
+
+**A consistency check worth recording.** Arm A seed 0 reproduces the production
+sweep's `programme-house` s0 row exactly — score `0.209333`, 1 fail, same seed,
+same objective, independently run on a different machine. The harness is
+measuring the same thing the baseline does.
+
+**The follow-up** is `homemaker-py-e4r`: an operator that puts outdoor space
+over enclosed space, or repairs a terrace that is over a void. One run in six is
+the number to beat, and unlike the storey count it is aimed at the thing that
+actually decides the fail.
