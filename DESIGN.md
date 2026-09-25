@@ -10512,3 +10512,88 @@ what should hold the line is the per-room `size` gaussian, and on this evidence
 it tolerates half-size rooms. **The two are one question**: the floor is a weak
 global patch over a weak local check, and removing the patch without looking at
 the check would leave undersizing entirely unpoliced. `m3s` carries both halves.
+
+### 39.56 Three rulings, and the adjacency defect reinstated
+
+The owner, correcting §39.55:
+
+> If a room requires adjacency to an outside space, this is intended to be a
+> usable outside space, ie. a terrace or balcony, a void isn't useful for this —
+> the void providing outside wall for potential window is already accounted for
+> with the crinkliness measure. A wall between any indoor space and an
+> outdoor/sahn space is an external wall and needs to be costed as such. If we
+> need an overall space measure this should be calculated without circulation
+> space as in principle a house with minimal circulation is efficient.
+
+#### 1. The adjacency defect stands after all — §39.55 was my error
+
+§39.54 filed it, §39.55 retracted it on the strength of a parenthetical, and the
+retraction was wrong. **Two different measures were being conflated, and the
+owner names both**: `crinkliness` credits a leaf for wall exposure, which is
+what a void beside a room actually provides; `adjacency: [o]` credits a room for
+being beside *usable* outdoor space — a terrace or a balcony. A void delivers
+the first and not the second. It is already counted, once, in the right place.
+
+So the eleven maple-court instances are a defect again: `lo1` and `gy1` are
+credited with a terrace they do not have, having already been credited for the
+wall exposure through crinkliness.
+
+I inferred a ruling from a parenthetical instead of asking. Worse, I considered
+asking and talked myself out of it on the grounds that the owner had "already
+effectively answered". A parenthetical about what a void physically *does* is
+not a ruling about which measure should *credit* it, and the cost of guessing
+was a wrong retraction in the permanent record.
+
+**The fix is safe to make narrowly.** `check_adjacency` is handed
+`graph_base_pre` (fitness.py:2266); wall costing uses a **separate** build,
+`graph_base` (:2283). Filtering non-usable nodes for the adjacency check
+therefore cannot de-cost a wall — which matters, because of ruling 2.
+
+#### 2. Indoor-to-outdoor walls are already costed as external
+
+Verified rather than assumed, on the §39.53 layout — every such wall, against a
+sahn, a terrace and a void alike:
+
+| level | wall | shared | rate |
+|---|---|---|---|
+| 0 | `C` \| sahn | 3.2 m | 100/m² |
+| 0 | `b2` \| sahn | 2.9 m | 100/m² |
+| 1 | `C` \| terrace | 6.8 m | 100/m² |
+| 2 | `C` \| **void** | 6.8 m | 100/m² |
+| 2 | `C` \| terrace | 6.8 m | 100/m² |
+
+`exterior_wall` is 100/m² against `interior_wall` 66.7, and `edge_cost`'s
+`else` branch already catches every indoor/outdoor pair. **No change needed** —
+but this is exactly what a careless fix to ruling 1 would break, so it gets a
+regression test rather than nothing.
+
+#### 3. Excluding circulation saves the area rule instead of removing it
+
+§39.55 recorded a ruling to remove it. This supersedes that: the rule is not
+wrong, its *measure* is. `_area_internal` counts every non-outside leaf,
+circulation included, so a storey of corridor pays a floor meant to guarantee
+room area. Excluding circulation removes the incentive at its source.
+
+But the `1.2` cannot survive the change — it is a circulation allowance baked
+into the floor, and circulation is **19–41%** of internal area across the
+corpus. Measured over the eleven artefacts at the two newest objectives:
+
+| floor | artefacts passing | failing | worst penalty |
+|---|---|---|---|
+| current — incl. circulation, 1.2× | 7 | 4 | ×0.981 |
+| rooms only, 1.2× | 1 | 10 | ×0.045 |
+| **rooms only, 1.0×** | 5 | 6 | ×0.252 |
+| rooms only, 0.9× | 7 | 4 | ×0.543 |
+
+Take the measure out and the multiplier has to come down with it.
+
+**And this dissolves `m3s`'s coupling rather than leaving it open.** At rooms-only
+1.0× the rule stops being inert-then-distorting and starts biting on exactly the
+pathology §39.54 found: six of eleven artefacts fail it *because their rooms are
+undersized*, which is the thing the per-room `size` gaussian tolerates at
+`q_size` 0.125. The global backstop becomes a real one, aimed at the right
+quantity, and the case for deleting the rule goes away.
+
+The multiplier is the owner's to pick — 1.0 says "the rooms must total what the
+programme asked for", 0.9 allows a tenth of slack — and it decides how hard the
+rule bites on a corpus that is currently undersized throughout.
