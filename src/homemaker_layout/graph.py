@@ -464,6 +464,33 @@ def _adjacency_target(target_code: str):
     return tc
 
 
+def _satisfies_as_outside(nb: Node) -> bool:
+    """True unless ``nb`` is an outside space that cannot be stood in.
+
+    homemaker-py-k7c (DESIGN.md §39.56/§39.58). A programme asking for
+    ``adjacency: [o]`` wants a terrace or a balcony -- somewhere usable. An
+    unsupported void above ground floor is a hole, not a space, and eleven
+    rooms across the corpus were being credited with outdoor adjacency they
+    did not have.
+
+    The owner's ruling, 2026-09-25: "If a room requires adjacency to an outside
+    space, this is intended to be a usable outside space, ie. a terrace or
+    balcony, a void isn't useful for this -- the void providing outside wall
+    for potential window is already accounted for with the crinkliness
+    measure." So the wall exposure a void does provide is still credited, once,
+    by `quality_uncrinkliness`; this stops it being credited twice.
+
+    Indoor neighbours are unaffected -- `is_usable` is True for every one of
+    them -- so this narrows the outside case alone.
+
+    NOTE the two graph builds in `fitness.evaluate`: adjacency runs on
+    `graph_base_pre` and wall costing on a separate `graph_base`. Filtering
+    here cannot de-cost a wall; an indoor|void wall is still external, which
+    `test_indoor_outdoor_wall_is_external` (homemaker-py-w2k) holds.
+    """
+    return dom.is_usable(nb) if dom.is_outside(nb) else True
+
+
 def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
                   colocate_pairs=(), multi_use: bool = False) -> bool:
     """True if ``leaf`` (or its nearest graphed ancestor) has a neighbour whose
@@ -482,11 +509,13 @@ def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
         return False
     tc = _adjacency_target(target_code)
     for nb in G.neighbors(node):
-        if _codes_match_prefix(leaf_codes(nb, colocate_pairs, multi_use), tc):
+        if (_codes_match_prefix(leaf_codes(nb, colocate_pairs, multi_use), tc)
+                and _satisfies_as_outside(nb)):
             return True
         # neighbour might be a merged branch — check its leaves
         for nl in (nb.leaves() if nb.divided else []):
-            if _codes_match_prefix(leaf_codes(nl, colocate_pairs, multi_use), tc):
+            if (_codes_match_prefix(leaf_codes(nl, colocate_pairs, multi_use), tc)
+                    and _satisfies_as_outside(nl)):
                 return True
     return False
 

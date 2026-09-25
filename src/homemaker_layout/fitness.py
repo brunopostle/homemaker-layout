@@ -118,6 +118,7 @@ _SOFT_FAIL_MARKERS = (
     " crinkliness",
     " access",
     "staircase volume",
+    "excess internal area",  # m3s/§39.58 -- internal area over `area_cap`
 )
 
 
@@ -267,10 +268,21 @@ CONF_DEFAULTS: dict = {
     # `force_roof_garden`, which fails a level outright when it has no outdoor
     # space at all -- qualitative, per level, no quantity. That check already
     # existed and was switched OFF in every corpus config; §39.25 turns it on
-    # and turns this off. The upper side this used to provide is covered by the
-    # minimum-internal-area factor, which bounds non-room space in the currency
-    # that matters (build the rooms you were asked for).
+    # and turns this off. The upper side this used to provide is covered by
+    # `area_cap`.
+    #
+    # (§39.25 originally justified this by the minimum-internal-area factor,
+    # which it said "bounds non-room space". A FLOOR cannot do that -- only a
+    # cap can, and §39.58 found the rule had been a floor all along. The
+    # justification is sound now that `area_cap` exists; it was not then.)
     "ratio_outside": None,
+    # homemaker-py-m3s (DESIGN.md §39.58). Internal area may exceed the
+    # programme's declared room area by at most this factor -- the allowance for
+    # walls and circulation. Owner's ruling, 2026-09-25: "no more than 20%".
+    # A one-sided gaussian above the cap, sigma 0.15x, so it fails (crosses
+    # FAIL_THRESHOLD) above 1.59x the programme. `None` disables it. See the
+    # block in `evaluate_building` for why this is a cap and not a floor.
+    "area_cap": 1.2,
     # homemaker-py-hxi (DESIGN.md §39.24). Was [0.00, 0.20] -- a gaussian on
     # the circulation FRACTION, targeting zero, applied as a multiplier to the
     # whole building's value (0.013..0.70 across the corpus). `None` disables
@@ -1720,10 +1732,40 @@ class Fitness:
     # Value rates and costs (Leaf.pm:146-251, Storey.pm:122-147)
     # ------------------------------------------------------------------ #
 
+    @staticmethod
+    def _is_void(leaf: Node) -> bool:
+        """True for an outside leaf that is a hole through the building.
+
+        homemaker-py-v8n (DESIGN.md §39.55/§39.58). Owner's ruling, 2026-09-25:
+        "Outside space above outside space has no intrinsic value or cost (other
+        than creating window potential for adjacent rooms), the 10/msq cost for
+        unsupported outdoor space is a cost for ground floor yard space, ie a
+        different kind of unsupported outdoor space, voids above have no costs."
+
+        So: above ground level, nothing indoors beneath it, and nothing built
+        over it. Level 0 is excluded deliberately -- that IS the yard the 10/m2
+        rate was written for. `is_covered` is excluded deliberately too: an
+        unsupported leaf with building over it is a soffit, not a void, it
+        already draws its own "unsupported covered outside" fail, and zeroing
+        its cost would remove the economic pressure against it while leaving
+        the fail in place.
+
+        The window potential the ruling parenthesises is credited elsewhere and
+        once, by `quality_uncrinkliness` -- which is also why a void cannot
+        satisfy `adjacency: [o]` (homemaker-py-k7c).
+        """
+        if not dom_mod.is_outside(leaf):
+            return False
+        if dom_mod.level_of(leaf) == 0:
+            return False
+        return not dom_mod.is_supported(leaf) and not dom_mod.is_covered(leaf)
+
     def value_rate(self, leaf: Node) -> float:
         t0 = _generic_class(leaf)
         if t0 in ("o", "s") and dom_mod.level_of(leaf) == 0:
             return self.conf("value_outside")
+        if t0 in ("o", "s") and self._is_void(leaf):
+            return 0.0                      # v8n: a hole is not a space
         if t0 in ("o", "s"):
             return self.conf("value_supported")
         if t0 == "c":
@@ -1740,8 +1782,10 @@ class Fitness:
                 rate = self.cost("outside_covered")
             elif supported:
                 rate = self.cost("outside_supported")
+            elif self._is_void(leaf):
+                rate = 0.0                  # v8n: nothing is built, nothing is paid
             else:
-                rate = self.cost("outside")
+                rate = self.cost("outside")   # ground-floor yard
         else:
             rate = self.cost("inside")
         return rate * geometry.area(leaf)
@@ -1762,6 +1806,8 @@ class Fitness:
     def outside_edge_cost(self, leaf: Node) -> float:
         """Plot-boundary cost for a leaf's external edges
         (``Leaf.pm::calculate_outside_edge_cost``)."""
+        if self._is_void(leaf):
+            return 0.0                      # v8n: no boundary treatment for a hole
         rate = self.cost("boundary") if dom_mod.is_outside(leaf) else self.cost("boundary_wall")
         length = sum(geometry.edge_length(leaf, e) for e in range(4)
                      if geometry.boundary_id(leaf, e) in geometry._EXTERNAL)
@@ -1863,7 +1909,13 @@ class Fitness:
 
     @staticmethod
     def _area_internal(root: Node) -> float:
-        """Non-outside usable area; mirrors ``Urb::Dom::Area_Internal``."""
+        """Non-outside area; mirrors ``Urb::Dom::Area_Internal``.
+
+        Counts every non-outside leaf, circulation included -- which is the
+        point under `area_cap` (§39.58), where circulation is exactly what the
+        cap is there to bound. It was the defect under the old floor, where
+        circulation could pay a requirement meant for rooms (§39.54).
+        """
         total = 0.0
         for lvl in dom_mod.levels(root):
             for leaf in lvl.leaves():
@@ -2129,17 +2181,45 @@ class Fitness:
         if circ_ratio is not None:          # §39.24: off by default
             factor *= self.ratio_type(ratios, "c", circ_ratio[0], circ_ratio[1])
 
-        min_required = 0.0
-        for req in (self._programme or {}).values():
-            if dom_mod.is_generic(req.code):
-                continue
-            if req.size > 0:
-                min_required += req.size * req.count
-        min_required *= 1.2
-        actual_internal = self._area_internal(root)
-        if actual_internal < min_required and min_required > 0:
-            f2 = gaussian(actual_internal, 1.0, min_required, min_required * 0.15)
-            factor *= f2
+        # homemaker-py-m3s (DESIGN.md §39.58). This was a FLOOR -- internal area
+        # had to reach 1.2x the programme's declared room area -- and is now the
+        # CAP the owner remembers it being: "no more than 20%", not "at least".
+        #
+        # As a floor it was redundant and harmful. Redundant because a one-sided
+        # minimum can only bite when rooms are undersized, which the missing-space
+        # fails and `quality_size` already say, per room, where a sum cannot see
+        # maldistribution (§39.57: harbor s0 totals 101% of the required room area
+        # with eight rooms failing size inside that total). Harmful because the
+        # only thing it said that nothing else did was "have 20% non-room internal
+        # area", which a corridor pays -- §39.54 measured it buying programme-house
+        # a third storey worth x0.5524 -> x0.9955.
+        #
+        # As a cap it duplicates nothing: `size_circulation` and
+        # `ratio_circulation` are both None by default (§39.23/§39.24) and
+        # `quality_size` returns 1.0 for a circulation leaf, so this is the ONLY
+        # statement in the objective that a house with minimal circulation is
+        # efficient. `area_cap` is None-able per programme like the rest.
+        #
+        # The comparison is against DECLARED ROOM area, which excludes walls, so
+        # the cap can never be 1.0 -- some margin is structural, not waste.
+        area_cap = self.conf("area_cap")
+        if area_cap is not None:
+            room_area = 0.0
+            for req in (self._programme or {}).values():
+                if dom_mod.is_generic(req.code):
+                    continue
+                if req.size > 0:
+                    room_area += req.size * req.count
+            max_allowed = room_area * area_cap
+            actual_internal = self._area_internal(root)
+            if actual_internal > max_allowed and max_allowed > 0:
+                f2 = gaussian(actual_internal, 1.0, max_allowed, max_allowed * 0.15)
+                if f2 < FAIL_THRESHOLD:
+                    # §39.58: the old block had NO fail() call, so a building
+                    # 1.8x over the programme took a silent x0.004 that appeared
+                    # in no .fails file. A graded factor this sharp registers.
+                    tracking["_failures"].append("excess internal area")
+                factor *= f2
 
         # Staircase volume (multi-level only)
         lvls = dom_mod.levels(root)
