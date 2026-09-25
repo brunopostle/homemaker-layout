@@ -97,12 +97,26 @@ def rows_at(objective: str) -> "dict[tuple[str, str], dict]":
 
 
 def separating_commits(a: str, b: str) -> "list[str]":
-    """Commits touching the objective's source between two stamps."""
+    """Commits touching the objective's source between two stamps.
+
+    The file list comes from the runner, never from a second copy here: this
+    function listed only fitness.py and geometry.py while the runner's own list
+    had grown to five, so it would have reported "no commits separate these
+    stamps" for a dom.py or graph.py change that moved every fail count
+    (§39.63). Two copies of the rule is how §39.42 happened, and the runner
+    says so in the comment above its own definition."""
     r = subprocess.run(
-        ["git", "log", "--oneline", f"{a}..{b}", "--",
-         "src/homemaker_layout/fitness.py", "src/homemaker_layout/geometry.py"],
+        ["git", "log", "--oneline", f"{a}..{b}", "--", *_objective_sources()],
         cwd=REPO, capture_output=True, text=True)
     return [ln for ln in r.stdout.splitlines() if ln.strip()]
+
+
+def _objective_sources() -> "tuple[str, ...]":
+    spec = importlib.util.spec_from_file_location(
+        "_coldstart_runner", REPO / "experiments" / "run_coldstart_baseline.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.OBJECTIVE_SOURCES
 
 
 def default_target(v) -> "tuple[str, dict]":

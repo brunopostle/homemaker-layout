@@ -597,7 +597,7 @@ def test_fatal_outranks_everything():
 # --------------------------------------------------------------------------- #
 
 def _repo_with_objective_sources(tmp_path):
-    """A git repo carrying the two files the objective stamp is computed from."""
+    """A git repo carrying every file the objective stamp is computed from."""
     mod = _runner()
     _git(tmp_path, "init", "-q", ".")
     _git(tmp_path, "config", "user.email", "t@t")
@@ -619,10 +619,13 @@ def test_a_clean_tree_reports_nothing_dirty(tmp_path):
     assert mod.other_dirty_sources(repo) == []
 
 
-@pytest.mark.parametrize("which", [0, 1])
+@pytest.mark.parametrize("which", range(len(_runner().OBJECTIVE_SOURCES)))
 def test_an_edited_objective_source_is_detected(tmp_path, which):
-    """Either file. geometry.py counts as much as fitness.py -- §39.42 settled
-    that, and this is the same rule reaching the working tree."""
+    """EVERY file in the set, derived from the set rather than hardcoded to the
+    two it once held. geometry.py counts as much as fitness.py (§39.42), and
+    dom.py and graph.py as much again (§39.63) -- this is that rule reaching the
+    working tree, and it must not silently stop covering a source the list
+    gains."""
     mod = _runner()
     repo = _repo_with_objective_sources(tmp_path)
     rel = mod.OBJECTIVE_SOURCES[which]

@@ -11055,3 +11055,80 @@ verdict so it cannot be quoted without it.
 The operator changes no scoring rule, so it costs the next re-baseline nothing
 (§39.12 clause 3): it is search-side, and default off until the A/B says
 otherwise.
+
+### 39.63 The objective stamp named two of the five files that decide a score
+
+`OBJECTIVE_SOURCES` is the list the cold-start runner stamps every row from
+(`git log -1 -- <list>`) and refuses to start over when one of them is
+uncommitted (§39.51). It held `fitness.py` and `geometry.py`.
+
+**A score executes five modules, not two.** Measured rather than reasoned:
+run one `Fitness.score_with_fails` in a clean interpreter and ask which
+`homemaker_layout` modules it loaded, and the answer is `dom`, `fitness`,
+`geometry`, `graph`, `programme` — the same five from the `homemaker-fitness`
+CLI path. `score_with_fails` calls `dom.merge_divided` and
+`preprocess_building` outright, and reaches into `graph` for every adjacency,
+circulation and connectivity check.
+
+**What that costs, measured.** A one-line semantic edit to `dom.py` — nowhere
+near either stamped file:
+
+| | |
+|---|---|
+| fails over the twelve `c836457+orth` artefacts | 255 → **257** |
+| artefacts whose score moved | 1 of 12 |
+| objective stamp | `691cc21+orth`, **unchanged** |
+| `uncommitted_objective_sources()` | **silent** |
+
+A sweep started over that edit would stamp every row, and name every artefact,
+with an objective that is not the one that scored them. That is §39.42 exactly,
+arriving through a third file instead of through the file list or the working
+tree — the third time the same failure has found a new door.
+
+**It was about to bite.** `homemaker-py-4e7` is a fix to `merge_divided`, sitting
+in the "workable now" queue as a plain defect, which is precisely the class
+CLAUDE.md says is safe to land during the pause. It is safe — but landing it
+would have moved every fail count while the stamp stood still, and the next
+sweep would have been labelled `691cc21+orth` while measuring something else.
+The rule "prefer search-side work, it costs the sweep nothing" silently assumed
+that `src/` divides into `fitness.py`/`geometry.py` and everything else. It does
+not.
+
+**Fixed** by widening the list to the five modules a score actually loads. This
+was **free today and would not have been later**: `691cc21` touched `graph.py`
+as well as `fitness.py`, so the widened list stamps `691cc21` too and every
+recorded corpus keeps its name. Had `dom.py` been touched more recently the
+widening would have renamed the live objective for no change in behaviour, which
+is a mess worth not having.
+
+Deliberately **out**: `solver.py`, `driver.py`, `operators.py`, `innerloop.py`,
+`shapecurve.py`, `cpsat.py`, `genome.py`. They decide how the search MOVES, not
+what a committed `.dom` scores, and no score loads any of them.
+`other_dirty_sources` warns about those instead. This is why
+`operators.mutate_support_outside` (§39.62) genuinely costs the sweep nothing,
+and the claim is now checkable rather than asserted.
+
+**A second copy of the list had already drifted.**
+`decompose_coldstart.separating_commits` — the function that answers "which
+commits separate these two stamps?" — carried its own hardcoded
+`fitness.py`/`geometry.py` pair. It would have answered "none" for a `dom.py`
+change that moved every fail count, which is worse than not asking. It now reads
+`OBJECTIVE_SOURCES` from the runner. The runner's own comment has warned since
+§39.42 that two copies of this rule is how that section happened; the warning
+was right and was sitting six lines above a second copy.
+
+**The guard, and proof it fires.** `tests/test_objective_sources.py` runs a real
+score in a subprocess and fails if a loaded module is in neither
+`OBJECTIVE_SOURCES` nor an explicit exclusion list. Reverting the list to its old
+two-file value fails it with `['dom', 'graph', 'programme'] are loaded by a score
+but are not in OBJECTIVE_SOURCES` — the guard was verified by making it fail,
+which §39.20 is the standing argument for. Three more hold the other directions:
+the list may not name a module a score never loads (an over-broad stamp retires
+a corpus for free), every named file must exist, and the search-side modules must
+stay out of the scoring path. `test_coldstart_commit_paths.py`'s
+per-source test now parametrises over the whole list instead of indices `[0, 1]`,
+so it cannot quietly stop covering a source the list gains.
+
+Both previous corrections to this list — `fitness.py` alone, then
+`+ geometry.py` — were found by someone reading the code and noticing. This one
+was too. The difference is that the next one will be found by a test.

@@ -61,8 +61,31 @@ ORTH_SUFFIX = "+orth"
 # The files the stamp is computed from -- named once, because `objective_commit`
 # and `uncommitted_objective_sources` must agree about what "the objective" is,
 # and two copies of that rule is how §39.42 happened.
-OBJECTIVE_SOURCES = ("src/homemaker_layout/fitness.py",
-                     "src/homemaker_layout/geometry.py")
+#
+# THE RULE: a file belongs here if changing it changes what a committed `.dom`
+# scores. That is not a matter of taste -- it is measurable, and
+# `tests/test_objective_sources.py` measures it, by recording which
+# `homemaker_layout` modules a single `score_with_fails` actually loads and
+# failing if one of them is missing from this tuple. The list rotted twice
+# before that guard existed (§39.63); it cannot rot silently now.
+#
+# This set was fitness.py alone, then + geometry.py (see `objective_commit`),
+# and is now all five modules scoring touches. dom.py and graph.py were the
+# expensive omissions: `score_with_fails` calls `dom.merge_divided` and
+# `preprocess_building` outright and reaches into `graph` for every adjacency
+# and connectivity check, so a one-line edit to either moves fail counts while
+# the stamp and the uncommitted guard both stay silent -- measured at +2 fails
+# over the twelve artefacts for a single line of dom.py (§39.63).
+#
+# NOT here, deliberately: solver.py, driver.py, operators.py, innerloop.py,
+# shapecurve.py, cpsat.py. They decide how the search MOVES, not what it is
+# scored against; none of them is loaded by a score. `other_dirty_sources`
+# warns about those instead.
+OBJECTIVE_SOURCES = ("src/homemaker_layout/dom.py",
+                     "src/homemaker_layout/fitness.py",
+                     "src/homemaker_layout/geometry.py",
+                     "src/homemaker_layout/graph.py",
+                     "src/homemaker_layout/programme.py")
 
 
 def objective_commit() -> str:
@@ -79,12 +102,15 @@ def objective_commit() -> str:
     or a test carries the commit it was measured at" -- applied to the table
     that does the quoting.
     """
-    # BOTH files, not just fitness.py. geometry.py decides every leaf's area,
-    # aspect and width, so a change there changes what every term evaluates --
-    # it is as much "the objective" as the scorer is. Stamping only fitness.py
+    # ALL of OBJECTIVE_SOURCES, not just fitness.py, and the set has had to grow
+    # twice. geometry.py decides every leaf's area, aspect and width, so a
+    # change there changes what every term evaluates; stamping only fitness.py
     # meant an orthogonal-division sweep (homemaker-py-32t) took the SAME stamp
     # as a non-orthogonal one and would have written over its artefacts: two
     # objectives under one name, which is precisely what §39.32 exists to stop.
+    # dom.py and graph.py are in the scoring path just as directly (§39.63) and
+    # were missing for the same reason: the list was written from memory of what
+    # "the objective" means rather than from what a score actually executes.
     r = subprocess.run(
         ["git", "log", "-1", "--format=%h", "--", *OBJECTIVE_SOURCES],
         cwd=REPO, capture_output=True, text=True)
@@ -109,7 +135,7 @@ def uncommitted_objective_sources(repo: Path = REPO) -> "list[str]":
     """The objective's own source files that are not in any commit.
 
     `objective_commit` asks `git log`, and git log cannot see the working tree.
-    So a sweep started over uncommitted edits to `fitness.py` or `geometry.py`
+    So a sweep started over uncommitted edits to any of `OBJECTIVE_SOURCES`
     stamps every row -- and names every artefact -- with the commit BEFORE those
     edits: a week of runs labelled as an objective that is not the one that
     scored them, and filenames that can overwrite the real one's. That is §39.42

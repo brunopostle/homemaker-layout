@@ -211,7 +211,7 @@ Three consequences that bite:
 - `experiments/run_coldstart_baseline.py` — the 12-run sweep. Refuses to start
   if the table already holds rows at this objective and budget (`--resume` runs
   only what is missing, `--restart` drops those rows first, §39.44), and refuses
-  if `fitness.py` or `geometry.py` are uncommitted, since the stamp comes from
+  if any file in `OBJECTIVE_SOURCES` is uncommitted, since the stamp comes from
   `git log` and would name the commit before the edits (§39.51).
 - `experiments/verify_results_table.py` — every row in `coldstart_baseline.tsv`
   re-scored from its committed artefact. Run it after any sweep and after any
@@ -317,7 +317,13 @@ check), and each one's expected direction was recorded *before* the sweep so it
 can be read as a check rather than a discovery. Keep to that discipline:
 
 - **Prefer search-side work**, which does not change the objective at all and so
-  costs the eventual sweep nothing.
+  costs the eventual sweep nothing. **"Search-side" means the file is not in
+  `OBJECTIVE_SOURCES`** — five modules, `dom` / `fitness` / `geometry` / `graph`
+  / `programme`, because those are the five a score actually executes. It is
+  NOT "anything outside `fitness.py` and `geometry.py`": that reading held
+  until §39.63 and was wrong, and `dom.py` and `graph.py` are the two it got
+  wrong. `tests/test_objective_sources.py` now measures the set rather than
+  trusting anyone's memory of it.
 - **For an objective change, land it only if it is an owner ruling or a plain
   defect** — something whose rightness does not depend on the measurement. If
   the question is "would this score better", it is a sweep question: design it,
@@ -335,7 +341,7 @@ attribute):
 | `homemaker-py-e4r` | P1 | **LANDED 2026-09-25, default off** (§39.62). `operators.mutate_support_outside`, behind `--support-outside`. Locally it clears `no outside space` on all 7 artefacts where it has a move (of 9 that carry the fail), at a median fail cost of zero. What is NOT done is the A/B — see `homemaker-py-3wq`. Two things §39.53's sketch got wrong are recorded in §39.62; read them before touching this. |
 | `homemaker-py-7kd` | P2 | the gap e4r leaves: a middle storey where every leaf is built over or is the last thing propping the terrace above. Needs a compound cross-level move. §39.62 says not to start it until 3wq reports. |
 | `homemaker-py-q4t` | P2 | cpsat's model cannot express k7c's usability test, so it optimises a slightly different relation than the scorer checks. Worse seeds, not wrong scores. |
-| `homemaker-py-4e7` | P2 | `merge_divided` mints a ground-floor sahn *after* `preprocess_building` has converted S→O, so an S survives with `allow_sahn_circulation = 0`. Reproduced on a committed artefact; fix and unit-test. |
+| `homemaker-py-4e7` | P2 | `merge_divided` mints a ground-floor sahn *after* `preprocess_building` has converted S→O, so an S survives with `allow_sahn_circulation = 0`. Reproduced on a committed artefact; fix and unit-test. **It is an OBJECTIVE change** — `dom.py` is in `OBJECTIVE_SOURCES` (§39.63) and `score_with_fails` calls `merge_divided` directly — so it moves the stamp and the next sweep measures it. Still landable (it is a plain defect), but record the expected direction first and do not file it under "search-side". |
 | `homemaker-py-8oq` | P2 | review the `2g7.7` LLM-repair-operator plan with a more capable model. Pure reading. |
 
 Designable now, but **cannot be validated** until the box is back, so file the
@@ -425,17 +431,19 @@ single-worker design avoids `homemaker-py-b8g`, but that does not make results
 portable across CPUs, and a baseline split over two boxes is not internally
 comparable.
 
-**The stamp is not `HEAD`** — it is the last commit that touched
-`fitness.py` or `geometry.py`, which is usually an older commit, because most
-work does not touch the objective. Getting this wrong once already sent someone
-looking for the wrong string. Derive it, do not guess:
+**The stamp is not `HEAD`** — it is the last commit that touched any file in
+`OBJECTIVE_SOURCES`, which is usually an older commit, because most work does
+not touch the objective. Getting this wrong once already sent someone looking
+for the wrong string. Derive it from the runner's own list, do not retype it
+(§39.63 was a second, drifted copy of exactly this command):
 
 ```bash
-git log -1 --format=%h -- src/homemaker_layout/fitness.py \
-                          src/homemaker_layout/geometry.py
+python -c "import importlib.util as u; s=u.spec_from_file_location('r','experiments/run_coldstart_baseline.py'); m=u.module_from_spec(s); s.loader.exec_module(m); print(m.objective_commit())"
 ```
 
-and confirm the runner's first line matches, with `+orth` appended.
+and confirm the runner's first line matches. (Set
+`HOMEMAKER_ORTHOGONAL_DIVISION=1` first if you want the `+orth` suffix — the
+stamp reads it from the environment.)
 
 `--resume` picks up only what is missing if it is interrupted, and **do not edit
 `src/` while it runs** (see below). A dirty objective source no longer needs
