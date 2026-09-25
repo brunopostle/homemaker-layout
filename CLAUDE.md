@@ -298,7 +298,8 @@ attribute):
 
 | bead | | |
 |---|---|---|
-| `homemaker-py-e4r` | P1 | an operator that places outdoor space over *enclosed* space, or repairs a terrace stranded over a void. §39.53 established the target is real and reachable and that nothing in the operator set aims at it. **This is the one that makes k7c and v8n actionable by the search** rather than merely scored — the obvious next thing. |
+| `homemaker-py-e4r` | P1 | **LANDED 2026-09-25, default off** (§39.62). `operators.mutate_support_outside`, behind `--support-outside`. Locally it clears `no outside space` on all 7 artefacts where it has a move (of 9 that carry the fail), at a median fail cost of zero. What is NOT done is the A/B — see `homemaker-py-3wq`. Two things §39.53's sketch got wrong are recorded in §39.62; read them before touching this. |
+| `homemaker-py-7kd` | P2 | the gap e4r leaves: a middle storey where every leaf is built over or is the last thing propping the terrace above. Needs a compound cross-level move. §39.62 says not to start it until 3wq reports. |
 | `homemaker-py-q4t` | P2 | cpsat's model cannot express k7c's usability test, so it optimises a slightly different relation than the scorer checks. Worse seeds, not wrong scores. |
 | `homemaker-py-4e7` | P2 | `merge_divided` mints a ground-floor sahn *after* `preprocess_building` has converted S→O, so an S survives with `allow_sahn_circulation = 0`. Reproduced on a committed artefact; fix and unit-test. |
 | `homemaker-py-8oq` | P2 | review the `2g7.7` LLM-repair-operator plan with a more capable model. Pure reading. |
@@ -317,8 +318,16 @@ Needs the box outright — do not start these in a container:
 
 `homemaker-py-57z` (needs a live plateau seed), `homemaker-py-2g7.9` (a racing
 harness, whose whole point is using all the cores), `homemaker-py-2g7.2`
-(calibration against human reference designs), and the `691cc21+orth`
+(calibration against human reference designs), `homemaker-py-3wq` (the
+`support_outside` A/B — 12 paired seeds, ~22 core-hours, harness written and
+waiting at `experiments/e4r_support_outside_ab.py`), and the `691cc21+orth`
 re-baseline itself.
+
+**3wq is the cheap one.** At ~22 core-hours it is 5% of the sweep, so it can run
+first and finish long before the re-baseline. Run it BEFORE the sweep if the
+operator might be flipped on by it — a default flipped mid-sweep splits the
+sweep, and a default flipped after it means the sweep measured the wrong
+configuration.
 
 ### How the objective got here (history — none of this is live)
 

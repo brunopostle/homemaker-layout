@@ -316,6 +316,7 @@ def search(
     shapecurve_prune: bool = False,
     assign_solver: str = "greedy",
     enable_reassign: bool = False,
+    enable_support_outside: bool = False,
     preserve_circulation: bool = False,
     checkpoint=None,
     checkpoint_every: int = 0,
@@ -428,6 +429,16 @@ def search(
     ``enable_ruin_recreate`` — re-solves one wing's room-code labelling
     exactly instead of un-dividing and regrowing it. Gated the same way as
     ``ruin_recreate`` (zero mutation weight unless enabled).
+
+    ``enable_support_outside`` (homemaker-py-e4r, EXPERIMENTAL, default off)
+    un-mutes ``operators.mutate_support_outside``: the repair move aimed at
+    ``force_roof_garden``'s ``no outside space`` fail -- it gives a level
+    without usable outdoor space some, over enclosed floor, or rescues a
+    terrace already stranded over a void. §39.53 established that this
+    relation, not the storey count, is what decides the fail, and that nothing
+    in the operator set aimed at it. Gated like ``bridge_circulation`` (zero
+    mutation weight unless enabled): it needs neither ``reqs`` nor a
+    ``fitness.Fitness``, so it would otherwise be unconditionally live.
     """
     rng = np.random.default_rng(seed)
     inner_kw = dict(_CHILD_INNER_KW, **(inner_kw or {}))
@@ -443,6 +454,8 @@ def search(
         mutation_weights["ruin_recreate"] = 0.0
     if not enable_reassign:
         mutation_weights["reassign"] = 0.0
+    if not enable_support_outside:
+        mutation_weights["support_outside"] = 0.0
     # homemaker-py-161: shape_rotate/deslim are gated by operators.mutate itself
     # (fit_ops go to zero probability when fit=None) — only build the Fitness
     # instance, and thus only let them fire, when explicitly enabled.
@@ -1116,6 +1129,7 @@ def search_staged(
     construction_beam_width: int = 1,
     assign_solver: str = "greedy",
     enable_reassign: bool = False,
+    enable_support_outside: bool = False,
     collapse_insearch: bool = True,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
@@ -1179,7 +1193,8 @@ def search_staged(
                       outside_divisor=outside_divisor,
                       construction_beam_width=construction_beam_width,
                       assign_solver=assign_solver,
-                      enable_reassign=enable_reassign)
+                      enable_reassign=enable_reassign,
+                      enable_support_outside=enable_support_outside)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -1224,6 +1239,7 @@ def search_staged(
             construction_beam_width=construction_beam_width,
             assign_solver=assign_solver,
             enable_reassign=enable_reassign,
+            enable_support_outside=enable_support_outside,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -1279,6 +1295,7 @@ def search_staged(
         construction_beam_width=construction_beam_width,
         assign_solver=assign_solver,
         enable_reassign=enable_reassign,
+        enable_support_outside=enable_support_outside,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

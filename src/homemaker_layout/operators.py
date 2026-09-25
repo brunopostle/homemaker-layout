@@ -535,6 +535,195 @@ def repair_circulation_settled(lvl: dom.Node, reqs, max_bridges: int = 8) -> int
     return retyped
 
 
+def _stranded_outside(root: dom.Node) -> list[tuple[int, dom.Node]]:
+    """``(level_index, leaf)`` for every above-ground outside leaf that is not
+    supported -- a terrace over a void.
+
+    ``dom.is_usable`` rejects exactly these, so they satisfy no
+    ``force_roof_garden``, carry no value and (since homemaker-py-v8n) cost
+    nothing either: dead area on the level's plan.
+    """
+    return [(li, leaf)
+            for li, lvl in enumerate(dom.levels(root)) if li
+            for leaf in lvl.leaves()
+            if dom.is_outside(leaf) and not dom.is_supported(leaf)]
+
+
+def _levels_without_outdoor(root: dom.Node) -> list[tuple[int, dom.Node]]:
+    """``(level_index, level_root)`` for every level with no USABLE outdoor
+    space -- the exact condition ``force_roof_garden`` fails on."""
+    return [(li, lvl) for li, lvl in enumerate(dom.levels(root))
+            if not any(dom.is_outside(lf) and dom.is_usable(lf)
+                       for lf in lvl.leaves())]
+
+
+def _only_circulation(lvl: dom.Node, leaf: dom.Node) -> bool:
+    """True if ``leaf`` is the only circulation leaf its level has, so
+    retyping it away would disconnect the storey outright."""
+    if not dom.is_circulation(leaf):
+        return False
+    return sum(1 for lf in lvl.leaves() if dom.is_circulation(lf)) == 1
+
+
+def _area_closest(pool: list[dom.Node], leaf: dom.Node) -> list[dom.Node]:
+    """The third of ``pool`` closest in area to ``leaf`` (at least one), the
+    same locality heuristic ``crossover`` uses to choose an exchange partner."""
+    from . import geometry
+
+    a = geometry.area(leaf)
+    ranked = sorted(pool, key=lambda n: abs(geometry.area(n) - a))
+    return ranked[:max(1, len(ranked) // 3)]
+
+
+def _can_carry_terrace(leaf: dom.Node, li: int, lvls: list[dom.Node]) -> bool:
+    """Could an outside leaf HERE be a usable, non-failing terrace, without
+    costing the storey above the one it has?
+
+    Three conditions. The first two are about the leaf, and both are
+    load-bearing above ground:
+
+    * supported -- every leaf below is indoor, or ``dom.is_usable`` rejects it
+      and it satisfies no ``force_roof_garden``;
+    * not covered -- no leaf above is indoor, or the scorer raises
+      ``covered outside above ground`` (``fitness.py``), and
+      ``unsupported covered outside`` on top of it when both go wrong.
+
+    Missing the second is what makes the naive repair worse than the fail it
+    clears: on a middle storey almost every leaf has something built over it.
+    Of the nine §39.53 runs carrying ``no outside space``, seven fail a MIDDLE
+    storey.
+
+    The third is about the neighbours. A leaf is uncovered precisely when
+    what sits over it is outdoors -- so turning it outside pulls the floor out
+    from under that terrace and strands it. That is fine when the storey above
+    has another terrace left and fatal when it does not, which is the same
+    distinction ``underbuild``'s guard makes one storey down: a repair that
+    moves the fail to another level has repaired nothing.
+    """
+    if li and (dom.is_covered(leaf) or not dom.is_supported(leaf)):
+        return False
+    # At level 0 nothing sits below to support anything, and a covered
+    # ground-floor outside leaf is a loggia rather than a fail -- `fitness.py`
+    # gates that check on a non-zero level and `dom.is_usable` returns True
+    # for level 0 unconditionally. The stranding check below still applies.
+    doomed = [a for a in dom._above_leaves(leaf)
+              if dom.is_outside(a) and dom.is_usable(a)]
+    if not doomed:
+        return True
+    return any(dom.is_outside(x) and dom.is_usable(x)
+               and not any(x is d for d in doomed)
+               for x in lvls[li + 1].leaves())
+
+
+def mutate_support_outside(root: dom.Node, rng: np.random.Generator,
+                           types: list[str]) -> tuple[dom.Node, str]:
+    """Repair operator (homemaker-py-e4r, DESIGN.md §39.53): put a level's
+    outdoor space where it can actually be used, or rescue a terrace stranded
+    over a void.
+
+    §39.53's A/B settled that the ``no outside space`` fail is not about storey
+    count -- forcing a third storey left 5 of 6 runs still failing it. What
+    decides it is what sits UNDER the outdoor space (and, as the census below
+    adds, what sits OVER it), and no operator aimed at that relation. The
+    target is reachable and wins when reached (armB seed 3: zero fails, 0.2635,
+    the best programme-house result at ``c836457+orth``), but one run in six
+    finds it.
+
+    Three moves, drawn uniformly from whichever are available. Every one of
+    them lands the outdoor space on a leaf satisfying ``_can_carry_terrace``:
+
+    ``place``
+        A level with no usable outdoor space gets some: DIVIDE an eligible
+        leaf, keeping its own type on one side and putting ``O`` on the other.
+        Dividing rather than retyping is the difference between costing the
+        programme nothing and costing it a room -- measured on the §39.53
+        artefacts, retyping a leaf outright traded the one ``no outside space``
+        fail for five (``missing required space`` and its diagnostics). The
+        new leaf inherits its parent's below- and above-nodes, so it is
+        supported and uncovered exactly when the leaf it was cut from was.
+    ``swap``
+        A stranded terrace exchanges types with an eligible enclosed leaf on
+        its own level, moving the outdoor space onto solid floor under open
+        sky and the room over the void. The room stays usable there
+        (``is_usable`` is unconditional indoors); the partner is drawn from the
+        area-closest third, the locality idiom ``crossover`` already uses.
+    ``underbuild``
+        The outside leaves directly below a stranded terrace become ``C``, so
+        the terrace is supported from below instead of moved. Guarded twice:
+        the level below must keep usable outdoor space of its own, or this
+        pushes the same fail down a storey, and it must not give up its last
+        circulation leaf.
+
+    What the operator does NOT do is open a shaft through the storeys above a
+    covered leaf. That is a genuinely compound move across levels, it destroys
+    whatever those storeys had there, and on this evidence it is a separate
+    design question -- so a level whose every leaf is built over simply offers
+    no ``place``, which is the honest answer rather than a worse layout. One of
+    the nine §39.53 failures (armB seed 2) is in that state.
+
+    ``swap`` may still relocate circulation and ``place`` still shrinks the
+    leaf it cuts; the access or size fail that follows is what
+    ``bridge_circulation`` and the ratio inner loop exist to clear, the same
+    division of labour ``mutate_deslim`` relies on.
+    """
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+    moves: list[tuple[str, int, dom.Node | None, list[dom.Node]]] = []
+
+    for li, leaf in _stranded_outside(child):
+        if dom.is_covered(leaf):
+            # Supporting it would make it usable but leave `covered outside
+            # above ground` standing, and moving it within this level is what
+            # `swap` already offers from an uncovered start. This operator does
+            # not build half-repaired terraces -- see homemaker-py-7kd.
+            continue
+        partners = [lf for lf in lvls[li].leaves()
+                    if lf is not leaf and not dom.is_outside(lf)
+                    and _can_carry_terrace(lf, li, lvls)]
+        if partners:
+            moves.append(("swap", li, leaf, _area_closest(partners, leaf)))
+        # `is_supported` demands EVERY leaf below be indoor, so the whole
+        # outside part of the footprint below has to go, not a sampled one.
+        voids = [lf for lf in dom._below_leaves(leaf) if dom.is_outside(lf)]
+        keeps = [lf for lf in lvls[li - 1].leaves()
+                 if not any(lf is v for v in voids)
+                 and dom.is_outside(lf) and dom.is_usable(lf)]
+        if voids and keeps and not any(_only_circulation(lvls[li - 1], v)
+                                       for v in voids):
+            moves.append(("underbuild", li, leaf, voids))
+
+    for li, lvl in _levels_without_outdoor(child):
+        slots = [lf for lf in lvl.leaves()
+                 if not dom.is_outside(lf) and _can_carry_terrace(lf, li, lvls)]
+        if slots:
+            moves.append(("place", li, None, slots))
+
+    if not moves:
+        return _finalise(child), "support_outside noop"
+
+    kind, li, leaf, pool = _pick(rng, moves)
+    target = _pick(rng, pool)
+    if kind == "swap":
+        leaf.type, target.type = target.type, leaf.type
+        desc = (f"support_outside swap {li}/{leaf.id or 'root'} "
+                f"<-> {target.id or 'root'}")
+    elif kind == "underbuild":
+        for v in pool:
+            v.type = "C"
+        desc = (f"support_outside underbuild {li}/{leaf.id or 'root'} "
+                f"(+{len(pool)} below)")
+    else:
+        kept, side = target.type, int(rng.integers(2))
+        target.division = [0.5, 0.5]
+        target.rotation = int(rng.integers(4))
+        target.left = dom.Node(type="O" if side else kept)
+        target.right = dom.Node(type=kept if side else "O")
+        target.type = None
+        desc = (f"support_outside place {li}/{target.id or 'root'} "
+                f"(split from {kept})")
+    return _finalise(child), desc
+
+
 def _shape_failing(leaf: dom.Node, fit) -> bool:
     """A named-room leaf whose width or proportion factor actually fails
     (``< fitness.FAIL_THRESHOLD``) under ``fit``, the same Gaussian quality
@@ -2062,6 +2251,7 @@ MUTATIONS = {
     "deslim": mutate_deslim,
     "ruin_recreate": mutate_ruin_recreate,
     "reassign": mutate_reassign,
+    "support_outside": mutate_support_outside,
 }
 
 

@@ -178,6 +178,18 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "wing), applying the one construction technique with a "
                         "track record repeatedly during search instead of only "
                         "at seeding (default: off)")
+    p.add_argument("--support-outside", dest="support_outside",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_SUPPORT_OUTSIDE", False),
+                   help="homemaker-py-e4r (DESIGN.md §39.53): repair mutation "
+                        "aimed at the 'level N no outside space' fail -- it "
+                        "gives a level without usable outdoor space some, on a "
+                        "leaf that is supported from below, or rescues a "
+                        "terrace already stranded over a void by swapping it "
+                        "onto solid floor or building under it. §39.53's A/B "
+                        "showed the fail is decided by what sits UNDER the "
+                        "outdoor space, not by the storey count, and that no "
+                        "operator aimed at that relation (default: off)")
     p.add_argument("--collapse-insearch", dest="collapse_insearch",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_COLLAPSE_INSEARCH", True),
@@ -381,6 +393,7 @@ def main(argv=None) -> int:
     print(f"use tiers    : {args.use_tiers}", file=sys.stderr)
     print(f"bridge circulation : {args.bridge_circulation}", file=sys.stderr)
     print(f"ruin recreate      : {args.ruin_recreate}", file=sys.stderr)
+    print(f"support outside    : {args.support_outside}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)
@@ -440,6 +453,7 @@ def main(argv=None) -> int:
             use_tiers=args.use_tiers,
             enable_bridge_circulation=args.bridge_circulation,
             enable_ruin_recreate=args.ruin_recreate,
+            enable_support_outside=args.support_outside,
             collapse_insearch=args.collapse_insearch,
             shapecurve_warmstart=args.shapecurve_warmstart,
             shapecurve_prune=args.shapecurve_prune,

@@ -10938,3 +10938,120 @@ and requires the claim.
 
 This does not change any number already recorded in this document. §39.59's
 +4/+3 delta was measured directly, not through this tool.
+
+### 39.62 The operator §39.53 asked for, and the second half of the relation it missed (`homemaker-py-e4r`)
+
+§39.53 left a follow-up: an operator that puts outdoor space over enclosed
+space, or repairs a terrace stranded over a void. `operators.mutate_support_outside`
+is it, behind `--support-outside` / `enable_support_outside`, default off and
+zero-weighted unless enabled, so every prior run reproduces byte-for-byte.
+
+**The census moved the emphasis before a line was written.** §39.53's sketch
+reads as though stranded terraces are the problem. They are not what the fail
+is made of. Classifying the nine §39.53 runs that carry `no outside space` by
+the shape of the failing level:
+
+| shape of the failing level | runs |
+|---|---|
+| no outside leaf at all | 7 |
+| ground floor, no outside leaf | 1 |
+| one outside leaf, stranded | 1 |
+
+Eight of nine fail because the level has **no outdoor space whatsoever**, not
+because the terrace it has is over a void. Stranded terraces are common --
+twenty-four of them across the twelve `c836457+orth` artefacts -- but they sit
+on levels that have other, usable outdoor space, so they cost the fail set
+nothing. They are dead area (`homemaker-py-v8n`: a void costs and earns
+nothing), which is worth repairing, but it is not what `force_roof_garden` is
+failing on. The operator therefore leads with the constructive half of the
+bead's own title, which the sketch under it had dropped.
+
+**The relation is two-sided, and §39.53 only names one side.** A usable,
+non-failing terrace above ground must be *supported* -- every leaf below it
+indoor, or `dom.is_usable` rejects it -- **and** *uncovered*, because
+`fitness.py` fails any above-ground outside leaf with something indoor over it
+(`covered outside above ground`, and `unsupported covered outside` when both go
+wrong). The first condition is §39.53's. The second is why the middle storey is
+hard: on a middle floor almost everything has something built over it, and seven
+of the nine failures are on a middle floor. Ignoring it is not neutral -- the
+first version of this operator did, and turned one soft fail into two hard ones.
+
+There is a third condition, which is about the neighbours rather than the leaf.
+A leaf is uncovered exactly when what sits over it is outdoors, so turning it
+outside pulls the floor from under *that* terrace. Fine when the storey above
+keeps another one, fatal when it does not -- the same distinction the
+`underbuild` move's guard makes one storey down. **A repair that moves the fail
+to another level has repaired nothing**, and both directions need saying out
+loud, because each one reads as obviously safe on its own.
+
+With all three applied, seven of the nine failing levels still offer the
+operator a move. The two that do not (armB s2, s4) are genuinely boxed in: every
+leaf is either built over or is the last thing holding up the terrace above.
+Opening a shaft through the storeys above is a compound cross-level move that
+destroys whatever those storeys had there; it is left undone deliberately, and
+an honest no-op is the right answer until it is designed.
+
+**`place` divides, it does not retype.** Measured on the §39.53 artefacts,
+retyping an eligible leaf to `O` outright traded the one `no outside space` fail
+for **five** -- `missing required space`, its `critical` twin and three `would
+need` diagnostics -- because the leaf it overwrote was a programme room. Cutting
+the leaf in two and putting `O` on one side costs the programme nothing: the
+room survives, smaller, and the ratio inner loop owns the size. The new leaf
+inherits its parent's below- and above-nodes, so it is supported and uncovered
+exactly when the leaf it was cut from was.
+
+**What the operator can reach, measured** (`experiments/diag_e4r_operator.py`,
+16 draws, ratio inner loop at the driver's per-child budget of 80, scored at
+`691cc21+orth` with the orthogonal switch on):
+
+| | |
+|---|---|
+| artefacts carrying `no outside space` | 9 |
+| operator offers no move | 2 |
+| best draw clears the fail | **7 of 7** where a move exists |
+| fail-count change of that draw | median **+0.0**, range −1..+2 |
+
+So the fail clears wherever the operator can act, and it clears at roughly no
+cost in total fails -- it is not trading one fail for another, which was the
+first version's failure mode and the reason the inner loop is in the protocol
+(`place` cuts at 0.5/0.5, so scoring the raw child measures the cut, not the
+move).
+
+**One draw beats the corpus.** From `xhw-armA-s0` -- 1 fail, 0.1973 -- a single
+`place` at `1/rl` reaches **zero fails at 0.36646**, confirmed through the
+`homemaker-fitness` CLI and committed as
+`experiments/results/e4r-local-repair-xhw-armA-s0.dom`. At this same objective
+the §39.53 reference best, armB seed 3, scores **0.2685**. It is also **two
+storeys**, not three -- a further piece of evidence that §39.52's storey framing
+was the wrong variable, since the best programme-house layout on record now has
+fewer storeys than the one the owner sketched, not more.
+
+**None of that says the search benefits, and this section does not claim it
+does.** Local reachability is necessary and not sufficient: an operator can make
+a reachable improvement and still never be selected, or be selected and crowd
+out better moves. That question is `experiments/e4r_support_outside_ab.py`, arm
+A shipped against arm B with `--support-outside`, twelve paired seeds at 500 000
+evals -- about 22 core-hours, against the 436 the coldstart sweep costs -- and
+it needs the box.
+
+**Twelve seeds, not the six §39.53 used, and the reason is arithmetic.** The
+headline outcome is binary per seed: does this run clear `no outside space`? A
+paired binary test over six pairs cannot reach significance however it comes
+out -- with `b` discordant pairs the smallest two-sided sign/McNemar p is
+`2 * 0.5**b`, already 0.0625 at `b = 5`, and six pairs can produce at most six
+discordant ones. §38.19 and §38.21 are this project's two standing examples of
+reporting a margin the sample could not resolve; being underpowered here would
+be a choice, not an accident, and the report prints the floor on p beside the
+verdict so it cannot be quoted without it.
+
+**Recorded before the run** (CLAUDE.md's discipline for the pause):
+
+* `roof_fail` clears in materially more than 1 seed in 6 -- the whole claim.
+* Total fails are **not** expected to fall by as much. `place` shrinks a room
+  and `swap` may relocate circulation; a wash on fails with `roof_fail` cleared
+  is a pass on the mechanism and a question about the operator set around it.
+* Score up if and only if the fail clears.
+
+The operator changes no scoring rule, so it costs the next re-baseline nothing
+(§39.12 clause 3): it is search-side, and default off until the A/B says
+otherwise.
