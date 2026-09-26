@@ -12,7 +12,7 @@ import os
 import sys
 
 from . import dom as dom_mod
-from .compose import LabelError, NonSlicible, compose, parse_svg, refine
+from .compose import InheritedCut, LabelError, NonSlicible, compose, parse_svg, refine
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     storeys = parse_svg(args.svg, scale=args.scale)
     try:
         root = compose(boundary, storeys, tol=args.tol)
-    except (NonSlicible, LabelError) as exc:
+    except (NonSlicible, LabelError, InheritedCut) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

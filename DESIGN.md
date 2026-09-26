@@ -11831,3 +11831,192 @@ like writing the current one in has the counter-example in front of them. The
 general form: **in a file nobody prunes, a derived value must be quoted only
 with its derivation, or not quoted at all.** That is the same rule as §39.63's
 two-copies failure and §39.65's two-stamps failure, applied to prose.
+
+### 39.70 The owner's three storeys, hand-built: 1.89x the best evolved layout, and the composer could not express it (`homemaker-py-xhw`, `homemaker-py-2g7.1`)
+
+`homemaker-py-xhw` proposed one measurement and named both outcomes in advance,
+which is what lets this be read as a check rather than a discovery. The owner, on
+the best programme-house layout: *"there was a fail on no first floor outdoor
+space, but there is a family bathroom on the ground floor and a second bedroom on
+the first floor, these could both [be] on a second floor and all have outdoor
+space"*. The bead confirmed the mechanism — level 1's terrace sits over a
+two-storey void, so `force_roof_garden` is right to reject it — and left the
+question open: if the 3-storey arrangement scores HIGHER it is a reachability
+problem and the fix is an operator; if LOWER it is an objective problem, and a
+sharp one.
+
+**It scores higher, by 1.89x, with no fails at all.** At objective
+`26ce827+orth`:
+
+| layout | score | fails |
+|---|---|---|
+| **hand-built 3 storeys** (`hand-3storey.dom`) | **0.416206** | **0** |
+| best evolved, `1138ff1+orth` s2 | 0.21937 | 1 (`0/rrl width`) |
+| `c836457+orth` s2 | 0.215669 | 1 (`level 1 no outside space`) |
+| `1138ff1+orth` s0 — the model the owner was reading | 0.206215 | 1 (`level 1 no outside space`) |
+
+So: a reachability problem. The arrangement the owner could see by eye is legal in
+the representation, better under the objective, and the search does not find it —
+`homemaker-py-v2k` is the operator that follows (add a storey *and* migrate rooms
+into it in one move, against `mutate_level_add`'s empty duplicate, which costs
+60-98% of the parent's score up front).
+
+**The control, because the hand design got a ratio solve.** Its topology is the
+design; its division ratios come from `innerloop.optimise` (Nelder-Mead against
+the full objective), because that is what every evolved artefact gets too, and
+comparing hand-tuned ratios against machine-tuned ones would measure the tuning.
+So each evolved `+orth` artefact was given the same solve, same method and budget
+(`build_hand_3storey.py --baseline`):
+
+| artefact | as committed | ratios re-solved at today's objective |
+|---|---|---|
+| `1138ff1+orth` s0 | 0.206215, 1 fail | 0.206847, 1 fail |
+| `1138ff1+orth` s1 | 0.0834413, 2 fails | 0.100058, 2 fails |
+| `1138ff1+orth` s2 | 0.21937, 1 fail | **0.220122**, 1 fail |
+| `c836457+orth` s0 | 0.197322, 1 fail | 0.198815, 1 fail |
+| `c836457+orth` s1 | 0.00848715, 2 fails | 0.00853182, 2 fails |
+| `c836457+orth` s2 | 0.215669, 1 fail | 0.215903, 1 fail |
+
+Not one fail cleared, and the ranking is unchanged: five of the six move by under
+1.5%, and the largest move — seed 1, +20% — is a two-fail layout that stays a
+two-fail layout. The fail is a property of the topology, exactly as the bead's
+mechanism section said, so the corpus is not being beaten by a fresher ratio
+solve. Against the best re-solved artefact the hand design is **1.89x**; against
+the best as committed, 1.90x.
+
+**And it is not because three storeys are more efficient.** Raw `value/cost`
+before the failure multiplier is slightly WORSE for the hand design — 0.3564
+against the artefact's 0.3730. The entire 1.9x is `0.5^0` against `0.5^1`. This
+falsifies the bead's own first hypothesis (that extra storeys are penalised by
+cost) rather than leaving it merely unsupported, and it says something narrower
+than "the hand design is better architecture": it clears the fail set, on a
+plot where clearing it is the whole game.
+
+**What the design is, and why it has that shape.** Six rooms (75 m2 declared) on
+a 51.75 m2 plate. At three storeys the building has 155 m2 of plate, so roughly
+half of it is outdoor space by arithmetic — and `area_cap` (1.2x declared,
+§39.58) caps the indoor half anyway. Three rules then fix the massing, and every
+one of them cost an iteration to find:
+
+* a terrace must sit over enclosed space or it is air (`dom.is_supported`, which
+  is decided by tree ADDRESS, not by geometry) and must have nothing indoors above
+  it (`covered outside above ground`). So the usable footprint shrinks storey by
+  storey: level 2's terrace has to sit over a level 1 ROOM, never over level 1's
+  terrace;
+* `width_outside` is `[3.0, 0.3]` and fails below ~2.36 m, `width_circulation`
+  `[2.4, 0.2]` below ~1.97 m — while rooms have no width requirement at all
+  (§39.37). The binding shape constraints are on the terraces and the stair, not
+  on the bedrooms;
+* the stair wants `_stair_fit` ~= 1.0, which on a 3 m storey needs a ~3.5 m run. A
+  2.7 x 2.7 core fails `staircase volume` and takes the WHOLE building's value
+  with it: `quality_staircase_volume` floors at 0.09, so the first draft scored
+  0.0198 with one fail and a x0.0887 building factor. A good stair is worth x1.18.
+
+The answer is a 4 m main zone against a 2.8 m service strip: `l1` and the
+bedrooms stacked in the main zone, and the strip carrying the ground garden, the
+stair core, and a column of three bathrooms (`t3`/`t1`/`t2` above each other,
+which is also how plumbing works). Level 1 puts its terrace over `l1`; level 2
+puts `b2` and its terrace over `b1`.
+
+**The real finding: the composer could not express any of it.** The first
+composed draft scored 0.0000114 with 11 fails, and every one of them read as a
+design mistake — `b1 not adjacent to c`, `inaccessible usable space`,
+`proportion`. It was not the design. `geometry.coordinate` follows a node's
+`below` link *before* applying any rotation, and `coord_a`/`coord_b` follow it
+whenever the node below is divided (`geometry.boundary_id` says so in as many
+words: "Rotation is delegated to the lowest below-link"). So on an upper storey
+TWO fields that a trace naturally wants to set are dead:
+
+* the `rotation` of any node that exists below — the corner labelling, hence
+  *which edge pair a cut spans*, belongs to the bottom of the below-stack;
+* the division ratios of any path already divided below — that wall belongs to
+  the storey below.
+
+`compose.py` wrote the traced values onto the upper node and stopped. The
+geometry then read them from the wrong place and produced a cut at the same RATIO
+on the other AXIS — which for a 4.0 x 5.1 region gives the same two areas, so
+nothing in an area check notices; only the adjacencies change, and the fails read
+as architecture. `genome.py` has known about the dead fields all along ("97
+inherited-cut divisions and 187 rotations differ from the owning node below"),
+and `genome._node_from` forces a grafted subtree's root rotation to 0 for exactly
+this reason. The composer was written against the same model and missed it.
+
+Three changes, in `compose.py` (which is in `NEITHER_SOURCES` — no score reads it
+and no search step calls it, so no stamp moves):
+
+1. **the axis is written where the engine reads it.** After linking, a
+   reconciliation pass walks each upper storey against the one below; where a
+   traced division sits over an undivided node, the axis goes onto the bottom of
+   that node's below-stack (`_frame_owner`). A level-0 leaf's rotation is
+   otherwise inert, and permuting a leaf's own corner labels is geometry-neutral
+   (`aspect` normalises, `length_narrowest` is a `min`, and `boundary_id` applies
+   the same rotation), so this is the one field that was free.
+2. **a trace that contradicts the wall below is reported, not composed.** New
+   `InheritedCut`, in the spirit of §37.3's `NonSlicible`: it names the storey,
+   the node, the wall as traced and the wall as inherited. A human plan whose
+   upper floor moves a structural wall is not representable, and saying so is the
+   representability finding `2g7.1` asked for.
+3. **an ambiguous span resolves onto the inherited wall.** Where two traced lines
+   both span a region the guillotine ORDER is ambiguous, and `_find_span` picked
+   by snapping error — which on an upper storey can pick the one cut that cannot
+   be represented. A candidate lying on the wall the storey below owns now
+   outranks a closer-fitting one that does not. This was not hypothetical: it is
+   what the real trace hit on its third variant.
+
+Why the single-storey fixtures of §37.3 could not catch any of it: all six were
+one storey, and it was recorded at the time that the trace half was still open.
+`tests/test_compose.py` now has three multi-storey cases — a traced upper cut
+across the other axis (asserting each label lands inside the room it labels, not
+just that the areas match — the broken version gets the areas right), an
+`InheritedCut` report, and the ambiguous span. Verified as a negative control:
+two of the three fail on the pre-fix code, and the suite is 9/9 after.
+
+**The artefacts, and how to rebuild them.** `examples/programme-house/`
+gains `hand-3storey.svg` (the trace, one Inkscape layer per storey, in plot
+coordinates), `hand-3storey.boundary.dom` (the §37.3 metadata sidecar, three
+storeys), and `hand-3storey.dom` (composed + solved). It is the first non-evolved
+`.dom` in the repo (`homemaker-py-2g7.1`'s open half) — but it is a DRAFTED trace,
+exact lines in plot coordinates, so it does not exercise the snapping tolerance a
+scan would; a trace of a real drawing is still open, as is harbor-house.
+`experiments/build_hand_3storey.py` rebuilds the `.dom` from the trace
+deterministically (`--emit-trace` redrafts the SVG from the coordinate spec,
+`--baseline` prints the control table, `--mode refine` the variant below). The
+score reproduces through the ordinary CLI:
+
+```bash
+cd examples/programme-house
+HOMEMAKER_ORTHOGONAL_DIVISION=1 homemaker-fitness hand-3storey.dom   # 0.416206, no .fails
+```
+
+With the switch OFF it scores 0.407419, also fail-free — the trace is drafted
+parallel and perpendicular to the plot's longest boundary, so it is very nearly
+the same building under both geometries. That is a property of this artefact, not
+a general one, and it does not license comparing across the switch (§39.12
+clause 3).
+
+**Two side findings, each filed rather than acted on.**
+
+*The score-optimal ratios are not the programme's.* The inner loop's optimum
+shrinks `b2` to 6.30 m2 (size quality 0.377) and `t3` to 4.60, and grows the
+terraces: area is worth more as terrace than as an at-target bedroom here. That is
+evidence for `homemaker-py-dpt` SUSPECT 1 (`quality_size`'s upper side against the
+per-m2 economics), gathered from a direction dpt did not anticipate — not the
+search drifting, but the objective's own optimum on a plan a human would call
+finished.
+
+*The ratio solver's target model is a strict subset of the objective.* The same
+topology with `compose.refine` — `solver.solve_ratios` against the programme's
+declared targets — puts every room near target (`l1` 36.5, `b1` 22.2, `b2` 11.6)
+and scores **0.00325 with 3 fails**: the garden at 2.01 m and the upper terrace at
+2.08 m against `width_outside`'s ~2.36 m floor, and `staircase volume` on a 5.92
+m2 stair. `solve_ratios` has one knob for all of that, `min_width_generic=1.2`,
+below both objective thresholds, and no stair term. So on any multi-storey
+topology the warm start can hand the inner loop a point inside a 3-fail region,
+which is the one thing the `0.5^n` cliff makes hard to climb out of (§4.5).
+`homemaker-py-r8c`, with the A/B that should come before any change to it.
+
+**Scope discipline.** `xhw` said "do not land anything under `src/` until the
+re-baseline sweep finishes". No sweep is running and there is no corpus at the
+live objective, and the `src/` change here is `compose.py` + `compose_cmd.py`,
+which no score and no search step reads. The objective stamp is unmoved: still
+`26ce827`, from §39.66.

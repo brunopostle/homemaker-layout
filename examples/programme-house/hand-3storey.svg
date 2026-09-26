@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- homemaker-py-xhw / 2g7.1: the 3-storey programme-house hand
+     design. Drafted by experiments/build_hand_3storey.py in the
+     plot-aligned frame; coordinates are plot metres, the same frame
+     as the boundary .dom, so this can be edited in Inkscape over a
+     survey. SVG y points down, so it renders flipped about the
+     horizontal against a plan drawn the usual way up. -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     width="12" height="24" viewBox="-2 8 12 16">
+  <g inkscape:groupmode="layer" inkscape:label="storey-0">
+    <line x1="5.838134" y1="12.977890" x2="3.802131" y2="20.781207" stroke="black" stroke-width="0.05"/>
+    <line x1="5.061697" y1="15.953710" x2="7.968127" y2="16.712041" stroke="black" stroke-width="0.05"/>
+    <line x1="4.165453" y1="19.388713" x2="7.103742" y2="20.155357" stroke="black" stroke-width="0.05"/>
+    <text x="2.722437" y="16.403218" font-size="0.4">l1</text>
+    <text x="6.897302" y="14.838896" font-size="0.4">O</text>
+    <text x="6.074755" y="18.052456" font-size="0.4">C</text>
+    <text x="5.466924" y="20.426266" font-size="0.4">t3</text>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="storey-1">
+    <line x1="5.838134" y1="12.977890" x2="3.802131" y2="20.781207" stroke="black" stroke-width="0.05"/>
+    <line x1="0.863120" y1="15.013260" x2="5.023828" y2="16.098851" stroke="black" stroke-width="0.05"/>
+    <line x1="5.061697" y1="15.953710" x2="7.968127" y2="16.712041" stroke="black" stroke-width="0.05"/>
+    <line x1="4.165453" y1="19.388713" x2="7.103742" y2="20.155357" stroke="black" stroke-width="0.05"/>
+    <text x="3.349021" y="14.001730" font-size="0.4">O</text>
+    <text x="2.316890" y="17.957544" font-size="0.4">b1</text>
+    <text x="6.897302" y="14.838896" font-size="0.4">O</text>
+    <text x="6.074755" y="18.052456" font-size="0.4">C</text>
+    <text x="5.466924" y="20.426266" font-size="0.4">t1</text>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="storey-2">
+    <line x1="5.838134" y1="12.977890" x2="3.802131" y2="20.781207" stroke="black" stroke-width="0.05"/>
+    <line x1="0.863120" y1="15.013260" x2="5.023828" y2="16.098851" stroke="black" stroke-width="0.05"/>
+    <line x1="0.332947" y1="17.045234" x2="4.493655" y2="18.130825" stroke="black" stroke-width="0.05"/>
+    <line x1="5.061697" y1="15.953710" x2="7.968127" y2="16.712041" stroke="black" stroke-width="0.05"/>
+    <line x1="4.165453" y1="19.388713" x2="7.103742" y2="20.155357" stroke="black" stroke-width="0.05"/>
+    <text x="3.349021" y="14.001730" font-size="0.4">O</text>
+    <text x="2.678388" y="16.572042" font-size="0.4">b2</text>
+    <text x="2.051803" y="18.973530" font-size="0.4">O</text>
+    <text x="6.897302" y="14.838896" font-size="0.4">O</text>
+    <text x="6.074755" y="18.052456" font-size="0.4">C</text>
+    <text x="5.466924" y="20.426266" font-size="0.4">t2</text>
+  </g>
+</svg>

@@ -36,6 +36,21 @@ Traced cut *positions* only need to be roughly right: ``refine()`` calls
 ``solver.solve_ratios(..., strip=False)`` to slide them to the best fit for
 the programme's target dimensions afterward, keeping the traced topology
 fixed.
+
+A multi-storey trace is NOT a stack of independent storeys, and this is the one
+thing to know before drawing one (DESIGN.md §39.70). ``geometry.coordinate``
+follows a node's ``below`` link before applying any rotation, and
+``coord_a``/``coord_b`` follow it whenever the node below is divided, so upstairs
+two fields a trace naturally wants are dead: the ``rotation`` of any node that
+exists below (the corner labelling, hence WHICH EDGE PAIR a cut spans, belongs to
+the bottom of the below-stack) and the division ratios of a path already divided
+below (that wall belongs to the storey below). ``compose`` therefore reconciles
+after linking — it writes each traced axis where the engine reads it, prefers the
+inherited wall when two traced lines both span a region, and raises
+``InheritedCut`` for a trace that moves a wall the storey below owns. Composing
+the storeys independently instead yields a cut at the same RATIO on the other
+AXIS: identical leaf areas, a different building, and failures that read as
+design mistakes.
 """
 
 from __future__ import annotations
@@ -93,6 +108,38 @@ class LabelError(Exception):
             f"storey {storey}: leaf region around ({cx:.2f}, {cy:.2f}) has "
             f"{len(labels)} label(s) {labels!r}, expected exactly 1"
         )
+
+
+class InheritedCut(Exception):
+    """A traced upper-storey cut contradicts the wall it must inherit.
+
+    ``geometry.coordinate``/``coord_a``/``coord_b`` follow a node's ``below``
+    link before reading anything of its own (Urb's wall-stacking; see
+    ``geometry.boundary_id``'s note and ``genome.py``'s "dead fields"), so on an
+    upper storey both the division ratios of an already-divided path and the
+    ``rotation`` of any path that exists below are DEAD: the storey below owns
+    that wall and the corner frame. A trace that puts the wall somewhere else
+    upstairs is not representable, and is reported here rather than silently
+    composed into the storey below's geometry.
+    """
+
+    def __init__(self, storey: int, path: str, traced: "tuple[Point, Point]",
+                 inherited: "tuple[Point, Point]", reason: str):
+        self.storey = storey
+        self.path = path
+        self.traced = traced
+        self.inherited = inherited
+        self.reason = reason
+        super().__init__(
+            f"storey {storey}: the cut traced at node {path or '(root)'} "
+            f"{_fmt_cut(traced)} cannot be represented -- {reason}; the storey "
+            f"below puts that wall at {_fmt_cut(inherited)}"
+        )
+
+
+def _fmt_cut(cut: "tuple[Point, Point]") -> str:
+    (x0, y0), (x1, y1) = cut
+    return f"({x0:.2f}, {y0:.2f})-({x1:.2f}, {y1:.2f})"
 
 
 # --------------------------------------------------------------------------- #
@@ -267,17 +314,27 @@ def _side(p: Point, a: Point, b: Point) -> float:
 
 
 def _find_span(
-    corners: list[Point], lines: list[tuple[Point, Point]], tol: float
+    corners: list[Point], lines: list[tuple[Point, Point]], tol: float,
+    prefer: "tuple[Point, Point] | None" = None,
 ) -> tuple[int, tuple[float, float], tuple[Point, Point]] | None:
     """Best line spanning ``corners`` edge-to-edge on either axis: axis 0 =
     edges (0,1)&(3,2), axis 1 = edges (1,2)&(0,3) — mirrors the two edge
-    pairs ``geometry.coord_a``/``coord_b`` can address via ``rotation``."""
+    pairs ``geometry.coord_a``/``coord_b`` can address via ``rotation``.
+
+    ``prefer`` is the wall this region already carries on the storey below.
+    Where two traced lines both span a region the guillotine ORDER is ambiguous
+    (a plan drawn with a cross in it can be cut either way first), and picking
+    by snapping error alone picks arbitrarily — which on an upper storey can
+    pick the one cut that cannot be represented, since the storey below owns
+    this wall (see ``InheritedCut``). A candidate lying on the inherited wall
+    therefore outranks a closer-fitting one that does not.
+    """
     axes = (
         (0, corners[0], corners[1], corners[3], corners[2]),
         (1, corners[1], corners[2], corners[0], corners[3]),
     )
     best = None
-    best_err = None
+    best_key = None
     for axis, ea0, ea1, eb0, eb1 in axes:
         for p, q in lines:
             for p1, p2 in ((p, q), (q, p)):
@@ -286,8 +343,12 @@ def _find_span(
                 if t0 is None or t1 is None:
                     continue
                 err = _dist(p1, _interp(ea0, ea1, t0)) + _dist(p2, _interp(eb0, eb1, t1))
-                if best_err is None or err < best_err:
-                    best_err = err
+                off_wall = 0
+                if prefer is not None and not _same_cut((p, q), prefer, tol):
+                    off_wall = 1
+                key = (off_wall, err)
+                if best_key is None or key < best_key:
+                    best_key = key
                     best = (axis, (t0, t1), (p, q))
     return best
 
@@ -298,8 +359,14 @@ def _build(
     lines: list[tuple[Point, Point]],
     labels: list[tuple[Point, str]],
     tol: float,
+    frames: "dict[str, list[Point]] | None" = None,
+    path: str = "",
+    inherited: "dict[str, tuple[Point, Point]] | None" = None,
 ) -> Node:
-    span = _find_span(corners, lines, tol)
+    if frames is not None:
+        frames[path] = corners
+    span = _find_span(corners, lines, tol,
+                      (inherited or {}).get(path))
     if span is None:
         if not lines:
             texts = [text for _, text in labels]
@@ -344,9 +411,119 @@ def _build(
     node = Node()
     node.rotation = rotation
     node.division = [t0, t1]
-    node.left = _build(storey, left_corners, left_lines, left_labels, tol)
-    node.right = _build(storey, right_corners, right_lines, right_labels, tol)
+    node.left = _build(storey, left_corners, left_lines, left_labels, tol,
+                       frames, path + "l", inherited)
+    node.right = _build(storey, right_corners, right_lines, right_labels, tol,
+                        frames, path + "r", inherited)
     return node
+
+
+# --------------------------------------------------------------------------- #
+# Multi-storey reconciliation (Urb wall-stacking)
+#
+# Every storey is traced and built independently, but the geometry engine does
+# not read an upper storey independently: `geometry.coordinate` delegates to
+# `below` before applying any rotation, and `coord_a`/`coord_b` delegate
+# whenever the node below is divided. So an upper storey's cut is expressed
+# through TWO fields that do not live on it -- the ratios of the owning node
+# below, and the rotation of the node at the bottom of its below-stack. Writing
+# the traced values onto the upper node alone composes a DIFFERENT building
+# (a cut that should run north-south comes out east-west), which is what the
+# single-storey fixtures of DESIGN.md sec 37.3 could not catch.
+# --------------------------------------------------------------------------- #
+
+
+def _cut_ends(corners: list[Point], rotation: int,
+              division: list[float]) -> "tuple[Point, Point]":
+    """Where a (rotation, division) pair puts its cut in ``corners``.
+
+    Mirrors `geometry.coord_a`/`coord_b`: end 'a' on edge(0,1) of the
+    rotation-adjusted corners, end 'b' on edge(3,2).
+    """
+    rc = [corners[(k + rotation) % 4] for k in range(4)]
+    return (_interp(rc[0], rc[1], division[0]),
+            _interp(rc[3], rc[2], division[1]))
+
+
+def _same_cut(a: "tuple[Point, Point]", b: "tuple[Point, Point]",
+              tol: float) -> bool:
+    """Same wall, within ``tol``, whichever end is named first."""
+    straight = max(_dist(a[0], b[0]), _dist(a[1], b[1]))
+    swapped = max(_dist(a[0], b[1]), _dist(a[1], b[0]))
+    return min(straight, swapped) <= tol
+
+
+def _frame_owner(n: Node) -> Node:
+    """The node whose ``rotation`` labels ``n``'s corners.
+
+    `geometry.coordinate` follows `below` to the bottom of the stack before
+    applying a rotation, and `geometry.boundary_id` says so in as many words:
+    "Rotation is delegated to the lowest below-link". So this is the only node
+    whose rotation can select which edge pair a cut spans.
+    """
+    while n.below is not None:
+        n = n.below
+    return n
+
+
+def _walls_of(root: Node,
+              frame: "dict[str, list[Point]]") -> "dict[str, tuple[Point, Point]]":
+    """Every cut of one composed storey, by id path, in plot coordinates."""
+    walls: dict[str, tuple[Point, Point]] = {}
+
+    def visit(n: Node, path: str) -> None:
+        if not n.divided:
+            return
+        walls[path] = _cut_ends(frame[path], n.rotation, n.division)
+        visit(n.left, path + "l")
+        visit(n.right, path + "r")
+
+    visit(root, "")
+    return walls
+
+
+def _reconcile(storey: int, node: Node, frame: "dict[str, list[Point]]",
+               frame_below: "dict[str, list[Point]]", path: str,
+               tol: float) -> None:
+    below = node.below
+    if node.divided and below is not None:
+        traced = _cut_ends(frame[path], node.rotation, node.division)
+        if below.divided:
+            # The wall belongs to the storey below; this node's ratios are dead.
+            inherited = _cut_ends(frame_below[path], below.rotation,
+                                  below.division)
+            if not _same_cut(traced, inherited, tol):
+                raise InheritedCut(
+                    storey, path, traced, inherited,
+                    "this path is already divided below, so the division "
+                    "ratios here are inherited")
+            # The traced values stay as traced. They are dead either way, and
+            # they are dead in THIS storey's frame -- which for a level root is
+            # the storey below's rotation-adjusted frame, so copying the owner's
+            # numbers across would describe a different wall, not the same one.
+            # The corpus carries drifted dead fields for the same reason
+            # (`genome.py`'s module docstring), and `genome.decode` is where
+            # canonicalising them belongs.
+        else:
+            # The ratios are this node's own, but the corner labelling -- hence
+            # which edge pair the cut spans -- comes from the bottom of the
+            # stack. Put the traced axis there, where the engine reads it.
+            owner = _frame_owner(below)
+            if owner.divided:
+                if owner.rotation != node.rotation:
+                    raise InheritedCut(
+                        storey, path,
+                        traced,
+                        _cut_ends(frame_below[path], owner.rotation,
+                                  owner.division),
+                        "the node below is undivided but its own owner below is "
+                        f"divided with rotation {owner.rotation}, which fixes "
+                        "the edge pair this cut can span")
+            else:
+                owner.rotation = node.rotation
+    if node.divided:
+        _reconcile(storey, node.left, frame, frame_below, path + "l", tol)
+        _reconcile(storey, node.right, frame, frame_below, path + "r", tol)
 
 
 # --------------------------------------------------------------------------- #
@@ -373,13 +550,20 @@ def compose(boundary_root: Node, storeys: list[StoreyTrace], tol: float = 0.15) 
         raise ValueError("boundary dom's level-0 root must have a 4-corner 'node'")
     corners = [(float(p[0]), float(p[1])) for p in plot]
 
+    frames: list[dict[str, list[Point]]] = []
+    inherited: dict[str, tuple[Point, Point]] = {}
     for i, (level_root, trace) in enumerate(zip(level_roots, storeys)):
-        built = _build(i, corners, trace.lines, trace.labels, tol)
+        frames.append({})
+        built = _build(i, corners, trace.lines, trace.labels, tol, frames[i], "",
+                       inherited)
         level_root.division = built.division
         level_root.left = built.left
         level_root.right = built.right
         level_root.rotation = built.rotation
         level_root.type = built.type
+        # The walls this storey leaves for the one above, so an ambiguous span
+        # up there resolves onto the wall it has to inherit anyway.
+        inherited = _walls_of(built, frames[i])
         if i == 0:
             # Every storey above sees level 0's own *rotation-adjusted*
             # corners (geometry.coordinate() always derives an upper root
@@ -392,6 +576,9 @@ def compose(boundary_root: Node, storeys: list[StoreyTrace], tol: float = 0.15) 
             ]
 
     link(boundary_root)
+    # `below` links exist only now, and the reconciliation needs them.
+    for i in range(1, len(level_roots)):
+        _reconcile(i, level_roots[i], frames[i], frames[i - 1], "", tol)
     from . import geometry
 
     geometry.clear_cache()

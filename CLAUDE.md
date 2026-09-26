@@ -189,7 +189,14 @@ Key modules:
 - `fitness.py` — native Python fitness evaluator (replaces Perl oracle)
 - `compose.py` / `compose_cmd.py` — `homemaker-compose`: SVG trace + boundary `.dom`
   -> full slicing-tree `.dom` (DESIGN.md §37.3). The only path to a scored HUMAN
-  design; every other `.dom` in the repo is evolution output (`homemaker-py-2g7.1`)
+  design, and the one that exists is
+  `examples/programme-house/hand-3storey.{svg,boundary.dom,dom}` (DESIGN.md §39.70,
+  rebuilt by `experiments/build_hand_3storey.py`); every other non-empty `.dom` in
+  the repo is evolution output (`homemaker-py-2g7.1`). **A multi-storey trace is
+  not a stack of independent storeys**: an upper storey's `rotation` and the
+  ratios of a path already divided below are dead fields that `geometry` reads
+  from the storey below, so `compose` writes the axis where the engine reads it
+  and raises `InheritedCut` for a trace that contradicts the wall downstairs
 - `fitness_cmd.py` — `homemaker-fitness` CLI entry point
 - `collapse_cmd.py` — `homemaker-collapse` CLI: finish-time global cell→room collapse (94g)
 - `graph.py` — leaf-adjacency graph for programme-driven fitness checks
@@ -328,7 +335,12 @@ prose. (§39.69 pruned exactly that.)
 - scoring committed artefacts — `homemaker-fitness`, or `Fitness.score_with_fails`
   in a loop over the twelve `.dom` files, seconds per file. Most measurements in
   DESIGN.md §39.54 onward were made this way;
-- every diagnostic in `experiments/` that reads committed artefacts.
+- every diagnostic in `experiments/` that reads committed artefacts;
+- optimising the division ratios of a FIXED topology — `innerloop.optimise`
+  (Nelder-Mead against the full objective), seconds to a couple of minutes for a
+  programme-house-sized tree. This is not a sweep: no topology moves. §39.70 ran
+  it on both arms of a comparison, so that a hand-tuned ratio set was not being
+  measured against a machine-tuned one.
 
 **Cannot**: anything calling `homemaker-evolve` at a real budget. No sweeps, no
 search A/Bs, no "does this change help" question of any kind.

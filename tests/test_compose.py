@@ -13,7 +13,8 @@ import textwrap
 import pytest
 
 from homemaker_layout import dom, geometry
-from homemaker_layout.compose import LabelError, NonSlicible, StoreyTrace, compose, parse_svg
+from homemaker_layout.compose import (InheritedCut, LabelError, NonSlicible, StoreyTrace,
+                                      compose, parse_svg)
 
 BOUNDARY_YAML = textwrap.dedent(
     """\
@@ -190,3 +191,194 @@ def test_compose_rejects_storey_count_mismatch(tmp_path):
     boundary = dom.load(str(boundary_path))
     with pytest.raises(ValueError):
         compose(boundary, [StoreyTrace(), StoreyTrace()])
+
+
+# --------------------------------------------------------------------------- #
+# Multi-storey traces (DESIGN.md §39.70). Everything above is single-storey,
+# which is why the below-inheritance defect these cover went unnoticed: an
+# upper storey's `rotation` and its inherited division ratios are DEAD fields
+# (`geometry.coordinate`/`coord_a` follow `below` first), so a traced upper
+# storey composed as-if-independent describes a different building.
+# --------------------------------------------------------------------------- #
+
+TWO_LEVEL_BOUNDARY_YAML = textwrap.dedent(
+    """\
+    node: [[0.0, 0.0], [10.0, 0.0], [10.0, 8.0], [0.0, 8.0]]
+    perimeter: {a: null, b: null, c: null, d: null}
+    height: 3.0
+    elevation: 0.0
+    wall_inner: 0.08
+    wall_outer: 0.25
+    rotation: 0
+    above:
+      rotation: 0
+      height: 3.0
+    """
+)
+
+
+def _quad(leaf):
+    return [tuple(geometry.coordinate(leaf, i)) for i in range(4)]
+
+
+def _contains(leaf, point) -> bool:
+    """Point inside a leaf's (convex) quad — all cross products one sign."""
+    corners = _quad(leaf)
+    signs = []
+    for i in range(4):
+        (ax, ay), (bx, by) = corners[i], corners[(i + 1) % 4]
+        signs.append((bx - ax) * (point[1] - ay) - (by - ay) * (point[0] - ax))
+    return all(s >= 0 for s in signs) or all(s <= 0 for s in signs)
+
+
+def _leaf_at(level_root, point):
+    for leaf in level_root.leaves():
+        if _contains(leaf, point):
+            return leaf
+    return None
+
+
+def test_upper_storey_cut_keeps_its_traced_axis(tmp_path):
+    """An upper-storey cut across the other axis than the frame below.
+
+    Storey 0 cuts the plot at x=4; storey 1 keeps that wall and cuts its left
+    column at y=5 — the other axis. The engine reads the cut through the
+    rotation of the node BELOW (`geometry.boundary_id`: "Rotation is delegated
+    to the lowest below-link"), so composing the storeys independently turns
+    that horizontal cut into a vertical one at the same ratio — same two areas,
+    different building, silently.
+    """
+    svg = textwrap.dedent(
+        """\
+        <svg xmlns="http://www.w3.org/2000/svg"
+             xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+          <g inkscape:groupmode="layer" inkscape:label="storey-0">
+            <path d="M 4,0 L 4,8"/>
+            <text x="2" y="4">cr1</text>
+            <text x="7" y="4">k1</text>
+          </g>
+          <g inkscape:groupmode="layer" inkscape:label="storey-1">
+            <path d="M 4,0 L 4,8"/>
+            <path d="M 0,5 L 4,5"/>
+            <text x="2" y="2.5">b1</text>
+            <text x="2" y="6.5">t1</text>
+            <text x="7" y="4">of</text>
+          </g>
+        </svg>
+        """
+    )
+    boundary_path = _write(tmp_path, "boundary.dom", TWO_LEVEL_BOUNDARY_YAML)
+    svg_path = _write(tmp_path, "plan.svg", svg)
+    root = compose(dom.load(str(boundary_path)), parse_svg(str(svg_path)))
+
+    upper = dom.levels(root)[1]
+    assert sorted(leaf.type for leaf in upper.leaves()) == ["b1", "of", "t1"]
+
+    # every label sits in the room it labels -- the plan as drawn
+    for point, code in ((2, 2.5), "b1"), (((2, 6.5)), "t1"), (((7, 4)), "of"):
+        leaf = _leaf_at(upper, point if isinstance(point, tuple) else (2, 2.5))
+        assert leaf is not None and leaf.type == code
+
+    # and the mechanism: the axis is recorded where the engine reads it
+    assert dom.levels(root)[0].by_id("l").rotation == upper.by_id("l").rotation
+
+
+def test_traced_upper_cut_that_contradicts_the_wall_below_is_reported(tmp_path):
+    """Storey 1 puts the shared wall somewhere else: not representable."""
+    svg = textwrap.dedent(
+        """\
+        <svg xmlns="http://www.w3.org/2000/svg"
+             xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+          <g inkscape:groupmode="layer" inkscape:label="storey-0">
+            <path d="M 4,0 L 4,8"/>
+            <text x="2" y="4">cr1</text>
+            <text x="7" y="4">k1</text>
+          </g>
+          <g inkscape:groupmode="layer" inkscape:label="storey-1">
+            <path d="M 7,0 L 7,8"/>
+            <text x="3" y="4">b1</text>
+            <text x="8.5" y="4">t1</text>
+          </g>
+        </svg>
+        """
+    )
+    boundary_path = _write(tmp_path, "boundary.dom", TWO_LEVEL_BOUNDARY_YAML)
+    svg_path = _write(tmp_path, "plan.svg", svg)
+
+    with pytest.raises(InheritedCut) as excinfo:
+        compose(dom.load(str(boundary_path)), parse_svg(str(svg_path)))
+    exc = excinfo.value
+    assert exc.storey == 1
+    assert exc.path == ""
+    assert "inherited" in str(exc)
+
+
+THREE_LEVEL_BOUNDARY_YAML = textwrap.dedent(
+    """\
+    node: [[0.0, 0.0], [10.0, 0.0], [10.0, 8.0], [0.0, 8.0]]
+    perimeter: {a: null, b: null, c: null, d: null}
+    height: 3.0
+    elevation: 0.0
+    wall_inner: 0.08
+    wall_outer: 0.25
+    rotation: 0
+    above:
+      rotation: 0
+      height: 3.0
+      above:
+        rotation: 0
+        height: 3.0
+    """
+)
+
+
+def test_ambiguous_upper_span_resolves_onto_the_inherited_wall(tmp_path):
+    """Two parallel lines span the same region: take the one owned below.
+
+    Storey 2's left column carries both the y=3 wall it inherits from storey 1
+    and a new y=6 wall of its own, and either could be the first guillotine cut
+    -- but only cutting at y=3 first can be represented, since storey 1 owns
+    that wall and an upper storey's division ratios there are dead. The y=3 arm
+    is traced sloppily so that ranking by snapping error alone takes y=6 first,
+    which is what a real hand trace did.
+    """
+    svg = textwrap.dedent(
+        """\
+        <svg xmlns="http://www.w3.org/2000/svg"
+             xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+          <g inkscape:groupmode="layer" inkscape:label="storey-0">
+            <path d="M 4,0 L 4,8"/>
+            <text x="2" y="4">cr1</text>
+            <text x="7" y="4">k1</text>
+          </g>
+          <g inkscape:groupmode="layer" inkscape:label="storey-1">
+            <path d="M 4,0 L 4,8"/>
+            <path d="M 0,3 L 4,3"/>
+            <text x="2" y="1.5">b1</text>
+            <text x="2" y="5.5">t1</text>
+            <text x="7" y="4">of</text>
+          </g>
+          <g inkscape:groupmode="layer" inkscape:label="storey-2">
+            <path d="M 4,0 L 4,8"/>
+            <path d="M 0.05,3.04 L 3.95,2.96"/>
+            <path d="M 0,6 L 4,6"/>
+            <text x="2" y="1.5">st1</text>
+            <text x="2" y="4.5">st2</text>
+            <text x="2" y="7">m</text>
+            <text x="7" y="4">r</text>
+          </g>
+        </svg>
+        """
+    )
+    boundary_path = _write(tmp_path, "boundary.dom", THREE_LEVEL_BOUNDARY_YAML)
+    svg_path = _write(tmp_path, "plan.svg", svg)
+    root = compose(dom.load(str(boundary_path)), parse_svg(str(svg_path)))
+
+    mid, top = dom.levels(root)[1], dom.levels(root)[2]
+    # the wall storey 2 shares with storey 1 is the inherited one, not y=6
+    assert top.by_id("l").division == pytest.approx(mid.by_id("l").division,
+                                                    abs=0.02)
+    for point, code in (((2, 1.5), "st1"), ((2, 4.5), "st2"),
+                        ((2, 7), "m"), ((7, 4), "r")):
+        leaf = _leaf_at(top, point)
+        assert leaf is not None and leaf.type == code
