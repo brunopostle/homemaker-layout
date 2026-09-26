@@ -745,7 +745,7 @@ def mutate_shape_rotate(root: dom.Node, rng: np.random.Generator,
     """Repair operator (homemaker-py-7fm): re-orient the cut that produced a
     shape-failing (long-thin) leaf.
 
-    Diagnosis (bd memory, 7fm): re-running the full-fitness ratio inner loop
+    Diagnosis (DESIGN.md §19, homemaker-py-7fm): re-running the full-fitness ratio inner loop
     with a large budget does not clear these fails — they are not local optima
     of the ratio, because the offending leaf is the *thin* side of a cut whose
     orientation runs parallel to its parent rectangle's long axis, so any ratio
@@ -781,7 +781,7 @@ def mutate_deslim(root: dom.Node, rng: np.random.Generator,
     Unlike ``mutate_shape_rotate`` this addresses cuts whose *area* share is
     wrong (an upstream branch several levels up gave the whole subtree too
     little area to satisfy every leaf inside it — no ratio or rotation on the
-    local cut can fix that, bd memory 7fm), not just its orientation. The
+    local cut can fix that -- DESIGN.md §19), not just its orientation. The
     displaced room becomes a missing-space fail that ``mutate_place_missing``
     (already in ``MUTATIONS``) re-inserts elsewhere on a later step. Requires
     ``fit`` (a ``fitness.Fitness``) to identify genuinely failing leaves.

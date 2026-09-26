@@ -13,7 +13,10 @@ assumes no memory of the originating conversation.
 ## 1. Purpose
 
 `homemaker-layout` is a clean-room Python successor to the Perl **Urb** project
-(`/home/bruno/src/urb`). Urb models a building as a binary **slicing tree** and
+(`git clone https://bitbucket.org/brunopostle/urb.git` — available to anyone; the
+`/home/bruno/src/urb` paths elsewhere in this document are the owner's checkout of
+that repo, recorded as they were written, §39.69). Urb models a building as a
+binary **slicing tree** and
 evolves layouts with mutation + crossover, scored against Christopher
 Alexander–style pattern fitness. Two long-standing problems motivate the
 rewrite:
@@ -404,9 +407,10 @@ cuts; non-slicing representations (sequence-pair/B*-tree — excluded by §2).
 Urb fitness terms the native port must reproduce (all couple to geometry):
 **size, width, proportion, adjacency, access/inaccessible, crinkliness,
 perpendicular, level, staircase volume/count, public access, circulation &
-outside ratios, min internal area.** Source of truth:
-`/home/bruno/src/urb/lib/Urb/Dom/Fitness/ProgrammeDriven.pm` and the `Storey`/
-`Building`/`Leaf`/`Base` submodules.
+outside ratios, min internal area.** Source of truth, in the Urb clone:
+`lib/Urb/Dom/Fitness/ProgrammeDriven.pm` and the `Storey`/`Building`/`Leaf`/`Base`
+submodules. **Historical source of truth only** — `fitness.py` is now the sole
+evaluator and a Perl behaviour does not validate a Python rule (§39.21, §39.20).
 
 **Port scope beyond the term list** (found by source review — budget for these):
 
@@ -2615,9 +2619,11 @@ stumbling onto a fail-count tie to act. Not started; low priority per DISCOVERED
 
 **Motivation.** §17 established that ~12 of the harbor-house best layout's 15 residual fails
 survive the label-only collapse — long-thin cells (`width`/`proportion`/`crinkliness`) whose
-geometry, not room assignment, is wrong. `bd memory collapse-global-94g-and-any-label-usage-
-optimisation` spun this out as its own problem: a mechanism that moves *geometry*, evaluated for
-net fail-count effect on the same 6-layout sweep §17 used.
+geometry, not room assignment, is wrong. `homemaker-py-94g`'s follow-up spun this out as its own
+problem: a mechanism that moves *geometry*, evaluated for net fail-count effect on the same
+6-layout sweep §17 used. (That framing was recorded in a `bd remember` memory,
+`collapse-global-94g-and-any-label-usage-optimisation`, which no container can read — §39.69. The
+substance is this section; the citation is kept only as provenance.)
 
 **Diagnosis (rules out mechanism (a)).** Re-ran the full-fitness ratio inner loop
 (`innerloop.optimise`, Nelder-Mead, 1500 evals, warm-started from the evolved ratios — far above
@@ -11709,3 +11715,102 @@ to stop being 39% of the fail set, the lever is not the factor's shape or its
 tier: it is either an operator that can bury less (topology), or a decision that
 `uncrinkliness`'s per-space minimum-exposure requirements are calibrated too
 tight for what the plots can deliver. Both are different beads from these three.
+
+### 39.69 What only existed on the owner's machine, and a prune of what a session inherits (`homemaker-py-9dm`)
+
+The owner's instruction: migrate anything that lives only in local system memory
+into documentation that lives in the repo, and clean up the context a future
+session is handed. The repo is the only thing a container can read, and several
+load-bearing things were outside it. Everything below was found by grep rather
+than guessed, and each item says what was done rather than what should be.
+
+**The Perl Urb source is public, and that was the missing fact.** It is not on the
+owner's machine only:
+
+```
+git clone https://bitbucket.org/brunopostle/urb.git
+```
+
+Verified reachable from an agent container (`git ls-remote` → `034f3c4`,
+2026-09-26). This changes the disposition of several items below from "dead" to
+"recoverable", and it is now recorded in CLAUDE.md as a first-class fact rather
+than implied by `../urb`, a relative path that exists for nobody. This document's
+own `/home/bruno/src/urb` references are the owner's checkout of that repo; the
+two that are *citations* (the opening paragraph, and §11's "source of truth" for
+the fitness port) now name the clone and the path within it.
+
+**`bd memory` was cited as the source for shipped code** — unreachable, because
+memories live in the owner's Dolt DB, which `bd export` omits and the schema gate
+blocks. Three citations, and in every case **the substance was already in this
+document**; only the pointer was wrong:
+
+| was | is now |
+|---|---|
+| `operators.py:748` "Diagnosis (bd memory, 7fm)" — `mutate_shape_rotate` | DESIGN.md §19 |
+| `operators.py:784` "bd memory 7fm" — `mutate_deslim` | DESIGN.md §19 |
+| `DESIGN.md:2618` "bd memory collapse-global-94g-…" | rewritten to stand alone; the memory is named as provenance only |
+
+So no content had to be reconstructed — which is the good case, and worth
+recording as such. The bad case remains: **the `2g7.7` plan**
+(`~/.claude/plans/glowing-snuggling-flute.md`) has no in-repo copy, which is why
+§39.67 could only review that bead's summary of it. Still outstanding, and it
+should be committed before `2g7.7` is built.
+
+**Four `experiments/` scripts hard-coded `/home/bruno/src/urb`.** Reading them
+rather than blanket-fixing the path split them two ways:
+
+- `penalty_reshape.py` never touched the Perl oracle at all — it only needed *a
+  programme directory*, and this repo has its own. Repointed at
+  `examples/programme-house` and **verified to run** (200 evals, completes, writes
+  its JSON). One script back from the dead.
+- `warm_vs_cold.py`, `run_search_scaled.py`, `bakeoff_harbor.py` call
+  `innerloop.OracleEvaluator`, which §39.21 deleted along with `oracle.py` and
+  `urb-fitness.pl`. **They have not run since, and the path was the lesser
+  problem.** Kept, because this document cites their measurements and deleting
+  them would orphan those numbers, but each now opens with a warning saying so,
+  naming the clone command and `URB_ROOT`, and pointing at
+  `innerloop.NativeEvaluator` as today's way to ask the same question. The
+  absolute path is gone: they resolve `URB_ROOT` and fail naming the cause instead
+  of a stranger's home directory.
+
+**A dangling section reference.** `compose.py` and `compose_cmd.py` both pointed
+at "DESIGN.md sec 37.x" for the trace format. It is **§37.3**. Fixed.
+
+**CLAUDE.md: 529 → 494 lines, and the rotting parts are gone.** It is the file
+every session reads first, and it had accumulated a second history alongside this
+one:
+
+- a dated `## Where things stand (2026-09-25)` section, four paragraphs of
+  narrative already told here;
+- a queue table whose nine rows included **four marked CLOSED**, each with a
+  paragraph of explanation;
+- `pytest is ~6m30s, 551 tests` — it was 600;
+- both recent stamp movements recounted inline.
+
+Replaced with `## Current state — derive it, do not trust this file`: three
+commands (the stamp, the open queue, the corpora on disk) and the standing facts
+that are *not* dated — that there is normally no corpus at the live objective,
+that the stamp can move without the objective changing, and that a sweep needs the
+box. **The general rule, which is the point of the prune:** a dated "where things
+stand" section in a file nobody prunes becomes a second, competing history — which
+is §39.63's two-copies failure in prose rather than in code. Which open beads need
+the box now lives in each bead's own description, so it cannot go stale in two
+places.
+
+The crinkliness section was rewritten at the same time, because §39.68 made it
+wrong: it named `gvb` and `k54` as "the analysis" when `gvb` is closed as
+not-a-defect and `k54`'s gate has resolved against it. It now carries the table of
+three measured nulls and the two levers that are left.
+
+**Two agent-instruction files.** `AGENTS.md` duplicated CLAUDE.md's beads rules,
+and the obvious move — make it a pointer — was wrong as stated: **64 of its 103
+lines are a `bd setup`-generated block**, hash-stamped in its own marker, that bd
+rewrites. So hand-written guidance kept there can be silently overwritten. What
+was done instead: its one piece of unique content (the non-interactive
+`cp`/`mv`/`rm` warning, a real hang hazard absent from CLAUDE.md) moved into
+CLAUDE.md, the hand-written preamble became a pointer saying CLAUDE.md is
+canonical and why, and **the managed block was left byte-identical** (verified by
+diff against `HEAD`).
+
+No `src/` behaviour changed: the only edits under `src/` are three docstring
+citations. The objective stamp does not move.

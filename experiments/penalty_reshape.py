@@ -15,7 +15,7 @@ Two measurements:
    fitness comparison) across several rng seeds.  Reports: mean evals to first
    improvement, mean best score, mean best n_fails at budget.
 
-Runs under URB_NO_OCCLUSION=1.
+Runs under URB_NO_OCCLUSION=1 (a no-op since the Perl oracle went, §39.21).
 
 Usage:
   python3 experiments/penalty_reshape.py [outer_budget] [out.json]
@@ -37,7 +37,10 @@ from homemaker_layout import dom, driver, innerloop  # noqa: E402
 
 os.environ.setdefault("URB_NO_OCCLUSION", "1")
 
-EX = Path("/home/bruno/src/urb/examples/programme-house")
+# §39.69: was an absolute path into the owner's Urb checkout. This script
+# never touched the Perl oracle -- it only needed a programme directory, and
+# this repo has its own, so it runs anywhere now.
+EX = Path(__file__).resolve().parent.parent / "examples" / "programme-house"
 
 # Files used for inner-loop protection test (same as bakeoff_native.py baseline)
 IL_FILES = (

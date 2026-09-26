@@ -1,5 +1,5 @@
 """homemaker-compose -- SVG trace + boundary .dom -> full slicing-tree .dom
-(homemaker-py-2g7.1). See DESIGN.md sec 37.x for the trace format.
+(homemaker-py-2g7.1). See DESIGN.md §37.3 for the trace format.
 
 Usage:
   homemaker-compose plan.svg boundary.dom -o out.dom [--tol 0.15] [--refine]

@@ -16,6 +16,23 @@ Defaults: programme-house, budget=20000, rng_seed=0, best corpus seed.
 Phase-2 reference bars (URB_NO_OCCLUSION=1, budget=2000, native fitness):
   c964435 seed → 7.65e-03 (2 fails)   beats urb-evolve p128 4.00e-03
   2f45907 seed → 2.13e-02 (2 fails)   beats urb-evolve p128 1.30e-02
+
+.. warning::
+
+   **This script does not run, and has not since DESIGN.md §39.21.** It calls
+   ``innerloop.OracleEvaluator``, part of the Perl-oracle evaluator that §39.21
+   deleted along with ``oracle.py`` and ``urb-fitness.pl``. It also hard-coded an
+   absolute path into the owner's checkout of Urb.
+
+   It is kept, not fixed, because DESIGN.md cites its measurements and deleting it
+   would orphan those numbers. To reconstruct the measurement you need the Perl
+   tree and a re-created oracle bridge::
+
+       git clone https://bitbucket.org/brunopostle/urb.git
+
+   Set ``URB_ROOT`` to the clone. Today's equivalent question is asked with
+   ``innerloop.NativeEvaluator`` against ``examples/`` in this repo, which needs
+   no Perl at all (§39.69).
 """
 
 from __future__ import annotations
@@ -29,7 +46,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from homemaker_layout import dom, driver, fitness, innerloop  # noqa: E402
 
-URB_EX = Path("/home/bruno/src/urb/examples")
+URB_EX = Path(os.environ.get("URB_ROOT", "urb-not-cloned")) / "examples"
 PH_DIR = URB_EX / "programme-house"
 PH_SEED = PH_DIR / "c964435454c459f86c3ed9a5a7621132.dom"
 

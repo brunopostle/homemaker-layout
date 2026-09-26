@@ -13,12 +13,30 @@ speedup against a cold start (all cuts 0.5) at equal budget:
 
 Run under the go-forward fitness:
   URB_NO_OCCLUSION=1 python3 experiments/warm_vs_cold.py [parent_budget child_budget]
+
+.. warning::
+
+   **This script does not run, and has not since DESIGN.md §39.21.** It calls
+   ``innerloop.OracleEvaluator``, part of the Perl-oracle evaluator that §39.21
+   deleted along with ``oracle.py`` and ``urb-fitness.pl``. It also hard-coded an
+   absolute path into the owner's checkout of Urb.
+
+   It is kept, not fixed, because DESIGN.md cites its measurements and deleting it
+   would orphan those numbers. To reconstruct the measurement you need the Perl
+   tree and a re-created oracle bridge::
+
+       git clone https://bitbucket.org/brunopostle/urb.git
+
+   Set ``URB_ROOT`` to the clone. Today's equivalent question is asked with
+   ``innerloop.NativeEvaluator`` against ``examples/`` in this repo, which needs
+   no Perl at all (§39.69).
 """
 
 from __future__ import annotations
 
 import copy
 import sys
+import os
 from pathlib import Path
 
 import numpy as np
@@ -26,7 +44,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from homemaker_layout import dom, innerloop, solver  # noqa: E402
 
-URB = Path("/home/bruno/src/urb")
+URB = Path(os.environ.get("URB_ROOT", "urb-not-cloned"))
 EX = URB / "examples" / "programme-house"
 
 DESIGNS = [

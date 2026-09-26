@@ -7,6 +7,23 @@ Files are grouped by DOF to show the scaling behaviour clearly.
 
 Usage: python3 experiments/bakeoff_harbor.py [budget] [out.json]
        (defaults: budget 200, experiments/bakeoff_harbor.json)
+
+.. warning::
+
+   **This script does not run, and has not since DESIGN.md §39.21.** It calls
+   ``innerloop.OracleEvaluator``, part of the Perl-oracle evaluator that §39.21
+   deleted along with ``oracle.py`` and ``urb-fitness.pl``. It also hard-coded an
+   absolute path into the owner's checkout of Urb.
+
+   It is kept, not fixed, because DESIGN.md cites its measurements and deleting it
+   would orphan those numbers. To reconstruct the measurement you need the Perl
+   tree and a re-created oracle bridge::
+
+       git clone https://bitbucket.org/brunopostle/urb.git
+
+   Set ``URB_ROOT`` to the clone. Today's equivalent question is asked with
+   ``innerloop.NativeEvaluator`` against ``examples/`` in this repo, which needs
+   no Perl at all (§39.69).
 """
 
 from __future__ import annotations
@@ -22,7 +39,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from homemaker_layout import dom, fitness as fit_mod, innerloop, solver  # noqa: E402
 
-EX = Path("/home/bruno/src/urb/examples/harbor-house")
+EX = Path(os.environ.get("URB_ROOT", "urb-not-cloned")) / "examples" / "harbor-house"
 
 # All files with DOF >= 3, sorted by DOF ascending
 FILES = (

@@ -6,7 +6,7 @@ under ``fitness.py``. This module builds one from a hand trace instead of
 requiring a hand-authored YAML tree (impractical) or hand-drawn room shapes
 (don't line up between storeys or with each other on a rough sketch).
 
-Trace format (see ``DESIGN.md`` sec 37.x for the full write-up):
+Trace format (see ``DESIGN.md`` §37.3 for the full write-up):
 
 * A "boundary" ``.dom`` file supplies everything geometric that ISN'T a
   guillotine-cut topology: the plot outline (level 0's ``node``), per-storey
