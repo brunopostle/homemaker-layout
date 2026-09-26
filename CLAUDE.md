@@ -212,7 +212,10 @@ Three consequences that bite:
   if the table already holds rows at this objective and budget (`--resume` runs
   only what is missing, `--restart` drops those rows first, §39.44), and refuses
   if any file in `OBJECTIVE_SOURCES` is uncommitted, since the stamp comes from
-  `git log` and would name the commit before the edits (§39.51).
+  `git log` and would name the commit before the edits (§39.51). Every row also
+  carries `search_commit` and `search_config` (§39.65) — the search the run used,
+  the second resolving against `experiments/results/search_configs/<hash>.json`.
+  Rows from before that read `-`.
 - `experiments/verify_results_table.py` — every row in `coldstart_baseline.tsv`
   re-scored from its committed artefact. Run it after any sweep and after any
   change to the objective, where it should report every row skipped (§39.43).
@@ -283,9 +286,14 @@ committed artefacts gives 248 -> 255 fails, exactly +4 `not adjacent to o` and
 changes did what they said.
 
 **So the objective has moved and there is again no corpus at it.** The stamp is
-now **`691cc21+orth`** — but derive it rather than trusting this line, which
-goes stale the next time anyone touches `fitness.py` or `geometry.py` (the
-command is under *Running the re-baseline* below). `verify_results_table.py`
+**`1ca6865+orth`** as of 2026-09-26 — but derive it rather than trusting this
+line, which goes stale whenever anyone touches any of `OBJECTIVE_SOURCES` (the
+command is under *Running the re-baseline* below).
+
+Note the stamp moved `691cc21` → `1ca6865` **without the objective changing**:
+§39.64's rename touched `graph.py`, which §39.63 had just made an objective
+source. Re-scoring the twelve artefacts still gives 255 fails. Do not go looking
+for a behaviour change behind that string (§39.65). `verify_results_table.py`
 reporting all 48 rows skipped is §39.43 working, not a fault.
 
 The queue, and which parts of it the missing box actually blocks, is the next
@@ -323,7 +331,11 @@ can be read as a check rather than a discovery. Keep to that discipline:
   NOT "anything outside `fitness.py` and `geometry.py`": that reading held
   until §39.63 and was wrong, and `dom.py` and `graph.py` are the two it got
   wrong. `tests/test_objective_sources.py` now measures the set rather than
-  trusting anyone's memory of it.
+  trusting anyone's memory of it. **Search-side is no longer free of record
+  either**: a sweep row carries `search_commit` and `search_config` (§39.65), so
+  changing a search default is a recorded decision rather than an invisible one.
+  `tests/test_search_config.py` holds the partition — every module is an
+  objective source, a search source, or explicitly neither.
 - **For an objective change, land it only if it is an owner ruling or a plain
   defect** — something whose rightness does not depend on the measurement. If
   the question is "would this score better", it is a sweep question: design it,
@@ -338,7 +350,7 @@ attribute):
 
 | bead | | |
 |---|---|---|
-| `homemaker-py-e4r` | P1 | **LANDED 2026-09-25, default off** (§39.62). `operators.mutate_support_outside`, behind `--support-outside`. Locally it clears `no outside space` on all 7 artefacts where it has a move (of 9 that carry the fail), at a median fail cost of zero. What is NOT done is the A/B — see `homemaker-py-3wq`. Two things §39.53's sketch got wrong are recorded in §39.62; read them before touching this. |
+| `homemaker-py-e4r` | — | **LANDED, and default ON since §39.65** (owner's ruling: an operator set that cannot reach a scored criterion is a defect, not an optimisation). `operators.mutate_support_outside`, behind `--support-outside`. Locally it clears `no outside space` on all 7 artefacts where it has a move (of 9 that carry the fail), at a median fail cost of zero. What is NOT done is the A/B — see `homemaker-py-3wq`. Two things §39.53's sketch got wrong are recorded in §39.62; read them before touching this. |
 | `homemaker-py-q4t` | — | **CLOSED 2026-09-25** (§39.64). It was three seeders, not just cpsat: the greedy default and the beam had the same defect. All five sites now route through `graph.satisfies_as_outside`, the scorer's own predicate. Greedy seeds: 32 → 25 `not adjacent to o` fails, and exactly seven fewer fails overall. |
 | `homemaker-py-7kd` | P2 | the gap e4r leaves: a middle storey where every leaf is built over or is the last thing propping the terrace above. Needs a compound cross-level move. §39.62 says not to start it until 3wq reports. |
 | `homemaker-py-4e7` | P2 | `merge_divided` mints a ground-floor sahn *after* `preprocess_building` has converted S→O, so an S survives with `allow_sahn_circulation = 0`. Reproduced on a committed artefact; fix and unit-test. **It is an OBJECTIVE change** — `dom.py` is in `OBJECTIVE_SOURCES` (§39.63) and `score_with_fails` calls `merge_divided` directly — so it moves the stamp and the next sweep measures it. Still landable (it is a plain defect), but record the expected direction first and do not file it under "search-side". |
@@ -359,15 +371,16 @@ Needs the box outright — do not start these in a container:
 `homemaker-py-57z` (needs a live plateau seed), `homemaker-py-2g7.9` (a racing
 harness, whose whole point is using all the cores), `homemaker-py-2g7.2`
 (calibration against human reference designs), `homemaker-py-3wq` (the
-`support_outside` A/B — 12 paired seeds, ~22 core-hours, harness written and
-waiting at `experiments/e4r_support_outside_ab.py`), and the `691cc21+orth`
-re-baseline itself.
+`support_outside` A/B — 12 paired seeds, ~22 core-hours, harness at
+`experiments/e4r_support_outside_ab.py`; since §39.65 the operator is the
+DEFAULT, so arm A passes `--no-support-outside` and is the control, making this a
+confirmation rather than a gate), and the re-baseline itself.
 
 **3wq is the cheap one.** At ~22 core-hours it is 5% of the sweep, so it can run
-first and finish long before the re-baseline. Run it BEFORE the sweep if the
-operator might be flipped on by it — a default flipped mid-sweep splits the
-sweep, and a default flipped after it means the sweep measured the wrong
-configuration.
+first and finish long before the re-baseline. It no longer gates the sweep — the
+operator is already the default and the row records that — but run it first
+anyway if you might turn the operator back OFF on the result, because a default
+flipped mid-sweep splits the sweep.
 
 ### How the objective got here (history — none of this is live)
 

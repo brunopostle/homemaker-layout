@@ -52,7 +52,30 @@ RESULTS = REPO / "experiments" / "results" / "coldstart_baseline.tsv"
 # literal in two git calls, and they must not drift apart.
 BRANCH = "claude/beads-project-intro-fjiez3"
 FIELDS = ["objective", "programme", "seed", "budget", "fails", "hard", "soft",
-          "score", "elapsed_s", "dom"]
+          "score", "elapsed_s", "dom", "search_commit", "search_config"]
+# `search_commit` / `search_config` (§39.65). Until they existed a row said what
+# OBJECTIVE scored it and nothing at all about the SEARCH that produced it, so
+# flipping any operator gate -- there are seven, and this runner passes no flags
+# for any of them -- silently changed what every future row meant while the rows
+# stayed labelled identically. That is §39.42's failure one layer out: the stamp
+# covers the objective and nothing covered the search.
+#
+# Two columns because two different things move, exactly as the objective needs
+# both `objective_commit` and the `+orth` environment suffix:
+#   search_commit  -- the last commit touching SEARCH_SOURCES; catches a change
+#                     to how an operator behaves, or to a default in driver.py.
+#   search_config  -- a hash of the EFFECTIVE knob values as `homemaker-evolve`
+#                     resolves them; catches an environment override
+#                     (HOMEMAKER_SUPPORT_OUTSIDE=1 and friends), which no commit
+#                     records. Resolves against
+#                     `experiments/results/search_configs/<hash>.json`, written
+#                     and committed the first time a configuration is seen, so
+#                     the row stays short and the hash stays readable.
+#
+# Both are ABSOLUTE, not "what differs from today's defaults": a column defined
+# relative to the current defaults reads "nothing unusual" again the moment
+# someone changes a default, which is the failure it exists to catch.
+SEARCH_CONFIGS = REPO / "experiments" / "results" / "search_configs"
 # The run-time switch that no commit records, and the suffix it puts on the
 # stamp. Named here because three places have to agree on the spelling: this
 # runner, `verify_results_table.py`, and anything that re-scores an artefact.
@@ -86,6 +109,84 @@ OBJECTIVE_SOURCES = ("src/homemaker_layout/dom.py",
                      "src/homemaker_layout/geometry.py",
                      "src/homemaker_layout/graph.py",
                      "src/homemaker_layout/programme.py")
+
+
+# The files that decide how the search MOVES rather than what a layout scores.
+# Disjoint from OBJECTIVE_SOURCES by construction, and
+# `tests/test_search_config.py` holds the partition: every module under
+# src/homemaker_layout must be in exactly one of OBJECTIVE_SOURCES,
+# SEARCH_SOURCES or NEITHER_SOURCES, so a new module cannot land unclassified.
+SEARCH_SOURCES = ("src/homemaker_layout/cpsat.py",
+                  "src/homemaker_layout/driver.py",
+                  "src/homemaker_layout/evolve.py",
+                  "src/homemaker_layout/genome.py",
+                  "src/homemaker_layout/innerloop.py",
+                  "src/homemaker_layout/operators.py",
+                  "src/homemaker_layout/shapecurve.py",
+                  "src/homemaker_layout/solver.py")
+
+# Neither: entry points, dead prototypes, and tooling that produces INPUTS
+# rather than participating in a run. No score loads them and no search step
+# calls them, so neither stamp is the right place to record a change to one.
+#
+# `compose.py`/`compose_cmd.py` are the closest call: they build the human
+# reference corpus (homemaker-py-2g7.1), so changing one changes the artefacts
+# that `homemaker-py-2g7.2` will calibrate the objective against. That matters,
+# but it is a property of that corpus and belongs to its own bead -- not to a
+# stamp on a coldstart row, which no composed artefact ever appears in.
+NEITHER_SOURCES = ("src/homemaker_layout/__init__.py",
+                   "src/homemaker_layout/bubble.py",
+                   "src/homemaker_layout/collapse_cmd.py",
+                   "src/homemaker_layout/compose.py",
+                   "src/homemaker_layout/compose_cmd.py",
+                   "src/homemaker_layout/fitness_cmd.py")
+
+# The search knobs a row must pin down. Everything else in `homemaker-evolve`'s
+# namespace is per-run (budget, seed, workers, output paths) and already in the
+# row or irrelevant to it.
+SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
+                "collapse_insearch", "collapse_local_search", "conn_grade",
+                "leaf_share_factor", "leaf_sharing", "multi_use", "pop",
+                "ruin_recreate", "shapecurve_prune", "shapecurve_warmstart",
+                "superpose", "support_outside", "use_tiers", "anneal_grain",
+                "polish_budget")
+
+
+def search_commit() -> str:
+    """Short commit of the last change to any of SEARCH_SOURCES."""
+    r = subprocess.run(["git", "log", "-1", "--format=%h", "--", *SEARCH_SOURCES],
+                       cwd=REPO, capture_output=True, text=True)
+    return r.stdout.strip() or "unknown"
+
+
+def search_config() -> "tuple[str, dict]":
+    """``(hash, config)`` for the search `homemaker-evolve` will actually run.
+
+    Read from `evolve._parse_args` rather than from `driver.search`'s signature,
+    because that is the code the subprocess runs and it is where an environment
+    override lands. The runner passes no flag for any of SEARCH_KNOBS, so the
+    parser's resolved defaults ARE what every worker will use.
+    """
+    import hashlib
+    import json as _json
+    from homemaker_layout import evolve as _evolve
+
+    ns = vars(_evolve._parse_args(["init.dom"]))
+    conf = {k: ns[k] for k in SEARCH_KNOBS if k in ns}
+    canon = _json.dumps(conf, sort_keys=True, default=str)
+    return hashlib.blake2b(canon.encode(), digest_size=5).hexdigest(), conf
+
+
+def write_search_config(h: str, conf: dict) -> "Path | None":
+    """Persist `conf` under its hash; return the path if it was new."""
+    import json as _json
+
+    SEARCH_CONFIGS.mkdir(parents=True, exist_ok=True)
+    out = SEARCH_CONFIGS / f"{h}.json"
+    if out.exists():
+        return None
+    out.write_text(_json.dumps(conf, indent=2, sort_keys=True, default=str) + "\n")
+    return out
 
 
 def objective_commit() -> str:
@@ -272,7 +373,7 @@ def drop_rows(objective: str, budget: int) -> int:
     with RESULTS.open("w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=FIELDS, delimiter="\t")
         w.writeheader()
-        w.writerows(keep)
+        w.writerows({k: r.get(k, "-") for k in FIELDS} for r in keep)
     return len(rows) - len(keep)
 
 
@@ -305,7 +406,10 @@ def record_and_push(row: dict, artefacts: "list[Path]") -> None:
     rows = []
     if RESULTS.exists():
         rows = list(csv.DictReader(RESULTS.open(), delimiter="\t"))
-    rows.append({k: str(row[k]) for k in FIELDS})
+    # `.get`: rows written before §39.65 added the search columns have no
+    # value for them, and "-" is the honest one -- the configuration was not
+    # recorded and cannot be recovered.
+    rows.append({k: str(row.get(k, "-")) for k in FIELDS})
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
     with RESULTS.open("w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=FIELDS, delimiter="\t")
@@ -472,6 +576,16 @@ def main() -> None:
     # objective, and a mid-sweep edit to fitness.py would otherwise split the
     # sweep in two without saying so.
     objective = objective_commit()
+    # Taken ONCE, here, for the same reason the objective stamp is: every worker
+    # is a separate process reading the same installed code, and a mid-sweep edit
+    # must not silently relabel half the rows (§39.65).
+    search_c = search_commit()
+    search_h, search_conf = search_config()
+    # NOT under --dry-run: a dry run must leave the tree alone, which is the
+    # rule `test_a_dry_run_never_edits_the_table` exists for -- and a sidecar
+    # is as much a write as a table row.
+    search_json = (None if args.dry_run
+                   else write_search_config(search_h, search_conf))
 
     # seed-major: all programmes at seed 0, then seed 1, ...
     queue = [(p, s) for s in range(args.seeds) for p in args.programmes]
@@ -505,8 +619,17 @@ def main() -> None:
     print(f"{len(queue)} runs, budget {args.budget}, {args.slots} slots, "
           f"checkpoint every {checkpoint_every} evals, seed-major order"
           f"\nobjective: {objective} "
-          f"(last change to fitness.py/geometry.py, +orth if the "
-          f"orthogonal-division switch is on)\n",
+          f"(last change to OBJECTIVE_SOURCES, +orth if the "
+          f"orthogonal-division switch is on)"
+          f"\nsearch   : {search_c} config {search_h}"
+          + (f" (new, written to {search_json.name})" if search_json else "")
+          + (" [dry run: sidecar not written]" if args.dry_run else "")
+          + "\n           "
+          + ", ".join(f"{k}={search_conf[k]}" for k in sorted(search_conf)
+                      if k in ("support_outside", "bridge_circulation",
+                               "ruin_recreate", "use_tiers", "leaf_sharing",
+                               "collapse_insearch"))
+          + "\n",
           flush=True)
     if args.dry_run:
         for p, s in queue:
@@ -570,8 +693,10 @@ def main() -> None:
                 dict(objective=objective, programme=prog, seed=seed,
                      budget=args.budget,
                      fails=n, hard=hard, soft=soft, score=f"{val:.6g}",
-                     elapsed_s=elapsed, dom=out.name),
-                [out, log, out.with_suffix(".dom.score"), out.with_suffix(".dom.fails")])
+                     elapsed_s=elapsed, dom=out.name,
+                     search_commit=search_c, search_config=search_h),
+                [out, log, out.with_suffix(".dom.score"), out.with_suffix(".dom.fails")]
+                + ([search_json] if search_json else []))
 
     print("\n=== all runs complete ===", flush=True)
 

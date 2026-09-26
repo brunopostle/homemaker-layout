@@ -12,8 +12,13 @@ in the operator set aimed at that relation.
 
 Matched pairs, one variable, the flag:
 
-* **arm A** -- `homemaker-evolve` as shipped.
-* **arm B** -- identical plus `--support-outside`.
+* **arm A** -- `--no-support-outside`, the control.
+* **arm B** -- `homemaker-evolve` as shipped.
+
+The arms inverted at §39.65, when the operator became the default on the owner's
+ruling. Arm B is therefore what a plain run now does and arm A is the counter-
+factual; the comparison and its direction are unchanged, and `roof_fail`
+clearing more often in arm B is still the claim.
 
 Both arms use the SAME programme directory and the same objective, so unlike
 `xhw_storey_ab.py` there is no arm-specific config and nothing to re-score:
@@ -235,7 +240,8 @@ def main() -> int:
     env = dict(os.environ, HOMEMAKER_ORTHOGONAL_DIVISION="1",
                OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1",
                MKL_NUM_THREADS="1")
-    env.pop("HOMEMAKER_SUPPORT_OUTSIDE", None)   # the flag is the variable
+    env.pop("HOMEMAKER_SUPPORT_OUTSIDE", None)   # the flag is the variable,
+    # and an inherited env override would silently set BOTH arms
     os.environ.update(env)
     objective = mod.objective_commit()
 
@@ -265,8 +271,10 @@ def main() -> int:
             fh = (d / f"e4r-{arm}-s{seed}.log").open("w")
             cmd = ["homemaker-evolve", "init.dom", "--budget", str(args.budget),
                    "--seed", str(seed), "--workers", "1", "--output", str(out)]
-            if arm == "armB":
-                cmd.append("--support-outside")
+            # arm A is now the CONTROL: the operator is default-on since §39.65,
+            # so the flag that makes an arm differ is the negative one.
+            if arm == "armA":
+                cmd.append("--no-support-outside")
             p = subprocess.Popen(cmd, cwd=d, stdout=subprocess.DEVNULL,
                                  stderr=fh, env=env)
             running[p.pid] = (p, arm, seed, out, fh, time.monotonic())

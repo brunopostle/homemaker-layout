@@ -11246,3 +11246,98 @@ A literal scan for hand-spelled `("O", "S")` tuples inside the seeders was
 written and then removed: the legitimate constant `("C", "O", "S")` makes it
 fire on noise, and a guard that cries wolf is deleted in irritation the first
 time it blocks someone. Recorded so it is not re-invented.
+
+### 39.65 A row recorded which objective scored it and nothing about the search that produced it — and then `support_outside` became the default
+
+Two changes, in this order, because the second was unsafe without the first.
+
+**The gap.** A `coldstart_baseline.tsv` row carried `objective, programme, seed,
+budget, fails, hard, soft, score, elapsed_s, dom`. Nothing about the search. And
+the runner invokes
+
+```
+homemaker-evolve init.dom --budget N --seed S --workers 1 --output ... --checkpoint-every ...
+```
+
+with **no operator flag at all**, so a sweep measures whatever the defaults
+happen to be. Seven of the twenty registered operators are gated behind
+`enable_*` flags. Flipping any one of them changes what every future row means
+while the rows stay labelled identically — `691cc21+orth` before and after. That
+is §39.42's failure one layer out and §39.63's a second time: **a stamp read as
+covering more than it covers.** The objective dimension of this confusion cost a
+week in §39.28/§39.31.
+
+**Fixed with two columns**, because two different things move — exactly as the
+objective needs both `objective_commit` and the `+orth` environment suffix:
+
+| column | catches |
+|---|---|
+| `search_commit` | last commit touching `SEARCH_SOURCES`; a behaviour change, or a flipped default in `driver.py` |
+| `search_config` | hash of the effective knob values as `homemaker-evolve` resolves them; an **environment** override, which no commit records |
+
+`search_config` is read from `evolve._parse_args` rather than from
+`driver.search`'s signature, because that is the code the subprocess runs and
+where an env override lands. It resolves against
+`experiments/results/search_configs/<hash>.json`, written and committed the first
+time a configuration is seen, so the row stays short and the hash stays readable.
+
+Both are **absolute, not "what differs from today's defaults"**. A column defined
+relative to the current defaults reads "nothing unusual" again the moment someone
+changes a default, which is the failure it exists to catch.
+
+The 48 rows recorded before this read `-` in both columns. Not back-filled:
+`support_outside` did not exist when any of them ran, and asserting a
+configuration nobody recorded is worse than admitting it is gone.
+
+**The partition guard paid for itself on its first run.**
+`tests/test_search_config.py` requires every module under `src/homemaker_layout`
+to be in exactly one of `OBJECTIVE_SOURCES`, `SEARCH_SOURCES` or
+`NEITHER_SOURCES`. It immediately named two modules nobody had classified —
+`compose.py` and `compose_cmd.py`, the human-reference-corpus composer
+(`homemaker-py-2g7.1`). They are `NEITHER`: no score loads them and no search
+step calls them. They are the closest call in the list, because changing one
+changes the artefacts `homemaker-py-2g7.2` will calibrate against — but that is a
+property of that corpus and belongs to its own bead, not to a stamp on a
+coldstart row no composed artefact appears in.
+
+**Then the flip.** `enable_support_outside` and `--support-outside` default **on**
+(`search_config` a16777e579 → b746f3e352, the sidecar recording
+`support_outside: true`). The owner's ruling, and the reasoning:
+
+- `force_roof_garden` is a criterion the objective scores. An operator set with
+  no move aimed at it is a **defect, not an optimisation** — the standing
+  principle ("chasing scores is of no value if they depend on flawed logic")
+  applied to reachability rather than to a scoring rule. §39.53 diagnosed exactly
+  that and §39.62 built the move; leaving it muted left the diagnosis standing.
+- The six default-off siblings are the other half of the argument. **Not one has
+  ever been promoted.** `bridge_circulation` was measured negative (§18); most of
+  the rest were never measured at all. "Off pending an A/B" is demonstrably where
+  an operator in this repo goes to be forgotten, and §39.62 had just added a
+  seventh to that list.
+
+Two reasons for keeping it off did **not** survive scrutiny and are recorded so
+they are not re-invoked. "It keeps the A/B clean" — the flag is
+`BooleanOptionalAction`, so `--no-support-outside` already existed and either
+default gives a clean single-variable toggle. "It is the convention" — see the
+0-for-7 record above.
+
+`homemaker-py-3wq` is therefore now a **confirmation rather than a gate**, with
+its arms inverted: arm A passes `--no-support-outside` and is the control, arm B
+is a plain run. The comparison and its expected direction are unchanged.
+
+**Verified end to end**, which had never been done: before this the operator had
+only ever been called directly from tests and diagnostics. A 3 000-eval
+`homemaker-evolve` run now prints `support outside : True` and completes
+normally, and the operator is drawn 17 times in 400 mutations through the real
+`operators.mutate` dispatch — it needs neither `reqs` nor a `fitness.Fitness`, so
+it takes the plain path.
+
+**One consequence to record so nobody hunts a phantom.** The objective stamp
+moved from `691cc21` to `1ca6865` — **with no behavioural change to the
+objective.** §39.64's fix renamed `graph._satisfies_as_outside` to
+`graph.satisfies_as_outside`, and §39.63 had just made `graph.py` an objective
+source, so a pure rename moved the stamp. Re-scoring the twelve `c836457+orth`
+artefacts still gives **255 fails**, unchanged. This is the accepted cost of a
+correct source set rather than a defect in it: the alternative, a set that
+ignores `graph.py`, is what §39.63 measured at +2 fails invisible to the stamp.
+It is cheap here only because there is no corpus at `691cc21+orth` to rename.

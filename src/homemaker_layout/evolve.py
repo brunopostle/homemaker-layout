@@ -180,7 +180,7 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "at seeding (default: off)")
     p.add_argument("--support-outside", dest="support_outside",
                    action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_SUPPORT_OUTSIDE", False),
+                   default=_env_bool("HOMEMAKER_SUPPORT_OUTSIDE", True),
                    help="homemaker-py-e4r (DESIGN.md §39.53): repair mutation "
                         "aimed at the 'level N no outside space' fail -- it "
                         "gives a level without usable outdoor space some, on a "
@@ -189,7 +189,11 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "onto solid floor or building under it. §39.53's A/B "
                         "showed the fail is decided by what sits UNDER the "
                         "outdoor space, not by the storey count, and that no "
-                        "operator aimed at that relation (default: off)")
+                        "operator aimed at that relation. ON by default since "
+                        "§39.65 (owner's ruling: an operator set that cannot "
+                        "reach a scored criterion is a defect, not an "
+                        "optimisation); --no-support-outside is the control arm "
+                        "for homemaker-py-3wq (default: on)")
     p.add_argument("--collapse-insearch", dest="collapse_insearch",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_COLLAPSE_INSEARCH", True),
