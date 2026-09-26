@@ -11607,3 +11607,105 @@ own clock**; and **state the budget the A/B equalises in wall clock**. One thing
 should be decided rather than left implicit: whether storey count is in the DSL.
 And the acceptance criterion needs the sample size this project's own two
 underpowered-margin findings already argue for.
+
+### 39.68 Crinkliness is not mis-tiered: `gvb`'s premise fails twice over, and `k54`'s own gate has resolved against it
+
+`homemaker-py-gvb` argues that ` crinkliness` should not be in
+`fitness._SOFT_FAIL_MARKERS`, because the zero-exposure case "cannot be given
+[a daylit wall] by ANY ratio assignment — it needs a topology change, which is
+the document's own definition of HARD". **That premise is false, and this is the
+§39.48 pattern: the measurement was right and the model in the reviewer's head
+was wrong.** No code changes.
+
+**What the SOFT tier actually claims.** `fitness.py`'s own comment: the soft
+family is the factors "that the inner-loop ratio solve can, **in principle**,
+improve without changing the tree". *In principle* is the criterion, and it is
+the one §39.13 already tested.
+
+**First falsification, already in this document.** §39.13 measured random ratio
+jitter — the inner loop's exact degree of freedom — and found it changes which
+leaves have zero exposure, on 6–12 of 12 artefacts at ±25% and on some at ±2%,
+*in the direction the search wants* (harbor s1 8→6 buried, maple s1 18→15,
+health-centre s0 1→0). §39.13 states this as "a correction to `gvb`'s premise"
+in so many words. **gvb was never updated**, and has sat in the queue since as
+though the correction had not happened.
+
+**Second falsification, measured here.** §39.13's jitter is not the inner loop;
+it is a random perturbation at a fixed amplitude. The inner loop is Nelder-Mead,
+warm-started from the parent, at the driver's per-child budget. Two measurements,
+counting buried leaves *positionally* (§39.13's warning: `leaf.id` repeats across
+storeys, and deduplicating loses five of the corpus's buried set):
+
+*From the converged artefact*, NM changes nothing — 99 buried leaves over the
+twelve `c836457+orth` artefacts, 99 after NM at budget 80, and 99 after NM at
+800. **Expected, and weak evidence on its own**: a 500 k artefact is already at a
+ratio optimum, so the inner loop having nothing to do is what convergence means,
+and it would be true of every soft factor.
+
+*From a perturbed start* — jitter ±25%, then let NM re-converge — the picture
+inverts. NM both **keeps** improvements the jitter found (5 of 5 across the
+corpus: harbor s2, maple s0 ×3, health-centre s0 — it does not optimise them
+away) and **finds ones the jitter did not**:
+
+| artefact | converged | after jitter | after NM |
+|---|---|---|---|
+| harbor s1 | 12 | 13,13,14,14,14,**15** | 13,13,14,14,14,**14** |
+| maple s1 | 17 | 17,17,17,18,18,19 | **15**,17,17,18,18,19 |
+| health s1 | 1 | 1,1,1,2,2,**4** | 1,1,1,**1,1,2** |
+| health s2 | 2 | 2,2,2,**3**,3,4 | 2,2,2,**2**,4,4 |
+
+maple s1 is the decisive cell: NM reaches **15 buried from a base of 17**, better
+than the converged artefact it started near. The inner loop does not merely
+tolerate a reduction in burial — it finds one, unaided, when it has slack to work
+with.
+
+(My own first tally under-reported this. The `kept/better` counter only looked at
+trials where the *jitter* had already beaten the base, so it scored maple s1 as
+"0/0 improvements kept" while the raw column shows NM reaching 15. The corrected
+reading came from reading the sorted lists, not the summary — §39.66's lesson
+arriving one section later.)
+
+**So the tier is right.** Zero-exposure crinkliness is reachable by the ratio
+DOF in principle (§39.13), and reachable by the actual inner loop in practice
+when the layout is not already at a fixed point (above). What the inner loop
+cannot do is escape a converged optimum — which is true of every soft fail and is
+the ordinary meaning of convergence, not a mis-classification.
+
+**gvb's second claim weakens with it.** "n_soft is not the polish-budget signal
+it was designed to be" rested on those fails being unpolishable; they are
+polishable. What remains true is narrower and unsurprising: at the moment a
+converged individual reports `n_soft`, its soft fails are at a fixed point. That
+is a statement about convergence, not about crinkliness.
+
+Two further facts that lower the stakes to nil:
+
+- **`use_tiers` defaults to `False`.** The tiered comparator gvb says is
+  "mis-informed" is not running in any default run, and never has been.
+- §39.13's own search A/B on the reachable part was **NULL — byte-identical on
+  all twelve pairs** — because the failing tail is 0.034% of corpus value.
+  Representability was never the binding constraint.
+
+**Closing gvb as not-a-defect**, with the tier unchanged. The honest summary of
+the crinkliness story so far: it is the largest fail family by count (39.1% at
+`c836457+orth`), the failing region was genuinely unorderable and §39.13 fixed
+that, and fixing it changed nothing a search could use.
+
+**And `k54`'s gate has already resolved against it.** `homemaker-py-k54` proposes
+grading buried leaves by burial depth, and states its own blocker: "Blocked on
+9gj landing (and ideally on its A/B verdict — **if the ramp shows no search
+effect on the 35 reachable leaves, a term for the other 77 is unlikely to pay
+either**, and that is useful evidence about the whole crinkliness story)." That
+verdict is in and it is NULL. By k54's own stated test, k54 is unlikely to pay.
+It is left open because it is an owner-facing objective change with a real design
+behind it, but the bead now carries its resolved gate, and anyone picking it up
+should read this section first and expect a null.
+
+**What this says about the crinkliness family generally.** Three attempts have
+now been measured — §38.1's `floor` (no-op: it mapped 110 of 112 failing leaves
+onto one constant), §39.13's `ramp` (correct and inert), and gvb's re-tiering
+(premise false) — and the common finding is that **the failing tail is too small
+a share of value for any re-weighting of it to move a search.** If crinkliness is
+to stop being 39% of the fail set, the lever is not the factor's shape or its
+tier: it is either an operator that can bury less (topology), or a decision that
+`uncrinkliness`'s per-space minimum-exposure requirements are calibrated too
+tight for what the plots can deliver. Both are different beads from these three.
