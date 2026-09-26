@@ -11341,3 +11341,85 @@ artefacts still gives **255 fails**, unchanged. This is the accepted cost of a
 correct source set rather than a defect in it: the alternative, a set that
 ignores `graph.py`, is what §39.63 measured at +2 fails invisible to the stamp.
 It is cheap here only because there is no corpus at `691cc21+orth` to rename.
+
+### 39.66 The merge minted a sahn the configuration had switched off (`homemaker-py-4e7`)
+
+The owner, on a programme-house model: the ground-floor outdoor space is labelled
+*sahn*, which is inert because sahn circulation is off — so it should read
+*Outside*.
+
+**The search was not at fault.** Both ground-floor outdoor leaves are `O` in the
+genome and in the written `.dom`. The `S` was minted afterwards, by the scorer, in
+an ordering bug:
+
+* `Fitness.preprocess_building` converts every `S` to `O` when
+  `allow_sahn_circulation` is falsey — the default, and no corpus programme sets
+  it;
+* `dom.merge_divided` runs sixteen lines later and mints fresh `S` leaves, at the
+  ground-floor branch of the merge rules;
+* nothing converts those.
+
+`preprocess_building` cannot be the cleanup, and its own docstring says why: it
+must run BEFORE the merge, "because it changes merge outcomes". That is true, and
+precisely why it cannot also tidy up after it.
+
+**Scope: six of the corpus artefacts**, spread across both recent objectives and
+two programmes. health-centre `c836457+orth` s2 carried **four**, because
+`_merge_node` is post-order: an `S` minted one level down is seen by the merge
+above as a non-`O` outside child, which mints another.
+
+**It is not a cosmetic label**, which is the part worth keeping. `dom.is_circulation`
+is True for `S` and False for `O`, so a minted sahn:
+
+- joins the circulation graph (`graph.py`'s connectivity and access checks),
+- satisfies a neighbouring room's `adjacency: [c]` (`_adjacency_target("c")`
+  returns `GENERIC_CIRCULATION`, which is `("C", "S")`),
+- takes the `uncrinkliness_circulation` parameter family rather than the outside
+  one.
+
+That is the whole of what `allow_sahn_circulation = 0` exists to switch off.
+
+**Fixed in the merge, stated once.** `merge_divided` takes `allow_sahn`,
+defaulting to **False** to match `CONF_DEFAULTS["allow_sahn_circulation"] = 0`.
+Defaulting it the other way would reproduce the defect by omission, which is how
+it survived; with this default, the only way to get a sahn is to ask for one with
+the config in hand, and only `Fitness` has that. The two branches that mint an
+`S` consult it; the two that mint an `O` are untouched.
+
+**Measured on the twelve `c836457+orth` artefacts**
+(`experiments/diag_4e7_sahn_merge.py`):
+
+| | |
+|---|---|
+| fails | 255 → **257** |
+| the only artefact that moves | health-centre s2, 8 → 10, score 0.00137 → 0.00033 |
+| the only family that moves | **`access`**, 20 → 22 |
+
+Exactly the mechanism: health-centre s2's four phantom sahns were carrying
+circulation, and two spaces reachable only through them become
+`inaccessible usable space` once they are outdoor leaves again. The layout was
+being credited with access it does not have under its own configuration.
+programme-house s0 and s2 each carried a minted sahn and do not move — theirs was
+not load-bearing.
+
+**Expected direction of the next sweep, recorded before it runs** (§39.12 clause
+3): this is a *correctness* fix that costs fails on existing layouts, the §39.50
+pattern. But the +2 is a **check, not a baseline**: under the fixed objective the
+search sees the true cost of leaning on a courtyard for circulation and will route
+around it, so the sweep's `access` family has no reason to rise. What would be
+surprising, and worth investigating, is `access` rising by anything like 2 per
+artefact rather than staying flat.
+
+**A diagnostic that agreed with itself.** The first run of
+`diag_4e7_sahn_merge.py` reported 257 fails in BOTH arms and "no fail family
+changed" — a clean, plausible "this fix is behaviourally inert". It was wrong.
+The BEFORE arm forced the old behaviour with
+`functools.partial(real, allow_sahn=True)`, and a **call-time keyword overrides a
+partial's**, so once `Fitness` began passing `allow_sahn=` explicitly the patch
+became a no-op and both arms ran the fixed code. It was caught only because the
+255 figure had been measured separately an hour earlier and did not match. This is
+§39.20's lesson — a check believed to be running — in a fresh disguise, and the
+reason the arms of every before/after harness here should be verified to differ
+on something before their agreement is believed.
+
+The stamp moves again: `dom.py` and `fitness.py` are both objective sources.

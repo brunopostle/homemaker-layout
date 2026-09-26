@@ -2354,7 +2354,11 @@ class Fitness:
             root, programme, missing, self._multi_use, self.colocate_pairs()))
 
         # --- Phase 2: MERGED tree ---
-        dom_mod.merge_divided(root)
+        # 4e7 (§39.66): the merge must not mint a type the programme has switched
+        # off. `preprocess_building` above cannot do this for us -- it has to run
+        # BEFORE the merge, so it cannot clean up after it.
+        dom_mod.merge_divided(
+            root, allow_sahn=bool(self.conf("allow_sahn_circulation")))
         geometry.clear_cache()  # mirror Perl Merge_Divided → Clean_Cache
 
         _, graph_circ = graph_mod.build_graphs_with_circ(

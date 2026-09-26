@@ -405,13 +405,13 @@ def _undivide(n: Node, new_type: str) -> None:
     n.type = new_type
 
 
-def _merge_node(n: Node) -> None:
+def _merge_node(n: Node, allow_sahn: bool) -> None:
     """Post-order recursive merge; mirrors ``Urb::Dom::Merge_Divided``."""
     if n.divided:
-        _merge_node(n.left)
-        _merge_node(n.right)
+        _merge_node(n.left, allow_sahn)
+        _merge_node(n.right, allow_sahn)
     if n.above is not None and n.parent is None:
-        _merge_node(n.above)
+        _merge_node(n.above, allow_sahn)
     if not n.divided:
         return
     lt = n.left.type or ""
@@ -422,20 +422,50 @@ def _merge_node(n: Node) -> None:
         return
     l_o = lt == "O"
     r_o = rt == "O"
+    # homemaker-py-4e7 (§39.66): the two branches that MINT an `S` honour
+    # `allow_sahn` and produce `O` when it is off. Cleaning up afterwards was
+    # the alternative and is not available: `Fitness.preprocess_building`'s own
+    # docstring says it must run BEFORE this, "because it changes merge
+    # outcomes" -- which is exactly why it cannot also be the thing that tidies
+    # up after it. So the rule lives here, stated once.
+    sahn = "S" if allow_sahn else "O"
     if is_supported(n) and l_o and r_o:
         _undivide(n, "O")
     elif is_supported(n):
-        _undivide(n, "S")
+        # a supported pair where at least one side is already `S`. Reachable
+        # only when sahns exist at all -- or, before 4e7, from an `S` this very
+        # function had just minted one level down, which is how one ground-floor
+        # merge cascaded into four sahns on health-centre s2.
+        _undivide(n, sahn)
     elif is_unsupported(n):
         _undivide(n, "O")
     elif _level_root(n).below is None:   # ground floor: !$self->Level in Perl
-        _undivide(n, "S")
+        _undivide(n, sahn)
 
 
-def merge_divided(root: Node) -> None:
+def merge_divided(root: Node, allow_sahn: bool = False) -> None:
     """Merge adjacent outdoor siblings into a single node in-place;
     mirrors ``Urb::Dom::Merge_Divided``.  Re-links the tree afterward so
     ``below`` / ``parent`` / ``position`` fields stay consistent.
+
+    ``allow_sahn`` (homemaker-py-4e7, §39.66) decides whether a merge may mint
+    an ``S``. It defaults to **False**, matching
+    ``fitness.CONF_DEFAULTS["allow_sahn_circulation"] = 0`` and every corpus
+    programme, so a caller that omits it gets the common case rather than the
+    defect: before this, the merge minted sahns unconditionally, *after*
+    ``preprocess_building`` had converted them all away, and nothing converted
+    them back. Six of the corpus artefacts carried one, health-centre s2 four of
+    them.
+
+    That is not a cosmetic label. ``dom.is_circulation`` is True for ``S`` and
+    False for ``O``, so a merge-minted sahn joins the circulation graph, is
+    counted by the access and connectivity checks, satisfies a neighbouring
+    room's ``adjacency: [c]`` (``graph._adjacency_target``), and takes the
+    ``uncrinkliness_circulation`` parameter family -- the whole of what
+    ``allow_sahn_circulation = 0`` exists to switch off.
+
+    Only ``Fitness`` knows the programme's setting, so only ``Fitness`` passes
+    ``True``.
     """
-    _merge_node(root)
+    _merge_node(root, allow_sahn)
     link(root)

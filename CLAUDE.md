@@ -285,16 +285,22 @@ committed artefacts gives 248 -> 255 fails, exactly +4 `not adjacent to o` and
 +3 `excess internal area` -- **not a new baseline**, just the check that the
 changes did what they said.
 
-**So the objective has moved and there is again no corpus at it.** The stamp is
-**`1ca6865+orth`** as of 2026-09-26 — but derive it rather than trusting this
-line, which goes stale whenever anyone touches any of `OBJECTIVE_SOURCES` (the
-command is under *Running the re-baseline* below).
+**So the objective has moved and there is again no corpus at it.** Derive the
+stamp rather than trusting any line in this file, which goes stale whenever
+anyone touches any of `OBJECTIVE_SOURCES` (the command is under *Running the
+re-baseline* below). `verify_results_table.py` reporting all 48 rows skipped is
+§39.43 working, not a fault.
 
-Note the stamp moved `691cc21` → `1ca6865` **without the objective changing**:
-§39.64's rename touched `graph.py`, which §39.63 had just made an objective
-source. Re-scoring the twelve artefacts still gives 255 fails. Do not go looking
-for a behaviour change behind that string (§39.65). `verify_results_table.py`
-reporting all 48 rows skipped is §39.43 working, not a fault.
+Two stamp movements in two days, and they are different in kind:
+
+- `691cc21` → `1ca6865` moved the stamp **without the objective changing**:
+  §39.64's rename touched `graph.py`, which §39.63 had just made an objective
+  source. Re-scoring the twelve artefacts still gave 255 fails. Do not go looking
+  for a behaviour change behind that string (§39.65).
+- §39.66 (`homemaker-py-4e7`) then moved it **with** a real change: **255 → 257
+  fails**, all on health-centre s2, all `access`, because the merge no longer
+  mints a sahn the configuration switched off. That is a check on the fix, not a
+  new baseline.
 
 The queue, and which parts of it the missing box actually blocks, is the next
 section.
@@ -353,7 +359,7 @@ attribute):
 | `homemaker-py-e4r` | — | **LANDED, and default ON since §39.65** (owner's ruling: an operator set that cannot reach a scored criterion is a defect, not an optimisation). `operators.mutate_support_outside`, behind `--support-outside`. Locally it clears `no outside space` on all 7 artefacts where it has a move (of 9 that carry the fail), at a median fail cost of zero. What is NOT done is the A/B — see `homemaker-py-3wq`. Two things §39.53's sketch got wrong are recorded in §39.62; read them before touching this. |
 | `homemaker-py-q4t` | — | **CLOSED 2026-09-25** (§39.64). It was three seeders, not just cpsat: the greedy default and the beam had the same defect. All five sites now route through `graph.satisfies_as_outside`, the scorer's own predicate. Greedy seeds: 32 → 25 `not adjacent to o` fails, and exactly seven fewer fails overall. |
 | `homemaker-py-7kd` | P2 | the gap e4r leaves: a middle storey where every leaf is built over or is the last thing propping the terrace above. Needs a compound cross-level move. §39.62 says not to start it until 3wq reports. |
-| `homemaker-py-4e7` | P2 | `merge_divided` mints a ground-floor sahn *after* `preprocess_building` has converted S→O, so an S survives with `allow_sahn_circulation = 0`. Reproduced on a committed artefact; fix and unit-test. **It is an OBJECTIVE change** — `dom.py` is in `OBJECTIVE_SOURCES` (§39.63) and `score_with_fails` calls `merge_divided` directly — so it moves the stamp and the next sweep measures it. Still landable (it is a plain defect), but record the expected direction first and do not file it under "search-side". |
+| `homemaker-py-4e7` | — | **CLOSED 2026-09-26** (§39.66). `merge_divided` now takes `allow_sahn`, defaulting to the config default (off), so the merge cannot mint a type the programme switched off. Six artefacts carried a phantom sahn, health-centre s2 four. **An objective change**: 255 → 257 fails, all on health-centre s2, all `access` — two spaces were reachable only through a sahn that is not supposed to exist. The +2 is a check, not a baseline; see §39.66 for the expected sweep direction. |
 | `homemaker-py-8oq` | P2 | review the `2g7.7` LLM-repair-operator plan with a more capable model. Pure reading. |
 
 Designable now, but **cannot be validated** until the box is back, so file the
