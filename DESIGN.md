@@ -11423,3 +11423,187 @@ reason the arms of every before/after harness here should be verified to differ
 on something before their agreement is believed.
 
 The stamp moves again: `dom.py` and `fitness.py` are both objective sources.
+
+### 39.67 Review of the `2g7.7` LLM-repair plan (`homemaker-py-8oq`)
+
+**First, a limit on this review.** The plan text lives at
+`/home/bruno/.claude/plans/glowing-snuggling-flute.md`, on the owner's machine.
+It is not in this container and not in the repo, so **the plan document itself
+was not read.** What follows reviews the design as `homemaker-py-8oq` summarises
+it, against the five questions that bead asks and against the code as it stands
+today — which has moved a good deal since the plan was drafted on 2026-08-05.
+Anything the plan says that the bead's summary omits is unreviewed. If the plan
+is worth reviewing again in full, commit it to the repo first.
+
+**Two things the plan got right and should not be re-litigated.**
+`--llm-repair-model claude-opus-5` is the correct default. And the decision to
+have the LLM emit an *edit script over existing primitives* rather than freeform
+`.dom` text is sound: it is what makes `validate_script` possible at all.
+
+#### 1. The pinned model rejects the plan's diversity mechanism
+
+The bead says "temperature>0 for diverse proposals". **On `claude-opus-5`,
+`temperature`, `top_p` and `top_k` are removed and return a 400.** So the stated
+mechanism for getting varied repairs does not exist on the model the plan pins.
+
+The fix is already latent in the plan: ask for **3–5 distinct repairs in one
+response**, which the bead also says. Diversity then comes from the request, not
+from sampling, and one call yields several candidates — cheaper than the plan
+assumes. Delete the temperature clause.
+
+Three smaller API corrections in the same family:
+
+- Thinking is **on by default** on Opus 5 (adaptive); `budget_tokens` is removed
+  (400). Depth is `output_config.effort`, not a token budget.
+- **Assistant prefill returns a 400.** If the plan intended to prefill `[` or
+  `{` to force JSON out, that is gone. Use **structured outputs**
+  (`output_config: {format: ...}`), which makes the edit script schema-valid by
+  construction. Keep `validate_script` anyway — defence in depth, and it is what
+  catches a script that is well-formed but refers to nodes that do not exist.
+- The stable part of the prompt (system text, DSL spec, programme summary) is a
+  natural **prompt-cache** prefix, with the `.dom` and fails after it. Worth
+  doing, but verify `usage.cache_read_input_tokens` is non-zero: the minimum
+  cacheable prefix is 512–4096 tokens and the stable part may be under it.
+
+#### 2. Path addressing is the plan's biggest correctness risk
+
+`(level, path)` targeting is unsafe across a multi-edit script, because
+`Node.id` is a *position*, not an identity. Measured on a three-leaf tree:
+
+| edit | ids before | ids after |
+|---|---|---|
+| `swap` at the root | `l, rl, rr` | `ll, lr, r` — **not one id survives** |
+| `undivide` at `r` | `l, rl, rr` | `l, r` — `rl`/`rr` are gone |
+
+So in a script of the form "swap A/B, then retype C", the second edit's path
+resolves against a tree the first edit has renamed, and it silently hits the
+wrong node or nothing. This is the mechanism, not a hypothetical.
+
+Recommendation: **address by an opaque token, resolved before any mutation.**
+The prompt already has to serialise the tree; number the leaves and cuts there,
+have the DSL refer to those numbers, and resolve every target to a `Node` object
+in one pass *before* applying the first edit. Then id churn is irrelevant and a
+dangling reference is a validation error rather than a silent mis-edit. A
+two-phase apply is the minimum; restricting a script to one structural edit is
+the cheap alternative and gives up most of the point of compound repair.
+
+Also needs a stated rule: an upper-storey leaf's `(level, path)` may not exist at
+that level, because `genome`'s per-storey deltas let a storey inherit its
+neighbour's cuts and `dom._above_more` walks up when a path is absent. Decide
+whether the DSL addresses the *decoded* tree (it should) and say so.
+
+#### 3. DSL completeness: one real gap, and the count is stale
+
+The bead says 19 primitives; there are now **20** (`support_outside`, §39.62).
+The DSL's five — `divide`/`undivide`/`retype`/`swap`/`rotate` — can express the
+other fifteen *as scripts*, which is the design intent and it holds, with one
+exception:
+
+**`level_add` and `level_delete` are not expressible.** No composition of the
+five changes the storey count. That is a live gap, not a theoretical one: the
+benchmark seed's own fails include `me1 on wrong level`, §39.53 spent a whole
+A/B on storey count, and §39.62 found the best programme-house layout on record
+has *fewer* storeys than the corpus best. A plan-reading model looking at a
+two-storey layout that wants a third floor cannot say so in this DSL. Either add
+the two primitives or state the exclusion and its reason.
+
+Minor: the DSL also cannot set `share` / `co_type` stamps. Probably correct to
+exclude — they are construction-time — but say so rather than leave it implied.
+
+#### 4. The stagnation trigger collides with `restart_patience`
+
+`driver.search` already keeps a stagnation clock for the §11.5 diversity
+restart: `last_improve`, reset to `n_evals` when a restart fires precisely to
+"avoid immediate re-trigger". Modelling the LLM trigger on it, as the plan
+proposes, means the two share a clock and interfere:
+
+- whichever fires first resets the other's clock;
+- the restart does `pop[:] = keep` — it **replaces the population**, so with
+  `restart_patience < llm_patience` the plateau individual the LLM was called
+  for can be gone before it is ever serialised;
+- with `llm_patience < restart_patience`, an accepted LLM child resets
+  `last_improve` and the restart never fires at all.
+
+`restart_patience` defaults to `None`, so nothing collides today — which is
+exactly how this would ship unnoticed and bite the first time someone enables
+both. Give the LLM trigger its **own** counter, document which wins, and hold one
+of them fixed in the A/B. Note also that the restart block ends in `continue`,
+skipping child generation for that iteration; the LLM trigger has to decide
+whether it does the same.
+
+#### 5. Cache key: sound, with one caveat — and it may not save much
+
+`(genome.signature, sorted fails)` is **sound on the axis that matters**:
+`genome.signature` includes per-storey tree shape, cut orientations *and leaf
+types*, so two individuals sharing a key really are the same labelled topology.
+(The obvious worry — a types-blind signature — does not apply.)
+
+Two caveats:
+
+- The signature excludes division **ratios**, which the serialised `.dom`
+  includes. Two individuals with one key can therefore differ in geometry, and a
+  cached script authored against one may be reasoning about sizes that the other
+  does not have. For topology/type edits this is mostly harmless and arguably
+  desirable; it should be a stated approximation rather than an accident.
+- Fail strings **carry node ids** (`0/rlrlr proportion`), so the key is nearly
+  unique per individual. The cache will hit far less often than the "cost
+  discipline" framing assumes — most likely only on re-visits of the same
+  individual. Do not count on it for the cost argument.
+
+#### 6. The cost argument is in the wrong unit
+
+"One LLM call ~ thousands of native evals" is the right instinct and the wrong
+currency. Measured from the §39.53 runs (programme-house, 500 000 evals in
+3 350 s ⇒ **6.7 ms/eval**):
+
+| per-call latency | 20 calls, in native evals | share of a 500k budget |
+|---|---|---|
+| 10 s | 29 800 | 6% |
+| 30 s | 89 500 | 18% |
+| 60 s | 179 100 | **36%** |
+
+Adaptive thinking is on by default on Opus 5, so tens of seconds per call is the
+expected range, not the pessimistic one. Meanwhile the **dollars are
+negligible**: ~$0.14 a call at Opus 5 rates for an 8k-in/4k-out exchange, ~$2.80
+for the whole 20-call benchmark. So the constraint is **wall clock, not tokens**,
+and the A/B has to say which budget it equalises. "Equal native-eval budget"
+(57z's wording) silently hands the repair arm up to a third of a run for free.
+
+#### 7. Phasing: the scaffolding split is defensible, the acceptance criterion is not
+
+Deferring the live run to `homemaker-py-57z` is a reasonable way to land testable
+scaffolding without credentials. Two things are wrong with it as written.
+
+**It has not happened.** 57z was filed by the scaffolding session and is still
+open. That is §39.20's shape — a check believed to be in place — and the
+mitigation is to treat `2g7.7` as explicitly *unvalidated* until 57z reports, not
+as done with a follow-up.
+
+**The criterion is underpowered by this project's own standard.** 57z asks for
+"strictly better final fails on >=2/3 seeds". §38.19/§38.21 establish that
+harbor's paired sd is ~6.2 fails, so n=3 resolves nothing finer than ~15 fails,
+and that **25% of 3-seed subsets show a clean 3/3 sweep by chance**. Two of three
+seeds is not evidence of anything. Route it through `ab_report.py` at ≥12 paired
+seeds, as `homemaker-py-3wq` now does (§39.65) — and for a per-seed binary
+outcome, note that fewer than six discordant pairs cannot reach p<0.05 however it
+comes out.
+
+One correction to 57z's premise while it is open: it concludes credentials are
+absent from "no `ANTHROPIC_API_KEY` env var, no `ant` CLI". An unset
+`ANTHROPIC_API_KEY` does **not** mean no credentials — the SDK also resolves
+`ANTHROPIC_AUTH_TOKEN` and an `ant auth login` profile, and `ant auth status` is
+the check. In this container both are genuinely absent (and `anthropic` is not
+installed), so the conclusion holds here; on the owner's own machine that test
+would give a false negative.
+
+#### Verdict
+
+The shape is sound and worth building: an edit-script DSL over existing
+primitives, disposed of by the native scorer, called only at stagnation. Four
+things should change before implementation — **drop `temperature`** and get
+diversity from asking for several repairs in one structured response;
+**token-address the edits and resolve before mutating**; **give the trigger its
+own clock**; and **state the budget the A/B equalises in wall clock**. One thing
+should be decided rather than left implicit: whether storey count is in the DSL.
+And the acceptance criterion needs the sample size this project's own two
+underpowered-margin findings already argue for.
