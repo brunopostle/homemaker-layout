@@ -53,7 +53,15 @@ search then only explores topology + types + adjacency.
 - `src/homemaker_layout/innerloop.py` — ratio optimisation inner loop (Nelder-Mead / CMA-ES).
 - `src/homemaker_layout/driver.py` — memetic search outer loop.
 - `src/homemaker_layout/evolve.py` — `homemaker-evolve` CLI entry point.
-- `src/homemaker_layout/oracle.py` — legacy Perl shim, kept for cross-validation only.
+- `src/homemaker_layout/shapecurve.py` — Otten/Stockmeyer shape-curve DP: exact
+  size/width/proportion feasibility for a frozen topology (DESIGN.md §37.2,
+  §37.4–§37.6); used as the inner loop's warm-start and hard pre-filter.
+- `src/homemaker_layout/cpsat.py` — exact room-code-to-leaf labelling via OR-Tools
+  CP-SAT for a fixed topology (DESIGN.md §37.7), behind `assign_solver="cpsat"`.
+- `src/homemaker_layout/compose.py`, `compose_cmd.py` — `homemaker-compose`: turn an
+  SVG trace of a human design plus a boundary `.dom` into a full slicing-tree
+  `.dom` (DESIGN.md §37.3), so a known-good human layout can be scored
+  (`homemaker-py-2g7.1`).
 - `src/homemaker_layout/bubble.py` — 3D bubble-diagram adjacency fitness-signal
   prototype (DESIGN.md §27); validated null, not wired into `fitness.py` —
   reference only.
@@ -61,8 +69,12 @@ search then only explores topology + types + adjacency.
 ## Room codes and reserved names
 
 Leaf types live in **three namespaces that share a first character**. Only the
-first is enforced; the other two are conventions the fitness function reads, so
-a room's *spelling* can change how it is scored.
+first is enforced. A programme room code's *spelling* decides nothing to the
+scorer — `usage:` does, and `name:` is free text; that is what
+`test_scoring_is_invariant_under_programme_code_spelling` holds. Two
+first-character tests do survive in `operators.py`'s constructive adjacency
+heuristic (`homemaker-py-1v7`): they cannot change a score, but they do
+mis-match adjacency requirements while building seeds.
 
 **1. Generic structural types — `C`, `O`, `S` (reserved).** The leaves the
 search itself creates: `C` circulation, `O` outside, `S` sahn (an outside court

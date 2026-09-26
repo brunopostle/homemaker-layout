@@ -187,6 +187,9 @@ Key modules:
 - `shapecurve.py` — Otten/Stockmeyer shape-curve DP: exact size/width/proportion feasibility for a frozen topology, any storey count (DESIGN.md §37.2/§37.4-§37.6); used as `driver._evaluate`'s NM warm-start/hard pre-filter
 - `cpsat.py` — exact room-code-to-leaf labelling via OR-Tools CP-SAT for a fixed topology (DESIGN.md §37.7); replaces `operators._assign_adjacency_aware`'s greedy/beam room placement behind `assign_solver="cpsat"`, and powers the `operators.mutate_reassign` in-search repair operator
 - `fitness.py` — native Python fitness evaluator (replaces Perl oracle)
+- `compose.py` / `compose_cmd.py` — `homemaker-compose`: SVG trace + boundary `.dom`
+  -> full slicing-tree `.dom` (DESIGN.md §37.3). The only path to a scored HUMAN
+  design; every other `.dom` in the repo is evolution output (`homemaker-py-2g7.1`)
 - `fitness_cmd.py` — `homemaker-fitness` CLI entry point
 - `collapse_cmd.py` — `homemaker-collapse` CLI: finish-time global cell→room collapse (94g)
 - `graph.py` — leaf-adjacency graph for programme-driven fitness checks
@@ -218,8 +221,11 @@ Three consequences that bite:
   two criteria after it); both were measured with the switch **on**. The older
   `coldstart-055d710-*` and `coldstart-99c85ec-*` were measured with it **off**,
   at different objectives again — do not compare to these at all.
-  **There is no corpus at the live objective (`691cc21+orth`) and no sweep is
-  running**; the box is unavailable until ~2026-09-29.
+  **There is no corpus at the live objective and no sweep is running**; the box
+  is unavailable until ~2026-09-29. Do not trust a stamp written out here: this
+  sentence named `691cc21+orth` until §39.66 moved the objective under it, and
+  it had gone stale once before that. Derive today's with the command under
+  *Current state* below — it is two lines and it cannot be wrong.
 - It defaults **off**, so a bare `pytest` or `homemaker-fitness` run is the
   non-orthogonal objective.
 

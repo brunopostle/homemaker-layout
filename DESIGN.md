@@ -11814,3 +11814,20 @@ diff against `HEAD`).
 
 No `src/` behaviour changed: the only edits under `src/` are three docstring
 citations. The objective stamp does not move.
+
+**Addendum, found on the next session-start check.** The prune missed one, in
+the section it was rewriting *around*: the `+orth` bullet list still asserted
+"there is no corpus at the live objective (`691cc21+orth`)" — a hardcoded stamp,
+two generations out of date by then, sitting four lines above the paragraph that
+says the stamp can move without the objective changing. §39.66 moved it to
+`26ce827` (the `dom.py` merge fix), and §39.64 had moved it to `1ca6865` before
+that. Nobody would have caught it by reading, because a plausible-looking hex
+string reads as fact.
+
+The fix is not a fresher stamp — that is the same defect with a later date on
+it. The sentence now says the claim without the number and points at the derive
+command, and records that it has gone stale twice, so the next person to feel
+like writing the current one in has the counter-example in front of them. The
+general form: **in a file nobody prunes, a derived value must be quoted only
+with its derivation, or not quoted at all.** That is the same rule as §39.63's
+two-copies failure and §39.65's two-stamps failure, applied to prose.
