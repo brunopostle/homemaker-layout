@@ -2472,6 +2472,52 @@ def _rescue_outdoor(child: dom.Node, level_indices: "set[int]",
     return moved
 
 
+def _open_address(lvl: dom.Node, path: str,
+                  below: "dom.Node | None") -> "tuple[dom.Node, int] | None":
+    """Make ``path`` exist as a leaf of ``lvl``, dividing down to it.
+
+    ``(leaf, divisions_made)``, or None where the way is blocked. This is how a
+    MERGED upper storey is brought back into alignment: the storey below has a
+    finer tree at that address, and a node whose path is divided below inherits
+    ``coord_a``/``coord_b`` (§39.70), so every division this makes lands on the
+    wall that is already there. Nothing has to be measured or chosen -- the
+    ratios it writes are dead fields, copied from below only so the file says
+    what the geometry does.
+
+    Blocked in two ways, both refused rather than guessed at:
+
+    * the cell in the way carries a ROOM. Dividing clones its type into both
+      children (as the seeders do), which would mint a duplicate and fail
+      ``too many spaces``, so a column through a room upstairs is not a column;
+    * ``path`` is already DIVIDED here, i.e. this storey has a finer tree than the
+      ground at that address. Getting a leaf there means undividing and throwing
+      away whatever it holds, which is a different move.
+
+    The new siblings share the merged cell's type, so a storey does not lose its
+    outdoor space to the subdivision; ``dom.merge_divided`` does not put them back
+    together, because the path to the shaft stays divided (it only merges a node
+    whose two children are both leaves of the same type).
+    """
+    node = lvl
+    made = 0
+    for i, ch in enumerate(path):
+        if not node.divided:
+            if node.type and not dom.is_generic(node.type):
+                return None
+            src = below.by_id(path[:i]) if below is not None else None
+            node.division = (list(src.division) if src is not None and src.divided
+                             else [0.5, 0.5])
+            node.rotation = src.rotation if src is not None else 0
+            node.left = dom.Node(type=node.type)
+            node.right = dom.Node(type=node.type)
+            node.type = None
+            made += 1
+        node = node.left if ch == "l" else node.right
+    if node.divided:
+        return None
+    return node, made
+
+
 # The width a repaired stair shaft is cut to. `width_circulation` targets 2.4 m
 # and fails below ~1.97, so a slice near 2.6 clears it with margin while leaving
 # the cell it is cut from as wide as possible -- which is the whole point, see
@@ -2519,6 +2565,14 @@ def mutate_repair_shaft(root: dom.Node, rng: np.random.Generator,
     staircase past `staircase_max`, and it prefers a column of generic cells over
     one that would narrow a room, then the smallest such column.
 
+    A MERGED upper storey is no longer a dead end: `_open_address` divides it back
+    down to the address first, and because a node whose path is divided below
+    inherits its cut (§39.70), every division it makes lands on a wall that is
+    already there. It refuses only where the cell in the way carries a room
+    (dividing would clone it and fail `too many spaces`) or where that storey has
+    a FINER tree than the ground there (getting a leaf would mean undividing over
+    whatever it holds).
+
     KNOWN LIMIT: it restores ONE shaft, so on a programme asking for two
     (harbor-house's `staircase_min: 2`) it clears `staircase volume` and leaves
     `too few stairs (1, min 2)`. Reaching the second needs the programme's bounds,
@@ -2533,25 +2587,48 @@ def mutate_repair_shaft(root: dom.Node, rng: np.random.Generator,
     if _shaft_paths(lvls):
         return child, "repair_shaft noop (shaft intact)"
 
-    cands: list[tuple[int, float, list[dom.Node]]] = []
+    # Candidates are chosen on a scratch copy per address, because opening a
+    # merged storey MUTATES the tree: the winner is rebuilt on `child` below.
+    cands: list[tuple[int, int, float, str]] = []
     for leaf in lvls[0].leaves():
-        column: "list[dom.Node] | None" = [leaf]
-        for lvl in lvls[1:]:
-            node = lvl.by_id(leaf.id)
-            if node is None or node.divided:
+        probe = _finalise(copy.deepcopy(child))
+        plvls = dom.levels(probe)
+        column = [plvls[0].by_id(leaf.id)]
+        opened = 0
+        for li, lvl in enumerate(plvls[1:], start=1):
+            got = _open_address(lvl, leaf.id, plvls[li - 1])
+            if got is None:
                 column = None
                 break
+            node, made = got
+            opened += made
             column.append(node)
         if column is None:
             continue
         rooms = sum(1 for n in column if n.type and not dom.is_generic(n.type))
-        cands.append((rooms, _geo.area(leaf), column))
+        cands.append((opened, rooms, _geo.area(column[0]), leaf.id))
     if not cands:
-        return child, "repair_shaft noop (no aligned column)"
+        return child, "repair_shaft noop (no column the storeys can align on)"
 
-    fewest = min(c[0] for c in cands)
-    pool = sorted((c for c in cands if c[0] == fewest), key=lambda c: c[1])
-    rooms, _area, column = _pick(rng, pool[:max(1, len(pool) // 3)])
+    # FEWEST NEW DIVISIONS FIRST, then fewest rooms narrowed, then the smallest
+    # cell. The order was the other way round when §39.75 landed the subdivision,
+    # and it measured badly: on children whose shaft an operator had just broken,
+    # preferring a subdividing column over one that narrows a room took the median
+    # repair from x2.16 to x0.107 of the broken child. Opening a merged storey adds
+    # CELLS, and the new ones are narrow enough to bring `crinkliness` and `width`
+    # with them, where narrowing a room is one soft `size` nudge. So subdivision is
+    # a LAST RESORT for the case that has no aligned column at all -- the gap it
+    # was built to close -- and never a preference.
+    best = min(c[:2] for c in cands)
+    pool = sorted((c for c in cands if c[:2] == best), key=lambda c: c[2])
+    opened, rooms, _area, path = _pick(rng, pool[:max(1, len(pool) // 3)])
+
+    column = [lvls[0].by_id(path)]
+    for li, lvl in enumerate(lvls[1:], start=1):
+        got = _open_address(lvl, path, lvls[li - 1])
+        assert got is not None, path          # the probe already proved it opens
+        column.append(got[0])
+    _finalise(child)
 
     # Slice across the ground cell's LONGER axis, so the strip is a slice of it and
     # the remainder keeps its width. Rotation 0 divides along edge 0, rotation 1
@@ -2570,8 +2647,9 @@ def mutate_repair_shaft(root: dom.Node, rng: np.random.Generator,
         node.right = dom.Node(type=kept)
         node.type = None
     return (_finalise(child),
-            f"repair_shaft {column[0].id or 'root'}l ({len(column)} storeys, "
-            f"{'generic' if not rooms else f'{rooms} room(s) narrowed'})")
+            f"repair_shaft {path or 'root'}l ({len(column)} storeys, "
+            f"{'generic' if not rooms else f'{rooms} room(s) narrowed'}"
+            f"{f', {opened} division(s) to align' if opened else ''})")
 
 
 def mutate_level_add(root: dom.Node, rng: np.random.Generator,

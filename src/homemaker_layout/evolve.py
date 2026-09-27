@@ -180,15 +180,18 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "at seeding (default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_REPAIR_SHAFT", False),
+                   default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
                    help="homemaker-py-t7q (DESIGN.md §39.74): repair mutation "
                         "that gives a building back the staircase it lost, by "
                         "cutting a ~2.6 m shaft through a column of cells that "
                         "exists at the same address on every storey. §39.73 "
                         "measured seven live operators leaving a building with no "
                         "shaft at all in 6-14% of draws, and 12 of 48 corpus "
-                        "artefacts in that state, paying x0.0225 for it "
-                        "(default: off)")
+                        "artefacts in that state, paying x0.0225 for it. ON by "
+                        "default on §39.65's ruling (an operator set that cannot "
+                        "reach a scored criterion is a defect, not an "
+                        "optimisation); --no-repair-shaft is the control arm of "
+                        "the A/B still owed")
     p.add_argument("--level-add-migrate", dest="level_add_migrate",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_LEVEL_ADD_MIGRATE", False),

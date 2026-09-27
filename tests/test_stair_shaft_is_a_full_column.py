@@ -222,17 +222,84 @@ def test_repair_shaft_is_silent_where_a_shaft_is_intact():
         assert "noop" in desc, desc
 
 
-def test_repair_shaft_declines_when_no_address_exists_on_every_storey():
-    """The known limit, recorded: a merged upper storey offers no column.
+def test_repair_shaft_opens_a_merged_upper_storey_first():
+    """A merged storey is subdivided back into alignment, then cut.
 
     With the storey above undivided, no address below the root exists up there, so
-    there is nothing to cut in alignment. Getting a shaft into THAT shape has to
-    subdivide the upper storey first, which is a compound move and a different
-    bead; declining is the honest answer rather than a half-repair (§39.53).
+    there is nothing to cut in alignment -- until the repair divides it back down
+    to the address. It can do that without measuring anything: the storey below has
+    the finer tree, and a node whose path is divided below INHERITS its cut
+    (§39.70), so the division lands on the wall that is already there.
     """
     root = _two_storey("O", None)          # upstairs is one undivided leaf
     assert not operators._shaft_paths(dom.levels(root))
-    for seed in range(4):
-        _child, desc = operators.mutate_repair_shaft(
+    fired = 0
+    for seed in range(8):
+        child, desc = operators.mutate_repair_shaft(
             root, np.random.default_rng(seed), ["C", "O"])
-        assert "noop" in desc and "column" in desc, desc
+        geometry.clear_cache()
+        if "noop" in desc:
+            continue
+        fired += 1
+        assert "to align" in desc, desc
+        assert operators._shaft_paths(dom.levels(child)), desc
+        # the storey it opened keeps its outdoor space: the new siblings inherit
+        # the merged cell's type, so nothing was retyped away
+        upper = dom.levels(child)[1]
+        assert any(lf.type == "O" for lf in upper.leaves()), desc
+    assert fired, "the repair never opened the merged storey"
+
+
+def test_repair_shaft_will_not_divide_a_room_to_reach_an_address():
+    """Refusal 1: dividing a room clones its code and fails `too many spaces`.
+
+    Ground `C | k1`; upstairs ONE `b1` covering both. Reaching either ground
+    address upstairs would mean dividing the bedroom into two bedrooms, so there is
+    no column and the operator says so instead of minting a duplicate.
+    """
+    root = _two_storey("b1", None)
+    assert not operators._shaft_paths(dom.levels(root))
+    for seed in range(6):
+        child, desc = operators.mutate_repair_shaft(
+            root, np.random.default_rng(seed), ["C", "O"])
+        assert "noop" in desc, desc
+        types = [lf.type for lvl in dom.levels(child) for lf in lvl.leaves()]
+        assert types.count("b1") == 1, types
+
+
+def test_repair_shaft_will_not_undivide_a_finer_storey_to_reach_an_address():
+    """Refusal 2: the storey above has a FINER tree at the address.
+
+    Ground `C | (k1 | O)`. Upstairs the left cell is split again into `O | b1`, so
+    the address `l` EXISTS but is divided: getting a leaf there means undividing
+    over whatever it holds, which is a different move. The two right-hand addresses
+    are refused for the other reason -- reaching them upstairs would divide the
+    bedroom covering them -- so there is no candidate at all and the operator says
+    so.
+
+    Note what is NOT refused, and why this fixture had to be built carefully: a
+    column whose cells are ROOMS is fine, because cutting narrows a room instead of
+    cloning it. Only reaching THROUGH a room by subdivision is refused.
+    """
+    root = dom.Node(node=[list(p) for p in PLOT], height=3.0, elevation=0.0,
+                    wall_inner=0.08, wall_outer=0.25, rotation=0,
+                    division=[0.4, 0.4])
+    root.left = dom.Node(type="C")
+    root.right = dom.Node(rotation=0, division=[0.5, 0.5])
+    root.right.left = dom.Node(type="k1")
+    root.right.right = dom.Node(type="O")
+    upper = dom.Node(rotation=0, height=3.0, division=[0.4, 0.4])
+    upper.left = dom.Node(rotation=0, division=[0.5, 0.5])
+    upper.left.left = dom.Node(type="O")
+    upper.left.right = dom.Node(type="b1")
+    upper.right = dom.Node(type="b2")        # one room over both ground cells
+    root.above = upper
+    dom.link(root)
+    geometry.clear_cache()
+    assert not operators._shaft_paths(dom.levels(root))
+    for seed in range(6):
+        child, desc = operators.mutate_repair_shaft(
+            root, np.random.default_rng(seed), ["C", "O"])
+        assert "noop" in desc, desc
+        types = [lf.type for lvl in dom.levels(child) for lf in lvl.leaves()]
+        assert types.count("b2") == 1, types

@@ -318,7 +318,7 @@ def search(
     enable_reassign: bool = False,
     enable_support_outside: bool = True,
     enable_level_add_migrate: bool = False,
-    enable_repair_shaft: bool = False,
+    enable_repair_shaft: bool = True,
     preserve_circulation: bool = False,
     checkpoint=None,
     checkpoint_every: int = 0,
@@ -453,18 +453,30 @@ def search(
     (§39.65's ``search_commit``/``search_config``); before that this change
     would have altered every future corpus row's meaning invisibly.
 
-    ``enable_repair_shaft`` (homemaker-py-t7q, EXPERIMENTAL, default off) un-mutes
-    ``operators.mutate_repair_shaft``: the move that gives a building back the
-    staircase it lost, by CUTTING a ~2.6 m shaft through an aligned column of
-    cells (§39.74). Default off because the one-shot measurement is mixed -- it
-    restores a shaft on all 12 shaft-less corpus artefacts and clears their
-    `too few stairs`/`staircase volume`, but whether the cut pays for itself
-    depends on the parent, and what a move does to a SEARCH is the A/B this
-    project keeps refusing to guess at. The guard that would stop the six
-    exploratory operators BREAKING a shaft is the other half of t7q and stays
-    unbuilt for the same reason; `mutate_support_outside`'s guard landed anyway,
-    because a repair operator trading one hard fail for another is a defect rather
-    than a strategy (§39.74).
+    ``enable_repair_shaft`` (homemaker-py-t7q, **default ON**) keeps
+    ``operators.mutate_repair_shaft`` live: the move that gives a building back the
+    staircase it lost, by CUTTING a ~2.6 m shaft through a column of cells that
+    exists at the same address on every storey, opening a MERGED storey back into
+    alignment first where it has to (§39.74/§39.75).
+
+    On by default for §39.65's reason, which is the owner's ruling and not a
+    measurement: an operator set with no move aimed at a criterion the objective
+    scores is a defect rather than an optimisation. `force_roof_garden` got
+    `support_outside` on those grounds; `too few stairs` + `staircase volume` --
+    x0.0225 together, and 12 of 48 corpus artefacts pay it -- had nothing at all.
+    What the container could measure supports it: on children whose shaft one of the
+    six exploratory operators had just broken (the realistic mid-search state), the
+    repair restores a shaft in 65 of 65 and beats the broken child by a median
+    x2.16, better in 35 of 65, best x1280. On CONVERGED shaft-less artefacts it is
+    4 of 12, which is the unfavourable case -- those layouts grew around the
+    staircase's absence.
+
+    ``--no-repair-shaft`` is the control arm of the A/B that is still owed
+    (homemaker-py-t7q): what a move does to a SEARCH is not what it does to one
+    layout. The guard that would stop the six operators BREAKING a shaft stays
+    unbuilt until then, because removing moves is the half a container cannot
+    judge; `mutate_support_outside`'s guard landed anyway, since a repair operator
+    trading one hard fail for another is a defect rather than a strategy (§39.74).
 
     ``enable_level_add_migrate`` (homemaker-py-v2k, EXPERIMENTAL, default off)
     un-mutes ``operators.mutate_level_add_migrate``: one move that adds a storey
@@ -1175,7 +1187,7 @@ def search_staged(
     enable_reassign: bool = False,
     enable_support_outside: bool = True,
     enable_level_add_migrate: bool = False,
-    enable_repair_shaft: bool = False,
+    enable_repair_shaft: bool = True,
     collapse_insearch: bool = True,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).

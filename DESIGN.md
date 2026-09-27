@@ -12462,3 +12462,71 @@ Objective stamp unmoved at `26ce827`. `operators.py`/`driver.py`/`evolve.py` are
 `SEARCH_SOURCES`, so `search_commit` moves and the config hash records the new
 knob; the `support_outside` guard changes what the DEFAULT search does, which is
 recorded the same way and is the point.
+
+### 39.75 The merged storey, opened: subdividing back into alignment, a ranking that measured badly, and the default flipped on §39.65's ruling
+
+§39.74 left `mutate_repair_shaft` with a limit: a MERGED upper storey offers no
+column to cut, because the ground's address does not exist up there, so the repair
+declined. Closing it turns out to need no geometry at all. The storey below has the
+finer tree, and **a node whose path is divided below inherits its
+`coord_a`/`coord_b`** (§39.70), so dividing a merged cell back down to the address
+lands every new wall exactly on the wall that is already there.
+`operators._open_address` does that walk; the ratios it writes are dead fields,
+copied from below only so the file says what the geometry does.
+
+It refuses two cases rather than guessing:
+
+* the cell in the way carries a ROOM. Dividing clones its type into both children,
+  as the seeders do, which mints a duplicate and fails `too many spaces`;
+* the address is already DIVIDED on that storey — a finer tree than the ground —
+  where getting a leaf would mean undividing over whatever it holds.
+
+`dom.merge_divided` does not undo the work, because the path to the shaft stays
+divided and it only merges a node whose two children are both leaves of the same
+type; and the new siblings inherit the merged cell's type, so a storey does not
+lose its outdoor space to the subdivision.
+
+**The ranking got it wrong, and the measurement said so.** The candidate order was
+(fewest rooms narrowed, fewest new divisions, smallest cell), which prefers opening
+a merged storey over narrowing a room. Measured on the realistic population — the
+children whose shaft one of the six exploratory operators had just broken, which is
+what a search actually sees, rather than a converged artefact that ENDED shaft-less:
+
+| ranking | shafts restored | vs the broken child |
+|---|---|---|
+| rooms first, divisions second | 65 / 65 | median **x0.107**, better in 21/65 |
+| **divisions first, rooms second** | 65 / 65 | median **x2.16**, better in 35/65 |
+
+A factor of twenty on the median, from the order of two sort keys. The reason is
+plain once seen: opening a merged storey adds CELLS, and the new ones are narrow
+enough to bring `crinkliness` and `width` with them, where narrowing a room is one
+soft `size` nudge. **So subdivision is a last resort for the case that has no
+aligned column at all — the gap it was built to close — and never a preference.**
+With the keys the right way round the two arms agree exactly (median x2.16, 35 wins)
+and the subdivision arm additionally covers the one child in 65 that had no aligned
+column, which is the whole of what it buys on this corpus. On a shallower tree it is
+the difference between repairing and declining.
+
+**And that measurement flips the default.** §39.74 gated the operator off because
+the converged-artefact table was mixed — 4 of 12. The realistic population says
+something else: **65 of 65 shafts restored, median x2.16 against the broken child,
+better in 35 of 65, best x1280.** Those two populations differ exactly as expected:
+a converged layout that ended shaft-less grew around the staircase's absence, and
+cutting one back in fights every ratio in it; a child broken three mutations ago has
+not.
+
+So `enable_repair_shaft` is **ON** (config hash `4549a418fc`), on §39.65's ruling
+rather than on this measurement: *an operator set with no move aimed at a criterion
+the objective scores is a defect rather than an optimisation*. `force_roof_garden`
+got `support_outside` on exactly those grounds; `too few stairs` + `staircase
+volume` — x0.0225 together, paid by 12 of 48 corpus artefacts — had nothing at all
+aimed at it, and now has one move. `--no-repair-shaft` is the control arm of the A/B
+still owed, which remains t7q's: what a move does to a SEARCH is not what it does to
+one layout, and nothing here measures population dynamics.
+
+What is still not built, and why: the GUARD that would stop the six exploratory
+operators breaking a shaft in the first place. Removing moves is the half a
+container cannot judge, and now there is a repair standing behind them, which is the
+weaker claim on the search's freedom. `mutate_support_outside`'s guard is the
+exception and stays (§39.74): a repair that trades one hard fail for another is
+broken, not strategic.
