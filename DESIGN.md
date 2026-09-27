@@ -12134,8 +12134,11 @@ above the stair loses the staircase outright even when the merged leaf is itself
 circulation and physically covers it. `c836457+orth` s1 is in that state in the
 committed corpus: L0's `llr` is the stair, L1 covers it with a single `ll`
 circulation leaf, and the artefact carries `too few stairs (0, min 1)` and
-`staircase volume` — a x0.25 multiplier that makes it the worst programme-house
-artefact at 0.008487. `dom` has both walks and every other vertical predicate uses
+`staircase volume` — together a **x0.0225** multiplier (measured: the
+staircase-volume factor sits at its 0.09 floor, and each of the two fails halves
+the value again), which makes it the worst programme-house artefact at 0.008487.
+(This read "x0.25" when §39.71 was written, which counted the two fails and
+forgot the factor; §39.72 measured it.) `dom` has both walks and every other vertical predicate uses
 the forgiving one (`_above_more`/`_below_more`, Urb's `Above_More`); only the stair
 uses the strict one, and Urb's own `Stack_Corners_In_Use` does too. Faithful, then
 — but §39.19/§39.20 are the standing warning that faithful is not the same as
@@ -12225,3 +12228,38 @@ state is architecturally a staircase at all. It is 18.2% of the corpus's ground
 circulation and 11 artefacts have nothing else, so the answer decides real score;
 but a landing spanning the stair and its neighbour is the owner's call, and the
 three couplings above are what any yes would have to pay for.
+
+**RULING, from the owner, 2026-09-27 — the exact-path rule is the model, and it
+stays.** In his words: *"A first floor circulation cell that is split below into
+circulation and some other usage could in principle form a staircase, and this is
+a common pattern in real buildings, eg. a mid-landing in a multistorey building
+needs to have flights that go both up and down, whereas a ground floor landing
+needs only a flight that goes up, and this can consume less floor space. But
+automated fitting of flights in such a space is hard and Alexander has a pattern
+that says to allocate the entire vertical shaft for stairs, so we have assumed
+that, at least for now, stairs can only exist where cells are identical in all
+floors."*
+
+So the merged state is **not** a defect, and the three couplings above are not a
+reason to be careful about a change — there is no change. Two things follow, and
+they are why this is recorded rather than just closed:
+
+* **the 18.2% is a verdict, not a loss.** Those 31 stacks are not staircases the
+  scorer fails to see; they are buildings that did not allocate a vertical shaft.
+  The 11 artefacts with no exact stack at all are correctly scored at x0.0225, and
+  `homemaker-py-m4d` closes as working-as-designed.
+* **it makes the shaft a SEARCH problem.** 21 of 48 artefacts carry at least one
+  merged stack, so the operator set routinely merges the cell over the stair and
+  throws the staircase away. That is `homemaker-py-t7q`: the shaft is a structure
+  the operators must preserve, the way `mutate_level_add_migrate` already does
+  (`_stair_path`, §39.71) and nothing else does.
+
+Recorded as a ruling because the measurement alone points the other way — 31
+stacks against 29, six artefacts improving by up to x29.6 — so a future reader
+holding the census without the reason would read it as a defect worth fixing.
+`tests/test_stair_shaft_is_a_full_column.py` pins the rule with the reason
+attached, so a silent "fix" trips a test that cites this paragraph. What would
+reopen it is the hard part being solved, not the count moving: an automatic
+flight-fitter that can place a mid-landing's up-and-down flights in a part-cell.
+Alexander's pattern is why the simplification is the right model for now and not
+merely the cheap one.
