@@ -12147,3 +12147,81 @@ corpus artefacts (cheap, container-doable) should come first.
 been run. `operators.py`/`driver.py`/`evolve.py` are `SEARCH_SOURCES`, so the
 objective stamp is unmoved at `26ce827` and this lands as a recorded search
 change (`search_commit` moves, `search_config` gains the knob).
+
+### 39.72 How much of the corpus loses its stair to the exact-path rule, and why relaxing it is not a one-line change (`homemaker-py-m4d`)
+
+§39.71 filed the observation: `graph.stack_corners_in_use` walks
+`dom._above_node` — Urb's `Above`, the EXACT id path — so a staircase needs a
+leaf typed exactly `"C"` at the same address on every storey, and a storey that
+MERGES the cell over the stair breaks the stack. Every other vertical predicate
+in `dom` walks the forgiving `_above_more`. The bead's own instruction was to
+count the affected artefacts before proposing anything.
+`experiments/diag_m4d_stair_stack.py` does that, each artefact under its own
+objective's orthogonal-division setting.
+
+**It is not a corner case.** Over the 48 committed artefacts (12 of them
+single-storey, so no stack to walk), 170 ground-floor circulation leaves classify
+as:
+
+| why the stack ends | count | share |
+|---|---|---|
+| **exact** — the scorer accepts it | 29 | 17.1% |
+| **merged** — address absent above, covered by one `C` LEAF | **31** | **18.2%** |
+| split — the covering node exists but is DIVIDED | 26 | 15.3% |
+| not-c — the covering leaf is not circulation | 84 | 49.4% |
+
+There are **more stacks in the merged state than the scorer accepts**. 21 of the
+48 artefacts carry at least one, and **11 of those have no exact stack at all** —
+they are scored as buildings with no staircase, and pay `too few stairs` plus
+`staircase volume` at its 0.09 floor for it.
+
+**But the obvious relaxation makes two artefacts worse, one catastrophically.**
+Re-scoring every artefact with the walk changed to `_above_more` (requiring a
+leaf, so the 26 `split` stacks stay broken either way) moves 10 of 48:
+
+* six strictly better, clearing `too few stairs` and sometimes `staircase volume`
+  with it — `harbor-house 99c85ec` s2 by **x29.6**, `c836457+orth` s0 by x8.37,
+  four more by x2, and `programme-house c836457+orth` s1 — the worked example in
+  the bead — by x2;
+* two better on balance while gaining `too many stairs`;
+* two worse: `maple-court 1138ff1+orth` s0 at x0.815, and `programme-house
+  99c85ec` s1 at **x0.0094**, 1 fail becoming 4.
+
+That last one is the finding. Traced through the scorer:
+
+```
+strict      stair fits [0.9958]          -> factor 1.1989   1 fail
+permissive  stair fits [0.349, 0.5992]   -> factor 0.0900   4 fails
+```
+
+Three couplings fire at once, and none of them is about which walk is right:
+
+1. **`staircase_max`.** Finding a second stack is not free — programme-house
+   allows exactly one stair, so `too many stairs (2, max 1)`.
+2. **the entrance.** `_stair_fit` is handed the stack's corners PLUS the corners
+   of the entrance door, via `_entrance_bid_for_stair`. With one stack that
+   function returned `None` for `rlr` and its corner set stayed `[0, 1]` — two
+   corners, so `_two_turn`, so a short run fits. With two stacks both acquired an
+   entrance (`'c'` and `'d'`), both corner sets grew to `[0, 1, 2, 3]`, and four
+   corners means `_zero_turn`: a straight flight, which neither leaf can hold.
+   The stair that already existed fell from 0.9958 to 0.5992 — **adding a stair
+   elsewhere degraded the fit of the stair that was already there.**
+3. **inside public access.** `process_storey` sets
+   `has_public_access_inside` only for a `C` leaf with NO stair fit
+   (`if not stair_fit and leaf.type == "C" and ...`). Promoting that leaf to a
+   staircase therefore withdraws the building's inside public access, and
+   `no outside public access` fails.
+
+So the exact-path walk is load-bearing beyond the stair: it is also what keeps
+the stair COUNT down, what keeps entrance corners out of most fits, and what
+leaves one circulation leaf free to be the public entrance. **`m4d` is a design
+question about the stair model, not a one-line change to a walk**, and the bead
+now says so with the numbers attached. Nothing under `src/` was touched: this is
+a counterfactual run against a monkeypatched copy, `graph.py` and `fitness.py`
+are objective sources, and the objective stamp stays `26ce827`.
+
+What it does NOT settle, and should not be read as settling: whether the merged
+state is architecturally a staircase at all. It is 18.2% of the corpus's ground
+circulation and 11 artefacts have nothing else, so the answer decides real score;
+but a landing spanning the stair and its neighbour is the owner's call, and the
+three couplings above are what any yes would have to pay for.
