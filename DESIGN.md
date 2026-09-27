@@ -12263,3 +12263,83 @@ reopen it is the hard part being solved, not the count moving: an automatic
 flight-fitter that can place a mid-landing's up-and-down flights in a part-cell.
 Alexander's pattern is why the simplification is the right model for now and not
 merely the cheap one.
+
+### 39.73 Which operators throw the staircase away (`homemaker-py-t7q` step 1), and the one it caught in my own
+
+§39.72's ruling made the vertical circulation shaft a hard structural invariant and
+left a gap: 21 of 48 artefacts have had their shaft merged away *by something*, and
+nothing in the operator set knows the shaft is a thing to protect.
+`experiments/diag_t7q_shaft_breakage.py` closes it — every artefact that still has
+an intact shaft, every operator, 8 draws, counting how often the shaft stops being
+intact. A shaft here is the STRUCTURE (`operators._shaft_paths`: a ground `C` leaf
+whose exact id path is a `C` leaf on every storey); the scorer wants two more
+things before it counts a staircase, so this is an upper bound on the stairs at
+stake, not a fail count.
+
+36 of the 48 artefacts have an intact shaft to break. Per operator, over 288 draws
+each (576 for crossover, two children):
+
+| operator | live today | broke | relocated | **emptied** | gained |
+|---|---|---|---|---|---|
+| `reassociate` | GATED | 64% | 92 | **28%** | 97 |
+| `swap` | yes | 32% | 51 | **14%** | 52 |
+| `undivide` | yes | 23% | 0 | **10%** | 0 |
+| `level_retype` | yes | 11% | 0 | **10%** | 2 |
+| `ruin_recreate` | GATED | 30% | 14 | **10%** | 14 |
+| `support_outside` | yes | 9% | 0 | **8%** | 0 |
+| `crossover` | yes | 59% | 274 | **7%** | 297 |
+| `divide` | yes | 12% | 15 | **6%** | 15 |
+| `retype` | yes | 12% | 0 | **6%** | 10 |
+| `core_divide` | yes | 55% | 158 | **0%** | 162 |
+| `level_add`, `level_delete`, `rotate`, `core_undivide`, `level_fix`, `level_compound_fix`, `place_missing`, `reassign`, `shape_rotate`, `bridge_circulation`, `deslim` | mixed | 0-5% | — | **0%** | up to 128 |
+
+"Emptied" is the column that matters: the child has NO intact shaft left. "Broke
+but relocated" is not a loss, and separating the two changes the answer — read by
+`broke` alone, `core_divide` looks like the worst offender at 55%, when what it
+actually does is MOVE the column: it divides the core on every storey at once, so
+the old address stops being a leaf and an aligned pair takes its place, 158 of 158
+times, and it never empties a building.
+
+**Seven live operators can leave a building with no staircase**, and they are the
+ordinary exploratory moves: `swap` (14%), `undivide` and `level_retype` (10%),
+`support_outside` (8%), `crossover` (7%), `divide` and `retype` (6%). That is the
+answer to "by something": no single culprit, and no operator that could simply be
+deleted. `reassociate` is worse than all of them at 28% but has been gated off
+since §12.3, and `ruin_recreate` at 10% is gated too.
+
+Two structural facts fall out that nobody had written down:
+
+* **`level_add` never breaks a shaft** (0 of 288) — duplicating the top storey
+  preserves every column by construction. So the storey-count moves are not the
+  problem; what breaks shafts is merging and retyping.
+* **accidental repair is common.** `level_delete` gains a shaft in 128 of 288
+  draws (a shorter column is easier to keep intact), `bridge_circulation` in 104
+  (it adds circulation, sometimes completing a column), `crossover` in 297. So the
+  search is not only destroying shafts, it is stumbling into them, which is worth
+  knowing before anyone writes a deliberate repair operator: the material is
+  already there.
+
+**And the census caught a defect in the operator §39.71 had just landed.**
+`mutate_level_add_migrate` protects the shaft — that was one of the four things
+§39.71 had to fix — but it protected only ONE, because `_stair_path` returns the
+largest. Over the corpus that broke a shaft in **112 of 288 draws** while never
+emptying a building: invisible on programme-house, which asks for one staircase,
+and a `too few stairs` waiting to happen on harbor-house, which asks for two.
+`operators._shaft_paths` is now the plural, the move continues every shaft it
+found, and `_migration_fits` excludes all of them from the floor a migrating room
+may claim (each is a landing upstairs, not room floor). Re-measured: **0 of 288**,
+with every other row in the table byte-identical, which is the check that the fix
+touched nothing else. §39.71's step-1 numbers are unchanged — programme-house has
+one shaft, so the singular and the plural agree there.
+
+That is the second time a diagnostic written for one bead has found a defect in
+code landed for another (§39.64 was the first), and the same reason both times: a
+census over the whole corpus asks a question the artefact you developed against
+does not.
+
+**What this does NOT settle** — `t7q`'s remaining decision. A guard (the seven
+operators refuse to break the last shaft) costs the search moves it may be using
+for something; a repair operator costs a draw and arrives after the damage.
+Choosing needs the A/B, which needs the box. What the census does is make the
+choice concrete: the guard would have to sit in seven places, or in one shared
+predicate the seven consult, and `_shaft_paths` is that predicate.

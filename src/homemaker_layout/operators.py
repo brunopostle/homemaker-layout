@@ -2302,13 +2302,13 @@ _MIGRATE_FLOOR_SHARE = 0.75
 
 
 def _migration_fits(top: dom.Node, vacating: "list[dom.Node]", reqs,
-                    core_path: "str | None") -> bool:
+                    core_paths: "list[str]") -> bool:
     """Is there solid floor upstairs for the rooms this move would send up?
 
     A migrated room can only sit over a leaf that stays INDOOR -- over a terrace
     it would raise ``covered outside above ground`` -- so the floor available to
     it is the storey's indoor area, minus what this same move turns into terrace,
-    minus the stair core, which is the landing up there rather than room floor.
+    minus every stair shaft, which is a landing up there rather than room floor.
     ``_MIGRATE_FLOOR_SHARE`` of that has to cover the declared target areas.
 
     Without this test the move happily sends a 16 m2 bedroom onto 11.9 m2 of
@@ -2327,35 +2327,52 @@ def _migration_fits(top: dom.Node, vacating: "list[dom.Node]", reqs,
                 continue                      # becomes terrace: not solid
         elif dom.is_outside(lf):
             continue
-        if core_path is not None and lf.id == core_path:
-            continue                          # the landing, not room floor
+        if lf.id in core_paths:
+            continue                          # a landing, not room floor
         solid += geometry.area(lf)
     want = sum((reqs[lf.type].size if reqs.get(lf.type) else 0.0)
                for lf in vacating)
     return want <= _MIGRATE_FLOOR_SHARE * solid
 
 
-def _stair_path(lvls: "list[dom.Node]") -> "str | None":
-    """Address of a ground ``C`` leaf whose stack is ``C`` on every storey above.
+def _shaft_paths(lvls: "list[dom.Node]") -> "list[str]":
+    """EVERY vertical circulation shaft, largest first.
 
-    ``graph.stack_corners_in_use`` counts a staircase only where
-    ``dom._above_node`` -- the EXACT id path, never ``Above_More`` -- finds a leaf
-    typed exactly ``"C"`` on every level above. So a new storey that subdivides
-    that address, or types it anything else, loses the building its stair
-    outright (``too few stairs``, and ``staircase volume`` on top). Returns the
-    stack the scorer will accept, so a move that adds a storey can keep it; the
-    largest where several qualify, and the largest ``C`` leaf as a fallback when
-    none does (a single-storey parent has no stack yet).
+    A shaft is a ground ``C`` leaf whose exact id path is a ``C`` LEAF on every
+    storey above -- the owner's ruling (DESIGN.md §39.72): a staircase exists only
+    where the cell is identical on every floor, because Alexander's pattern
+    allocates the whole shaft to stairs and no flight-fitter exists for a
+    part-cell. ``graph.stack_corners_in_use`` reads it that way, via
+    ``dom._above_node``, the EXACT path.
+
+    Plural on purpose. `homemaker-py-t7q`'s census measured what the singular cost:
+    protecting only the largest left `mutate_level_add_migrate` breaking a shaft in
+    112 of 288 draws over the corpus -- harmless on programme-house, which asks for
+    one staircase, and a `too few stairs` waiting to happen on harbor-house, which
+    asks for two.
     """
     from . import geometry
 
+    shafts = [lf for lf in lvls[0].leaves() if lf.type == "C"
+              and all((nd := lvl.by_id(lf.id)) is not None and not nd.divided
+                      and nd.type == "C" for lvl in lvls[1:])]
+    return [lf.id for lf in sorted(shafts, key=geometry.area, reverse=True)]
+
+
+def _stair_path(lvls: "list[dom.Node]") -> "str | None":
+    """The largest shaft, or the largest ground ``C`` leaf when there is none.
+
+    The fallback matters for a parent that has no intact shaft yet (a
+    single-storey building has no stack at all), where a move that adds a storey
+    still has to put the new landing somewhere. See `_shaft_paths` for the rule.
+    """
+    from . import geometry
+
+    paths = _shaft_paths(lvls)
+    if paths:
+        return paths[0]
     ground = [lf for lf in lvls[0].leaves() if lf.type == "C"]
-    if not ground:
-        return None
-    spanning = [lf for lf in ground
-                if all((nd := lvl.by_id(lf.id)) is not None and nd.type == "C"
-                       for lvl in lvls[1:])]
-    return max(spanning or ground, key=geometry.area).id
+    return max(ground, key=geometry.area).id if ground else None
 
 
 def _assign_storey_surplus_outside(lvl: dom.Node, room_codes: list[str], reqs,
@@ -2505,9 +2522,13 @@ def mutate_level_add_migrate(root: dom.Node, rng: np.random.Generator,
     if not movable:
         return child, "level_add_migrate noop (no movable room)"
 
-    # the stair the scorer currently accepts: excluded from the floor a migrating
-    # room can claim (it is the landing up there), and continued by the new storey
-    core_path = _stair_path(lvls)
+    # every shaft the scorer currently accepts: excluded from the floor a migrating
+    # room can claim (each is a landing up there), and all of them continued by the
+    # new storey. A building may need several -- harbor-house asks for two.
+    core_paths = _shaft_paths(lvls)
+    if not core_paths:
+        fallback = _stair_path(lvls)      # no intact shaft yet: put one somewhere
+        core_paths = [fallback] if fallback is not None else []
 
     # --- which rooms go up: whole adjacency groups, in random order, as many as
     #     the solid floor upstairs can hold, and (where there is more than one
@@ -2520,7 +2541,7 @@ def mutate_level_add_migrate(root: dom.Node, rng: np.random.Generator,
         if len(groups) > 1 and up and len(cand) >= len(movable):
             continue                      # never send the last group up
         vac = [lf for lf in room_leaves if lf.type in cand]
-        if not _migration_fits(top, vac, reqs, core_path):
+        if not _migration_fits(top, vac, reqs, core_paths):
             continue
         up = cand
         if float(rng.random()) < 0.5:
@@ -2571,16 +2592,17 @@ def mutate_level_add_migrate(root: dom.Node, rng: np.random.Generator,
         if lf not in scope:
             lf.type = "O"
 
-    # The stair continues at its own address: typed here, kept out of `scope` so
+    # Each shaft continues at its own address: typed here, kept out of `scope` so
     # neither the assignment nor the growth below can retype or subdivide it, and
-    # passed as the dominating set's seed so the new spine grows OFF the core
+    # passed as the dominating set's seeds so the new spine grows OFF the cores
     # rather than anew (§11.7's idiom).
-    core_leaf = dup.by_id(core_path) if core_path else None
-    if core_leaf is not None and not core_leaf.divided:
-        core_leaf.type = "C"
-        scope.discard(core_leaf)
-    else:
-        core_leaf = None
+    core_leaves = []
+    for path in core_paths:
+        leaf = dup.by_id(path)
+        if leaf is not None and not leaf.divided:
+            leaf.type = "C"
+            scope.discard(leaf)
+            core_leaves.append(leaf)
 
     # grow the solid part until the migrated rooms, a spine and a terrace fit
     want = len(up_codes) + max(1, -(-len(up_codes) // 3)) + 1
@@ -2610,7 +2632,7 @@ def mutate_level_add_migrate(root: dom.Node, rng: np.random.Generator,
         # the greedy path by itself if OR-Tools is unavailable.
         _assign_storey_surplus_outside(
             dup, up_codes, reqs, rng, scope=scope,
-            fixed_circ=[core_leaf] if core_leaf is not None else None,
+            fixed_circ=core_leaves or None,
             assign_solver="cpsat")
     else:
         # nowhere solid to put them: leave the storey as terrace/void rather than
