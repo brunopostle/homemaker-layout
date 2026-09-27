@@ -317,6 +317,7 @@ def search(
     assign_solver: str = "greedy",
     enable_reassign: bool = False,
     enable_support_outside: bool = True,
+    enable_level_add_migrate: bool = False,
     preserve_circulation: bool = False,
     checkpoint=None,
     checkpoint_every: int = 0,
@@ -450,6 +451,20 @@ def search(
     Flipping it was only safe once a row recorded the search it was run with
     (§39.65's ``search_commit``/``search_config``); before that this change
     would have altered every future corpus row's meaning invisibly.
+
+    ``enable_level_add_migrate`` (homemaker-py-v2k, EXPERIMENTAL, default off)
+    un-mutes ``operators.mutate_level_add_migrate``: one move that adds a storey
+    AND migrates whole adjacency groups of rooms into it, against
+    ``level_add``'s empty duplicate, which costs 60-98% of the parent's score up
+    front and is discarded before any room can follow it up. DESIGN.md §39.70
+    measured the far side of that valley (a hand-built 3-storey
+    programme-house, 0.416206 with zero fails against the best evolved
+    0.220122 with one) and §39.71 measured the operator reaching it from the
+    evolved artefacts in a single move. Default off because what it does to a
+    SEARCH is a different question from what it does to one layout, and that is
+    `homemaker-py-v2k`'s A/B, which needs a real budget -- exactly the "off
+    pending an A/B" the paragraph above warns about, so it should not sit here
+    long.
     """
     rng = np.random.default_rng(seed)
     inner_kw = dict(_CHILD_INNER_KW, **(inner_kw or {}))
@@ -467,6 +482,8 @@ def search(
         mutation_weights["reassign"] = 0.0
     if not enable_support_outside:
         mutation_weights["support_outside"] = 0.0
+    if not enable_level_add_migrate:
+        mutation_weights["level_add_migrate"] = 0.0
     # homemaker-py-161: shape_rotate/deslim are gated by operators.mutate itself
     # (fit_ops go to zero probability when fit=None) — only build the Fitness
     # instance, and thus only let them fire, when explicitly enabled.
@@ -1141,6 +1158,7 @@ def search_staged(
     assign_solver: str = "greedy",
     enable_reassign: bool = False,
     enable_support_outside: bool = True,
+    enable_level_add_migrate: bool = False,
     collapse_insearch: bool = True,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
@@ -1205,7 +1223,8 @@ def search_staged(
                       construction_beam_width=construction_beam_width,
                       assign_solver=assign_solver,
                       enable_reassign=enable_reassign,
-                      enable_support_outside=enable_support_outside)
+                      enable_support_outside=enable_support_outside,
+                      enable_level_add_migrate=enable_level_add_migrate)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -1251,6 +1270,7 @@ def search_staged(
             assign_solver=assign_solver,
             enable_reassign=enable_reassign,
             enable_support_outside=enable_support_outside,
+            enable_level_add_migrate=enable_level_add_migrate,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -1307,6 +1327,7 @@ def search_staged(
         assign_solver=assign_solver,
         enable_reassign=enable_reassign,
         enable_support_outside=enable_support_outside,
+        enable_level_add_migrate=enable_level_add_migrate,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

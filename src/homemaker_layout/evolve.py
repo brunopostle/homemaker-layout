@@ -178,6 +178,19 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "wing), applying the one construction technique with a "
                         "track record repeatedly during search instead of only "
                         "at seeding (default: off)")
+    p.add_argument("--level-add-migrate", dest="level_add_migrate",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_LEVEL_ADD_MIGRATE", False),
+                   help="homemaker-py-v2k (DESIGN.md §39.70/§39.71): compound "
+                        "mutation that adds a storey AND migrates whole "
+                        "adjacency groups of rooms into it, keeping the stair "
+                        "stack, voiding the addresses over the terraces it "
+                        "leaves behind, and assigning the new storey with the "
+                        "adjacency-aware constructor. `level_add` alone "
+                        "duplicates the top storey empty, which costs 60-98% of "
+                        "the parent's score before any room can follow, so 35 "
+                        "of 36 corpus artefacts sit at their storey_minimum "
+                        "(default: off)")
     p.add_argument("--support-outside", dest="support_outside",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_SUPPORT_OUTSIDE", True),
@@ -398,6 +411,7 @@ def main(argv=None) -> int:
     print(f"bridge circulation : {args.bridge_circulation}", file=sys.stderr)
     print(f"ruin recreate      : {args.ruin_recreate}", file=sys.stderr)
     print(f"support outside    : {args.support_outside}", file=sys.stderr)
+    print(f"level add+migrate  : {args.level_add_migrate}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)
@@ -458,6 +472,7 @@ def main(argv=None) -> int:
             enable_bridge_circulation=args.bridge_circulation,
             enable_ruin_recreate=args.ruin_recreate,
             enable_support_outside=args.support_outside,
+            enable_level_add_migrate=args.level_add_migrate,
             collapse_insearch=args.collapse_insearch,
             shapecurve_warmstart=args.shapecurve_warmstart,
             shapecurve_prune=args.shapecurve_prune,

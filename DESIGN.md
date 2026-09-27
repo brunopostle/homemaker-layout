@@ -12020,3 +12020,130 @@ re-baseline sweep finishes". No sweep is running and there is no corpus at the
 live objective, and the `src/` change here is `compose.py` + `compose_cmd.py`,
 which no score and no search step reads. The objective stamp is unmoved: still
 `26ce827`, from §39.66.
+
+### 39.71 The operator for the storey the search would not add (`homemaker-py-v2k`), and the three things it cannot repair
+
+§39.70 established the target and left the capability missing: the owner's
+3-storey programme-house is representable, fail-free and worth 1.89x the best
+evolved layout, and nothing in the operator set reaches it. `mutate_level_add`
+duplicates the top storey EMPTY — every named room retyped to a generic — so the
+new storey arrives as a floor plate of pure cost, worth 1.7%-40% of its parent
+over five draws, and the comparator discards it long before a room can follow it
+up. §39.53 had already measured the other half of that: FORCING a third storey
+left five of six runs still failing `no outside space`. The storey has to be
+*arranged*, not merely added.
+
+**`operators.mutate_level_add_migrate`** is one move that arranges it. Per draw:
+choose which of the top storey's rooms go up — whole ADJACENCY GROUPS, so `t1`
+never leaves behind the `b1` it must touch, and at least one group stays when
+there is more than one; vacate their leaves to terrace where a terrace can be
+usable and to circulation where it cannot; duplicate the storey; void every
+address that is now outdoors below; grow the solid part until the migrated rooms,
+a spine and a terrace fit; and assign it with the same adjacency-aware constructor
+the seeders use, seeded from the stair below. Nothing else on the emptied storey
+is touched — its spine, its other rooms and its existing outdoor space keep their
+places, which is the locality every small operator depends on.
+
+**Acceptance step 1, the half a container can answer.** One draw from each
+committed 2-storey artefact, then the inner-loop ratio solve any child would get
+(`experiments/diag_v2k_migrate.py --draws 12`, `26ce827+orth`):
+
+| artefact | parent | best child, one move | + ratio solve | fail-free draws |
+|---|---|---|---|---|
+| `1138ff1+orth` s0 | 0.206215, 1 | 0.374908, **0** | **0.379536, 0** | 12/12 |
+| `1138ff1+orth` s1 | 0.0834413, 2 | 0.0235729, 3 | 0.0289523, 3 | 0/12 |
+| `1138ff1+orth` s2 | 0.21937, 1 | 0.109881, 1 | 0.124652, 1 | 0/12 |
+| `c836457+orth` s0 | 0.197322, 1 | 0.133224, **0** | **0.161914, 0** | 8/12 |
+| `c836457+orth` s1 | 0.00848715, 2 | 0.000779157, 3 | 0.00110947, 3 | 0/12 |
+| `c836457+orth` s2 | 0.215669, 1 | 0.374564, **0** | **0.391088, 0** | 12/12 |
+
+**Three of six reach a fail-free three-storey layout in ONE move**, and two of
+them (0.3795 and 0.3911) beat every artefact in the corpus — the best evolved
+score after the same solve is 0.220122, and §39.70's hand-built reference is
+0.416206, so a single draw from an evolved parent lands within 6% of a design a
+person drew. The reachability gap §39.70 identified is closed where the operator
+applies.
+
+Read the rows as reachability, not as an average. A child that scores worse than
+its parent is rejected by the search and costs one evaluation; what matters is
+whether the good state is reached at all, and how often. The three rows that never
+reach it are not this operator's target, and they say so cleanly:
+
+* `1138ff1+orth` s1 and s2 fail on LEVEL 0 — no garden at all, and a ground
+  terrace 2.0 m wide — which no storey added above repairs. `mutate_support_outside`
+  is the move for those, and in a search the two compose;
+* `c836457+orth` s1 arrives with its staircase stack ALREADY broken, and that is a
+  finding of its own (`homemaker-py-m4d`, below).
+
+The third fail-free row is worth its own line: `c836457+orth` s0 reaches zero
+fails and still scores BELOW its parent (0.161914 against 0.197322). A third
+storey it cannot pay for is a real outcome, not a bug — it is the same arithmetic
+§39.70 found in the raw ratio, and it is why the operator is a lottery ticket
+rather than an improvement.
+
+**Four things broke on the way, each a hard fail, each now a test.** They are
+worth recording because every one of them produced a layout that read as a bad
+DESIGN rather than a bad move:
+
+1. **the stair.** `graph.stack_corners_in_use` follows the EXACT id path and wants
+   a leaf typed exactly `"C"` on every storey, so the new storey must continue the
+   stack at its own address. Seeding the spine from "the largest circulation leaf
+   below" — the idiom §11.7's storey-lifting seeder uses — picked the wrong leaf
+   and cost the building its staircase (`too few stairs (0, min 1)` plus
+   `staircase volume`, a x0.09 multiplier on the whole building). `_stair_path`
+   now finds the stack the scorer will actually accept, types it on the new
+   storey, and keeps it out of the assignable scope so neither the assignment nor
+   the growth loop can touch it.
+2. **`_can_carry_terrace`'s third condition does not apply mid-move.** It refuses
+   to strand the terrace above, which is right for a repair on a settled building
+   and wrong here: the storey above is being assigned by this same move. Asking
+   the full predicate turned every vacated leaf into corridor. The two LEAF
+   conditions — supported, uncovered — are what this move needs.
+3. **the greedy room placement separated a pair that must touch.** A whole
+   adjacency group arrives at once, and `_assign_adjacency_aware`'s greedy walk
+   places the hardest-constrained code first against neighbours that are not typed
+   yet: `t1` landed away from `b1` and the child failed `not adjacent to b1`. The
+   move asks for `assign_solver="cpsat"` (§37.7), an exact solve of the same
+   decision, which falls back to the greedy path by itself where OR-Tools is
+   absent.
+4. **the growth loop cut 3 m2 bedrooms.** Sending `b1`+`t1` (21 m2 of declared
+   target) onto 11.9 m2 of solid floor is not a layout, it is a fistful of `size`,
+   `access` and `width` fails. `_migration_fits` now tests the declared targets
+   against the floor that will actually be solid under them, minus the landing,
+   and the move prefers a smaller group to an infeasible one.
+
+A fifth needed the `place` half of `mutate_support_outside`: a storey whose
+outdoor space has just been vacated may have no STRANDED terrace to swap, so
+`_rescue_outdoor` cuts one out of an eligible leaf instead — preferring a leaf the
+move itself freed, so the programme pays nothing. `_place_terrace` is shared with
+`mutate_support_outside` rather than copied, with the RNG draws in the order that
+operator already made them, so its behaviour — default ON since §39.65 — is
+unchanged.
+
+**Gated off, and recorded.** `--level-add-migrate` /
+`enable_level_add_migrate`, default off, in `SEARCH_KNOBS` (the config hash moves
+to `181c0e16a3`). What a move does to one layout is not what it does to a SEARCH,
+and that is acceptance step 2: a `homemaker-evolve` A/B on paired seeds, which
+needs the box. The default stays off until that runs — with §39.65's warning
+attached, that "off pending an A/B" is where an operator goes to be forgotten, and
+that not one of the six gated siblings has ever been promoted.
+
+**New finding, filed not fixed (`homemaker-py-m4d`).** The staircase stack is
+found with `dom._above_node`, the EXACT path, so a storey that MERGES the cell
+above the stair loses the staircase outright even when the merged leaf is itself
+circulation and physically covers it. `c836457+orth` s1 is in that state in the
+committed corpus: L0's `llr` is the stair, L1 covers it with a single `ll`
+circulation leaf, and the artefact carries `too few stairs (0, min 1)` and
+`staircase volume` — a x0.25 multiplier that makes it the worst programme-house
+artefact at 0.008487. `dom` has both walks and every other vertical predicate uses
+the forgiving one (`_above_more`/`_below_more`, Urb's `Above_More`); only the stair
+uses the strict one, and Urb's own `Stack_Corners_In_Use` does too. Faithful, then
+— but §39.19/§39.20 are the standing warning that faithful is not the same as
+right. Not changed here: `graph.py` and `fitness.py` are objective sources, so
+this needs an owner ruling or a plain-defect finding, and the count of affected
+corpus artefacts (cheap, container-doable) should come first.
+
+**Scope.** One programme, one plot, six parents, twelve draws each; no search has
+been run. `operators.py`/`driver.py`/`evolve.py` are `SEARCH_SOURCES`, so the
+objective stamp is unmoved at `26ce827` and this lands as a recorded search
+change (`search_commit` moves, `search_config` gains the knob).

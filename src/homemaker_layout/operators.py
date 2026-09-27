@@ -615,6 +615,29 @@ def _can_carry_terrace(leaf: dom.Node, li: int, lvls: list[dom.Node]) -> bool:
                for x in lvls[li + 1].leaves())
 
 
+def _place_terrace(target: dom.Node, rng: np.random.Generator) -> str:
+    """Cut a terrace out of an eligible leaf, keeping its type on the other side.
+
+    ``mutate_support_outside``'s ``place`` move, shared with
+    ``mutate_level_add_migrate``, which needs the same thing when a storey it has
+    just rearranged has no stranded terrace to swap. DIVIDING rather than
+    retyping is the difference between costing the programme nothing and costing
+    it a room -- §39.53 measured the retype at five extra fails. Returns the type
+    that was kept.
+
+    Shared rather than copied so the two callers cannot drift, and the RNG draws
+    are in the order ``mutate_support_outside`` already made them, so that
+    operator -- default ON since §39.65 -- behaves exactly as before.
+    """
+    kept, side = target.type, int(rng.integers(2))
+    target.division = [0.5, 0.5]
+    target.rotation = int(rng.integers(4))
+    target.left = dom.Node(type="O" if side else kept)
+    target.right = dom.Node(type=kept if side else "O")
+    target.type = None
+    return kept
+
+
 def mutate_support_outside(root: dom.Node, rng: np.random.Generator,
                            types: list[str]) -> tuple[dom.Node, str]:
     """Repair operator (homemaker-py-e4r, DESIGN.md §39.53): put a level's
@@ -713,12 +736,7 @@ def mutate_support_outside(root: dom.Node, rng: np.random.Generator,
         desc = (f"support_outside underbuild {li}/{leaf.id or 'root'} "
                 f"(+{len(pool)} below)")
     else:
-        kept, side = target.type, int(rng.integers(2))
-        target.division = [0.5, 0.5]
-        target.rotation = int(rng.integers(4))
-        target.left = dom.Node(type="O" if side else kept)
-        target.right = dom.Node(type=kept if side else "O")
-        target.type = None
+        kept = _place_terrace(target, rng)
         desc = (f"support_outside place {li}/{target.id or 'root'} "
                 f"(split from {kept})")
     return _finalise(child), desc
@@ -2220,6 +2238,195 @@ def mutate_level_retype(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"level_retype {li_a}/{a.id or 'root'}<->{li_b}/{b.id or 'root'}"
 
 
+def _storey_rooms(lvl: dom.Node) -> list[dom.Node]:
+    """Leaves of ``lvl`` carrying a programme room code, not a generic C/O/S."""
+    return [lf for lf in lvl.leaves() if lf.type and not dom.is_generic(lf.type)]
+
+
+def _counterpart(lvl: dom.Node, path: str) -> dom.Node:
+    """``lvl``'s node at ``path``, or the deepest one on the way to it.
+
+    ``dom.Node.by_id`` returns None where the path runs off a leaf, which is the
+    case that matters when an upper storey subdivides a leaf below it. Urb's
+    ``Below_More`` walks up to the nearest existing node instead, and
+    ``dom.is_supported`` reads that relation, so this mirrors it downward.
+    """
+    node = lvl
+    for ch in path:
+        if not node.divided:
+            break
+        node = node.left if ch == "l" else node.right
+    return node
+
+
+def _adjacency_groups(codes: list[str], reqs) -> list[set[str]]:
+    """Partition ``codes`` into groups closed under DECLARED room adjacency.
+
+    A room that must be next to another room cannot be sent up a storey on its
+    own, and the room it names cannot be left behind either, so the relation is
+    read in both directions (programme-house: ``t1`` declares ``b1``, so they
+    move together or not at all). ``graph.code_matches_requirement`` is the one
+    place that answers "does this code count as the thing asked for" (§39.4), so
+    the grouping matches what ``graph.check_adjacency`` will score. Requirements
+    on the generic ``c`` are ignored: every storey builds its own circulation.
+    """
+    parent = {c: c for c in codes}
+
+    def find(c: str) -> str:
+        while parent[c] != c:
+            parent[c] = parent[parent[c]]
+            c = parent[c]
+        return c
+
+    for code in codes:
+        r = (reqs or {}).get(code)
+        for want in (r.adjacency if r else []):
+            if not want or want.lower() == "c":
+                continue
+            for other in codes:
+                if other != code and graph_mod.code_matches_requirement(other, want):
+                    ra, rb = find(code), find(other)
+                    if ra != rb:
+                        parent[rb] = ra
+
+    groups: dict[str, set[str]] = {}
+    for c in codes:
+        groups.setdefault(find(c), set()).add(c)
+    return [groups[k] for k in sorted(groups)]
+
+
+# What share of the solid floor upstairs the migrating rooms may claim. The rest
+# is the storey's own outdoor space and the slack the ratio solve needs; a move
+# that claims all of it trades `no outside space` for `size`.
+_MIGRATE_FLOOR_SHARE = 0.75
+
+
+def _migration_fits(top: dom.Node, vacating: "list[dom.Node]", reqs,
+                    core_path: "str | None") -> bool:
+    """Is there solid floor upstairs for the rooms this move would send up?
+
+    A migrated room can only sit over a leaf that stays INDOOR -- over a terrace
+    it would raise ``covered outside above ground`` -- so the floor available to
+    it is the storey's indoor area, minus what this same move turns into terrace,
+    minus the stair core, which is the landing up there rather than room floor.
+    ``_MIGRATE_FLOOR_SHARE`` of that has to cover the declared target areas.
+
+    Without this test the move happily sends a 16 m2 bedroom onto 11.9 m2 of
+    floor, where the growth loop cuts it into 3 m2 slots and the storey arrives
+    with a fistful of ``size``, ``access`` and ``width`` fails: measured on the
+    first draws of this operator, and the reason it now prefers a smaller group
+    to an infeasible one.
+    """
+    from . import geometry
+
+    vacated = set(vacating)
+    solid = 0.0
+    for lf in top.leaves():
+        if lf in vacated:
+            if dom.is_supported(lf):
+                continue                      # becomes terrace: not solid
+        elif dom.is_outside(lf):
+            continue
+        if core_path is not None and lf.id == core_path:
+            continue                          # the landing, not room floor
+        solid += geometry.area(lf)
+    want = sum((reqs[lf.type].size if reqs.get(lf.type) else 0.0)
+               for lf in vacating)
+    return want <= _MIGRATE_FLOOR_SHARE * solid
+
+
+def _stair_path(lvls: "list[dom.Node]") -> "str | None":
+    """Address of a ground ``C`` leaf whose stack is ``C`` on every storey above.
+
+    ``graph.stack_corners_in_use`` counts a staircase only where
+    ``dom._above_node`` -- the EXACT id path, never ``Above_More`` -- finds a leaf
+    typed exactly ``"C"`` on every level above. So a new storey that subdivides
+    that address, or types it anything else, loses the building its stair
+    outright (``too few stairs``, and ``staircase volume`` on top). Returns the
+    stack the scorer will accept, so a move that adds a storey can keep it; the
+    largest where several qualify, and the largest ``C`` leaf as a fallback when
+    none does (a single-storey parent has no stack yet).
+    """
+    from . import geometry
+
+    ground = [lf for lf in lvls[0].leaves() if lf.type == "C"]
+    if not ground:
+        return None
+    spanning = [lf for lf in ground
+                if all((nd := lvl.by_id(lf.id)) is not None and nd.type == "C"
+                       for lvl in lvls[1:])]
+    return max(spanning or ground, key=geometry.area).id
+
+
+def _assign_storey_surplus_outside(lvl: dom.Node, room_codes: list[str], reqs,
+                                   rng: np.random.Generator, *,
+                                   scope: "set[dom.Node] | None" = None,
+                                   fixed_circ: "list[dom.Node] | None" = None,
+                                   circ_divisor: int = 3,
+                                   assign_solver: str = "greedy") -> None:
+    """``_assign_adjacency_aware`` with the SURPLUS leaves spent on outdoor space.
+
+    Its own leftover budget goes to circulation (``n_circ = n - rooms -
+    n_outside``), which is right for a storey grown to fit its rooms and wrong
+    for one that carries only a few: the spare leaves would become corridor at
+    200/m2 of cost against 50/m2 of value. Asking for the surplus as
+    ``n_outside`` leaves a spine of the usual size (~one per ``circ_divisor``
+    rooms, the c3g knob) and turns the rest into terrace.
+    """
+    n = len(scope) if scope is not None else len(lvl.leaves())
+    n_circ = max(1, -(-len(room_codes) // circ_divisor))
+    n_out = max(1, n - len(room_codes) - n_circ)
+    _assign_adjacency_aware(lvl, room_codes, reqs, rng, scope=scope,
+                            fixed_circ=fixed_circ, n_outside=n_out,
+                            assign_solver=assign_solver)
+
+
+def _rescue_outdoor(child: dom.Node, level_indices: "set[int]",
+                    rng: np.random.Generator) -> bool:
+    """Swap a stranded terrace onto solid floor, for the levels named.
+
+    The same relation ``mutate_support_outside``'s ``swap`` move repairs, applied
+    to the levels this operator has just rearranged so the compound move does not
+    hand back a storey whose outdoor space is air. A room moved over the void
+    stays usable (``dom.is_usable`` is unconditional indoors).
+    """
+    from . import geometry
+
+    moved = False
+    for li in sorted(level_indices):
+        lvls = dom.levels(child)
+        if li >= len(lvls):
+            continue
+        lvl = lvls[li]
+        if any(dom.is_outside(lf) and dom.is_usable(lf) for lf in lvl.leaves()):
+            continue
+        stranded = [lf for lf in lvl.leaves()
+                    if dom.is_outside(lf) and not dom.is_usable(lf)]
+        hosts = [lf for lf in lvl.leaves()
+                 if not dom.is_outside(lf) and not _only_circulation(lvl, lf)
+                 and _can_carry_terrace(lf, li, lvls)]
+        if not hosts:
+            continue
+        # A leaf this move itself vacated is generic, so spending IT costs the
+        # programme nothing; a room is the fallback. (Preferring the spare leaf
+        # is the one place this differs from `mutate_support_outside`'s uniform
+        # pick, and it is only safe here because the operator knows which leaves
+        # it just freed.)
+        pool = [lf for lf in hosts if dom.is_generic(lf.type)] or hosts
+        if stranded:
+            void = _pick(rng, stranded)
+            host = _pick(rng, _area_closest(pool, void))
+            void.type, host.type = host.type, void.type
+        else:
+            # nothing stranded to move: cut a terrace out instead, the `place`
+            # half of `mutate_support_outside`
+            _place_terrace(_pick(rng, pool), rng)
+        _finalise(child)
+        geometry.clear_cache()
+        moved = True
+    return moved
+
+
 def mutate_level_add(root: dom.Node, rng: np.random.Generator,
                      types: list[str]) -> tuple[dom.Node, str]:
     from . import genome as _g
@@ -2238,6 +2445,185 @@ def mutate_level_add(root: dom.Node, rng: np.random.Generator,
             leaf.type = str(rng.choice(generic))
     top.above = dup
     return _finalise(child), f"level_add ({len(dom.levels(child))} storeys)"
+
+
+def mutate_level_add_migrate(root: dom.Node, rng: np.random.Generator,
+                            types: list[str], reqs=None) -> tuple[dom.Node, str]:
+    """Add a storey AND move rooms into it in one move (homemaker-py-v2k).
+
+    ``mutate_level_add`` duplicates the top storey and retypes every named room to
+    a generic C/O, so the new storey arrives EMPTY: a whole floor plate of cost
+    carrying no programme, with the rooms left to migrate up over several later
+    mutations. Measured on the ``1138ff1+orth`` s0 artefact, one such add scores
+    1.7%-40% of its two-storey parent over five draws, and the comparator discards
+    the child long before any migration happens. 35 of the 36 corpus artefacts sit
+    at their programme's ``storey_minimum``, and §39.53's A/B found that FORCING a
+    third storey left five of six runs still failing ``no outside space`` -- the
+    storey has to be arranged, not merely added.
+
+    DESIGN.md §39.70 measured what is on the far side of that valley: a hand-built
+    3-storey programme-house scores 0.416206 with ZERO fails where the best of
+    twelve evolved runs scores 0.220122 with one. The arrangement is representable
+    and better under the objective; nothing in the operator set reaches it. This is
+    the move that tries.
+
+    One draw does all of:
+
+    * choose which of the top storey's rooms go up -- whole ADJACENCY GROUPS, so a
+      room never leaves behind a partner it is required to be next to, and (when
+      there is more than one group) at least one group stays;
+    * vacate their leaves: each becomes a terrace where a terrace can be usable
+      (``_can_carry_terrace``, the same predicate ``mutate_support_outside``
+      repairs against) and circulation where it cannot. Nothing else on the storey
+      is touched -- its spine, its other rooms and its existing outdoor space keep
+      their places, which is the locality the small operators rely on;
+    * duplicate the storey, void every address that is now outdoors below (an
+      indoor leaf there would raise ``covered outside above ground``, and the
+      terrace beneath it would be pointless), grow the solid part until the
+      migrated rooms, a spine and a terrace fit, and assign it with the
+      adjacency-aware constructor the seeders use, seeded from the stair below so
+      the vertical core continues (§11.7's idiom);
+    * if either touched storey ends up with no usable outdoor space, swap a
+      stranded terrace onto solid floor.
+
+    Needs ``reqs``: without the programme it cannot tell a level-pinned room from a
+    free one, nor read the adjacency groups, so it is a noop.
+    """
+    from . import genome as _g
+    from . import geometry as _geo
+
+    child = _finalise(copy.deepcopy(root))
+    if reqs is None:
+        return child, "level_add_migrate noop (no programme)"
+
+    lvls = dom.levels(child)
+    top = lvls[-1]
+    ti = len(lvls) - 1
+    room_leaves = _storey_rooms(top)
+    movable = sorted({lf.type for lf in room_leaves
+                      if reqs.get(lf.type) is None or reqs[lf.type].level is None})
+    if not movable:
+        return child, "level_add_migrate noop (no movable room)"
+
+    # the stair the scorer currently accepts: excluded from the floor a migrating
+    # room can claim (it is the landing up there), and continued by the new storey
+    core_path = _stair_path(lvls)
+
+    # --- which rooms go up: whole adjacency groups, in random order, as many as
+    #     the solid floor upstairs can hold, and (where there is more than one
+    #     group) at least one stays behind so the storey keeps a room.
+    groups = _adjacency_groups(movable, reqs)
+    order = [int(i) for i in rng.permutation(len(groups))]
+    up: set[str] = set()
+    for gi in order:
+        cand = up | groups[gi]
+        if len(groups) > 1 and up and len(cand) >= len(movable):
+            continue                      # never send the last group up
+        vac = [lf for lf in room_leaves if lf.type in cand]
+        if not _migration_fits(top, vac, reqs, core_path):
+            continue
+        up = cand
+        if float(rng.random()) < 0.5:
+            break                         # stop early sometimes, for diversity
+    if not up:
+        return child, "level_add_migrate noop (no room fits upstairs)"
+
+    up_leaves = [lf for lf in room_leaves if lf.type in up]
+    up_codes = [lf.type for lf in up_leaves]
+
+    # rooms the programme pins to the storey about to exist, and which have
+    # nowhere to be today
+    present: dict[str, int] = {}
+    for lvl in lvls:
+        for lf in _storey_rooms(lvl):
+            present[lf.type] = present.get(lf.type, 0) + 1
+    for code, req in reqs.items():
+        if getattr(req, "level", None) == ti + 1:
+            up_codes += [code] * max(0, req.count - present.get(code, 0))
+
+    # --- the new storey, with the vacated addresses already voided so the
+    #     terraces below are uncovered when support is tested
+    dup = _g._copy_storey(top)
+    dup.height = top.height
+    top.above = dup
+    _finalise(child)
+    vacated_ids = {lf.id for lf in up_leaves}
+    for lf in dup.leaves():
+        if lf.id in vacated_ids:
+            lf.type = "O"
+
+    # --- vacate: terrace where that can be usable, circulation where it cannot.
+    #
+    # The two LEAF conditions of `_can_carry_terrace` only -- supported from
+    # below, and nothing indoors above it (true by construction, the address was
+    # just voided). Its third condition, "do not strand the terrace above", does
+    # not apply here: the storey above is being assigned by this same move, so
+    # there is no settled terrace up there to strand, and asking the full
+    # predicate turns every vacated leaf into corridor.
+    for lf in up_leaves:
+        lf.type = ("O" if dom.is_supported(lf) and not dom.is_covered(lf)
+                   else "C")
+    _finalise(child)
+
+    # --- the new storey may only build where the storey below is now indoor
+    scope = {lf for lf in dup.leaves() if dom.is_supported(lf)}
+    for lf in dup.leaves():
+        if lf not in scope:
+            lf.type = "O"
+
+    # The stair continues at its own address: typed here, kept out of `scope` so
+    # neither the assignment nor the growth below can retype or subdivide it, and
+    # passed as the dominating set's seed so the new spine grows OFF the core
+    # rather than anew (§11.7's idiom).
+    core_leaf = dup.by_id(core_path) if core_path else None
+    if core_leaf is not None and not core_leaf.divided:
+        core_leaf.type = "C"
+        scope.discard(core_leaf)
+    else:
+        core_leaf = None
+
+    # grow the solid part until the migrated rooms, a spine and a terrace fit
+    want = len(up_codes) + max(1, -(-len(up_codes) // 3)) + 1
+    for _ in range(64):
+        if len(scope) >= want:
+            break
+        pool = sorted(scope, key=lambda L: -_geo.area(L))
+        leaf = _pick(rng, pool[:max(1, len(pool) // 2)])
+        leaf.division = [0.5, 0.5]
+        # §39.70: a division whose path exists below inherits its corner frame,
+        # so its own rotation is a dead field -- 0 says nothing rather than
+        # something untrue. Deeper cuts (no node below) own their rotation.
+        leaf.rotation = 0 if leaf.below is not None else int(rng.integers(4))
+        leaf.left = dom.Node(type=leaf.type)
+        leaf.right = dom.Node(type=leaf.type)
+        leaf.type = None
+        _finalise(child)
+        scope.discard(leaf)
+        scope.update((leaf.left, leaf.right))
+
+    if up_codes and len(scope) >= len(up_codes) + 1:
+        # cpsat (§37.7) rather than the greedy walk: the rooms arriving here
+        # carry each other's adjacency requirements (a whole group moves), and
+        # the greedy pass places the hardest-constrained code first against
+        # neighbours that are not typed yet -- it separated `t1` from the `b1`
+        # it must touch on the first draws of this operator. It falls back to
+        # the greedy path by itself if OR-Tools is unavailable.
+        _assign_storey_surplus_outside(
+            dup, up_codes, reqs, rng, scope=scope,
+            fixed_circ=[core_leaf] if core_leaf is not None else None,
+            assign_solver="cpsat")
+    else:
+        # nowhere solid to put them: leave the storey as terrace/void rather than
+        # manufacture the missing-room fails a cramped assignment would
+        for lf in scope:
+            lf.type = "O"
+        up_codes = []
+
+    _finalise(child)
+    _rescue_outdoor(child, {ti, ti + 1}, rng)
+    return (_finalise(child),
+            f"level_add_migrate ({len(dom.levels(child))} storeys, "
+            f"{'+'.join(sorted(up)) if up_codes else 'nothing'} up)")
 
 
 def mutate_level_delete(root: dom.Node, rng: np.random.Generator,
@@ -2265,6 +2651,7 @@ MUTATIONS = {
     "bridge_circulation": mutate_bridge_circulation,
     "level_retype": mutate_level_retype,
     "level_add": mutate_level_add,
+    "level_add_migrate": mutate_level_add_migrate,
     "level_delete": mutate_level_delete,
     "shape_rotate": mutate_shape_rotate,
     "deslim": mutate_deslim,
@@ -2289,7 +2676,7 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
     # these operators need programme reqs; disable them when not available
     reqs_ops = ("level_fix", "level_compound_fix", "place_missing", "ruin_recreate",
-               "reassign")
+               "reassign", "level_add_migrate")
     # also takes reqs (to avoid displacing a required room) but works without
     # it — never zero-weighted, unlike reqs_ops above
     reqs_optional_ops = ("bridge_circulation",)

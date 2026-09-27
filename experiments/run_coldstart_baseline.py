@@ -146,10 +146,10 @@ NEITHER_SOURCES = ("src/homemaker_layout/__init__.py",
 # row or irrelevant to it.
 SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
                 "collapse_insearch", "collapse_local_search", "conn_grade",
-                "leaf_share_factor", "leaf_sharing", "multi_use", "pop",
-                "ruin_recreate", "shapecurve_prune", "shapecurve_warmstart",
-                "superpose", "support_outside", "use_tiers", "anneal_grain",
-                "polish_budget")
+                "leaf_share_factor", "leaf_sharing", "level_add_migrate",
+                "multi_use", "pop", "ruin_recreate", "shapecurve_prune",
+                "shapecurve_warmstart", "superpose", "support_outside",
+                "use_tiers", "anneal_grain", "polish_budget")
 
 
 def search_commit() -> str:
