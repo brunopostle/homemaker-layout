@@ -318,6 +318,7 @@ def search(
     enable_reassign: bool = False,
     enable_support_outside: bool = True,
     enable_level_add_migrate: bool = False,
+    enable_repair_shaft: bool = False,
     preserve_circulation: bool = False,
     checkpoint=None,
     checkpoint_every: int = 0,
@@ -452,6 +453,19 @@ def search(
     (§39.65's ``search_commit``/``search_config``); before that this change
     would have altered every future corpus row's meaning invisibly.
 
+    ``enable_repair_shaft`` (homemaker-py-t7q, EXPERIMENTAL, default off) un-mutes
+    ``operators.mutate_repair_shaft``: the move that gives a building back the
+    staircase it lost, by CUTTING a ~2.6 m shaft through an aligned column of
+    cells (§39.74). Default off because the one-shot measurement is mixed -- it
+    restores a shaft on all 12 shaft-less corpus artefacts and clears their
+    `too few stairs`/`staircase volume`, but whether the cut pays for itself
+    depends on the parent, and what a move does to a SEARCH is the A/B this
+    project keeps refusing to guess at. The guard that would stop the six
+    exploratory operators BREAKING a shaft is the other half of t7q and stays
+    unbuilt for the same reason; `mutate_support_outside`'s guard landed anyway,
+    because a repair operator trading one hard fail for another is a defect rather
+    than a strategy (§39.74).
+
     ``enable_level_add_migrate`` (homemaker-py-v2k, EXPERIMENTAL, default off)
     un-mutes ``operators.mutate_level_add_migrate``: one move that adds a storey
     AND migrates whole adjacency groups of rooms into it, against
@@ -484,6 +498,8 @@ def search(
         mutation_weights["support_outside"] = 0.0
     if not enable_level_add_migrate:
         mutation_weights["level_add_migrate"] = 0.0
+    if not enable_repair_shaft:
+        mutation_weights["repair_shaft"] = 0.0
     # homemaker-py-161: shape_rotate/deslim are gated by operators.mutate itself
     # (fit_ops go to zero probability when fit=None) — only build the Fitness
     # instance, and thus only let them fire, when explicitly enabled.
@@ -1159,6 +1175,7 @@ def search_staged(
     enable_reassign: bool = False,
     enable_support_outside: bool = True,
     enable_level_add_migrate: bool = False,
+    enable_repair_shaft: bool = False,
     collapse_insearch: bool = True,
 ) -> SearchResult:
     """Staged per-floor topology search (DESIGN.md §11.3, ``homemaker-py-c4c.3``).
@@ -1224,7 +1241,8 @@ def search_staged(
                       assign_solver=assign_solver,
                       enable_reassign=enable_reassign,
                       enable_support_outside=enable_support_outside,
-                      enable_level_add_migrate=enable_level_add_migrate)
+                      enable_level_add_migrate=enable_level_add_migrate,
+                      enable_repair_shaft=enable_repair_shaft)
 
     if types is None:
         types = sorted(reqs) + ["C", "O"]
@@ -1271,6 +1289,7 @@ def search_staged(
             enable_reassign=enable_reassign,
             enable_support_outside=enable_support_outside,
             enable_level_add_migrate=enable_level_add_migrate,
+            enable_repair_shaft=enable_repair_shaft,
         )
         best_base = r1.best.root
         _log(f"[staged] stage 1 done: base {r1.best.fitness:.6g} "
@@ -1328,6 +1347,7 @@ def search_staged(
         enable_reassign=enable_reassign,
         enable_support_outside=enable_support_outside,
         enable_level_add_migrate=enable_level_add_migrate,
+        enable_repair_shaft=enable_repair_shaft,
     )
 
     # Stitch the two stages into one accounting (total evals, tagged history).

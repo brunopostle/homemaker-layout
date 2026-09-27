@@ -178,6 +178,17 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "wing), applying the one construction technique with a "
                         "track record repeatedly during search instead of only "
                         "at seeding (default: off)")
+    p.add_argument("--repair-shaft", dest="repair_shaft",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_REPAIR_SHAFT", False),
+                   help="homemaker-py-t7q (DESIGN.md §39.74): repair mutation "
+                        "that gives a building back the staircase it lost, by "
+                        "cutting a ~2.6 m shaft through a column of cells that "
+                        "exists at the same address on every storey. §39.73 "
+                        "measured seven live operators leaving a building with no "
+                        "shaft at all in 6-14% of draws, and 12 of 48 corpus "
+                        "artefacts in that state, paying x0.0225 for it "
+                        "(default: off)")
     p.add_argument("--level-add-migrate", dest="level_add_migrate",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_LEVEL_ADD_MIGRATE", False),
@@ -412,6 +423,7 @@ def main(argv=None) -> int:
     print(f"ruin recreate      : {args.ruin_recreate}", file=sys.stderr)
     print(f"support outside    : {args.support_outside}", file=sys.stderr)
     print(f"level add+migrate  : {args.level_add_migrate}", file=sys.stderr)
+    print(f"repair shaft       : {args.repair_shaft}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)
@@ -473,6 +485,7 @@ def main(argv=None) -> int:
             enable_ruin_recreate=args.ruin_recreate,
             enable_support_outside=args.support_outside,
             enable_level_add_migrate=args.level_add_migrate,
+            enable_repair_shaft=args.repair_shaft,
             collapse_insearch=args.collapse_insearch,
             shapecurve_warmstart=args.shapecurve_warmstart,
             shapecurve_prune=args.shapecurve_prune,

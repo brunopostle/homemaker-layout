@@ -12343,3 +12343,122 @@ for something; a repair operator costs a draw and arrives after the damage.
 Choosing needs the A/B, which needs the box. What the census does is make the
 choice concrete: the guard would have to sit in seven places, or in one shared
 predicate the seven consult, and `_shaft_paths` is that predicate.
+
+### 39.74 The half of `homemaker-py-t7q` that does not need a box: a repair operator, a measured null inside it, and one guard that is a defect fix
+
+§39.73 left t7q's decision open — guard the seven operators that destroy a
+staircase, or repair after them — and said it needed the A/B. Re-read, that is true
+of one half and not the other. **A guard removes moves**, and whether the search
+was using those moves for something is exactly what a container cannot answer.
+**A repair adds one**, and an operator set with no move aimed at a criterion the
+objective scores is the defect the owner already ruled on once (§39.65, which
+turned `support_outside` on for precisely that reason). So: build the repair,
+measure what a container can, and leave the guard filed — with one exception,
+below, that is not a strategy question at all.
+
+**The repair, and the null inside it.** The first version of
+`mutate_repair_shaft` RETYPED a column of cells to `C`: the cheapest column in
+programme terms, since §39.73's probe found 7 of the 12 shaft-less artefacts have a
+column made only of generic cells. Measured over those 12 it lost on every artefact
+it fired on — x0.845, x0.376, x0.076, x0.0006, x0.0004, x0.00005. The reason is
+worth keeping: **the columns a programme can spare are mostly OUTSIDE cells, and
+turning one indoors buries its neighbours.** Each repair cleared `too few stairs`
+and bought a fistful of `crinkliness`, `not adjacent to o` and `inaccessible usable
+space` in exchange. That is §39.53's lesson arriving in a second place — retyping a
+leaf outright trades one fail for five — and it says the move has to be a CUT.
+
+So the operator divides instead: each cell of the column is split at the same ratio
+on every storey, a ~2.6 m strip becomes the shaft (`width_circulation` targets 2.4
+and fails under ~1.97) and the remainder keeps its own type. Nothing is retyped
+away, so no daylight and no programme is spent, and the "don't take a storey's last
+terrace" guard the retype needed disappears — the terrace survives the cut. Only
+the GROUND node's division is live; an upper node whose path is divided below
+inherits `coord_a`/`coord_b` (§39.70), and it is the aligned ADDRESSES that make
+the column a shaft the scorer accepts.
+
+It restores a shaft on all 12, every time, clearing `too few stairs (0, min n)` and
+usually `staircase volume` with it. What it does to the score is another matter:
+
+Both arms ratio-solved (3000 NM evaluations each, 3 draws, best child by the
+comparator's own key), because every child a search evaluates has had its ratios
+solved and the cut's immediate cost is soft `width`/`crinkliness` fails that the
+ratio loop exists to clear:
+
+| artefact | before | after | | fails |
+|---|---|---|---|---|
+| `maple-court c836457+orth` s2 | 8.00e-18 | 5.82e-17 | **x7.27** | 43 -> 41 |
+| `harbor-house 055d710` s1 | 1.81e-11 | 1.47e-10 | **x8.12** | 30 -> 30 |
+| `maple-court c836457+orth` s1 | 1.83e-21 | 5.05e-21 | **x2.76** | 57 -> 57 |
+| `maple-court 1138ff1+orth` s2 | 1.49e-21 | 3.29e-21 | **x2.21** | 50 -> 51 |
+| `maple-court 055d710` s1 | 2.37e-21 | 1.47e-21 | x0.621 | 60 -> 64 |
+| `maple-court 1138ff1+orth` s1 | 2.85e-21 | 8.06e-22 | x0.283 | 55 -> 59 |
+| `harbor-house c836457+orth` s0 | 1.64e-11 | 4.32e-12 | x0.263 | 29 -> 31 |
+| `programme-house c836457+orth` s1 | 0.00853 | 0.00190 | x0.222 | 2 -> 4 |
+| `harbor-house 99c85ec` s0 | 9.53e-10 | 2.06e-10 | x0.216 | 24 -> 28 |
+| `maple-court c836457+orth` s0 | 2.84e-19 | 2.95e-20 | x0.104 | 52 -> 58 |
+| `harbor-house 99c85ec` s2 | 3.03e-13 | 7.76e-15 | x0.026 | 33 -> 38 |
+| `harbor-house 1138ff1+orth` s0 | 3.09e-10 | 1.21e-12 | x0.004 | 26 -> 34 |
+
+**Four of twelve improve, by x2.2 to x8.1; eight get worse.** The wins are the
+roomy 3-storey maple-court layouts and one harbor-house; the losses are where
+taking 2.6 m out of a cell leaves both halves too narrow, and they arrive as
+`crinkliness` and `width` on the new pair and its neighbours.
+
+One more thing the table cannot say, and the reason it is not the A/B: every one
+of these parents is a converged 500k-evaluation layout that ENDED shaft-less,
+which means its search accepted losing the staircase because the rest of the
+building was better without it. Cutting a shaft back into a layout that grew
+around its absence is the least favourable case there is; mid-run, on a child that
+lost its shaft a few mutations ago, it is a different move. That is an argument for
+running the A/B, not for assuming the answer.
+
+**So it is landed GATED OFF** (`--repair-shaft`, in `SEARCH_KNOBS`, config hash
+now `c6c2b8fea2`). The move works and reaches something nothing else reaches; what
+it does to a SEARCH is the A/B, and a one-shot on twelve tightly-packed artefacts
+is not that measurement. Two things about reading the table: a move that sometimes
+pays hugely and often does not is what an operator IS — the search rejects the bad
+children and keeps the draws — and every one of these parents is a converged
+500k-evaluation layout with no slack, which is the least favourable place to cut a
+2.6 m strip. Neither observation is evidence, which is the point of not flipping
+the default on them.
+
+**The exception: `support_outside` was trading one hard fail for another, and that
+is a defect.** It is a REPAIR operator, it is default ON since §39.65, and §39.73
+measured it emptying a building's shaft in 8% of its draws: clearing
+`no outside space` and paying `too few stairs` + `staircase volume`, x0.0225,
+somewhere else in the same building. Its own docstring says why that is wrong — *"a
+repair that moves the fail to another level has repaired nothing"* — so this needs
+no A/B, only the fix. Two of its three moves could do it (`swap` retypes an
+enclosed cell outside, `place` divides one; `underbuild` only ever turns outside
+cells into circulation), and both now exclude the cells of every intact shaft
+(`_shaft_cells`).
+
+Measured over the corpus, 8 draws per artefact, with the guard patched out as the
+control:
+
+| | draws that found a move | cleared a `no outside space` | emptied the shaft |
+|---|---|---|---|
+| unguarded (before) | 264 | **63** | **31** |
+| guarded (after) | 256 | **63** | **0** |
+
+**Identical repair capability, 31 staircases saved, at the cost of 8 draws in 264
+that now find no move at all.** That is as clean as a search-side fix gets, and it
+is why this one lands while the other six wait: exploration that trades one fail
+for another is the search's business, and a REPAIR that does it is broken.
+
+`tests/test_stair_shaft_is_a_full_column.py` pins both — that
+`mutate_support_outside` never spends a staircase (with a negative control that
+patches the guard out and confirms the fixture does offer one, so the test cannot
+pass vacuously), and that `mutate_repair_shaft` cuts a column where there is none,
+declines where a shaft is intact, and declines where no address exists on every
+storey. That last one is its honest limit: a MERGED upper storey offers no column
+to cut, so getting a shaft into that shape has to subdivide first — a compound move
+and a different bead. Its other limit: it restores ONE shaft, so on harbor-house's
+`staircase_min: 2` it clears `staircase volume` and leaves `too few stairs (1, min
+2)`; reaching the second needs the programme's bounds, which an operator is not
+given.
+
+Objective stamp unmoved at `26ce827`. `operators.py`/`driver.py`/`evolve.py` are
+`SEARCH_SOURCES`, so `search_commit` moves and the config hash records the new
+knob; the `support_outside` guard changes what the DEFAULT search does, which is
+recorded the same way and is the point.

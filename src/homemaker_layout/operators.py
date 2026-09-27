@@ -575,6 +575,23 @@ def _area_closest(pool: list[dom.Node], leaf: dom.Node) -> list[dom.Node]:
     return ranked[:max(1, len(ranked) // 3)]
 
 
+def _shaft_cells(lvls: "list[dom.Node]") -> "list[dom.Node]":
+    """Every node of every intact shaft column, on every storey.
+
+    A shaft breaks the moment ANY of its cells stops being a leaf typed ``"C"`` at
+    that address, so a move that must not cost the building its staircase has to
+    leave all of these alone -- not just the ground one. See `_shaft_paths` for the
+    rule and the owner's ruling behind it (DESIGN.md §39.72).
+    """
+    cells: list[dom.Node] = []
+    for path in _shaft_paths(lvls):
+        for lvl in lvls:
+            node = lvl.by_id(path)
+            if node is not None:
+                cells.append(node)
+    return cells
+
+
 def _can_carry_terrace(leaf: dom.Node, li: int, lvls: list[dom.Node]) -> bool:
     """Could an outside leaf HERE be a usable, non-failing terrace, without
     costing the storey above the one it has?
@@ -692,6 +709,15 @@ def mutate_support_outside(root: dom.Node, rng: np.random.Generator,
     child = copy.deepcopy(root)
     lvls = dom.levels(child)
     moves: list[tuple[str, int, dom.Node | None, list[dom.Node]]] = []
+    # homemaker-py-t7q (§39.74): never spend a cell that is carrying the
+    # building's staircase. `swap` would retype it outside and `place` would
+    # divide it, and either breaks the shaft the scorer reads (§39.72's ruling),
+    # trading `no outside space` for `too few stairs` + `staircase volume` at
+    # x0.0225 -- measured at 8% of this operator's draws over the corpus. It is
+    # this operator's OWN doctrine: "a repair that moves the fail to another level
+    # has repaired nothing". `underbuild` needs no guard, it only turns outside
+    # leaves into circulation.
+    shaft = _shaft_cells(lvls)
 
     for li, leaf in _stranded_outside(child):
         if dom.is_covered(leaf):
@@ -702,6 +728,7 @@ def mutate_support_outside(root: dom.Node, rng: np.random.Generator,
             continue
         partners = [lf for lf in lvls[li].leaves()
                     if lf is not leaf and not dom.is_outside(lf)
+                    and not any(lf is c for c in shaft)
                     and _can_carry_terrace(lf, li, lvls)]
         if partners:
             moves.append(("swap", li, leaf, _area_closest(partners, leaf)))
@@ -717,7 +744,8 @@ def mutate_support_outside(root: dom.Node, rng: np.random.Generator,
 
     for li, lvl in _levels_without_outdoor(child):
         slots = [lf for lf in lvl.leaves()
-                 if not dom.is_outside(lf) and _can_carry_terrace(lf, li, lvls)]
+                 if not dom.is_outside(lf) and not any(lf is c for c in shaft)
+                 and _can_carry_terrace(lf, li, lvls)]
         if slots:
             moves.append(("place", li, None, slots))
 
@@ -2444,6 +2472,108 @@ def _rescue_outdoor(child: dom.Node, level_indices: "set[int]",
     return moved
 
 
+# The width a repaired stair shaft is cut to. `width_circulation` targets 2.4 m
+# and fails below ~1.97, so a slice near 2.6 clears it with margin while leaving
+# the cell it is cut from as wide as possible -- which is the whole point, see
+# `mutate_repair_shaft`.
+_STAIR_STRIP_M = 2.6
+
+
+def mutate_repair_shaft(root: dom.Node, rng: np.random.Generator,
+                        types: list[str]) -> tuple[dom.Node, str]:
+    """Give a building back the staircase it lost, by CUTTING a shaft (t7q).
+
+    The owner's ruling (DESIGN.md §39.72): a staircase exists only where the cell
+    is IDENTICAL on every floor, because Alexander's pattern allocates the whole
+    vertical shaft to stairs and no flight-fitter exists for a part-cell. A
+    building with no such column pays `too few stairs` AND `staircase volume` at
+    its 0.09 floor -- x0.0225 together.
+
+    §39.73's census found seven LIVE operators leave a building in that state
+    between 6% and 14% of the time, that 12 of the 48 corpus artefacts are in it,
+    and that nothing aims at getting out -- though `level_delete` stumbles into a
+    repair in 128 of 288 draws, which says the moves are cheap to find, not that
+    anyone is looking. This looks. It ADDS a move rather than removing one; the
+    guard that would stop the seven breaking a shaft is t7q's remaining question,
+    and removing moves needs the A/B.
+
+    It CUTS the shaft rather than retyping a column, and that is the whole design:
+
+    * §39.74 measured the retype first and it lost on all six artefacts it fired
+      on (x0.845 down to x0.00005). The columns a programme can spare are mostly
+      OUTSIDE cells, and turning one indoors buries its neighbours -- a cascade of
+      `crinkliness`, `not adjacent to o` and `inaccessible usable space` fails. It
+      is §39.53's lesson in a second place: retyping a leaf outright trades one
+      fail for five, and dividing costs nothing;
+    * so each cell of the column is DIVIDED instead, at the same ratio on every
+      storey, keeping its own type on one side and taking a ~2.6 m strip for the
+      stair on the other. The remainder stays outdoor space (or stays the room it
+      was, merely smaller), so no daylight and no programme is spent. The retype
+      needed a "not this storey's last outdoor space" guard; the cut does not,
+      because the outdoor cell survives the move;
+    * only the GROUND node's division is live -- an upper node whose path is
+      divided below inherits `coord_a`/`coord_b` (§39.70) -- but the aligned
+      addresses are what make the column a shaft the scorer accepts.
+
+    It fires only when there is NO intact shaft, so it cannot mint a second
+    staircase past `staircase_max`, and it prefers a column of generic cells over
+    one that would narrow a room, then the smallest such column.
+
+    KNOWN LIMIT: it restores ONE shaft, so on a programme asking for two
+    (harbor-house's `staircase_min: 2`) it clears `staircase volume` and leaves
+    `too few stairs (1, min 2)`. Reaching the second needs the programme's bounds,
+    which an operator is not given.
+    """
+    from . import geometry as _geo
+
+    child = _finalise(copy.deepcopy(root))
+    lvls = dom.levels(child)
+    if len(lvls) < 2:
+        return child, "repair_shaft noop (single storey)"
+    if _shaft_paths(lvls):
+        return child, "repair_shaft noop (shaft intact)"
+
+    cands: list[tuple[int, float, list[dom.Node]]] = []
+    for leaf in lvls[0].leaves():
+        column: "list[dom.Node] | None" = [leaf]
+        for lvl in lvls[1:]:
+            node = lvl.by_id(leaf.id)
+            if node is None or node.divided:
+                column = None
+                break
+            column.append(node)
+        if column is None:
+            continue
+        rooms = sum(1 for n in column if n.type and not dom.is_generic(n.type))
+        cands.append((rooms, _geo.area(leaf), column))
+    if not cands:
+        return child, "repair_shaft noop (no aligned column)"
+
+    fewest = min(c[0] for c in cands)
+    pool = sorted((c for c in cands if c[0] == fewest), key=lambda c: c[1])
+    rooms, _area, column = _pick(rng, pool[:max(1, len(pool) // 3)])
+
+    # Slice across the ground cell's LONGER axis, so the strip is a slice of it and
+    # the remainder keeps its width. Rotation 0 divides along edge 0, rotation 1
+    # along edge 1 (`geometry.coord_a`).
+    base = column[0]
+    span0 = (_geo.edge_length(base, 0) + _geo.edge_length(base, 2)) / 2.0
+    span1 = (_geo.edge_length(base, 1) + _geo.edge_length(base, 3)) / 2.0
+    rotation, span = (0, span0) if span0 >= span1 else (1, span1)
+    ratio = min(0.6, max(0.2, _STAIR_STRIP_M / span)) if span > 0 else 0.5
+
+    for node in column:
+        kept = node.type
+        node.division = [ratio, ratio]
+        node.rotation = rotation
+        node.left = dom.Node(type="C")       # the shaft, same address every storey
+        node.right = dom.Node(type=kept)
+        node.type = None
+    return (_finalise(child),
+            f"repair_shaft {column[0].id or 'root'}l ({len(column)} storeys, "
+            f"{'generic' if not rooms else f'{rooms} room(s) narrowed'})")
+
+
 def mutate_level_add(root: dom.Node, rng: np.random.Generator,
                      types: list[str]) -> tuple[dom.Node, str]:
     from . import genome as _g
@@ -2680,6 +2810,7 @@ MUTATIONS = {
     "ruin_recreate": mutate_ruin_recreate,
     "reassign": mutate_reassign,
     "support_outside": mutate_support_outside,
+    "repair_shaft": mutate_repair_shaft,
 }
 
 

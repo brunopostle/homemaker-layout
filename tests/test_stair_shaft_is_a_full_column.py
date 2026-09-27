@@ -115,3 +115,124 @@ def test_the_rule_reads_the_type_exactly(upper):
     root = _two_storey(upper, "b1")
     _leaf, corners = _stair_corners(root)
     assert bool(corners) == (upper == "C")
+
+
+# --------------------------------------------------------------------------- #
+# The operators' side of the ruling (DESIGN.md §39.74, homemaker-py-t7q).
+#
+# §39.73's census found seven live operators leave a building with no shaft at
+# all, between 6% and 14% of draws. One of them is `support_outside`, which is a
+# REPAIR operator and default ON: it was clearing `no outside space` and paying
+# for it with `too few stairs` + `staircase volume` (x0.0225) in 8% of its draws.
+# That is this operator's own stated doctrine broken -- "a repair that moves the
+# fail to another level has repaired nothing" -- so it is guarded here rather
+# than left for the A/B. The six exploratory operators are a different question
+# (removing exploratory moves needs the measurement that needs a box).
+# --------------------------------------------------------------------------- #
+
+import numpy as np  # noqa: E402
+
+from homemaker_layout import operators  # noqa: E402
+
+
+def _shafted_with_a_stranded_terrace():
+    """A 2-storey tree with an intact shaft, a stranded terrace and a bare storey.
+
+    Ground: `C` shaft | `k1` | `O` garden. Upstairs: `C` over the shaft, `O` over
+    the garden (stranded: it sits over outdoor space), `b1` over the kitchen. So
+    level 1 has no USABLE outdoor space, which is what `support_outside` repairs,
+    and the only enclosed cells it could take are the shaft and the bedroom.
+    """
+    root = dom.Node(node=[list(p) for p in PLOT], height=3.0, elevation=0.0,
+                    wall_inner=0.08, wall_outer=0.25, rotation=0,
+                    division=[0.34, 0.34])
+    root.left = dom.Node(type="C")                       # the shaft
+    root.right = dom.Node(rotation=0, division=[0.5, 0.5])
+    root.right.left = dom.Node(type="k1")
+    root.right.right = dom.Node(type="O")                # ground garden
+    upper = dom.Node(rotation=0, height=3.0, division=[0.34, 0.34])
+    upper.left = dom.Node(type="C")                      # shaft continues
+    upper.right = dom.Node(rotation=0, division=[0.5, 0.5])
+    upper.right.left = dom.Node(type="b1")
+    upper.right.right = dom.Node(type="O")               # over the garden: stranded
+    root.above = upper
+    dom.link(root)
+    geometry.clear_cache()
+    return root
+
+
+def test_support_outside_never_spends_the_staircase():
+    root = _shafted_with_a_stranded_terrace()
+    assert operators._shaft_paths(dom.levels(root)) == ["l"]
+    for seed in range(24):
+        child, desc = operators.mutate_support_outside(
+            root, np.random.default_rng(seed), ["C", "O"])
+        geometry.clear_cache()
+        assert operators._shaft_paths(dom.levels(child)), (
+            f"seed {seed} ({desc}) traded the staircase for outdoor space -- "
+            "see this module's docstring")
+
+
+def test_the_guard_is_what_prevents_it(monkeypatch):
+    """Negative control: without the guard, some draw does break the shaft.
+
+    Keeps the test above honest -- otherwise it could be passing because this
+    fixture never offers the shaft as a candidate.
+    """
+    monkeypatch.setattr(operators, "_shaft_cells", lambda lvls: [])
+    root = _shafted_with_a_stranded_terrace()
+    broke = 0
+    for seed in range(24):
+        child, _desc = operators.mutate_support_outside(
+            root, np.random.default_rng(seed), ["C", "O"])
+        geometry.clear_cache()
+        if not operators._shaft_paths(dom.levels(child)):
+            broke += 1
+    assert broke, "the fixture never offers the shaft, so the guard test is vacuous"
+
+
+def test_repair_shaft_cuts_a_column_where_there_is_none():
+    """`mutate_repair_shaft`: the move that gets a building its staircase back."""
+    # ground `C | k1`, upstairs `O | b1`: no shaft (the cell over the stair is
+    # outdoors), and the left column is generic on both storeys, so the repair
+    # should cut a strip out of it rather than spend the kitchen or the bedroom
+    root = _two_storey("O", "b1")
+    assert not operators._shaft_paths(dom.levels(root))
+    got = 0
+    for seed in range(8):
+        child, desc = operators.mutate_repair_shaft(
+            root, np.random.default_rng(seed), ["C", "O"])
+        geometry.clear_cache()
+        if "noop" in desc:
+            continue
+        got += 1
+        assert operators._shaft_paths(dom.levels(child)), desc
+        # the cell it cut is still there, merely smaller: nothing was retyped away
+        types = {lf.type for lvl in dom.levels(child) for lf in lvl.leaves()}
+        assert "k1" in types, "the repair spent a required room"
+    assert got, "the repair never fired where a generic column was available"
+
+
+def test_repair_shaft_is_silent_where_a_shaft_is_intact():
+    root = _two_storey("C", "b1")          # an exact C column: nothing to repair
+    assert operators._shaft_paths(dom.levels(root))
+    for seed in range(4):
+        _child, desc = operators.mutate_repair_shaft(
+            root, np.random.default_rng(seed), ["C", "O"])
+        assert "noop" in desc, desc
+
+
+def test_repair_shaft_declines_when_no_address_exists_on_every_storey():
+    """The known limit, recorded: a merged upper storey offers no column.
+
+    With the storey above undivided, no address below the root exists up there, so
+    there is nothing to cut in alignment. Getting a shaft into THAT shape has to
+    subdivide the upper storey first, which is a compound move and a different
+    bead; declining is the honest answer rather than a half-repair (§39.53).
+    """
+    root = _two_storey("O", None)          # upstairs is one undivided leaf
+    assert not operators._shaft_paths(dom.levels(root))
+    for seed in range(4):
+        _child, desc = operators.mutate_repair_shaft(
+            root, np.random.default_rng(seed), ["C", "O"])
+        assert "noop" in desc and "column" in desc, desc
