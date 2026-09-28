@@ -33,9 +33,19 @@ Explicit scope (see ``eligible``, and DESIGN.md §37.2/§37 point 2):
   * Composition (which of a child's local w/h sums into its parent's w) is an
     exact algebraic identity determined purely by ``child.rotation % 2`` (see
     ``_child_contrib``) — not measured or approximated.
-  * ``leaf_sharing``/``co_type`` (multi-use leaves) target-adjustment is NOT
-    modelled — ``leaf_constraints`` uses each leaf's own type's base params
-    only. ``eligible`` excludes runs using either.
+  * ``leaf_sharing``/``max_share``/``multi_use`` ARE modelled (homemaker-py-tym):
+    ``leaf_constraints`` mirrors ``quality_size``'s k-scaling and ``co_type``
+    adjustment, reading the evaluator's own ``fit`` so it cannot diverge, and
+    ``eligible`` admits them. Only ``superpose`` is excluded, because it changes
+    WHICH TYPE a leaf is scored as, after the DP has read ``leaf.type``. (This
+    paragraph said the opposite until §39.78 — and since ``leaf_sharing``
+    defaults True in ``driver.search``, the stale version read as "the DP never
+    applies to a real run".)
+  * ``dom.merge_divided`` is NOT modelled, and it is the one that bites:
+    ``Fitness.score_with_fails`` fuses same-type sibling leaves IN PLACE before
+    evaluating, so this DP bounds leaves the scorer is about to merge away. Two
+    siblings that each miss ``wmin`` can be one leaf that clears it — a FALSE
+    NEGATIVE, measured at 1 of 12 corpus artefacts (DESIGN.md §39.78).
 
 Multi-storey (homemaker-py-koo, DESIGN.md §37.6): ``solve``/``is_feasible``
 take the whole tree's level-0 root and process ``dom.levels(root)`` bottom-up,

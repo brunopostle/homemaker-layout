@@ -12727,3 +12727,74 @@ thing this section establishes.
 non-evolved `.dom` in the repository is still §39.70's `hand-3storey`, drafted in
 exact plot coordinates, and the plateau benchmark still has no human reference --
 which is what `homemaker-py-2g7.2` waits on.
+
+### 39.78 The shape-curve DP's verdict is not exact, and neither cause is the rectangle approximation (`homemaker-py-ekc`)
+
+`homemaker-py-ekc` asks for the DP's approximation error to be re-characterised
+before `--shapecurve-warmstart` or `--shapecurve-prune` is rolled out wider, since
+§37.2 measured it only on harbor-house-l0's near-rectangular trapezoid and flagged
+it as "likely worse elsewhere". `experiments/diag_ekc_shapecurve.py` does that over
+the twelve committed artefacts. The answer is not the one the bead expects.
+
+**The rectangle approximation did not produce a single error.** Three checks:
+
+| check | result |
+|---|---|
+| leaves where the DP's mean-pair width clears `wmin` and the true narrowest edge does not | **0** of 173 width-constrained |
+| feasible verdicts carrying a size/width/proportion fail at the DP's own realised point | **0** of 3 |
+| infeasible verdicts where a shape-fail-free point demonstrably exists | **2** of 12 |
+
+The width worry was mine and it was wrong, or at least inert: `_dims` takes
+`(edge0+edge2)/2`, which is never smaller than `geometry.length_narrowest`, so the
+DP CAN pass a leaf `quality_width` fails, and the worst ratio on the corpus is
+0.731 -- a 27% shortfall, ample headroom. No leaf lands in the band where it
+matters. A measured null, in the §39.13/§39.68 sense.
+
+**What the DP does get wrong is both false NEGATIVES, the dangerous direction.**
+`driver._evaluate` turns an infeasible verdict into a hard prune -- the topology is
+discarded outright when the incumbent has zero fails -- and the comment above it
+quotes §37.2's "0/200 measured false negatives on harbor-house-l0" as the warrant.
+That number does not survive contact with the rest of the corpus. Two of twelve,
+and re-running with each mechanism neutered in turn separates them into two
+unrelated causes:
+
+*`dom.merge_divided` is not modelled* (programme-house s2). `Fitness.score_with_fails`
+merges same-type sibling leaves IN PLACE before evaluating -- verified: scoring the
+artefact takes it from 12 leaves to 11. The DP runs first, on the unmerged tree, and
+bounds leaves that are about to stop existing. Here `0/lr` is divided into two `O`
+leaves 1.27 m and 1.39 m narrow, each failing `wmin` 2.36, so the DP calls the whole
+topology infeasible; the scorer fuses them into one 2.66 m leaf scoring
+`quality_width` 0.5262, comfortably clear. Merge first and the verdict flips to
+feasible. Corpus-wide the scorer merges 6 leaves away and 1 of the 12 verdicts turns
+on it.
+
+*The per-storey realisation is greedy* (programme-house s1). `_solve_all_levels`
+must realise each storey before checking the one above, because an upper storey's
+boxes are read off the lower storey's realised geometry by `geometry.coordinate`.
+So it commits level 0 to ONE point with no knowledge of what level 1 needs. Neuter
+`realise` -- judge every storey at the committed geometry instead -- and s1 is
+feasible. This is not an approximation at all; it is a search that cannot backtrack,
+and it can only affect multi-storey trees. Both single-storey health-centre verdicts
+agree under every variant.
+
+**So "exact" was never true of the multi-storey DP**, and the single-storey
+validation §37.2 ran could not have found either cause: harbor-house-l0 is one
+storey, and a false negative from the merge needs two same-type siblings the scorer
+would fuse.
+
+**No harm today, which is the point of measuring now.** Both flags default off
+(`search_config` 4549a418fc), so nothing in the corpus was produced with either.
+This is the characterisation ekc asked for, before a rollout rather than after one.
+
+**Not landed, deliberately -- the merge fix has a contract question.** Making the
+DP merge first is a two-line change and it is plainly right, but `is_feasible`
+documents that it never writes, and `tests/test_shapecurve.py` pins that by
+comparing `solver.free_branches` divisions before and after. A merge changes the
+tree's structure, so it changes `free_branches`, so it breaks that contract as
+written. The options are to run the verdict on a merged deep copy (preserves the
+contract, costs a copy per evaluation on a path whose whole point is being cheap),
+or to merge in place and re-state the contract (defensible, since the scorer merges
+in place moments later anyway, and a pruned child is discarded). That is a decision,
+not a typo, so it is written up rather than guessed at. The greedy-realisation cause
+is a design limit and needs its own bead if anyone wants the multi-storey verdict to
+be genuinely exact.
