@@ -12655,3 +12655,78 @@ geometry, which is what the solve is moving. A proxy (a minimum run length on th
 cells of an intact shaft) is buildable on `operators._shaft_paths`, but it is a
 separate question from the one measured here and it should be measured the same
 way before it lands.
+
+### 39.77 The human harbor-house drawing: a first-floor plan, and it does fit a slicing tree (`homemaker-py-2g7.1`)
+
+2g7.1's remaining open item was "harbor-house, the plateau benchmark, and a trace
+of a real human-drawn plan rather than a drafted one". The repo already holds one:
+`examples/harbor-house/drawings/harbor-house 1.svg`, a Bonsai/IfcOpenShell export
+at 1:100 -- 8197 paths, walls with thickness, 32 `IfcSpace` polygons whose corners
+carry the skew of an actual building. Unlike §39.70's `hand-3storey.svg`, which was
+DRAFTED in exact plot coordinates, this exercises the snapping tolerance the bead
+wanted tested. `experiments/trace_harbor_house.py` reads it.
+
+**What it is: the FIRST FLOOR, not the building.** All 32 spaces carry labels, and
+the labels pair with the polygons as a bijection -- they sit at space centroids,
+and every pairing that looks close has its second-nearest space 36-58 mm away. Set
+against `patterns.config`:
+
+| | code | level | wants | drawn |
+|---|---|---|---|---|
+| Individual Room | `r` | 1 | 10 | **10** |
+| Library Corner | `li1` | 1 | 1 | **1** |
+| Utilities Closet | `ut1` | 1 | 1 | **1** |
+| First Floor Storage | `st2` | 1 | 1 | 5 |
+| Bathroom | `t` | None | 6 | 4 |
+| Neighborhood | `n` | None | 5 | 1 |
+| Ground Floor Storage | `st1` | 0 | 1 | 2 |
+| Common Room, Dining Area, Entrance Foyer, Kitchen, Laundry, Meeting Room x3, Mechanical/Electrical, Staff Office x2, Workshop | | 0 | 12 | **0** |
+
+**Every absent room is level 0, and every level-1 room is present**, three of the
+four at exactly the declared count. So this sheet is harbor-house's first-floor
+plan and the ground floor is not in the repository. 633.4 m2 drawn against 835 m2
+of programme.
+
+Four counts differ and are the owner's to resolve, not a measurement's: `st2` drawn
+five times against one declared (areas 47.5 / 28.2 / 18.9 / 11.7 / 8.0 m2, where
+the target is 18), `n` once against five, `t` four times against six, and `st1` --
+a level-0 room -- appearing twice on a first-floor plan. Either the drawing is a
+different revision of the brief, or `patterns.config` is.
+
+**Does a slicing tree hold it?** That is 2g7.1's stated first-order question and it
+does not need the missing floor. Tested as recursive guillotine decomposition of
+the 32 space bounding boxes, at a range of snapping tolerances:
+
+| tolerance | as drawn | de-skewed |
+|---|---|---|
+| 0-11 cm | no | no |
+| **12 cm** | no | **yes** |
+| 15-50 cm | no | yes |
+
+**Yes -- but only after de-skewing, and that distinction nearly published the
+opposite result.** The plot is a skewed quad ((0,0), (25,2), (23,31), (0,31)) and a
+slicing division is not axis-aligned in sheet coordinates, so an axis-aligned
+guillotine test on the raw drawing reports NOT SLICIBLE at every tolerance up to
+50 cm. That is entirely an artefact of the building's own 1.967 degrees: over 24 m
+it is 1.26 m of drift, more than any plausible snapping tolerance. Rotating by a
+length-weighted 4-fold circular mean of every space edge removes it, and the plan
+is then cleanly sliceable from the root down at 12 cm -- about a wall thickness.
+
+The residual after de-skew is the interesting part: median 1.01 degrees per edge,
+max 2.61. A single rotation cannot square both wall families because in a real
+building they are not exactly perpendicular -- which is `homemaker-py-ao9` measured
+from the other end, on a human drawing rather than on generated geometry (3.3
+degrees on programme-house), and it is the same order.
+
+**So the representability finding stands where §39.70 left it, with one more
+clause.** A slicing tree can hold a designed storey of a real building; an upper
+storey cannot choose its own cut axis (§39.70); and a real plan needs a de-skew
+plus roughly a wall thickness of snapping before the guillotine structure appears
+at all.
+
+**What is still blocked.** A SCORED human reference for harbor-house needs the
+ground-floor plan, because `storey_minimum` is 2 and the twelve level-0 rooms are
+absent. Composing and scoring the first floor alone would report twelve missing
+rooms and a number that means nothing. That is a request to the owner, not work
+that can be done here, and it is what now stands between 2g7.1 and
+`homemaker-py-2g7.2` for the plateau benchmark.
