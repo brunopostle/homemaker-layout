@@ -1,30 +1,41 @@
-"""`homemaker-py-2g7.1`: read the human harbor-house drawing, and ask whether a
-slicing tree can hold it.
+"""`homemaker-py-2g7.1`: read an architectural SVG, and FIRST ask whose it is.
 
-`examples/harbor-house/drawings/harbor-house 1.svg` is a Bonsai/IfcOpenShell
-export of the owner's harbor-house at 1:100. Unlike
-`examples/programme-house/hand-3storey.svg` -- which §39.70 DRAFTED in exact plot
-coordinates -- this is a real drawing: 8197 paths, walls with thickness, and 32
-`IfcSpace` polygons whose corners carry the skew of an actual building. That is
-what 2g7.1 asked for, and it exercises the snapping tolerance a drafted trace
-cannot.
+`examples/harbor-house/drawings/harbor-house 1.svg` is a Bonsai/IfcOpenShell export
+at 1:100 -- 8197 paths, walls with thickness, 32 `IfcSpace` polygons with room
+labels and the skew of a real building. It looks exactly like the human-drawn plan
+this bead has been waiting for. It is not one. It is a render of
+`examples/harbor-house/3m.dom` level 1 -- one of our OWN evolved layouts, via the
+`3m.dom.ifc` beside it, which Bonsai reads. DESIGN.md §39.77 is the write-up of
+believing otherwise for an afternoon, and the reason this tool leads with
+`--provenance` rather than ending with it.
 
-This reads it and answers the bead's first-order question -- do human plans lie
-in the slicing class? -- without needing anything else to exist:
+There are, as of 2026-09-28, NO human-drawn plans in this repository. The only
+non-evolved `.dom` is `examples/programme-house/hand-3storey.dom`, drafted in exact
+plot coordinates (§39.70).
 
-1. extract the 32 `IfcSpace` polygons and the room labels, and pair them. The
-   labels are `<text transform="translate(x,y)">`, NOT x/y attributes, and each
-   sits at its space's centroid; the pairing is a bijection and every case that
-   looks ambiguous has its second-nearest space 36-58 mm away;
-2. estimate the building's own wall direction (a length-weighted 4-fold circular
-   mean over every space edge) and de-skew by it. This matters: the plot is a
-   skewed quad, a slicing division is NOT axis-aligned in sheet coordinates, and
-   testing axis-aligned cuts on the raw drawing reports NOT SLICIBLE at every
-   tolerance up to 50 cm -- a pure artefact of the 1.97 degrees;
-3. test recursive guillotine sliceability of the de-skewed bounding boxes at a
-   range of snapping tolerances, and report the coarsest region that has no cut.
+What it does:
 
-    python experiments/trace_harbor_house.py [--tol-scan] [--tol 1.5]
+1. **provenance** -- census the SVG's room labels by programme code and compare
+   against every level of every committed `.dom` for the programme. An exact match
+   means the drawing IS that layout, and no representability verdict is reported,
+   because a slicing-tree artefact is guillotine-sliceable BY CONSTRUCTION and
+   saying so measures nothing;
+2. extract the `IfcSpace` polygons and pair them with the labels. The labels are
+   `<text transform="translate(x,y)">`, NOT x/y attributes, and each sits at its
+   space's centroid;
+3. estimate the building's wall direction (a length-weighted 4-fold circular mean
+   over every space edge) and de-skew by it. **This matters and is the part worth
+   keeping**: the plot is a skewed quad, a slicing division is NOT axis-aligned in
+   sheet coordinates, and testing axis-aligned cuts on the raw drawing reports NOT
+   SLICIBLE at every tolerance up to 50 cm -- a pure artefact of 1.967 degrees,
+   which is 1.26 m of drift over 24 m. Any real plan traced later will need this
+   first;
+4. test recursive guillotine sliceability of the de-skewed bounding boxes across a
+   range of snapping tolerances. On an export of our own `.dom` this measures the
+   `.dom` -> IFC -> SVG round-trip cost, which came out at about a wall thickness
+   (12 cm), and nothing else.
+
+    python experiments/trace_harbor_house.py [--tol-scan] [--tol 1.5] [--force]
 """
 
 from __future__ import annotations
@@ -38,6 +49,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
+from homemaker_layout import dom, geometry  # noqa: E402
 from homemaker_layout.programme import load_programme_dir  # noqa: E402
 
 SVG = REPO / "examples" / "harbor-house" / "drawings" / "harbor-house 1.svg"
@@ -127,6 +139,64 @@ def residual_misalignment(polys: list[Poly], min_edge: float = 0.5) -> list[floa
     return sorted(out)
 
 
+# --------------------------------------------------------------------------- #
+# provenance: is this drawing one of OUR layouts?
+# --------------------------------------------------------------------------- #
+# Label -> programme code. The generic three collapse the way fitness does: a
+# "Stair" is a circulation leaf, a "Sahn" takes the outside family (§39.4).
+LABEL_CODE = {"circulation": "C", "stair": "C", "outside": "O", "sahn": "S"}
+
+
+def label_census(labels, reqs) -> dict[str, int]:
+    """The drawing's rooms counted by programme code."""
+    by_name = {v.name.lower(): k for k, v in reqs.items()}
+    out: dict[str, int] = {}
+    for t in labels.values():
+        key = t.lower()
+        code = LABEL_CODE.get(key) or by_name.get(key)
+        if code is None:
+            continue
+        out[code] = out.get(code, 0) + 1
+    return out
+
+
+def _generic_key(code: str) -> str:
+    """`O` and `S` are one family to this comparison, as they are to the scorer."""
+    return "O/S" if code in ("O", "S") else code
+
+
+def _fold(census: dict[str, int]) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for k, v in census.items():
+        out[_generic_key(k)] = out.get(_generic_key(k), 0) + v
+    return out
+
+
+def find_source(census: dict[str, int], programme_dir: Path):
+    """Every (`.dom`, level) in the programme whose leaf types match the drawing.
+
+    A hit means the SVG is a render of that layout -- which is what
+    `harbor-house 1.svg` turned out to be (§39.77).
+    """
+    want = _fold(census)
+    hits = []
+    for path in sorted(programme_dir.glob("*.dom")):
+        try:
+            root = dom.load(str(path))
+            geometry.clear_cache()
+            levels = dom.levels(root)
+        except Exception:
+            continue
+        for i, lvl in enumerate(levels):
+            got: dict[str, int] = {}
+            for leaf in lvl.leaves():
+                k = _generic_key(leaf.type or "")
+                got[k] = got.get(k, 0) + 1
+            if got == want:
+                hits.append((path.name, i, sum(got.values())))
+    return hits
+
+
 def guillotine(boxes, idx, tol, path="root"):
     """Recursive guillotine decomposition. A cut is valid where no box straddles
     it by more than `tol`. Returns (sliceable, [(path, stuck rooms), ...])."""
@@ -158,13 +228,26 @@ def main(argv=None) -> int:
                     help="snapping tolerance in sheet mm (1 mm = 10 cm at 1:100)")
     ap.add_argument("--tol-scan", action="store_true",
                     help="report sliceability across a range of tolerances")
+    ap.add_argument("--force", action="store_true",
+                    help="report the sliceability verdict even when the drawing is "
+                         "one of our own layouts (where it measures nothing)")
     args = ap.parse_args(argv)
 
     polys, labels = read_spaces()
     print(f"{SVG.name}: {len(polys)} IfcSpace polygons, {len(labels)} labelled")
 
-    # --- what the drawing holds, against the programme ---------------------- #
+    # --- provenance FIRST (§39.77) ------------------------------------------ #
     reqs = load_programme_dir(str(PROG))
+    census = label_census(labels, reqs)
+    hits = find_source(census, PROG)
+    print("\nprovenance: label census by code =",
+          dict(sorted(_fold(census).items())))
+    if hits:
+        for name, lvl, n in hits:
+            print(f"  EXACT MATCH: {name} level {lvl} ({n} leaves)")
+        print("  => this drawing is a render of OUR OWN layout, not a human plan.")
+    else:
+        print("  no committed .dom level matches; provenance is not our output")
     drawn: dict[str, int] = {}
     for t in labels.values():
         drawn[t.lower()] = drawn.get(t.lower(), 0) + 1
@@ -199,6 +282,13 @@ def main(argv=None) -> int:
         ok_raw, _ = guillotine(raw_boxes, list(range(len(raw_boxes))), tol)
         ok_rot, _ = guillotine(boxes, list(range(len(boxes))), tol)
         print("%6.1f %7.0f   %-10s %-10s" % (tol, tol * 10, ok_raw, ok_rot))
+
+    if hits and not args.force:
+        print("\nSLICEABILITY VERDICT WITHHELD: a slicing-tree artefact is "
+              "guillotine-sliceable by\nconstruction, so the tolerance above is the "
+              "`.dom` -> IFC -> SVG round-trip cost,\nnot a representability finding "
+              "about human plans (§39.77). Pass --force to\nsee the regions anyway.")
+        return 0
 
     ok, fails = guillotine(boxes, list(range(len(boxes))), args.tol)
     if not ok:
