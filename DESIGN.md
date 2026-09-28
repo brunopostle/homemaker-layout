@@ -12822,3 +12822,71 @@ across all twelve corpus artefacts `merge_divided` never drops a programme room.
 it is fixture degeneracy, not a `dom` defect -- worth stating, because `dom` IS an
 objective source and a room-losing merge there would have been a far larger finding
 than this bead.
+
+### 39.79 The operator census, widened: the structural invariants hold, and one operator cannot fire
+
+§39.73 applied every operator to every corpus artefact and counted how often the
+staircase shaft stopped being intact. That pattern found real defects twice in a
+week, and the shaft was the only invariant it checked.
+`experiments/diag_operator_invariants.py` checks the structural ones.
+
+The distinction that makes them worth checking separately: breaking a shaft is a
+TRADE the comparator can price (§39.74), and so are `on wrong level` and
+`storey_limit`/`storey_minimum`, because the scorer charges for all three. These
+are not trades. A child that violates one is malformed and no comparator can price
+that:
+
+  * **typeless** — a leaf with no `type`. `_generic_class` returns `""`, so the
+    scorer reads it as a programme room with no target: silently mis-scored rather
+    than rejected.
+  * **half_divided** — `division` set with one child, or children with no
+    `division`. `Node.divided` requires all three, so such a node is read as a LEAF
+    while carrying a cut.
+  * **stale_below** — the serious one. `geometry.coordinate` follows `below` BEFORE
+    it reads a node's own rotation or division (§39.70), so an operator that
+    restructures without re-linking gets its geometry from the wrong parent, with
+    no exception raised.
+  * **roundtrip** — `genome.decode(genome.encode(child))` must preserve every
+    leaf's (type, share, co_type). The genome is what `genome.signature` dedups on.
+  * **unscorable** — `score_with_fails` raises.
+
+**Result: a complete null. 21,120 applications — 22 operators x 12 artefacts, at 8
+draws from the converged artefact and 12 from a damaged one — and not one violation
+of any check.** The operator set is structurally sound.
+
+**That null is only worth reading because the checks were shown to fire first**, and
+two of them initially did not. The negative control corrupts a real tree in one way
+per check and asserts the matching check catches it. On the first run `stale_below`
+and `roundtrip` reported SILENT — and both times the control was wrong, not the
+check. `stale_below`'s corruption pointed a storey root at the level-0 root, and
+both have id `""`, so it changed nothing. `roundtrip`'s set a bogus type string,
+which `decode` faithfully reapplies from the retypes delta. Fixing the controls
+(aim a NON-root node at a different id; corrupt `share`, which `GNode` genuinely
+cannot carry) made both fire. Had the census shipped without the control, two of
+its five columns would have been zeros that meant nothing.
+
+**Measured on both converged and damaged parents**, because §39.75's lesson is that
+those differ — there, by twenty-fold. `--from-broken` applies a random first
+operator and measures the second on its child, which is the state a search actually
+offers an operator. No difference here: null under both.
+
+**One real finding, from the noop column rather than the checks.**
+`mutate_core_undivide` declined **960 times out of 960** — every draw, on every
+artefact, from damaged parents as well as converged ones. Its precondition asks for
+a node whose path is OWNED on two or more storeys, and `_owned_branches` counts a
+cut as owned only where `below is None or not below.divided`. Under
+below-inheritance a path is owned at exactly one storey — the lowest where it is
+divided — unless the same path is divided, undivided, then divided again going up.
+That sandwich exists nowhere in the corpus and did not arise under mutation either.
+So the operator is not merely unlucky: its precondition is nearly unsatisfiable by
+construction.
+
+It is ungated, so it sits in the draw with everything else. With 7 of the 22
+operators off by default, 15 are live and `core_undivide` takes about **1 in 15
+mutation draws, every one of them a guaranteed no-op**.
+
+**Not fixed here, because both remedies are search changes.** Deleting it
+redistributes ~6.7% of the draw across the operators that do work; repairing its
+precondition so it can fire introduces a move the search has never actually had.
+Either is an A/B and wants the box — §39.65 is exactly why a change to the operator
+mix is recorded rather than made invisibly. Filed as `homemaker-py-w4e`.
