@@ -194,6 +194,9 @@ def _evaluate(root: dom.Node, programme_dir, x0, budget, inner_kw,
     # point and write it onto the tree in place. `x0=None` below then picks it up
     # as the inner loop's start point. On infeasible or ineligible, `root` is left
     # untouched — falls through to today's cold/proportion-aware start exactly.
+    # (`solve` deliberately does NOT merge first, unlike `is_feasible`: here an
+    # infeasible verdict only costs a warm start, so it is not worth collapsing a
+    # structure the search is entitled to carry. §39.78.)
     dp_eligible = ((shapecurve_warmstart or shapecurve_prune)
                    and shapecurve.eligible(root, leaf_sharing, superpose, max_share, multi_use))
     dp_feasible = None

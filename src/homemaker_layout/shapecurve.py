@@ -79,6 +79,7 @@ partially-mutated tree from a failed or read-only attempt.
 
 from __future__ import annotations
 
+import copy
 import math
 import warnings
 from dataclasses import dataclass
@@ -548,8 +549,31 @@ def is_feasible(root: dom_mod.Node, fit, grid_n: int = 150) -> bool:
     (``driver._evaluate``, homemaker-py-wkh) needs the boolean verdict alone,
     without the warm-start's tree mutation (kept a strictly separate code path
     so the two experimental flags, ``shapecurve_prune``/``shapecurve_warmstart``,
-    compose cleanly and can be A/B'd independently)."""
-    feasible, _ = _solve_all_levels(root, fit, grid_n, commit=False)
+    compose cleanly and can be A/B'd independently).
+
+    The verdict is taken on a MERGED COPY (homemaker-py-ekc, DESIGN.md §39.78).
+    ``Fitness.score_with_fails`` fuses same-type sibling leaves in place before
+    evaluating, so bounding the unmerged tree applies a per-leaf ``wmin`` to
+    leaves that are about to stop existing — and two siblings that each miss it
+    can be one leaf that clears it comfortably. That produced FALSE NEGATIVES on
+    2 of the 12 corpus artefacts, which is the direction that costs something:
+    ``driver._evaluate`` turns this verdict into a hard prune and discards the
+    topology outright.
+
+    A copy rather than an in-place merge, for two reasons. The contract above is
+    worth keeping literally — the prune caller must be able to reject a child and
+    leave it exactly as it found it. And ``solve`` deliberately does NOT merge: an
+    infeasible verdict there only costs a warm start (it falls through to the
+    ordinary start), while a fresh split into same-type leaves is a structure the
+    search is entitled to carry until the scorer itself collapses it."""
+    probe = copy.deepcopy(root)
+    geometry.clear_cache()
+    dom_mod.merge_divided(probe)
+    geometry.clear_cache()
+    try:
+        feasible, _ = _solve_all_levels(probe, fit, grid_n, commit=False)
+    finally:
+        geometry.clear_cache()   # `probe`'s coords must not outlive it
     return feasible
 
 
@@ -560,8 +584,11 @@ def solve(root: dom_mod.Node, fit, grid_n: int = 150) -> tuple[bool, dict]:
     info) where info carries the overall plot dims and a couple of diagnostic
     counts for the caller.
 
-    On infeasible, ``root`` is restored exactly as passed in — no partial
-    writes from an earlier, feasible storey are left behind (see
-    ``_solve_all_levels``).
+    On infeasible, every ``division`` is restored exactly as passed in — no
+    partial writes from an earlier, feasible storey are left behind (see
+    ``_solve_all_levels``). The ``dom.merge_divided`` canonicalisation applied at
+    entry is NOT undone, on either outcome: it is what ``score_with_fails`` does
+    to the same tree in place, so the caller's tree reaches the evaluator in that
+    form regardless (§39.78).
     """
     return _solve_all_levels(root, fit, grid_n, commit=True)

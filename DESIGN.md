@@ -12798,3 +12798,27 @@ in place moments later anyway, and a pruned child is discarded). That is a decis
 not a typo, so it is written up rather than guessed at. The greedy-realisation cause
 is a design limit and needs its own bead if anyone wants the multi-storey verdict to
 be genuinely exact.
+
+**Addendum (same day): cause (1) fixed, and the shape of the fix is the finding.**
+`shapecurve.is_feasible` now takes its verdict on a `dom.merge_divided` COPY of the
+tree. Corpus false negatives 2 -> 1; the remaining one is the greedy realisation,
+now `homemaker-py-3kp`.
+
+The in-place merge was tried first, in `_solve_all_levels`, so that `solve` got it
+too. It broke two pre-existing tests, and reading them was what settled the design:
+their fixtures are BUILT from same-type sibling splits, which is exactly what a
+merge dissolves. That is the argument against, not an inconvenience to work around.
+An infeasible verdict from `solve` costs only a warm start -- it falls through to
+the ordinary start -- while `is_feasible` feeds a hard prune that discards the
+topology. So the harm is entirely on the prune path, the fix belongs there alone,
+and `solve` should keep letting the search carry a structure until the scorer itself
+collapses it. The copy also keeps the documented never-writes contract literal,
+which is what a prune caller needs: a rejected child left exactly as found.
+
+One alarm checked rather than assumed. On the synthetic two-storey fixture the merge
+cascade collapses an `O`|`O` ground floor to a single leaf and takes the storey above
+with it, `cr1` and all. The SCORER does exactly the same thing to that fixture, and
+across all twelve corpus artefacts `merge_divided` never drops a programme room. So
+it is fixture degeneracy, not a `dom` defect -- worth stating, because `dom` IS an
+objective source and a room-losing merge there would have been a far larger finding
+than this bead.

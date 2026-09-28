@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from homemaker_layout import dom, driver, fitness as fit_mod, shapecurve, solver
+from homemaker_layout import dom, driver, fitness as fit_mod, geometry, shapecurve, solver
 
 HARBOR_L0 = Path(__file__).parent.parent / "examples" / "harbor-house-l0"
 
@@ -152,7 +152,10 @@ def test_is_feasible_agrees_with_solve_but_never_writes(monkeypatch):
     """homemaker-py-wkh: the hard-prune caller needs the boolean verdict
     without solve()'s tree mutation, so ``is_feasible`` must (a) agree with
     ``solve``'s own verdict and (b) never write ``division`` -- verified on
-    both the feasible and infeasible fixtures already exercised above."""
+    both the feasible and infeasible fixtures already exercised above.
+
+    §39.78 kept this literal: the merge the verdict needs happens on a COPY,
+    precisely so a pruned child is left exactly as it was found."""
     fit = _fit()
 
     feasible_root = _small_feasible_topology()
@@ -168,6 +171,52 @@ def test_is_feasible_agrees_with_solve_but_never_writes(monkeypatch):
     assert shapecurve.is_feasible(infeasible_root, fit) is False
     after = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
     assert before == after
+
+
+def test_is_feasible_leaves_the_tree_structurally_untouched():
+    """The merge happens on a copy, so a pruned child keeps its own structure --
+    including a fresh split into same-type leaves, which the search is entitled
+    to carry until the scorer itself collapses it (§39.78)."""
+    fit = _fit()
+    root, _target = _two_storey_mixed_topology(child_types=("O", "O"))
+    before = sum(len(lvl.leaves()) for lvl in dom.levels(root))
+    shapecurve.is_feasible(root, fit)
+    assert sum(len(lvl.leaves()) for lvl in dom.levels(root)) == before
+
+
+def test_verdict_does_not_depend_on_whether_the_caller_merged_first():
+    """The §39.78 defect, pinned as the invariant rather than as one artefact.
+
+    `Fitness.score_with_fails` fuses same-type sibling leaves in place before
+    evaluating. The DP used to bound the UNMERGED tree, applying a per-leaf
+    `wmin` to leaves about to stop existing -- and two siblings that each miss it
+    can be one leaf that clears it, so the DP called topologies infeasible that
+    the scorer is perfectly happy with (2 of 12 corpus artefacts were false
+    negatives; `driver._evaluate` turns that verdict into a hard prune).
+
+    So the verdict must not depend on whether the caller merged first.
+    """
+    fit = _fit()
+    seed = dom.load(str(HARBOR_L0 / "init.dom"))
+    rng = np.random.default_rng(0)
+
+    checked = 0
+    for trial in range(6):
+        a = driver.random_topology(seed, 40, np.random.default_rng(trial),
+                                   ["k1", "l1", "b1", "C", "O"])
+        b = copy.deepcopy(a)
+        dom.merge_divided(b)
+        geometry.clear_cache()
+        # the fixture must actually HAVE something to merge, or this proves nothing
+        n_a = sum(len(lvl.leaves()) for lvl in dom.levels(a))
+        n_b = sum(len(lvl.leaves()) for lvl in dom.levels(b))
+        if n_a == n_b:
+            continue
+        checked += 1
+        assert shapecurve.is_feasible(a, fit) is shapecurve.is_feasible(b, fit), (
+            f"trial {trial}: verdict depends on the caller merging first "
+            f"({n_a} leaves unmerged vs {n_b} merged)")
+    assert checked, "no trial produced a mergeable pair; the test proves nothing"
 
 
 # --------------------------------------------------------------------------- #
@@ -281,6 +330,15 @@ def test_is_feasible_multistorey_never_writes():
 
     # 'C' is no longer shape-constrained (§39.22/§39.23); cr1 still is.
     infeasible_root, _ = _two_storey_mixed_topology(child_types=("cr1", "O"))
+    # The fixture's level 0 is 'O'|'O', which `dom.merge_divided` collapses to a
+    # single leaf -- and the cascade takes level 1's `cr1` with it, because level
+    # 1 is structurally below-inherited from level 0. The SCORER does exactly
+    # that too (verified), so the merged topology genuinely has no shape fails
+    # and "infeasible" would be the false negative §39.78 is about. Retype one
+    # ground leaf so nothing merges and the fixture still asks its question.
+    # (No corpus artefact loses a programme room this way -- checked on all 12.)
+    infeasible_root.right.type = "C"
+    geometry.clear_cache()
     before = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
     assert shapecurve.is_feasible(infeasible_root, fit) is False
     after = [tuple(b.division) for b in solver.free_branches(infeasible_root)]
