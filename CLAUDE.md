@@ -82,29 +82,6 @@ actually stops a container is the schema gate above. Either way `bd remember`
 from a container is not something to rely on: put durable findings in
 `DESIGN.md` and durable working knowledge here.
 
-### Room-code namespaces (DESIGN.md §39.4/§39.6)
-
-Leaf types share a first character across three namespaces:
-
-- **`C` / `O` / `S`** — generic structural types (circulation / outside / sahn),
-  uppercase, reserved. A programme code spelled exactly one of these is rejected
-  at load.
-- **programme room codes** — lowercase, may start with *any* letter. The generic
-  tests match `C`/`O`/`S` exactly, so `cr1` is a room, not circulation.
-- **`usage:`** — every space declares its access-requirement class
-  (`living`/`kitchen`/`bedroom`/`toilet`/`utility`/`none`), mandatory, no
-  fallback (DESIGN.md §39.7). A code's spelling decides nothing to the SCORER:
-  `name:` is free text, `usage:` drives behaviour, and
-  `test_scoring_is_invariant_under_programme_code_spelling` holds the line.
-  **Two first-character tests do survive in `operators.py`'s constructive
-  adjacency heuristic** (`homemaker-py-1v7`) — they do not affect scoring, but
-  they drop and mis-match adjacency requirements while building seeds. Do not
-  add more, and do not read this section as saying none exist.
-
-When adding or editing a programme, run
-`python experiments/audit_programme_config.py` — it reports reserved-name
-collisions, the usage class each code picks up, and per-room-spec satisfiability.
-
 ## Session Completion
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
@@ -228,8 +205,9 @@ Three consequences that bite:
   two criteria after it); both were measured with the switch **on**. The older
   `coldstart-055d710-*` and `coldstart-99c85ec-*` were measured with it **off**,
   at different objectives again — do not compare to these at all.
-  **There is no corpus at the live objective and no sweep is running**; the box
-  is unavailable until ~2026-09-29. Do not trust a stamp written out here: this
+  **There is no corpus at the live objective and no sweep is running**, and the
+  box has not been available for any of §39.70-§39.75 — ask rather than assume,
+  and see *A sweep needs the box* below. Do not trust a stamp written out here: this
   sentence named `691cc21+orth` until §39.66 moved the objective under it, and
   it had gone stale once before that. Derive today's with the command under
   *Current state* below — it is two lines and it cannot be wrong.
@@ -259,8 +237,81 @@ Three consequences that bite:
 - `experiments/ab_report.py` — the paired statistics the above borrows. **Use
   it rather than computing a mean difference by hand**: this project has twice
   reported margins its sample could not resolve (§38.19/§38.21, §39.47).
+- `experiments/build_hand_3storey.py` — rebuilds the repo's one HUMAN design from
+  its trace (§39.70), and `--baseline` scores the evolved `+orth` artefacts both as
+  committed and after the same ratio solve, which is the control any "hand design
+  vs evolved" comparison needs.
+- **The operator census, the pattern worth copying.** `diag_t7q_shaft_breakage.py`
+  applies EVERY operator to every corpus artefact and counts how often an invariant
+  stops holding; `diag_v2k_migrate.py` and `diag_t7q_repair.py` do the same for one
+  operator's effect, the second with a `--from-broken` mode that measures on
+  children an operator has just damaged rather than on converged artefacts. That
+  distinction changed an answer by twenty-fold (§39.75), and the census pattern
+  found defects in code landed the same week, twice (§39.73, §39.75). Both are
+  seconds to minutes in a container.
+- `experiments/diag_m4d_stair_stack.py` — the counterfactual pattern: re-score the
+  whole corpus with one rule monkeypatched, to price a change to the objective
+  before proposing it (§39.72). It priced one at "two artefacts much worse" and
+  stopped a plausible-looking fix.
 
 ## Conventions & Patterns
+
+### Room-code namespaces (DESIGN.md §39.4/§39.6)
+
+Leaf types share a first character across three namespaces:
+
+- **`C` / `O` / `S`** — generic structural types (circulation / outside / sahn),
+  uppercase, reserved. A programme code spelled exactly one of these is rejected
+  at load.
+- **programme room codes** — lowercase, may start with *any* letter. The generic
+  tests match `C`/`O`/`S` exactly, so `cr1` is a room, not circulation.
+- **`usage:`** — every space declares its access-requirement class
+  (`living`/`kitchen`/`bedroom`/`toilet`/`utility`/`none`), mandatory, no
+  fallback (DESIGN.md §39.7). A code's spelling decides nothing to the SCORER:
+  `name:` is free text, `usage:` drives behaviour, and
+  `test_scoring_is_invariant_under_programme_code_spelling` holds the line.
+  **Two first-character tests do survive in `operators.py`'s constructive
+  adjacency heuristic** (`homemaker-py-1v7`) — they do not affect scoring, but
+  they drop and mis-match adjacency requirements while building seeds. Do not
+  add more, and do not read this section as saying none exist.
+
+When adding or editing a programme, run
+`python experiments/audit_programme_config.py` — it reports reserved-name
+collisions, the usage class each code picks up, and per-room-spec satisfiability.
+
+### The stair shaft is a full-height column (owner's ruling, DESIGN.md §39.72)
+
+**A staircase exists only where the cell is identical on every floor.** The owner's
+reasoning, and it is not a port artefact: a mid-landing needs flights going both up
+and down where a ground-floor landing needs only one going up, so a split cell
+*could* in principle hold a stair — but fitting flights into one automatically is
+hard, and Alexander's pattern allocates the whole vertical shaft to stairs. So the
+simplification is the model, for now.
+
+The scorer reads it that way: `graph.stack_corners_in_use` walks `dom._above_node`
+— the EXACT id path — and wants a leaf typed exactly `"C"` on every storey. Every
+*other* vertical predicate in `dom` walks the forgiving `_above_more`, so this is
+easy to mistake for a bug; §39.72 measured what relaxing it would do (two artefacts
+much worse, via `staircase_max`, the entrance corners fed to `_stair_fit`, and
+`has_public_access_inside`) and `tests/test_stair_shaft_is_a_full_column.py` pins it
+with the ruling in its docstring.
+
+What this means when you touch operators:
+
+- a building with no intact shaft pays **x0.0225** — `staircase volume` at its 0.09
+  floor, times 0.5 for each of the two fails — so breaking one is expensive;
+- `operators._shaft_paths` (every intact shaft, largest first) and `_shaft_cells`
+  (their nodes on every storey) are the shared predicates. A move that must not
+  cost the building its staircase consults them; `mutate_support_outside` and
+  `mutate_level_add_migrate` both do;
+- **a repair that trades one hard fail for another is broken** — that is why
+  `support_outside` is guarded (§39.74) while the six exploratory operators that
+  also break shafts are not: exploration may trade, and the comparator decides.
+  Removing exploratory moves is an A/B, and it needs the box (`homemaker-py-t7q`);
+- `mutate_repair_shaft` (default ON, §39.75) is the move back: it CUTS a ~2.6 m
+  shaft through an aligned column rather than retyping one, because retyping a
+  column buries its neighbours' daylight — measured, and it lost on all six
+  artefacts it fired on.
 
 ### Scoring .dom files
 
@@ -331,7 +382,8 @@ prose. (§39.69 pruned exactly that.)
 
 **Can**, so none of this is ever blocked:
 
-- the full test suite — `pytest`, ~6 minutes, 600 tests at the time of writing;
+- the full test suite — `pytest`, six to seven minutes; the count is whatever
+  `pytest -q` prints on the last line, and it grows every week;
 - scoring committed artefacts — `homemaker-fitness`, or `Fitness.score_with_fails`
   in a loop over the twelve `.dom` files, seconds per file. Most measurements in
   DESIGN.md §39.54 onward were made this way;
@@ -343,11 +395,30 @@ prose. (§39.69 pruned exactly that.)
   measured against a machine-tuned one.
 
 **Cannot**: anything calling `homemaker-evolve` at a real budget. No sweeps, no
-search A/Bs, no "does this change help" question of any kind.
+search A/Bs — nothing that depends on POPULATION DYNAMICS, which is what a search
+actually is.
+
+Do not read that as "no measurement", though. §39.73-§39.75 answered three
+decision-relevant questions in a container by calling the operators directly:
+which operators break an invariant and how often (apply each to every artefact
+and count), what a move does to the layout it is applied to, and — the one that
+mattered most — what it does to a child that another operator has just damaged,
+which is the state a search actually offers it. That last distinction changed an
+answer by twenty-fold. What none of it captures is whether the search KEEPS the
+children a move produces, so this kind of measurement informs a default and never
+settles one.
 
 Which open beads that blocks is recorded **in each bead's own description**, not
-here, so it cannot go stale in two places. As of §39.69 they were
-`homemaker-py-3wq`, `57z`, `2g7.9`, `2g7.2` and the re-baseline itself.
+here, so it cannot go stale in two places. This file listed them once and the list
+was wrong within a week. There is no command that derives them either — the
+blocker is prose, and every bead words it differently:
+
+```bash
+# a starting point, NOT an oracle: it under-reports (a bead that says
+# "3M evaluations" and never says "box" is just as blocked) and over-reports
+# (a bead that merely mentions a sweep is not)
+python -c "import json,re;p=re.compile(r'\bbox\b|real budget',re.I);[print(r['id'],'-',r['title'][:60]) for r in (json.loads(l) for l in open('.beads/issues.jsonl') if l.strip()) if r['status']!='closed' and p.search(r.get('description',''))]"
+```
 
 ### The discipline that keeps a sweep readable
 
