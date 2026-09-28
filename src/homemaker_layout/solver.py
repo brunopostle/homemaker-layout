@@ -6,7 +6,9 @@ with soft, one-sided penalties for being too narrow or too elongated. This is
 the inversion of Urb's top-down sizing: rooms declare targets, geometry follows.
 
 Only generic leaves (circulation/outside/storage) and unconstrained types are
-left to absorb the residual area, exactly as a real plan lets corridors flex.
+left to absorb the residual area, exactly as a real plan lets corridors flex --
+but they flex down to their own DECLARED minimum width (``width_circulation`` /
+``width_outside``), not to a number invented here; see ``_generic_min_width``.
 
 A division is *free* only at the lowest storey where its tree path is divided;
 higher storeys inherit that cut via Below-inheritance (see geometry.coordinate),
@@ -19,7 +21,7 @@ import numpy as np
 from scipy.optimize import least_squares
 
 from . import geometry
-from .dom import Node, levels
+from .dom import Node, is_covered, is_supported, level_of, levels
 from .programme import SpaceReq
 
 _EPS = 0.02  # keep cuts off the edges
@@ -41,12 +43,31 @@ def free_branches(root: Node) -> list[Node]:
     return out
 
 
-def _width(leaf: Node) -> float:
-    l0 = geometry.edge_length(leaf, 0)
-    l1 = geometry.edge_length(leaf, 1)
-    l2 = geometry.edge_length(leaf, 2)
-    l3 = geometry.edge_length(leaf, 3)
-    return min((l0 + l2) / 2, (l1 + l3) / 2)
+def _generic_min_width(leaf: Node, conf: dict | None) -> float | None:
+    """Declared minimum width for a generic leaf, or ``None`` where the
+    objective has no width rule for it.
+
+    ``quality_width`` reads ``width_outside`` / ``width_circulation`` from the
+    same config the room targets come from, and exempts exactly one case: an
+    outside leaf that is uncovered, unsupported and above ground -- a roof
+    garden -- scores 1.0 whatever its width, so pinning it wide only spends
+    degrees of freedom the rooms want. All three of those predicates read the
+    tree ADDRESS, so a leaf's answer is fixed with the topology and can be
+    computed once per solve (homemaker-py-r8c, DESIGN.md §39.76).
+    """
+    from .fitness import CONF_DEFAULTS, _generic_class
+
+    cls = _generic_class(leaf)
+    if cls not in ("o", "c"):
+        return None
+    if (cls == "o"
+            and not is_covered(leaf)
+            and not is_supported(leaf)
+            and level_of(leaf)):
+        return None
+    key = "width_outside" if cls == "o" else "width_circulation"
+    params = (conf or {}).get(key) or CONF_DEFAULTS.get(key)
+    return float(params[0]) if params else None
 
 
 def _aspect(leaf: Node) -> float:
@@ -69,7 +90,8 @@ def solve_ratios(
     perpendicular: bool = True,
     weight_width: float = 1.0,
     weight_proportion: float = 0.3,
-    min_width_generic: float = 1.2,
+    min_width_generic: float | None = None,
+    conf: dict | None = None,
     max_nfev: int = 4000,
 ):
     """Solve free division ratios in place. Returns the scipy result object.
@@ -79,8 +101,18 @@ def solve_ratios(
 
     ``perpendicular=True`` ties the two ends of each cut (``a == b``), one DOF
     per branch, so cuts stay perpendicular to their walls (matches Urb's
-    ``perpendicular`` quality and the slicing-tree model). ``min_width_generic``
-    keeps unconstrained circulation/outside leaves from collapsing into slivers.
+    ``perpendicular`` quality and the slicing-tree model).
+
+    Unconstrained circulation/outside leaves are held at their DECLARED minimum
+    width, read per class from ``conf`` (``width_circulation`` /
+    ``width_outside``, falling back to ``fitness.CONF_DEFAULTS``) by
+    ``_generic_min_width``. Until §39.76 they were held at one hard-coded 1.2 m
+    for every class -- below BOTH declared thresholds, so the solved point
+    routinely failed ``quality_width`` on the very leaves this term exists to
+    protect: 41 width fails over the twelve corpus topologies, against 11 once
+    the declaration is read (homemaker-py-r8c). Pass ``min_width_generic`` a
+    float to restore one floor for every generic leaf, or ``0.0`` to drop the
+    term entirely.
     """
     free = free_branches(root)
     if not free:
@@ -97,6 +129,10 @@ def solve_ratios(
     )
 
     all_leaves = [leaf for lvl in levels(root) for leaf in lvl.leaves()]
+    # Address-fixed, so resolved once rather than per residual evaluation.
+    gmin = {id(leaf): (min_width_generic if min_width_generic is not None
+                       else _generic_min_width(leaf, conf))
+            for leaf in all_leaves if leaf.type not in targets}
 
     def apply(x: np.ndarray) -> None:
         for j, b in enumerate(free):
@@ -115,15 +151,17 @@ def solve_ratios(
                 area = geometry.area(leaf)
                 r.append((area - req.size) / req.size)
                 if weight_width:
-                    w = _width(leaf)
+                    w = geometry.length_narrowest(leaf)
                     r.append(weight_width * min(0.0, (w - req.width) / req.width))
                 if weight_proportion:
                     asp = _aspect(leaf)
                     r.append(weight_proportion * max(0.0, (asp - req.proportion) / req.proportion))
-            elif min_width_generic:
+            else:
                 # keep circulation/outside from collapsing to slivers
-                w = _width(leaf)
-                r.append(min(0.0, (w - min_width_generic) / min_width_generic))
+                t = gmin.get(id(leaf))
+                if t:
+                    w = geometry.length_narrowest(leaf)
+                    r.append(min(0.0, (w - t) / t))
         return r
 
     res = least_squares(
@@ -144,6 +182,7 @@ def area_report(root: Node, targets: dict[str, SpaceReq]) -> str:
                 rows.append(
                     f"  {lvl_idx}/{leaf.id:6s} {leaf.type:4s} area={a:6.2f} "
                     f"target={req.size:6.2f} err={(a - req.size):+6.2f} "
-                    f"w={_width(leaf):.2f}/{req.width:.2f} asp={_aspect(leaf):.2f}/{req.proportion:.2f}"
+                    f"w={geometry.length_narrowest(leaf):.2f}/{req.width:.2f} "
+                    f"asp={_aspect(leaf):.2f}/{req.proportion:.2f}"
                 )
     return "\n".join(rows)

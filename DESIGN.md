@@ -12530,3 +12530,128 @@ container cannot judge, and now there is a repair standing behind them, which is
 weaker claim on the search's freedom. `mutate_support_outside`'s guard is the
 exception and stays (§39.74): a repair that trades one hard fail for another is
 broken, not strategic.
+
+### 39.76 What the ratio solver was solving for, and the declaration it was not reading (`homemaker-py-r8c`)
+
+§39.70 filed this bead on one observation: the hand-built three-storey design,
+refined through `compose.refine` -> `solver.solve_ratios`, scored **0.00325 with 3
+fails** where the inner loop on the same topology reached 0.416206 with none. Two
+of those three fails were generic leaves under `width_outside`, and the bead's
+diagnosis was that `solve_ratios` has one `min_width_generic=1.2` knob for every
+generic leaf -- below BOTH objective thresholds -- and no stair term, so "on any
+multi-storey topology the warm start can hand the inner loop a point inside a
+3-fail region". It asked for the A/B before any change. `experiments/diag_r8c_warmstart.py`
+is that A/B; this is what it says.
+
+**First, the premise was wrong in a way that shrinks the blast radius.**
+`solve_ratios` is not the search's warm start and never has been. `driver._evaluate`
+passes `x0=None` to `innerloop.optimise`, which starts from the tree's own current
+ratios; the one alternative is `shapecurve.solve` under `--shapecurve-warmstart`,
+which is **off by default** and which DOES model generic-leaf widths, reading
+`width_outside` / `width_circulation` from the live conf. `innerloop` and `driver`
+import `solver` only for `free_branches`/`_branches`. The sole caller of
+`solve_ratios` in `src/` is `compose.refine` -- the path a HUMAN trace takes to a
+scored `.dom`. So this is the composer's target model, not the search's, and
+nothing in a sweep moves either way. (`solve_ratios` and `compose.refine` also had
+no tests at all; they do now.)
+
+**The mismatch is nevertheless real, and bigger than the bead's three fails.**
+Four differences between the residual and today's objective, priced as a ladder
+over all twelve corpus topologies at `26ce827`, `strip=True` (every cut back to
+0.5, the honest test that sizes are recoverable from the programme alone). Fail
+COUNT is the metric on purpose: the corpus was bred at `c836457+orth` and the
+objective has moved, so seven of the twelve read 0.0000 at four decimal places whatever
+the ratios, and only the count still discriminates.
+
+| arm | change | harbor | health | maple | p-house | TOTAL | width family |
+|---|---|---|---|---|---|---|---|
+| A | today | 123 | 43 | 234 | 14 | **414** | 41 |
+| B | + width as `length_narrowest` | 128 | 41 | 229 | 13 | 411 | - |
+| C | + generic min width per class, from the conf | 107 | 34 | 225 | 11 | **377** | **11** |
+| D | + drop the room width term | 108 | 40 | 230 | 12 | 390 | - |
+| E | A + drop the room width term | 137 | 52 | 238 | 7 | 434 | - |
+| F | C aimed at the fail threshold | 120 | 42 | 230 | 13 | 405 | - |
+| G | F + drop the room width term | 125 | 47 | 228 | 11 | 411 | - |
+
+**C wins on every one of the four programmes**, by the mechanism the bead named:
+the width family falls 41 -> 11 corpus-wide (health-centre 10 -> 1, harbor 15 -> 5,
+programme-house 3 -> 0). Harbor's CRINKLINESS also falls 63 -> 50, which was not
+predicted -- a wider outside leaf gives its neighbours more exposed wall, so the
+largest fail family moves as a side effect of a width term.
+
+**Three results that cut against the obvious fixes**, and are the reason the bead
+asked for the measurement first:
+
+* **E loses.** Rooms have no width requirement (`width_inside: None`, §39.37), so
+  dropping the solver's room width term looks like pure alignment. It is the worst
+  arm overall (434) even though it wins programme-house outright (7, the best cell
+  in the table). The reason is in the programmes, not the objective: 67 of the 67
+  room codes across the four corpora DECLARE a width in `patterns.config`. The term
+  is honouring an architect's declaration that the SCORER has chosen not to charge
+  for, which is not the same as inventing one.
+* **F loses to C.** Aiming generic leaves at the fail threshold (2.356 / 1.971 m)
+  rather than the conf target (3.0 / 2.4) is the more surgical-looking change --
+  buy the fail, spend no more area than you must. It is worse everywhere, and the
+  reason is mechanical: the residual is `min(0, (w - t)/t)`, which reaches zero AT
+  `t`. Aim at the threshold and the solver stops pushing the moment it arrives,
+  leaving no margin for every other residual to eat. The target is what gives it a
+  gradient past the fail line.
+* **B alone is not the fix.** Measuring width as `geometry.length_narrowest` -- what
+  `quality_width` actually reads, against solver's mean-of-opposite-edge-pairs,
+  which is never smaller and can report 2.5 m for a leaf with a 1 m edge -- is a
+  plain correction, but on its own it is worth 3 fails in 414 and it costs 10 on
+  the hand design. It pays only once the floor it is measured against is one the
+  objective would accept.
+
+**Does it survive the inner loop?** That is what decides between landing C and the
+bead's own option (c), leave it. `innerloop.optimise` at budget 20000 from each
+arm's point:
+
+| | DOF | A at x0 | A after NM | C at x0 | C after NM |
+|---|---|---|---|---|---|
+| hand-3storey | 5 | 0.0006 / 6 | 0.4123 / 0 | 0.0042 / 3 | 0.4123 / 0 |
+| programme-house (3) | 4-6 | 0.0773 / 14 | 0.4206 / 4 | 0.0845 / 11 | 0.4206 / 4 |
+| health-centre (3) | 32-34 | 0.0019 / 43 | 0.0077 / 37 | 0.0137 / 34 | **0.0627 / 29** |
+
+**Below about ten degrees of freedom the warm start does not matter at all**: every
+arm converges to the identical optimum, to four decimal places, on the hand design
+and on all three programme-house trees. At health-centre's 32-34 DOF it matters and
+the gap barely closes -- 9 fails at x0, 8 after twenty thousand evaluations, and an
+8.1x score difference. NM retired 6 of A's 43 fails and 5 of C's 34; it is not going
+to walk the rest.
+
+That last row is **one programme, three artefacts**. The same run on harbor-house
+and maple-court was started and stopped unfinished: both score 0.0000 at today's
+objective whatever their ratios, so they could only have contributed a fail-count
+comparison, and at 34-42 DOF each was costing more wall time than the answer was
+worth. So "the warm start matters above ~10 DOF" rests on health-centre alone, and
+a second high-DOF programme would be worth having before anyone leans on it
+harder than this section does.
+
+That also re-reads §39.70's own observation. The hand design is 5 DOF, so the
+0.00325-vs-0.416206 gap it reported was **not** evidence of a bad warm start: NM
+from any of these starts reaches 0.4123, and from the TRACED ratios 0.416206, which
+is better than any of them. What §39.70 measured was refine-without-NM against NM.
+The warm-start problem is real but it lives on the big topologies, which is where
+nobody had looked.
+
+**Landed: arm C**, as the default, because the change is not a score argument. The
+programme declares `width_circulation` and `width_outside` in the same config the
+room targets come from; `solve_ratios` was reading the room half of that
+declaration and substituting a magic 1.2 for the rest. Reading the whole of it is
+what the function's own docstring already claims to do. `min_width_generic` remains
+as an override -- a float restores one floor for every generic leaf (what
+`diag_r8c_warmstart.py`'s arms B/E use), `0.0` drops the term -- and
+`_generic_min_width` honours `quality_width`'s roof-garden exemption, since an
+uncovered, unsupported outside leaf above ground scores 1.0 at any width and
+pinning it wide only spends DOF the rooms want. `compose.refine` now passes the
+conf through. `solver.py` is in `SEARCH_SOURCES`: **no objective stamp moves, and
+no search behaviour changes**, because nothing in the search calls this.
+
+**Not landed: the stair term**, which the bead lists as half of its option (b). It
+is not cheap and not closed-form: `_stair_fit` needs `stack_corners_in_use` plus
+the entrance-bid analysis, i.e. most of the access graph, and the graph depends on
+geometry, which is what the solve is moving. A proxy (a minimum run length on the
+cells of an intact shaft) is buildable on `operators._shaft_paths`, but it is a
+separate question from the one measured here and it should be measured the same
+way before it lands.

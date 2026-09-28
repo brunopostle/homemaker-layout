@@ -588,8 +588,15 @@ def compose(boundary_root: Node, storeys: list[StoreyTrace], tol: float = 0.15) 
 def refine(root: Node, programme_dir: str) -> None:
     """Slide the traced cuts to the best fit for the programme's target
     dimensions, keeping the traced topology fixed -- trace precision only
-    needs to get the structure right, not the exact ratios."""
+    needs to get the structure right, not the exact ratios.
+
+    The patterns config goes in alongside the room targets so the generic
+    leaves are held at their own declared widths rather than a number invented
+    in the solver (`solver._generic_min_width`, §39.76)."""
     from . import solver
+    from .fitness import load_config
     from .programme import load_programme_dir
 
-    solver.solve_ratios(root, load_programme_dir(programme_dir), strip=False)
+    conf, _ = load_config(programme_dir)
+    solver.solve_ratios(root, load_programme_dir(programme_dir),
+                        strip=False, conf=conf)
