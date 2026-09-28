@@ -12890,3 +12890,71 @@ redistributes ~6.7% of the draw across the operators that do work; repairing its
 precondition so it can fire introduces a move the search has never actually had.
 Either is an A/B and wants the box — §39.65 is exactly why a change to the operator
 mix is recorded rather than made invisibly. Filed as `homemaker-py-w4e`.
+
+### 39.80 What omitting a required room costs, and why it is not one number (`homemaker-py-3i3`)
+
+`3i3` asks whether a missing required room is correctly weighted at 1/32, notes
+nobody has ever checked that ratio against intent, and says the question wants an
+owner ruling first and a measurement second. `experiments/diag_3i3_missing_room.py`
+is the measurement. Neither of the bead's premises survives it, and the second
+failure is the interesting one.
+
+**The penalty is not 1/32, and it is not a number at all.** A missing instance
+emits two base lines plus one placeholder per check it would have faced, and those
+placeholders come from THREE producers, not one:
+
+```
+missing rc1: would need adjacency to c          <- check_adjacency, one per declared adjacency
+missing rc1: would need adjacency to o
+missing rc1: would need proportion check        <- check_space_counts, one per room check asked
+missing rc1: would need size check
+missing rc1: would need to be on level 0        <- check_level_constraints, if a level is declared
+missing required space: rc1                     <- check_space_counts, two base lines
+missing required space: rc1 (critical)
+```
+
+So the cost is `2 + (room checks asked) + (declared adjacencies) + (1 if a level is
+declared)`, verified against every measured case. Across the four programmes that
+runs from **5 lines to 8 — 1/32 to 1/256, an 8x spread** — and what drives it is
+purely how much the brief says about the room. `health-centre`'s `ao1` (one
+adjacency, no level) costs 1/32; `harbor-house`'s `k1` (two adjacencies, level 0)
+costs 1/128.
+
+**That is precisely the defect `homemaker-py-1i8` set out to remove.** §38.12 made
+`check_space_counts` emit "a FIXED 5, independent of how the programme was
+spelled", and its docstring still says so. It is true of that producer and of
+nothing else: `check_adjacency` and `check_level_constraints` reintroduce the
+verbosity dependence 1i8 was written to kill. The fix was correct and too narrow,
+and because it was verified against the producer it changed, the survival went
+unnoticed. (§39.37 then quietly moved the floor too: retiring room width dropped
+the room-check placeholders from three to two, so the cheapest case fell from 6
+lines to 5.)
+
+**Where it fires, which is the bead's actual question.** Incidence in three
+regimes, since converged artefacts are the END of a trajectory rather than "where
+the search operates":
+
+| regime | n | with a missing room | cascade lines | geometry fails |
+|---|---|---|---|---|
+| converged (the twelve artefacts) | 12 | **0** | 0 | 152 |
+| one operator applied to each | 792 | 79 (10%) | 1959 | 11179 |
+| freshly constructed seeds | 20 | 8 (40%) | 46 | 1007 |
+
+So the weight **cannot** be crowding out geometry signal at convergence: it never
+fires there, and the bead's "most corpus layouts carry several missing instances at
+once" is false of every committed artefact. It bites early -- 40% of seeds -- and
+in a tenth of the local move set, where it is decisive by design: collapsing the
+cascade to one line per instance multiplies the score by a median of 32.
+
+**Nothing landed.** The producers are `graph.py`, an objective source, so any
+change moves the stamp and invalidates corpus comparisons. Two questions for the
+owner, and they are separable:
+
+1. *Should omitting a room cost more when its brief is chattier?* The measurement
+   says it does, 8x across the corpus, and 1i8's own stated intent says it should
+   not. If that intent stands this is a plain defect with a narrow fix: emit the
+   placeholders at a fixed count per missing instance regardless of producer.
+2. *Is the magnitude right?* Untouched here, and still what 3i3 asked. It is a
+   ruling, not a measurement: 1/32 says a missing room is worth ~5 crinkliness
+   fails. The measurement can say where it fires, and now does; it cannot say what
+   a brief-not-met ought to be worth.
