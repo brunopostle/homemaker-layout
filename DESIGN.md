@@ -12946,15 +12946,33 @@ once" is false of every committed artefact. It bites early -- 40% of seeds -- an
 in a tenth of the local move set, where it is decisive by design: collapsing the
 cascade to one line per instance multiplies the score by a median of 32.
 
-**Nothing landed.** The producers are `graph.py`, an objective source, so any
-change moves the stamp and invalidates corpus comparisons. Two questions for the
-owner, and they are separable:
+**THE OWNER'S RULING (2026-09-29): the spread is correct.**
 
-1. *Should omitting a room cost more when its brief is chattier?* The measurement
-   says it does, 8x across the corpus, and 1i8's own stated intent says it should
-   not. If that intent stands this is a plain defect with a narrow fix: emit the
-   placeholders at a fixed count per missing instance regardless of producer.
-2. *Is the magnitude right?* Untouched here, and still what 3i3 asked. It is a
-   ruling, not a measurement: 1/32 says a missing room is worth ~5 crinkliness
-   fails. The measurement can say where it fires, and now does; it cannot say what
-   a brief-not-met ought to be worth.
+> a room with three required neighbours and a fixed floor is more entangled with
+> the rest of the design, so omitting it really does do more damage
+
+So the 8x is a property of the BRIEF, not an artefact of how the brief was typed,
+and the framing above -- "precisely the defect `1i8` set out to remove" -- is my
+reading, not a verdict. `1i8`'s intent was narrower than its docstring's wording:
+`check_space_counts`' own share is fixed and verbosity-independent, which is what
+it set out to achieve and did. That the FULL cascade then scales with declared
+adjacencies and a declared level is not a leak; it is the objective charging for
+how much of the design an absent room was supposed to hold together.
+
+This is §39.48 again, and it is worth saying plainly because the measurement was
+right and the model in my head was wrong: a room declaring three neighbours is not
+merely described at greater length, it is load-bearing in three more places. The
+arithmetic I read as an accident is the objective working.
+
+`graph.py`'s docstring now says so, since it previously claimed the fixed-5
+property for the whole cascade and would mislead the next reader exactly as it
+misled me. That edit moves the objective stamp with no behavioural change (§39.65's
+case, again) -- all twelve artefacts re-score bit-identical, checked before and
+after.
+
+**What stays open**, and it is the question `3i3` actually asked: is the BASE
+magnitude right? The owner's answer is **wait for the sweep** -- hold it until
+there is a corpus at the live objective, so it can be checked against real search
+behaviour rather than reasoned about. The incidence table above is the part of that
+answer a container could supply: the weight never fires at convergence, and bites
+in 40% of seeds and a tenth of the local move set.

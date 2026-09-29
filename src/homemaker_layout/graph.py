@@ -595,9 +595,26 @@ def check_space_counts(
 
     Returns ``(failures, missing_ids)`` where:
     - ``failures`` is the stacked failure list: per missing instance, 2 base
-      failures plus one placeholder for each of the three quality checks it
-      would have faced -- a FIXED 5, independent of how the programme was
-      spelled (homemaker-py-1i8); also "too many" for excess spaces.
+      failures plus one placeholder for each quality check it would have faced
+      (homemaker-py-1i8); also "too many" for excess spaces.
+
+      THIS FUNCTION'S share is fixed, but the CASCADE a missing room pays is
+      not, and 1i8's "a FIXED 5, independent of how the programme was spelled"
+      described only this producer. `check_adjacency` adds a placeholder per
+      DECLARED adjacency and `check_level_constraints` one for a declared
+      level, so the true cost is
+      ``2 + (room checks asked) + (declared adjacencies) + (1 if a level)``
+      -- 5 to 8 lines across the four programmes, i.e. 1/32 to 1/256 (DESIGN.md
+      §39.80). §39.37 also moved the floor: retiring room width dropped the
+      room-check placeholders from three to two.
+
+      THE OWNER HAS RULED THAT SPREAD CORRECT (2026-09-29): a room declaring
+      three neighbours and a fixed storey is more entangled with the rest of the
+      design, so omitting it really does do more damage than omitting a room
+      with one neighbour and no storey. It is a property of the brief, not an
+      artefact of how it was typed. Do not "fix" it into a flat penalty. The
+      separate question of whether the BASE magnitude is right is open
+      (homemaker-py-3i3) and waits on a corpus at the live objective.
     - ``missing_ids`` is the list of virtual space ids used to suppress false
       adjacency/level/vertical failures for absent spaces.
 
