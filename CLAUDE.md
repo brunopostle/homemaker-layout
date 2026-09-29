@@ -252,7 +252,43 @@ Three consequences that bite:
 - `experiments/diag_m4d_stair_stack.py` — the counterfactual pattern: re-score the
   whole corpus with one rule monkeypatched, to price a change to the objective
   before proposing it (§39.72). It priced one at "two artefacts much worse" and
-  stopped a plausible-looking fix.
+  stopped a plausible-looking fix. **Prefer exact arithmetic to a monkeypatch where
+  the rule only feeds `0.5 ** len(failures)`** — §39.80 patched one of the three
+  producers of a failure cascade and mis-reported the effect by 4x until the
+  discrepancy was chased.
+- `experiments/diag_operator_invariants.py` — the census widened from one invariant
+  to the structural ones (typeless leaves, half-divided nodes, stale `below`
+  pointers, genome round-trip, scorer exceptions), with `--from-broken` and a
+  **negative control**. 21,120 applications, zero violations (§39.79).
+- `experiments/diag_ekc_shapecurve.py` — how exact the shape-curve DP's verdict
+  really is, split into false positives, false negatives, and which mechanism
+  causes each (§39.78).
+- `experiments/diag_r8c_warmstart.py` — the seven-arm ladder that priced
+  `solve_ratios`' target model against the objective (§39.76). The arm pattern
+  (each arm = the one above plus a single change) is reusable for any
+  "which of these candidate fixes actually helps" question.
+- `experiments/diag_3i3_missing_room.py` — what omitting a required room costs, and
+  where in a run it fires; `--verbosity-only` is the per-code penalty table (§39.80).
+- `experiments/trace_harbor_house.py` — reads an architectural SVG, and asks whose
+  it is FIRST. §39.77 is the write-up of not doing that.
+
+### A census that reports zero is worth nothing until its checks have been shown to fire
+
+§39.79 ran 21,120 operator applications across five structural checks and found no
+violations. That null is only readable because each check was first pointed at a
+tree corrupted in exactly the way it is supposed to catch — and on the first run
+**two of the five stayed silent**. Both times the CONTROL was wrong rather than the
+check (one aimed a storey root at the level-0 root, and both have id `""`, so it
+corrupted nothing; the other set a bogus leaf type, which `genome.decode`
+faithfully reapplies). Had it shipped without the control, two of five columns
+would have been zeros that meant nothing.
+
+So: **write the negative control before you believe a null.** It is cheap, it goes
+in the tool rather than in your head, and `diag_operator_invariants.py --self-test`
+is the worked example. The same discipline is why
+`tests/test_stair_shaft_is_a_full_column.py` carries a monkeypatch negative
+control.
+
 
 ## Conventions & Patterns
 
@@ -371,8 +407,10 @@ prose. (§39.69 pruned exactly that.)
   (§39.12 clause 3).
 - **The stamp can move without the objective changing.** It is
   `git log -1 -- OBJECTIVE_SOURCES`, so a pure rename in one of those five files
-  moves it (§39.65 is the worked example). Re-score before concluding anything
-  changed.
+  moves it (§39.65 is the worked example, §39.80 the second: a docstring edit to
+  `graph.py` recording an owner ruling). Re-score before concluding anything
+  changed — §39.80 captured all twelve artefact scores before and after and
+  diffed them, which is the cheap way to prove it.
 - **A sweep needs the box.** Anything calling `homemaker-evolve` at a real budget
   (a single 500k run is hours) cannot be done in a container. Check whether a box
   is available before planning a measurement; if it is not, the beads marked as

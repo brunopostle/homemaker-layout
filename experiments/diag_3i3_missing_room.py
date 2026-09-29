@@ -104,10 +104,13 @@ def report_verbosity(programmes, asked) -> None:
     """Does the cost of omitting a room depend on how chattily its brief is written?
 
     `homemaker-py-1i8` (§38.12) made `check_space_counts` emit a FIXED count per
-    missing instance, "independent of how the programme was spelled". But
+    missing instance, "independent of how the programme was spelled".
     `check_adjacency` and `check_level_constraints` each emit a further
-    placeholder for the SAME missing room, so the dependence survives in two
-    other producers.
+    placeholder for the SAME missing room, so the FULL cascade is not fixed.
+
+    THE OWNER HAS RULED THAT CORRECT (2026-09-29, §39.80): a room declaring three
+    neighbours and a fixed storey is more entangled with the design, so omitting
+    it does more damage. This table prices the brief, it does not indict it.
     """
     print("cost of one missing instance, by what the brief declares about it\n")
     print("%-16s %-6s %4s %6s  %9s  %s" % (
@@ -129,8 +132,10 @@ def report_verbosity(programmes, asked) -> None:
         lo, hi = min(spread), max(spread)
         print(f"\nrange across the four programmes: {lo} to {hi} lines, "
               f"i.e. 1/{2 ** lo} to 1/{2 ** hi} -- a {2 ** (hi - lo)}x spread in "
-              "what it costs to omit a required room,\ndriven entirely by how much "
-              "the brief says about it.")
+              "what it costs to omit a required room.\nThe owner has ruled that "
+              "correct (§39.80): a room with more declared neighbours and a fixed "
+              "storey\nis load-bearing in more places, so omitting it does more "
+              "damage. Do not flatten it.")
 
 
 def build_seed(prog_dir: Path, seed: int):
@@ -168,7 +173,7 @@ def main(argv=None) -> int:
           f"`check_space_counts` emits 2 base + {len(asked)} placeholders.")
     print("`check_adjacency` adds one more per DECLARED adjacency and "
           "`check_level_constraints` one\nfor a declared level, so the cascade is "
-          "NOT a fixed number -- see --verbosity-only.\n")
+          "NOT a fixed number. That is intended (§39.80).\n")
 
     report_verbosity(programmes, asked)
     print()
