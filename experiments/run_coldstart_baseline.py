@@ -48,9 +48,11 @@ REPO = Path(__file__).resolve().parent.parent
 PROGRAMMES = ["harbor-house", "maple-court", "health-centre", "programme-house"]
 LOCK = REPO / ".git" / "coldstart-git.lock"
 RESULTS = REPO / "experiments" / "results" / "coldstart_baseline.tsv"
-# The branch this runner publishes to. Named once: it appeared as a
-# literal in two git calls, and they must not drift apart.
-BRANCH = "claude/beads-project-intro-fjiez3"
+# The runner publishes to whatever branch is checked out (`current_branch`).
+# It used to name one here, `claude/beads-project-intro-fjiez3`: an agent branch
+# that went stale while results were committed to `main`. `git push origin
+# <stale-local-branch>` is a successful no-op, so on 2026-10-01 the first two
+# rows of the 07b2058+orth sweep printed "pushed:" and reached nobody.
 FIELDS = ["objective", "programme", "seed", "budget", "fails", "hard", "soft",
           "score", "elapsed_s", "dom", "search_commit", "search_config"]
 # `search_commit` / `search_config` (§39.65). Until they existed a row said what
@@ -287,6 +289,23 @@ def committable(candidates: "list[str]", repo: Path = REPO) -> "list[str]":
     return [c for c in candidates if c not in ignored]
 
 
+def current_branch(repo: Path = REPO) -> str:
+    """The checked-out branch, or "" on a detached HEAD."""
+    r = subprocess.run(["git", "symbolic-ref", "-q", "--short", "HEAD"],
+                       cwd=repo, capture_output=True, text=True)
+    return r.stdout.strip()
+
+
+def remote_has_head(branch: str, repo: Path = REPO) -> bool:
+    """Does `origin`'s `branch` now point at our HEAD? The push's exit status
+    cannot answer this: pushing a ref that is already up to date exits 0."""
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo,
+                          capture_output=True, text=True).stdout.strip()
+    r = subprocess.run(["git", "ls-remote", "origin", f"refs/heads/{branch}"],
+                       cwd=repo, capture_output=True, text=True)
+    return bool(head) and r.stdout.split()[:1] == [head]
+
+
 @contextmanager
 def git_lock():
     LOCK.parent.mkdir(parents=True, exist_ok=True)
@@ -474,15 +493,17 @@ def commit_and_push(paths: "list[str]", msg: str, note: str = "") -> None:
                  + "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>\n"
                  "Claude-Session: https://claude.ai/code/session_01MJ84Feep79Hhm3E4zZJmnB")
         committed = c.returncode == 0
+        branch = current_branch()
         if committed:
-            for attempt in range(4):
+            for attempt in range(4 if branch else 0):
                 # Push FIRST. The previous shape pulled before every attempt,
                 # including the first, so on a development box -- where the tree
                 # is dirty as a matter of course -- `git pull --rebase` failed
                 # with "cannot pull with rebase: You have unstaged changes"
                 # even when the push needed no reconciling and would have gone
                 # straight through (homemaker-py-cna).
-                if _git("push", "-q", "origin", BRANCH).returncode == 0:
+                if (_git("push", "-q", "origin", f"HEAD:refs/heads/{branch}")
+                        .returncode == 0 and remote_has_head(branch)):
                     pushed = True
                     break
                 # Only now is there something to reconcile: the remote moved.
@@ -494,7 +515,7 @@ def commit_and_push(paths: "list[str]", msg: str, note: str = "") -> None:
                 # safe locally, whereas conflicting someone's working copy
                 # mid-sweep is not the runner's call to make.
                 time.sleep(2 ** (attempt + 1))
-                _git("pull", "--rebase", "-q", "origin", BRANCH)
+                _git("pull", "--rebase", "-q", "origin", branch)
 
     if pushed:
         print(f"    pushed: {msg}", flush=True)
