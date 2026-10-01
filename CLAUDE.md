@@ -39,36 +39,35 @@ an existing record's keys exactly, **preserve the other lines byte-for-byte**
 (rewriting the file with `json.dumps` reorders keys on every record and churns
 all ~200 lines for nothing), and re-parse the file afterwards.
 
-**Installing it, if you need it.** `go install` alone is not enough — the build
-fails on `unicode/uregex.h`, a cgo dependency of Dolt's regex library:
+**Installing it, if you need it.** Use the prebuilt release binary — it needs
+no Go toolchain and no cgo, and takes seconds:
 
 ```bash
-apt-get install -y libicu-dev          # the missing piece; you are root
-go install github.com/steveyegge/beads/cmd/bd@v1.3.0
-export PATH="$PATH:/root/go/bin"
+curl -fsSL https://github.com/gastownhall/beads/releases/download/v1.3.1/beads_1.3.1_linux_amd64.tar.gz \
+  | tar xz -C /usr/local/bin bd
 bd metrics off                          # it phones home by default
 ```
 
-Roughly 10 minutes and ~200 MB, and it dies with the container.
+(The repo moved from `steveyegge/beads` to `gastownhall/beads`; the Go module
+path is still `github.com/steveyegge/beads`. Building from source with
+`go install github.com/steveyegge/beads/cmd/bd@v1.3.1` also works but takes
+~10 minutes and ~200 MB, and fails on `unicode/uregex.h` unless you first
+`apt-get install -y libicu-dev`.) Either way it dies with the container.
 
-**But installing it does not give you a working database**, and this is the part
-worth reading before you spend the ten minutes. `bd bootstrap` clones the remote
-Dolt DB and then refuses it: the remote is at schema **v32** and bd 1.3.0 wants
-**v66**. bd will not auto-migrate a remote-backed clone, because migrating one
-independently forks the schema and `bd dolt pull` can no longer merge. It asks
-for exactly ONE designated migrator — **that is the owner's call and not an
-agent's**, since `bd migrate --force && bd dolt push` rewrites the shared issue
-DB and any older `bd` stops reading it.
+**The remote Dolt DB is at schema v66, matching bd 1.3.1** — the owner migrated
+it on 2026-10-01. `bd bootstrap` should therefore clone a working database.
+**Use bd 1.3.1, not 1.3.0 or older**: a version whose schema differs from the
+remote's triggers the migration gate again, and running `bd migrate --force &&
+bd dolt push` to get past it rewrites the shared issue DB — **that is the
+owner's call and never an agent's.** If bootstrap reports pending migrations,
+stop and say so.
 
-A local-only DB does work (`bd init --prefix homemaker-py` with no remote, then
-`bd import .beads/issues.jsonl`) and loads all the issues correctly. The catch
-is that `bd export` rewrites every line — key ordering and dependency-list
-ordering — so the first export lands a ~200-line diff on a git-tracked file. The
-round-trip was verified **semantically lossless** (zero records differ; four
-closed issues gain a `closed_at` they were missing), so the churn is cosmetic —
-but it is still churn, and **the owner's standing preference is to leave bd
-unconfigured in containers and hand-edit the JSONL.** Do that unless told
-otherwise.
+Even with a working DB, `bd export` rewrites every line of
+`.beads/issues.jsonl` (key ordering and dependency-list ordering), so the first
+export lands a ~200-line diff on a git-tracked file. The round-trip was verified
+**semantically lossless**, so the churn is cosmetic — but it is still churn, and
+**the owner's standing preference is to leave bd unconfigured in containers and
+hand-edit the JSONL.** Do that unless told otherwise.
 
 **Issues persist; memories do not** — but not for the reason this file used to
 give. `.beads/issues.jsonl` is git-tracked, so an export followed by a commit is
@@ -78,7 +77,7 @@ asked. This file previously added that `sync.remote` is a `git+ssh://` URL "an
 agent container cannot use — containers have no `ssh` binary". There is indeed
 no `ssh` here, **but `bd bootstrap` reached that URL and cloned from it anyway**
 — bd resolves `git+ssh://` over HTTPS itself. So the ssh premise is wrong; what
-actually stops a container is the schema gate above. Either way `bd remember`
+used to stop a container was the schema gate above. Either way `bd remember`
 from a container is not something to rely on: put durable findings in
 `DESIGN.md` and durable working knowledge here.
 
