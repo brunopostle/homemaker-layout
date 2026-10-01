@@ -35,15 +35,48 @@ about a hundred lines of project policy. That is §39.69's AGENTS.md failure,
 latent here. Both sections are outside the markers now, so a regeneration is
 safe. Keep it that way: **never put project guidance between those markers.**
 
-`bd setup claude --print` shows what a regeneration would write, without writing
-it. Two things to know about that template, should anyone run it:
+`bd setup claude --print` shows what a regeneration would write without writing
+it, and `bd setup claude` was run once on 2026-10-01 to prove this restructure
+holds — every hand-written section survived. **Do not run it again**, because
+what it writes is worse than merely redundant:
 
-- it is a generic ~58-line document that re-states the Quick Reference above, and
-- it sets a **conservative git-authority default** — "report status and proposed
-  commands unless the user, orchestrator, or repository profile explicitly
-  authorizes commit/sync/push". *Session Completion* below **is** that explicit
-  authorization, and it wins. Expect the contradiction if the block is ever
-  regenerated; it is already resolved here.
+- a **second `## Session Completion`** inside the block, whose workflow
+  contradicts the one below it ("Handle git/sync by active profile", "Do not
+  commit or push without clear authority"). Two headings of the same name in one
+  file saying opposite things is §39.63's two-copies failure, in prose;
+- an **Agent Context Profiles** section presenting *Conservative* as the default;
+- the claim that "`.beads/issues.jsonl` is a passive export" — true where a Dolt
+  remote carries `refs/dolt/data`, false here, where no Dolt remote is configured
+  and the JSONL is the only record;
+- and in `.claude/settings.json` it **deletes the `PreCompact` hook** and rewrites
+  `SessionStart` to `bd prime --hook-json`. That JSON form is the better
+  invocation — it emits a proper `hookSpecificOutput` envelope — but it hardcodes
+  `hookEventName: SessionStart`, which is presumably why bd drops the PreCompact
+  hook instead of converting it. Losing it means bd context is not reloaded after
+  a compaction, which is when it is most needed.
+
+### The git-authority profile is a config key, not something to argue with
+
+`bd prime` injects a git policy into every session, and 1.3.1's default
+(`agent.profile=conservative`) reads "do not commit, push, or run dolt remote
+sync without explicit authority" — the opposite of *Session Completion* below.
+1.0.4's prime did not say this, so **the upgrade introduced the contradiction**.
+
+The fix is configuration, not annotation:
+
+```bash
+bd config set agent.profile team-maintainer   # already set; see .beads/config.yaml
+```
+
+`team-maintainer` is bd's own name for a repository that opts into agents
+committing and pushing as part of session close — precisely what *Session
+Completion* mandates. It persists in the **git-tracked** `.beads/config.yaml`, so
+it is a repo-level ruling and not a per-machine one, and `bd prime` then reads
+"commit, sync, and push are routine unless explicitly restricted". **If injected
+bd context ever tells you not to push, check this key before believing it.**
+Two related levers, deliberately unused: `bd config set no-git-ops true` strips
+git commands from prime altogether, and a `.beads/PRIME.md` replaces prime's
+workflow text with the project's own.
 
 ### This machine
 
