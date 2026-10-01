@@ -9,6 +9,15 @@ CLAUDE.md's rules here lets the two drift apart.
 `cp`/`mv`/`rm` warning) into CLAUDE.md for that reason. If you are adding
 instructions for agents, add them to CLAUDE.md.
 
+2026-10-01 removed two more duplicates from inside the marker block: copies of
+CLAUDE.md's *Room-code namespaces* and *Session Completion*. Both sat where
+`bd setup codex` would overwrite them, and the Room-code copy had already
+demonstrated the drift this file warns about — in the direction nobody expects.
+It was the CORRECT account of `homemaker-py-1v7` ("no first-character type test
+left") while canonical CLAUDE.md still claimed two survived. Being the stale
+copy is not a property of the non-canonical file. The lesson is not to maintain
+this copy more carefully; it is that the second copy should not exist (§39.63).
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
 
@@ -28,49 +37,4 @@ bd close <id>         # Complete work
 - Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
-
-### Room-code namespaces (DESIGN.md §39.4/§39.6)
-
-Leaf types share a first character across three namespaces:
-
-- **`C` / `O` / `S`** — generic structural types (circulation / outside / sahn),
-  uppercase, reserved. A programme code spelled exactly one of these is rejected
-  at load.
-- **programme room codes** — lowercase, may start with *any* letter. The generic
-  tests match `C`/`O`/`S` exactly, so `cr1` is a room, not circulation.
-- **`usage:`** — every space declares its access-requirement class
-  (`living`/`kitchen`/`bedroom`/`toilet`/`utility`/`none`), mandatory, no
-  fallback (DESIGN.md §39.7). A code's spelling decides nothing: `name:` is free
-  text, `usage:` drives behaviour. There is no first-character type test left
-  anywhere in the codebase.
-
-When adding or editing a programme, run
-`python experiments/audit_programme_config.py` — it reports reserved-name
-collisions, the usage class each code picks up, and per-room-spec satisfiability.
-
-## Session Completion
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd dolt push
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->

@@ -406,10 +406,15 @@ Leaf types share a first character across three namespaces:
   fallback (DESIGN.md §39.7). A code's spelling decides nothing to the SCORER:
   `name:` is free text, `usage:` drives behaviour, and
   `test_scoring_is_invariant_under_programme_code_spelling` holds the line.
-  **Two first-character tests do survive in `operators.py`'s constructive
-  adjacency heuristic** (`homemaker-py-1v7`) — they do not affect scoring, but
-  they drop and mis-match adjacency requirements while building seeds. Do not
-  add more, and do not read this section as saying none exist.
+  The CONSTRUCTOR agreed with none of that until `homemaker-py-1v7`: three
+  sites in `operators.py` matched adjacency by first character, which
+  over-credits — `b1` counted a neighbour typed `b2`, `de1` counted `dp1`, and
+  in harbor-house a room `of` counted as outside space `o`. Fixed at 75795b9;
+  all three now ask `graph.code_matches_requirement`, the single place that
+  answers "does this leaf count as the thing the programme asked to be next
+  to", and `tests/test_constructor_adjacency_match.py` checks the SOURCE so a
+  fourth cannot creep back (the third site was found by that test, not by
+  reading). **No first-character type test remains anywhere.**
 
 When adding or editing a programme, run
 `python experiments/audit_programme_config.py` — it reports reserved-name
