@@ -105,8 +105,10 @@ def build_arm(work: Path, arm: str) -> Path:
     if d.exists():
         shutil.rmtree(d)
     shutil.copytree(SRC_PROGRAMME, d)
-    for junk in (list(d.glob("coldstart-*")) + list(d.glob("*.score"))
-                 + list(d.glob("*.fails")) + list(d.glob("*.checkpoint"))):
+    # A set: `coldstart-*.dom.score` matches two of these globs, and the
+    # second unlink of it raised FileNotFoundError.
+    for junk in {*d.glob("coldstart-*"), *d.glob("*.score"),
+                 *d.glob("*.fails"), *d.glob("*.checkpoint")}:
         junk.unlink()
     return d
 
