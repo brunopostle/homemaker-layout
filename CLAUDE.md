@@ -102,9 +102,10 @@ explicit step rather than something that happens for you:
 bd export -o .beads/issues.jsonl
 ```
 
-Not yet established (as of 2026-10-01): whether a *write* command (`bd update`,
-`bd close`) refreshes the JSONL on its own. Read `git status` after the first one
-instead of assuming either way.
+**A write does not refresh it.** Settled 2026-10-01 by running `bd create` and
+reading `git status`: the tree stayed clean, so the new bead existed only in the
+gitignored Dolt DB. Nothing reaches git until you export. Treat an unexported
+`bd create`/`update`/`close` as lost work.
 
 `bd doctor` is unsupported in embedded mode. Of the checks that do run,
 `--check=pollution` flags `homemaker-py-1ue` and `homemaker-py-gug` as test
@@ -153,12 +154,19 @@ leaving the database empty — recoverable only because the file is git-tracked
 
 **The import/export round-trip is semantically lossless but not byte-lossless.**
 Verified 2026-10-01 over 208 issues, 116 dependency edges and 23 comments: all
-present, every top-level field intact. What moves: four closed issues gain a
+present, and no content field moved. What does move: four closed issues gain a
 `closed_at` they were missing; every dependency's `created_by` is flattened to
 `auto-import` (it was `Bruno Postle` x108 / `Claude` x8, and two distinct values
 mean `bd import --actor` cannot restore it); comment UUIDs are reissued. Key and
 list ordering churn as well, so the first export after an import is a ~200-line
-diff on a git-tracked file. All cosmetic, and accepted rather than fought.
+diff on a git-tracked file.
+
+Separately, **the v66 schema migration bumped `updated_at` on 59 issues** to its
+own clock, which is `homemaker-py-a72v` — `bd stale` is unreliable for anything
+last touched before 2026-10-01. That one was missed on the first pass because
+the check iterated a hand-typed field list that omitted `updated_at`. **When you
+verify a migration, diff every key present in either record**, not the ones you
+thought to name.
 
 ### In an agent container
 
