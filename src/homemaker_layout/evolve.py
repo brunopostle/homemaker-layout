@@ -186,7 +186,7 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "cutting a ~2.6 m shaft through a column of cells that "
                         "exists at the same address on every storey. §39.73 "
                         "measured seven live operators leaving a building with no "
-                        "shaft at all in 6-14% of draws, and 12 of 48 corpus "
+                        "shaft at all in 6-14%% of draws, and 12 of 48 corpus "
                         "artefacts in that state, paying x0.0225 for it. ON by "
                         "default on §39.65's ruling (an operator set that cannot "
                         "reach a scored criterion is a defect, not an "
@@ -201,7 +201,7 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "stack, voiding the addresses over the terraces it "
                         "leaves behind, and assigning the new storey with the "
                         "adjacency-aware constructor. `level_add` alone "
-                        "duplicates the top storey empty, which costs 60-98% of "
+                        "duplicates the top storey empty, which costs 60-98%% of "
                         "the parent's score before any room can follow, so 35 "
                         "of 36 corpus artefacts sit at their storey_minimum "
                         "(default: off)")

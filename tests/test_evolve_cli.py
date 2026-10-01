@@ -31,3 +31,18 @@ def test_leaf_sharing_env_default(monkeypatch):
     assert args.leaf_share_factor == 5
     # explicit flag still wins over the env default
     assert _parse_args(["seed.dom", "--leaf-sharing"]).leaf_sharing is True
+
+
+def test_help_renders(capsys):
+    """Every help string must survive argparse's %-formatting.
+
+    Python 3.14 checks this at add_argument time, so a bare ``%`` in a help
+    string made ``_parse_args`` raise on EVERY call and homemaker-evolve could
+    not start at all; older Pythons only fail on ``--help``. Asking for
+    ``--help`` catches it on any version.
+    """
+    import pytest
+    with pytest.raises(SystemExit) as exc:
+        _parse_args(["--help"])
+    assert exc.value.code == 0
+    assert "6-14% of draws" in capsys.readouterr().out
