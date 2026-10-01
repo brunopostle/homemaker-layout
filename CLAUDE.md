@@ -45,9 +45,9 @@ what it writes is worse than merely redundant:
   commit or push without clear authority"). Two headings of the same name in one
   file saying opposite things is §39.63's two-copies failure, in prose;
 - an **Agent Context Profiles** section presenting *Conservative* as the default;
-- the claim that "`.beads/issues.jsonl` is a passive export" — true where a Dolt
-  remote carries `refs/dolt/data`, false here, where no Dolt remote is configured
-  and the JSONL is the only record;
+- the claim that "`.beads/issues.jsonl` is a passive export" — a Dolt remote
+  now does carry `refs/dolt/data` here (see *This machine*), but containers
+  hand-edit the JSONL without bd, so it is not passive on this project;
 - and in `.claude/settings.json` it **deletes the `PreCompact` hook** and rewrites
   `SessionStart` to `bd prime --hook-json`. That JSON form is the better
   invocation — it emits a proper `hookSpecificOutput` envelope — but it hardcodes
@@ -81,19 +81,33 @@ workflow text with the project's own.
 ### This machine
 
 bd **1.3.1** at `~/.local/bin/bd`, a hand-placed binary owned by no package.
-Storage is an embedded Dolt DB at `.beads/embeddeddolt`, schema **v66**, and
-**local-only — no Dolt remote is configured.** So `bd dolt push` (step 4 of
-Session Completion) has nothing to push here, and the designated-migrator gate
-(#4259) cannot fire.
+Storage is an embedded Dolt DB at `.beads/embeddeddolt`, schema **v66**, with
+**a Dolt remote, `origin`** — the same GitHub repo as git
+(`git+ssh://git@github.com/brunopostle/homemaker-layout.git`), where the Dolt
+data lives under `refs/dolt/data` beside the git branches. It is configured by
+`sync.remote` in `.beads/config.yaml` (written as a nested `sync:` mapping
+since 9f2f4d9) and was pushed to on 2026-10-01; before that this file described
+the machine as local-only.
+`bd dolt remote list` shows it. So `bd dolt push` (step 4 of Session
+Completion) now does real work, and the designated-migrator gate (#4259) can
+fire again on a future schema change.
 
-**`.beads/issues.jsonl` is the record.** It is git-tracked; the Dolt DB is
-gitignored and dies with the machine. An export plus a commit is what carries
-issue state anywhere — which is also why `bd remember` is not durable here:
-memories live in that DB, and `bd export` **excludes them by default** (bd deems
-them possibly-sensitive agent context), so they never reach the JSONL unless you
-pass `--include-memories`. The managed block above says to prefer `bd remember`;
-on this project durable findings still go in `DESIGN.md` and durable working
-knowledge here.
+**Two copies of issue state now exist, and both must be kept in step.** The
+Dolt DB itself is gitignored; `refs/dolt/data` is the copy `bd dolt push`
+carries. `.beads/issues.jsonl` is git-tracked and is still the copy a container
+without bd reads and hand-edits (see *In an agent container*). Neither syncs the
+other for you: export before committing (below), and after pulling a JSONL that
+someone edited without bd, `bd import .beads/issues.jsonl` before writing, or
+the next export will silently revert their edit. That is §39.63's two-copies
+failure, and the reason this paragraph exists.
+
+**Memories travel only by the Dolt remote.** They live in the DB, and
+`bd export` **excludes them by default** (bd deems them possibly-sensitive agent
+context), so they never reach the JSONL unless you pass `--include-memories`.
+After `bd remember`/`bd forget`, `bd dolt push` is what makes the change outlive
+this machine. A container without bd never sees them, so findings that every
+agent must have still go in `DESIGN.md` and working knowledge here; `bd
+remember` is for notes useful to sessions that run bd.
 
 **Export before committing issue changes.** 1.3.1 writes to stdout, so it is an
 explicit step rather than something that happens for you:
@@ -184,10 +198,12 @@ re-parse the file afterwards. Beware that `bd create` fails *silently* under
 existed reached DESIGN.md once (§39.53).
 
 If you do install it there, a local-only DB works: `bd init --prefix
-homemaker-py` with no remote, then `bd import .beads/issues.jsonl`. The schema
-gate that used to block this — a remote at v32 against a bd wanting v66 — was a
-property of bootstrapping from the configured `sync.remote`, and there is no
-Dolt remote any more, so it does not arise. `sync.remote` in
+homemaker-py` with no remote, then `bd import .beads/issues.jsonl`. Bootstrapping
+from the configured `sync.remote` instead is possible — the Dolt remote
+was pushed by bd 1.3.1 (schema v66) on 2026-10-01 — but a local DB built from
+the JSONL avoids depending on it. The schema gate that once blocked this (a
+remote at v32 against a bd wanting v66) should not recur at v66.
+`sync.remote` in
 `.beads/config.yaml` is still a `git+ssh://` URL and containers have no `ssh`
 binary, but bd resolves that URL over HTTPS itself — the ssh premise once
 recorded here was wrong.
