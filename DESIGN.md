@@ -13106,3 +13106,58 @@ conflicted; tests put a real repo into each state.
 The lesson generalises past git: **an exit status of 0 is a claim about the
 command, not about the outcome.** The push "succeeded" at doing nothing. Check
 the outcome (`ls-remote`), not the status.
+
+### 39.83 What a missing room is worth, priced on the one real case (`homemaker-py-3i3`)
+
+§39.80 closed `3i3`'s question (a) by owner ruling and left (b) -- is the BASE
+magnitude right? -- for a corpus at the live objective, "so it can be checked
+against real search behaviour rather than reasoned about". §39.82's sweep is
+that corpus.
+
+**Incidence, re-measured** (`diag_3i3_missing_room.py --corpus
+'coldstart-07b2058+orth-*.dom'`; the script's default stays §39.80's corpus so
+those numbers still reproduce):
+
+| regime | §39.80, `c836457+orth` | `07b2058+orth` |
+|---|---|---|
+| converged, with a missing room | 0 / 12 | **1 / 12** (one instance) |
+| one-move neighbours | 79 / 792 (10%) | 187 / 1056 (18%), ~3.4 instances each |
+| fresh seeds | 8 / 20 (40%) | 10 / 24 (42%) |
+
+Across all 84 converged runs at this objective -- §39.82's twelve and §39.81's
+seventy-two (programme-house, none missing) -- exactly one omits a room:
+maple-court s1, missing `r#1`, one of twelve resident rooms on level 2 (cascade
+6 lines, 1/64). It is the sweep's worst run (62 fails), and its level 2 carries
+4 circulation cells against 7 and 5 in the two seeds that place all twelve.
+
+**Was the omission the objective's choice or the search's miss?**
+`diag_3i3_converged_trade.py` tries every cheap way to put the room back: each
+of the 16 non-`r` level-2 cells retyped to `r`, and each of the 27 cells split
+three ways in four rotations with one half `r` (324). Nothing beats the
+artefact. The best split -- half of circulation cell `2/rllrlr` -- includes the
+room at **net zero fails, score x1.01**:
+
+```
+- missing required space: r#1 (+ its 5 cascade lines)        6 hard
++ (r) not adjacent to c, on six OTHER resident rooms          6 hard
+```
+
+The best retype (circulation `2/rllrll`) is the same trade plus two more fails
+(x0.25). The six rooms that lose `c` are spread across the floor, and the same
+six lose it for both edits, so the likely mechanism is that a room set into the
+corridor severs the circulation network and the cut-off part stops counting as
+`c` -- measured effect, hypothesised cause.
+
+**So at this objective, on the one real case, the score is indifferent between
+"one of twelve resident rooms is missing" and "all twelve are present, and six of
+them do not open onto circulation."** That indifference IS the base magnitude:
+one missing instance here = 6 hard lines = 6 adjacency fails. Placing the room
+properly needs more corridor -- a topology change the search did not find in
+500k evals -- not a cheaper penalty or a dearer one.
+
+What this does and does not settle. It shows the weight BINDS at convergence,
+rarely (1 in 84), and that where it binds the alternative is hard fails of
+equal count, not geometry-quality fails -- so "crowds out geometry signal",
+`3i3`'s original worry, is still not what happens. It cannot say which of the
+two buildings is worse; that is a ruling, and §39.80 already established it is
+the owner's. Nothing in the objective changed.

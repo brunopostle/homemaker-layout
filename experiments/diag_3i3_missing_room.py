@@ -159,6 +159,9 @@ def main(argv=None) -> int:
     ap.add_argument("--programme", action="append", choices=PROGRAMMES)
     ap.add_argument("--seeds", type=int, default=6)
     ap.add_argument("--draws", type=int, default=4)
+    ap.add_argument("--corpus", default=CORPUS,
+                    help=f"artefact glob per programme dir (default {CORPUS!r}, "
+                         "the corpus §39.80 measured)")
     ap.add_argument("--verbosity-only", action="store_true",
                     help="just the brief-verbosity table (no scoring runs)")
     args = ap.parse_args(argv)
@@ -189,7 +192,7 @@ def main(argv=None) -> int:
         types = sorted(reqs) + ["C", "O"]
 
         # --- converged, and its one-move neighbourhood -----------------------
-        for path in sorted(prog.glob(CORPUS)):
+        for path in sorted(prog.glob(args.corpus)):
             geometry.ORTHOGONAL_DIVISION = True
             root = dom.load(str(path))
             geometry.clear_cache()
