@@ -322,16 +322,14 @@ Three consequences that bite:
 - **Score a `+orth` artefact with the switch on, or you get a different
   layout.** `verify_results_table.py` handles this per row; if you score by hand,
   set the variable.
-- Corpora on disk, newest first. `coldstart-c836457+orth-*` is the **newest
-  complete** one (12/12, all verified) and the right comparison for the next
-  sweep, but §39.59 moved the objective hours after it finished, so it is one
-  generation behind. `coldstart-1138ff1+orth-*` is two behind (§39.50 retired
-  two criteria after it); both were measured with the switch **on**. The older
-  `coldstart-055d710-*` and `coldstart-99c85ec-*` were measured with it **off**,
-  at different objectives again — do not compare to these at all.
-  **There is no corpus at the live objective and no sweep is running**, and the
-  box has not been available for any of §39.70-§39.75 — ask rather than assume,
-  and see *A sweep needs the box* below. Do not trust a stamp written out here: this
+- Corpora on disk, newest first. `coldstart-07b2058+orth-*` is the **newest
+  complete** one (12/12, all verified, §39.82) and was at the live objective
+  when it finished on 2026-10-02 — check that it still is before relying on it.
+  `coldstart-c836457+orth-*` is one generation behind and
+  `coldstart-1138ff1+orth-*` two; all three were measured with the switch
+  **on**. The older `coldstart-055d710-*` and `coldstart-99c85ec-*` were
+  measured with it **off**, at different objectives again — do not compare to
+  these at all. Do not trust a stamp written out here: this
   sentence named `691cc21+orth` until §39.66 moved the objective under it, and
   it had gone stale once before that. Derive today's with the command under
   *Current state* below — it is two lines and it cannot be wrong.
@@ -415,6 +413,15 @@ control.
 
 
 ## Conventions & Patterns
+
+### argparse help strings: write `%%`
+
+Python 3.14 expands every help string when the option is DEFINED, so a bare `%`
+("6-14% of draws") makes the parser raise on every call — `homemaker-evolve`
+could not start at all on the owner's desktop (§39.82). Containers run an older
+Python that fails only on `--help`, so the bug is invisible there.
+`test_help_renders` in `tests/test_evolve_cli.py` asks for `--help`, which
+catches it on any version.
 
 ### Room-code namespaces (DESIGN.md §39.4/§39.6)
 
@@ -529,8 +536,9 @@ prose. (§39.69 pruned exactly that.)
 
 **Standing facts that are not dated:**
 
-- **There is normally no corpus at the live objective.** The objective has moved
-  faster than the 436-core-hour sweep can follow, so `verify_results_table.py`
+- **There is often no corpus at the live objective.** The objective has moved
+  faster than sweeps can follow (~127 run-hours, 18.6 h on the owner's desktop,
+  §39.82), so `verify_results_table.py`
   reporting every row skipped is §39.43 working, not a fault. Compare a new sweep
   only to a corpus at the same stamp, and never across the `+orth` switch
   (§39.12 clause 3).
@@ -543,7 +551,9 @@ prose. (§39.69 pruned exactly that.)
 - **A sweep needs the box.** Anything calling `homemaker-evolve` at a real budget
   (a single 500k run is hours) cannot be done in a container. Check whether a box
   is available before planning a measurement; if it is not, the beads marked as
-  needing it are genuinely blocked.
+  needing it are genuinely blocked. **The owner's desktop is a box** (Ryzen 5
+  3400G, 4 cores / 8 threads, 5 GB, Python 3.14): it ran §39.82's sweep and
+  §39.81's 72-run A/B. Ask whether it is free; do not assume either way.
 
 ### What a container can and cannot do
 
@@ -643,18 +653,13 @@ is a single-worker `homemaker-evolve`, so slots are the only parallelism.
 **Pin the BLAS threads** — nothing in the repo does it, and without it every
 slot's scipy tries to use every core, which at 8 slots can be slower than 4.
 
-Makespan, simulated against the measured per-run times of the `1138ff1+orth`
-sweep (4-core-laptop numbers, so upper bounds on a faster box):
-
-| slots | makespan |
-|---|---|
-| 4 | 118 h |
-| 8 | 63 h |
-| 12 | 60 h |
-
-436 core-hours of work in total. 8 slots is within ~3 h of the perfect-packing
-bound, which is set by maple-court s0 alone — the longest single run — so more
-slots than cores buys nothing. **Run all twelve on one machine**: the
+**Measured at `07b2058+orth` (§39.82), on the owner's desktop at `--slots 8`:**
+127 run-hours, makespan **18 h 34 m**. Per run: maple-court ~17 h (the longest,
+and the floor on makespan), harbor-house 13.5-15.7 h, health-centre 8-10 h,
+programme-house ~2 h. `c836457+orth` took the same 126 run-hours; the
+436-hour / 63-hour figures this section used to quote were `1138ff1+orth`'s. More
+slots than the 12 runs buys nothing, and the makespan is already within ~2 h of
+the longest run. **Run all twelve on one machine**: the
 single-worker design avoids `homemaker-py-b8g`, but that does not make results
 portable across CPUs, and a baseline split over two boxes is not internally
 comparable.
@@ -679,13 +684,12 @@ watching for: the runner refuses to start over uncommitted `fitness.py` or
 `geometry.py`, before the stamp is taken, with no override (§39.51). A dirty
 `src/` file that is *not* the objective warns and continues.
 
-**The next sweep is not comparable to `c836457+orth`'s 248 at the fail-count
-level** — §39.59 added a criterion (`excess internal area`) and tightened
-another (`not adjacent to o`), so the fail SET moved (§39.12 clause 3). Expected,
-not a problem to engineer around. What it is fair to compare is the shape:
-per-programme deltas and the family census, where **crinkliness at 39.1% and
-size at 11.7%** — as recorded at `c836457+orth`, 248 fails — are the numbers to
-beat.
+**Compare the shape, not the fail count**, whenever the fail SET has moved
+between two sweeps (§39.12 clause 3): per-programme deltas and the family
+census. At `07b2058+orth` (§39.82, 261 fails) those are **crinkliness 45.2%,
+proportion 11.1%, size 6.5%**; at `c836457+orth` (248 fails) crinkliness was
+39.1% and size 11.7%. **Write down what you expect before the next one runs** —
+§39.82 did not, so it is a description rather than a check.
 
 Quote those two figures carefully. `decompose_coldstart.py --objective
 c836457+orth` re-scores the committed artefacts with **today's** code, so it now
@@ -696,9 +700,9 @@ differing from them by seven.
 
 ### Crinkliness: the largest fail family, and three measured nulls
 
-Crinkliness is far and away the biggest family — **39.1%** of the fail set at
-`c836457+orth` (97 of 248), with `size` second at 11.7%. 69% of its residual sits
-at `crink == 0`: fully buried leaves (§39.31).
+Crinkliness is far and away the biggest family — **45.2%** of the fail set at
+`07b2058+orth` (118 of 261, §39.82), up from 39.1% at `c836457+orth`. When §39.31
+measured it, 69% of its residual sat at `crink == 0`: fully buried leaves.
 
 **Three attempts to reach it have now been measured, and all three were inert.**
 Read §39.68 before starting a fourth:

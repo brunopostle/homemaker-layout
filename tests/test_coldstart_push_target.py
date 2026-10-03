@@ -70,3 +70,24 @@ def test_pushing_head_to_the_current_branch_publishes(clone):
 
 def test_no_branch_is_hardcoded():
     assert "beads-project-intro" not in RUNNER.read_text().split("used to name one here")[0]
+
+
+def test_git_busy_is_quiet_on_a_clean_branch(clone):
+    assert _runner().git_busy(clone) == ""
+
+
+def test_git_busy_catches_a_detached_head(clone):
+    _git(clone, "checkout", "-q", "--detach")
+    assert "detached" in _runner().git_busy(clone)
+
+
+def test_git_busy_catches_a_conflicted_rebase(clone):
+    # The 2026-10-02 state: a pull --rebase that stopped on a conflict.
+    _git(clone, "checkout", "-q", "-b", "other", "main~1")
+    (clone / "a").write_text("conflict")
+    _git(clone, "commit", "-q", "-am", "other")
+    _git(clone, "checkout", "-q", "main")
+    assert _git(clone, "rebase", "other").returncode != 0
+    assert "rebase" in _runner().git_busy(clone)
+    _git(clone, "rebase", "--abort")
+    assert _runner().git_busy(clone) == ""

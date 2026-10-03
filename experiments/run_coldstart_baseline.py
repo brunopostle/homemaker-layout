@@ -296,6 +296,26 @@ def current_branch(repo: Path = REPO) -> str:
     return r.stdout.strip()
 
 
+def git_busy(repo: Path = REPO) -> str:
+    """Why a commit here would land somewhere nobody looks, or "".
+
+    On 2026-10-02 a conflicted `pull --rebase` left the tree mid-rebase on a
+    detached HEAD, and the next six runs committed onto it: `git commit --only`
+    works mid-rebase. Their rows reached `main` only by hand (DESIGN.md §39.82).
+    """
+    for marker, why in (("rebase-merge", "a rebase is in progress"),
+                        ("rebase-apply", "a rebase is in progress"),
+                        ("MERGE_HEAD", "a merge is in progress"),
+                        ("CHERRY_PICK_HEAD", "a cherry-pick is in progress")):
+        r = subprocess.run(["git", "rev-parse", "--git-path", marker], cwd=repo,
+                           capture_output=True, text=True)
+        if (repo / r.stdout.strip()).exists():
+            return why
+    if not current_branch(repo):
+        return "HEAD is detached"
+    return ""
+
+
 def remote_has_head(branch: str, repo: Path = REPO) -> bool:
     """Does `origin`'s `branch` now point at our HEAD? The push's exit status
     cannot answer this: pushing a ref that is already up to date exits 0."""
@@ -488,6 +508,12 @@ def commit_and_push(paths: "list[str]", msg: str, note: str = "") -> None:
 
     committed = pushed = False
     with git_lock():
+        busy = git_busy()
+        if busy:
+            print(f"    NOT COMMITTED: {msg}\n      -- {busy}; the artefacts are "
+                  f"on disk and complete, commit them once git is sorted out",
+                  flush=True)
+            return
         _git("add", "--", *paths)
         c = _git("commit", "-q", "--only", *paths, "-m", msg + "\n\n" + body
                  + "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>\n"
@@ -515,7 +541,13 @@ def commit_and_push(paths: "list[str]", msg: str, note: str = "") -> None:
                 # safe locally, whereas conflicting someone's working copy
                 # mid-sweep is not the runner's call to make.
                 time.sleep(2 ** (attempt + 1))
-                _git("pull", "--rebase", "-q", "origin", branch)
+                if _git("pull", "--rebase", "-q", "origin", branch).returncode:
+                    # A conflicted rebase must not be left behind: every later
+                    # run would commit onto its detached HEAD (§39.82). Put the
+                    # tree back as it was; the commit stays safe on the branch.
+                    if git_busy():
+                        _git("rebase", "--abort")
+                    break
 
     if pushed:
         print(f"    pushed: {msg}", flush=True)

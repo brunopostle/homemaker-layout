@@ -13031,3 +13031,78 @@ buy a better building -- the search pays for the terrace with a room
 dimension. That is §39.62's "question about the operator set around it", now
 answered: the next lever is whatever lets the search keep the room size while
 it supports the outside space, not a re-weighting of either fail.
+
+### 39.82 The `07b2058+orth` re-baseline, and three ways the tooling failed on a new machine
+
+The first sweep at a live objective since `c836457+orth`, run on the owner's
+desktop (AMD Ryzen 5 3400G: 4 cores / 8 threads, 5 GB RAM, Python 3.14) on
+2026-10-01/02. Objective `07b2058+orth`, search `f067db8` config `4549a418fc`,
+500k evals, 3 seeds, `--slots 8`, BLAS pinned. `verify_results_table.py`: 12 of
+12 rows reproduce exactly. **No expectations were written down before it ran**,
+which CLAUDE.md asks for; what follows is therefore a description, not a check.
+
+**Results.**
+
+| programme | s0 | s1 | s2 |
+|---|---|---|---|
+| programme-house | 1 (0/1) | 1 (0/1) | 2 (0/2) |
+| health-centre | 6 (3/3) | 4 (2/2) | 6 (3/3) |
+| harbor-house | 31 (5/26) | 23 (5/18) | 34 (7/27) |
+| maple-court | 48 (12/36) | 62 (15/47) | 43 (10/33) |
+
+261 fails. Family census (`decompose_coldstart.py`, re-scored, reproduces the
+rows): crinkliness **45.2%** (118), proportion 11.1%, access 8.0%, size **6.5%**,
+level-not-connected 5.7%, not-adjacent-to-c 5.4%. Against `c836457+orth`'s
+39.1% crinkliness and 11.7% size, crinkliness grew and size shrank, but four
+objective commits separate the two (691cc21, 1ca6865, 26ce827, 07b2058), so
+neither shift is attributable to any of them (§39.12 clause 3). The paired
+comparison is underpowered everywhere: fails 20.67 vs 21.75, mean diff 1.08
+against an MDD of 2.53 at N=12; per programme the MDDs at N=3 are 2.5-16 fails.
+
+One artefact omits a required room: maple-court s1 is missing one instance of
+`r` (`r#1`), a six-line cascade. §39.80's twelve converged artefacts had none.
+That is `homemaker-py-3i3`'s open half.
+
+**Cost, measured.** 127.4 run-hours (maple-court 16.4-17.0 h per run,
+harbor-house 13.5-15.7, health-centre 8.0-9.7, programme-house 1.8-2.0); makespan
+**18 h 34 m** at 8 slots, about 2 h above the longest single run. `c836457+orth`
+took 126.1 run-hours, so the 436-hour, 63-hour-makespan figures CLAUDE.md carried
+were `1138ff1+orth`'s and had been stale for a sweep. The 8 slots ran on 4
+physical cores, so per-run wall time includes SMT contention.
+
+**Three tooling defects, each latent until this machine.**
+
+1. **Python 3.14 validates argparse help strings at `add_argument`.** Two help
+   strings in `evolve.py` held a bare `%` (`6-14%`), so `_parse_args` raised on
+   every call: `homemaker-evolve` could not start, and the runner's
+   `search_config()` died through it. Older Pythons fail only on `--help`, which
+   is why no container saw it. Fixed in f067db8; `test_help_renders` asks for
+   `--help`, which catches it on any version.
+2. **The e4r harness deleted a file twice.** `build_arm` concatenated four globs
+   and `coldstart-*.dom.score` matches two of them. Latent until a programme
+   directory held both a coldstart artefact and its `.score`. 42d62b4.
+3. **The runner pushed a branch nobody was on.** `BRANCH` was hardcoded to
+   `claude/beads-project-intro-fjiez3`, an agent branch, while commits landed on
+   the checked-out `main`. `git push origin <unchanged-local-branch>` is an
+   up-to-date no-op that exits 0, so rows printed `pushed:` and reached no one --
+   the same false report `commit_and_push`'s docstring already recorded once,
+   reached by a different road. c2f0061 pushes `HEAD` to the current branch and
+   calls it pushed only when `ls-remote` shows origin at our HEAD, with a
+   negative control reproducing the exit-0 no-op.
+
+The third had a sequel. The running sweep had loaded the old code, so it kept
+pushing the stale branch -- harmlessly, until another session pushed real work
+to that branch overnight. The push was then rejected, the fallback `git pull
+--rebase origin <stale branch>` began rebasing all of `main` onto it, stopped on
+a `.gitignore` conflict, and left a detached HEAD mid-rebase. `git commit
+--only` works mid-rebase, so **the next six runs committed onto the detached
+HEAD**, and the queued A/B then started on that tree -- which lacked fix 2 -- and
+crashed. Nothing was lost: the six commits were pinned, the rebase aborted, and
+each run replayed onto `main` with its rows checked byte-identical to what the
+runner wrote. The runner now refuses to commit when `git_busy` reports a rebase,
+merge, cherry-pick or detached HEAD, and aborts a rebase its own pull left
+conflicted; tests put a real repo into each state.
+
+The lesson generalises past git: **an exit status of 0 is a claim about the
+command, not about the outcome.** The push "succeeded" at doing nothing. Check
+the outcome (`ls-remote`), not the status.
