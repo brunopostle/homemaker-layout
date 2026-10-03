@@ -12976,3 +12976,58 @@ there is a corpus at the live objective, so it can be checked against real searc
 behaviour rather than reasoned about. The incidence table above is the part of that
 answer a container could supply: the weight never fires at convergence, and bites
 in 40% of seeds and a tenth of the local move set.
+
+### 39.81 The support_outside A/B: it clears the fail, and it does not pay for itself (`homemaker-py-3wq`)
+
+Run on the owner's machine (Ryzen 5 3400G, 4C/8T), 2026-10-02/03, after the
+`07b2058+orth` coldstart re-baseline (12/12 rows, verified exactly; 261 fails,
+crinkliness 45.2% of them). Objective `07b2058+orth`, search `f7e6dcd`,
+programme-house, 500k evals, arm A `--no-support-outside`, arm B as shipped.
+Rows: `experiments/results/e4r_support_outside_ab.tsv`; `--report-only`
+reproduces everything below.
+
+**N=12 was not enough, as §39.62 feared it might be.** The control carried
+`no outside space` in only 3 of 12 runs (§39.53 saw 5 of 6), so there were
+three discordant pairs and a floor of p = 0.25. On the owner's instruction the
+run was extended to 36 seeds with `--resume`, nothing in `src/` or the harness
+having moved. That is a second look at the data, but the first look could not
+reject at any outcome (its smallest attainable p was 0.25 > 0.05), so it spent
+no alpha and the 36-seed test stands at its nominal level.
+
+**At N=36, against the three expectations recorded in §39.62:**
+
+| expectation | result | |
+|---|---|---|
+| `roof_fail` clears materially more often | off 8/36, on 1/36; 7 discordant pairs, **all 7** cleared by the operator, 0 broken; sign test **p = 0.016** | **holds** |
+| total fails roughly a wash | 1.11 vs 1.08, 10W/10L/16T, p = 0.86 | holds |
+| score up iff the fail clears | score 0.20 vs 0.19, p = 0.69; in the 7 discordant seeds score rose in **3 and fell in 4** | **does not hold** |
+
+Hard fails fell significantly (0.33 to 0.11, p = 0.019, margin above the MDD),
+but that is almost entirely `no outside space` itself, which is a hard fail.
+
+**Why the score does not follow.** In every discordant seed the arm that
+cleared the fail carries a size or width fail instead -- exactly the "`place`
+shrinks a room" cost §39.62 predicted for the fail COUNT:
+
+```
+s 3  off 0.165 [level 1 no outside space]          on 0.110 [width | size]
+s24  off 0.226 [level 0 no outside space]          on 0.147 [size]
+s27  off 0.194 [level 1 no outside space]          on 0.092 [size | width]
+s33  off 0.199 [level 1 no outside space]          on 0.015 [staircase volume]
+```
+
+(The three where score rose -- s5, s9, s26 -- are the ones where the control
+ALSO carried a size or width fail, so the operator's arm had one fewer.) These
+are independent trajectories, not one layout before and after a move, so this
+says what the search ends up with, not what one application of the operator
+costs. Note too that 34 of 36 runs in EACH arm ended at two storeys: the
+operator does not change how often the search reaches the owner's three-storey
+terrace design (§39.53), which it still rarely finds.
+
+**Reading.** The mechanism is real: the operator reliably removes the hard fail
+it was built for, and §39.65's default-on ruling (a criterion no operator could
+reach was a defect) is vindicated on that ground. It does not, at this budget,
+buy a better building -- the search pays for the terrace with a room
+dimension. That is §39.62's "question about the operator set around it", now
+answered: the next lever is whatever lets the search keep the room size while
+it supports the outside space, not a re-weighting of either fail.
