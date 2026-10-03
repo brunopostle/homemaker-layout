@@ -719,10 +719,15 @@ def check_adjacency(
         if not req.adjacency:
             continue
         any_missing = any(m == code or m.startswith(f"{code}#") for m in missing_set)
+        # The placeholder charges for the MISSING instance; the PRESENT ones are
+        # still checked. This used to `continue` here, so omitting one instance
+        # of a code exempted every other instance from the check: maple-court
+        # s1 at 07b2058+orth hid six `not adjacent to c` fails by omitting one
+        # of twelve `r`, a 6-line price for 6 lines hidden -- and for a code
+        # with a large count, omission could pay outright (DESIGN.md §39.84).
         if any_missing:
             for adj_code in req.adjacency:
                 failures.append(f"missing {code}: would need adjacency to {adj_code}")
-            continue
 
         for lvl in lvls:
             li = lvls.index(lvl)
@@ -760,9 +765,8 @@ def check_level_constraints(
         if req.level is None:
             continue
         any_missing = any(m == code or m.startswith(f"{code}#") for m in missing_set)
-        if any_missing:
+        if any_missing:   # placeholder for the missing one; present ones checked (§39.84)
             failures.append(f"missing {code}: would need to be on level {req.level}")
-            continue
 
         for lvl in lvls:
             li = lvls.index(lvl)
@@ -799,8 +803,7 @@ def check_vertical_connectivity(
         if any_missing:
             failures.append(
                 f"missing {code}: would need connection to {req.requires_below} below"
-            )
-            continue
+            )   # and the present instances are still checked (§39.84)
 
         for lvl in lvls:
             for leaf in lvl.leaves():

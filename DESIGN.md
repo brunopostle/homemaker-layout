@@ -13109,6 +13109,11 @@ the outcome (`ls-remote`), not the status.
 
 ### 39.83 What a missing room is worth, priced on the one real case (`homemaker-py-3i3`)
 
+> **Corrected by §39.84, the same day.** The six `not adjacent to c` fails below
+> were NOT caused by the split. They were already in the artefact, hidden: one
+> missing `r` exempted every other `r` from the adjacency check. The "indifference"
+> this section reports was that defect, not the base magnitude. Read §39.84.
+
 §39.80 closed `3i3`'s question (a) by owner ruling and left (b) -- is the BASE
 magnitude right? -- for a corpus at the live objective, "so it can be checked
 against real search behaviour rather than reasoned about". §39.82's sweep is
@@ -13146,7 +13151,9 @@ The best retype (circulation `2/rllrll`) is the same trade plus two more fails
 (x0.25). The six rooms that lose `c` are spread across the floor, and the same
 six lose it for both edits, so the likely mechanism is that a room set into the
 corridor severs the circulation network and the cut-off part stops counting as
-`c` -- measured effect, hypothesised cause.
+`c` -- measured effect, hypothesised cause. **[Wrong -- see §39.84: the same six
+appear when `r` is added on level 0, nowhere near the corridor, because any
+twelfth `r` lifts a suppression.]**
 
 **So at this objective, on the one real case, the score is indifferent between
 "one of twelve resident rooms is missing" and "all twelve are present, and six of
@@ -13161,3 +13168,85 @@ equal count, not geometry-quality fails -- so "crowds out geometry signal",
 `3i3`'s original worry, is still not what happens. It cannot say which of the
 two buildings is worse; that is a ruling, and §39.80 already established it is
 the owner's. Nothing in the objective changed.
+
+### 39.84 A missing instance exempted its siblings from the checks (`homemaker-py-3i3`)
+
+**The owner's ruling (2026-10-03), on §39.83's comparison:**
+
+> An omitted room should be closer to a working building than a building with no
+> circulation.
+
+Implementing it began with reading `check_adjacency`, and the tie §39.83 priced
+turned out not to be a weight at all:
+
+```python
+any_missing = any(m == code or m.startswith(f"{code}#") for m in missing_set)
+if any_missing:
+    for adj_code in req.adjacency:
+        failures.append(f"missing {code}: would need adjacency to {adj_code}")
+    continue          # <- every PRESENT instance of the code goes unchecked
+```
+
+One missing instance of a code skipped the adjacency check for **all** its
+present instances. `check_level_constraints` and `check_vertical_connectivity`
+had the same `continue`. Re-scoring maple-court s1 with the suppression lifted
+and nothing else changed shows the six `(r) not adjacent to c` fails already
+there; my §39.83 probe had in fact shown it -- retyping a LEVEL-0 cell to `r`,
+far from any corridor, "added" the same six -- and I read it as a mechanism.
+
+So the search did not trade a room for circulation. **Omitting one `r` bought
+six hidden adjacency fails for a six-line cascade**, and for a code with a large
+`count` the omission could pay outright: maple-court's `r` is twelve rooms, so
+up to eleven fails hideable for six. That is the opposite of the ruling -- a
+building scored better for omitting a room -- and a plain defect besides: the
+placeholder exists to charge for the room that is ABSENT, not to excuse the
+ones that are present. Not "Urb did it" (`ProgrammeDriven.pm` has the same
+shape); §39.21 settled that the Perl validates nothing.
+
+**The fix** (`graph.py`, three producers): keep the placeholder, drop the
+`continue`. The cascade per missing instance is unchanged, so §39.80's ruled
+spread is untouched.
+
+**Priced before landing**, by re-scoring every committed `+orth` artefact
+before and after (108: three coldstart corpora and the 72 e4r runs):
+
+| | changed | how |
+|---|---|---|
+| 106 artefacts with no missing room | 0 | bit-identical |
+| maple-court s1, `07b2058+orth` | x1/64 | +6 `(r) not adjacent to c` |
+| maple-court s1, `1138ff1+orth` | x1/8 | +3 `(r) not adjacent to c` |
+
+The fix can only ever ADD fails, and only to a building that is missing a
+room. On the case that prompted it, `diag_3i3_converged_trade.py` now finds
+the best split (half of `2/rllrlr` to `r`) beating the omission by **x64.7,
+six fails fewer** -- the search now has a one-move gradient toward the full
+brief where before it had a tie.
+`tests/test_missing_instance_does_not_exempt.py` holds it, and all three of its
+tests fail with the old `graph.py` (checked, not assumed).
+
+**Does the base magnitude now satisfy the ruling?** Mostly, without changing
+it -- and one programme is unmeasured. A missing instance costs 5-8 lines
+(§39.80); a building "with no circulation" fails `not adjacent to c` on every
+room instance that declares it: **52** in maple-court, **37** in harbor-house,
+**20** in health-centre, but only **5** in programme-house. In the first three
+the omission is now always the closer of the two to a working building. In
+programme-house the adjacency lines alone (5) do not exceed a 5-6 line
+cascade; a building with no circulation would surely also fail access and
+connectivity checks, but that is NOT measured here. The per-room comparison
+(one omitted room, 5-8 lines, versus ONE room without circulation, 1 line) is
+not what the ruling addressed. Whether `3i3` closes "as-is" is therefore put
+back to the owner with these numbers rather than inferred.
+
+**The stamp moves.** `graph.py` is an objective source, so `07b2058+orth` is
+one generation behind from this commit; re-scored with today's code it differs
+only in maple-court s1, by exactly the six lines above.
+
+**Expected of the next sweep, recorded before it runs:**
+
+* converged artefacts omitting a required room: **0 of 12** (1 at `07b2058`);
+  the omission no longer hides anything, so it is a pure 5-8 line loss;
+* maple-court's `not adjacent to c` count no lower than at `07b2058` on any
+  seed that places all twelve `r` -- the fix touches nothing else;
+* the rest of the fail census within the sweep's usual seed noise: nothing
+  but omission is affected, and §39.82's MDDs (2.5-16 fails per programme at
+  N=3) are the yardstick.

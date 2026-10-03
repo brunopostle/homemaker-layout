@@ -323,8 +323,10 @@ Three consequences that bite:
   layout.** `verify_results_table.py` handles this per row; if you score by hand,
   set the variable.
 - Corpora on disk, newest first. `coldstart-07b2058+orth-*` is the **newest
-  complete** one (12/12, all verified, §39.82) and was at the live objective
-  when it finished on 2026-10-02 — check that it still is before relying on it.
+  complete** one (12/12, all verified, §39.82). §39.84 moved the objective a day
+  later; re-scored with that code only maple-court s1 differs (x1/64, six
+  revealed adjacency fails), so it remains the right comparison for the next
+  sweep. Check the live stamp before relying on any of this.
   `coldstart-c836457+orth-*` is one generation behind and
   `coldstart-1138ff1+orth-*` two; all three were measured with the switch
   **on**. The older `coldstart-055d710-*` and `coldstart-99c85ec-*` were
