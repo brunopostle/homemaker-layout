@@ -393,6 +393,11 @@ Three consequences that bite:
   "which of these candidate fixes actually helps" question.
 - `experiments/diag_3i3_missing_room.py` — what omitting a required room costs, and
   where in a run it fires; `--verbosity-only` is the per-code penalty table (§39.80).
+- `experiments/diag_ruling_omit_vs_circulation.py` — an owner ruling turned into a
+  generic check (§39.85): on any programme and artefact, the cheapest single-room
+  omission must outscore "no circulation". Run it after any objective change;
+  `--self-test` is its negative control, and `tests/test_ruling_omit_vs_circulation.py`
+  pins it. The pattern to copy when a ruling is about an ORDERING.
 - `experiments/trace_harbor_house.py` — reads an architectural SVG, and asks whose
   it is FIRST. §39.77 is the write-up of not doing that.
 

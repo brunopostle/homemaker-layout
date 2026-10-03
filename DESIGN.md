@@ -13235,7 +13235,9 @@ cascade; a building with no circulation would surely also fail access and
 connectivity checks, but that is NOT measured here. The per-room comparison
 (one omitted room, 5-8 lines, versus ONE room without circulation, 1 line) is
 not what the ruling addressed. Whether `3i3` closes "as-is" is therefore put
-back to the owner with these numbers rather than inferred.
+back to the owner with these numbers rather than inferred. **[Answered in
+§39.85: measured generically, the ruling holds on every programme, the
+smallest by 13.9 fail-lines.]**
 
 **The stamp moves.** `graph.py` is an objective source, so `07b2058+orth` is
 one generation behind from this commit; re-scored with today's code it differs
@@ -13250,3 +13252,54 @@ only in maple-court s1, by exactly the six lines above.
 * the rest of the fail census within the sweep's usual seed noise: nothing
   but omission is affected, and §39.82's MDDs (2.5-16 fails per programme at
   N=3) are the yardstick.
+
+### 39.85 The ruling, checked on every programme: it holds, by 14 to 152 fail-lines (`homemaker-py-3i3`)
+
+§39.84 left one doubt: in programme-house only five rooms declare adjacency to
+`c`, so "no circulation" costs five adjacency lines against a 5-6 line
+missing-room cascade. The owner's answer was not to decide that case by hand:
+
+> We want a generic tool that works with all programmes and sizes.
+
+`experiments/diag_ruling_omit_vs_circulation.py` is it. For any artefact it
+builds the two buildings the ruling compares, the SAME way -- a removed space
+is absorbed by its neighbouring room, so area and outline are kept -- and
+scores both:
+
+* **omit**: one room instance (the connected same-code cells on a storey)
+  absorbed, tried for every instance of every code; the CHEAPEST is the one
+  that counts, because the ruling must hold for the room the objective minds
+  least;
+* **no-circ**: every `C` cell absorbed, iterated until none is left, stair
+  shaft included.
+
+Margin in fail-lines, `log2(omit / no-circ)`, at objective `1a24b6a+orth`, over
+all 36 `+orth` coldstart artefacts (three corpora x four programmes x three
+seeds):
+
+| programme | room instances | margin, min - max | holds |
+|---|---|---|---|
+| programme-house | 6 | **+13.9** - +30.1 | 9/9 |
+| health-centre | 20 | +44.0 - +63.1 | 9/9 |
+| harbor-house | 37 | +75.4 - +109.5 | 9/9 |
+| maple-court | 52 | +94.2 - +151.7 | 9/9 |
+
+The programme-house doubt dissolves on measurement: a building with no
+circulation fails far more than its adjacency lines -- on programme-house
+`07b2058` s0 it goes from 1 fail to 34, mostly `access` on every room, both
+storeys `not connected`, and no staircase. The margin grows with programme
+size, as it should: more rooms, more of them stranded.
+
+`--self-test` is the negative control: it adds 80 placeholder lines per missing
+instance, which must invert every verdict, and does (0 of 9 on
+programme-house). Absorbing cells can also split a room into two instances
+(`too many spaces`), which adds a line or two to either side; it is small
+against every margin above.
+
+**So the base magnitude stays as it is**, now as a decision rather than an
+accident: with §39.84's suppression removed, the existing weights satisfy the
+owner's ruling for every programme and size in the corpus.
+`tests/test_ruling_omit_vs_circulation.py` holds it on one artefact per
+programme (about three seconds) with the self-test beside it, so an objective
+change that breaks the ordering for any programme size fails the suite. That
+is `3i3`'s acceptance criterion, and the bead closes.
