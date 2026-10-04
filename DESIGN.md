@@ -13303,3 +13303,63 @@ owner's ruling for every programme and size in the corpus.
 programme (about three seconds) with the self-test beside it, so an objective
 change that breaks the ordering for any programme size fails the suite. That
 is `3i3`'s acceptance criterion, and the bead closes.
+
+### 39.86 Why `support_outside` does not pay: its terrace is cut too narrow to pass (`homemaker-py-ek07`)
+
+§39.81 found the operator clears `no outside space` but the search pays in
+size or width. Those were 500k-eval trajectories; this measures ONE application,
+evaluated as the search evaluates a child (`driver._evaluate`, the parent's
+ratios carried, `child_budget` 80, the §39.81 search config).
+`experiments/diag_ek07_support_outside_trade.py` on the eight arm-A artefacts
+that carry the fail, at objective `1a24b6a+orth`:
+
+**Random draws (12 per artefact, the operator as shipped):**
+
+| move | n | clears | beats parent | net fails | gained, per child |
+|---|---|---|---|---|---|
+| `place` | 86 | 100% | **0%** | +2.64 | width 0.91, inaccessible usable space 0.91, access 0.52 |
+| `swap` | 10 | 100% | **0%** | +5.00 | inaccessible usable space 2.0, adjacency, access, proportion, width |
+
+No single application ever produces a child better than its parent. The
+operator's wins in §39.81 are therefore assembled by LATER moves repairing what
+it breaks -- slow and stochastic, which is what "clears the fail, does not pay"
+looks like from the outside.
+
+**`bridge_circulation` cannot be the follow-up the docstring names.** It
+repairs only `level N not connected` (circulation split into components) and
+acted on 6% of children; where it did, it made things worse (+5.67, displacing
+rooms). The access / inaccessible-space fails `place` causes are a different
+failure, so the docstring's division of labour does not hold for this
+operator's actual failure mode.
+
+**Exhaustive `place` (`--exhaustive`): every eligible leaf x 4 rotations x 2
+sides x ratios 1/4, 1/2, 3/4.** The best cut on EVERY artefact trades
+`no outside space` for one `width` fail (twice plus one more), and lands
+within 3% of the parent on five of eight; two artefacts have a cut that
+narrowly wins. And in all eight, **the failing width is the new terrace's own**
+-- the `O` half of the cut -- against `width_outside: [3.0, 0.3]`. The hosts
+are small (`b1`, `t1`, `t3`, or circulation): a 3 m strip cut from one leaves
+the host below its own size, so no ratio the inner loop can reach satisfies
+both.
+
+**What this says about the lever.** Not the cut's ratio or orientation --
+the exhaustive search already chose those best. The terrace must come from a
+span wide enough to give 3 m and keep the host whole (roughly 3 m plus the
+host's own minimum, ~6 m here), which a single small leaf does not offer. Two
+candidate moves, neither built:
+
+1. **Slice from a branch, not a leaf**: insert the terrace division above an
+   existing subtree, so the strip spans several rooms and each gives up a
+   little. Upper-storey paths are tied to the storey below by id (CLAUDE.md:
+   an upper storey's rotation, and the ratios of a path already divided below,
+   are dead fields), so inserting a node shifts every path beneath it; that
+   interaction must be designed, not assumed.
+2. **Choose a host big enough**: rank `place` candidates by whether the host can
+   yield 3 m and still pass its own size and width -- a filter, cheap, but on
+   these eight artefacts it may leave nothing to choose from.
+
+And one observation for `homemaker-py-p6t`: every best cut trades a HARD fail
+for a SOFT one. Under the flat comparator that is a near-tie; under the tiered
+comparator (`use_tiers`, off in §39.81) it is a win on all eight artefacts.
+That makes the tiered comparator a cheaper candidate for making this operator
+pay than any new move, and it is measurable in the same A/B harness.
