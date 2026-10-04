@@ -13415,3 +13415,82 @@ is not `homemaker-py-ek07`'s lever: §39.86's best `place` cuts make terraces
   (between 2.3 and 3.0 m there is no longer anything to gain by widening one),
   with the space going to rooms;
 * the rest of the fail census within seed noise.
+
+### 39.88 The rectangle-frame pivot, measured before committing to it (`homemaker-py-8b2u`)
+
+**The owner's proposal (2026-10-04):** fit an orthogonally aligned rectangle
+that encloses the plot, let all evolution be plain rectangular subdivision, and
+crop perimeter cells to the plot -- removing any outside it -- before scoring;
+then borrow from circuit-board layout. "This would be a deep pivot and change
+everything, so we would want to be sure it is a good idea." And on the crop's
+odd shapes: **triangles and pentagons are accepted but scored down, so the
+optimiser avoids them.**
+
+**What the frame would change, given orthogonal division.** Every interior wall
+is already exactly axial (215 of 215 over three artefacts; only plot-boundary
+edges are skew), and Urb's `Straighten()` -- which re-aimed each cut at its
+parent's cut, i.e. adjusted cuts, not corners -- would add nothing to that. So
+the pivot's case does not rest on straighter walls; it rests on what a
+rectangle frame makes possible (the epic lists eight: exact dimensioning, a
+fixed stair block, routed circulation, min-cut seeding, a canonical genome, a
+construction grid / CP-SAT packing, arbitrary plot polygons, non-slicing
+representations). Three container experiments decide whether it is safe and
+whether the largest of those is real.
+
+**1. It is an exact reparameterisation** (`diag_8b2u_rect_frame.py
+--translate`). Every cut re-expressed as (axis, position within the parent's
+RECTANGLE, side), every cell rebuilt from those numbers alone by splitting the
+bounding rectangle and clipping to the plot: **2,577 of 2,577 cells, over all
+113 `+orth` artefacts, rebuild identically; zero cuts needed `_orthogonal_b`'s
+skew fallback.** The `--self-test` nudge (one cut moved by 1e-4 of its range)
+and flip controls both fire. So every existing artefact translates; nothing is
+thrown away, and the phenotype space for quad plots is unchanged.
+
+**2. Free cropping rarely makes odd shapes** (`--crop-census`, the 07b2058
+corpus, cuts placed anywhere in the parent rectangle):
+
+| regime | quad | pentagon | triangle | sliver < 1 m | empty |
+|---|---|---|---|---|---|
+| uniform random positions | 52.8% | 1.3% | 0.1% | 41.8% | 4.1% |
+| +-0.05 around evolved designs | 98.1% | 0.0% | 0.0% | 1.9% | 0.0% |
+
+Triangles and pentagons are ~1.4% of the raw space and absent near converged
+designs, so the owner's penalty is cheap to honour. "Empty" -- a cell wholly
+outside the plot, 7.2% on skewed harbor-house -- is the crop's genuinely new
+behaviour. Slivers dominate random positions with or without the frame.
+
+**3. Algebra recovers most of what the search evolves, in seconds**
+(`diag_8b2u_exact_dims.py`). Each frozen 07b2058 topology, every ratio reset to
+0.5, dimensioned five ways and scored by one evaluator; §39.78 established
+today's DP errors are not from the rectangle approximation, so today's DP and
+solver stand in fairly for the frame's exact algebra:
+
+| arm | total fails (12 designs) | time per design |
+|---|---|---|
+| R as committed (500k evals of search) | 266 | -- |
+| A Nelder-Mead 80, cold | 611 | 1-5 s |
+| B Nelder-Mead 2000, cold | 594 | 13-123 s |
+| best of C (DP) / D (DP + 20) / E (solver + 20) | **350** | **0-4 s** |
+
+The algebra closes **76%** of the gap between a cold start and the evolved
+ratios; 2,000 Nelder-Mead evaluations close 5%. Highlights: harbor-house s0,
+solver + 20 evals = 31 fails, exactly the committed design's 31 (B: 62);
+health-centre s0, DP alone (0 evals) = 6, the committed 6 (B: 16). Above ~30
+DOF Nelder-Mead from a cold start is hopeless, as §39.76 found on one
+programme -- now on three. The tools split by programme: the DP wins on
+health-centre and calls every harbor-house and maple-court topology
+infeasible, where the bottom-up solver wins.
+
+**Caveat that bounds the gain.** Children in today's search mostly INHERIT
+their parents' ratios (Lamarckian write-back), so a true cold start arises
+only for new topologies -- seeds, crossover, large moves. That is where
+exploration happens, which is why it matters, but the speed-up is not 80x on
+every child. What the frame would make exact is the boundary cells too; what it
+cannot fix is the DP's greedy multi-storey realisation (`homemaker-py-3kp`).
+
+**Reading.** Safe (an exact reparameterisation; odd shapes rare and avoidable)
+and with its largest promised gain real at the scale of the big programmes.
+The decision is the owner's; if taken, it stages as: coordinates first (a
+format and geometry change that preserves every phenotype), then algebraic
+dimensioning for new topologies, then the fixed stair block, then routed
+circulation.
