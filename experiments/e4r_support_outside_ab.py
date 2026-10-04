@@ -79,6 +79,8 @@ RESULTS = REPO / "experiments" / "results" / "e4r_support_outside_ab.tsv"
 ARTEFACTS = REPO / "experiments" / "results" / "e4r"
 SRC_PROGRAMME = REPO / "examples" / "programme-house"
 ARMS = ("armA", "armB")
+EXTRA: "list[str]" = []        # flags BOTH arms get (--tiers sets --use-tiers)
+WORK = "e4r_arms"
 FIELDS = ["arm", "seed", "objective", "budget", "storeys", "fails", "hard",
           "soft", "roof_fail", "score", "elapsed_s", "dom", "fail_list"]
 
@@ -228,7 +230,19 @@ def main() -> int:
                     help="skip (arm, seed) pairs already recorded")
     ap.add_argument("--report-only", action="store_true",
                     help="re-print the paired verdicts and exit")
+    ap.add_argument("--tiers", action="store_true",
+                    help="run BOTH arms with --use-tiers (hard fails rank above "
+                         "soft), into their own results file and artefact dir. "
+                         "DESIGN.md §39.86: every best `place` cut trades a hard "
+                         "fail for a soft one, a near-tie under the flat "
+                         "comparator and a win under tiers -- does the operator "
+                         "pay then? (homemaker-py-ek07, option 1)")
     args = ap.parse_args()
+    global RESULTS, ARTEFACTS, EXTRA, WORK
+    if args.tiers:
+        RESULTS = RESULTS.with_name("e4r_support_outside_ab_tiers.tsv")
+        ARTEFACTS = ARTEFACTS.with_name("e4r-tiers")
+        EXTRA, WORK = ["--use-tiers"], "e4r_arms_tiers"
 
     if args.report_only:
         return report()
@@ -247,7 +261,7 @@ def main() -> int:
     os.environ.update(env)
     objective = mod.objective_commit()
 
-    work = Path(tempfile.gettempdir()) / "e4r_arms"
+    work = Path(tempfile.gettempdir()) / WORK
     work.mkdir(parents=True, exist_ok=True)
     arms = {arm: build_arm(work, arm) for arm in ARMS}
 
@@ -272,7 +286,8 @@ def main() -> int:
             out = d / f"e4r-{arm}-s{seed}.dom"
             fh = (d / f"e4r-{arm}-s{seed}.log").open("w")
             cmd = ["homemaker-evolve", "init.dom", "--budget", str(args.budget),
-                   "--seed", str(seed), "--workers", "1", "--output", str(out)]
+                   "--seed", str(seed), "--workers", "1", "--output", str(out),
+                   *EXTRA]
             # arm A is now the CONTROL: the operator is default-on since §39.65,
             # so the flag that makes an arm differ is the negative one.
             if arm == "armA":
