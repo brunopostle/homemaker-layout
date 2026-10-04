@@ -353,7 +353,13 @@ CONF_DEFAULTS: dict = {
     # work the cap was doing.
     "proportion_circulation": None,
     "proportion_inside": [1.5, 0.5],
-    "width_outside": [3.0, 0.3],
+    # Owner's ruling (2026-10-04, DESIGN.md §39.87): Alexander's only
+    # equivalent pattern is the six-foot balcony (APL 167) -- 1.83 m clear,
+    # ~2.3 m allowing for construction -- so full credit from 2.3 m and a fail
+    # just below it (~2.19 m). It was [3.0, 0.3], ported unchanged from Urb's
+    # Base.pm with no stated provenance: full credit only at 3.0 m, failing
+    # below 2.36 m, and a 2.5 m terrace kept only a quarter of its value.
+    "width_outside": [2.3, 0.05],
     "width_circulation": [2.4, 0.2],
     # §39.37 (homemaker-py-2f1): `None` means rooms have NO width requirement.
     # A leaf's area, narrowest width and aspect satisfy A = w^2 * r, so any two

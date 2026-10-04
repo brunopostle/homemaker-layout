@@ -13363,3 +13363,55 @@ for a SOFT one. Under the flat comparator that is a near-tie; under the tiered
 comparator (`use_tiers`, off in §39.81) it is a win on all eight artefacts.
 That makes the tiered comparator a cheaper candidate for making this operator
 pay than any new move, and it is measurable in the same A/B harness.
+
+### 39.87 Outdoor width: a six-foot balcony, not three metres (`homemaker-py-6ses`)
+
+**The owner's ruling (2026-10-04):**
+
+> I'm wondering where the 3m outdoor space width rule comes from, the only
+> equivalent Alexander pattern is six foot balconies. Accounting for
+> construction this would correspond to maybe a 2.3m outdoor space minimum
+> width. ... We should change the outdoor width rule first.
+
+**Provenance of the old rule.** `width_outside = [3.0, 0.3]` was ported
+unchanged from Urb's `lib/Urb/Dom/Fitness/Base.pm:58`, where it arrived on
+2013-12-13 in a commit titled "more config", with no comment -- unlike the
+values beside it. As a one-sided clipped Gaussian it gave full credit only at
+3.0 m, FAILED below `3.0 - 0.3*sqrt(2 ln 10)` = 2.36 m, and discounted steeply
+between: 2.50 m kept 0.25 of its value, 2.75 m 0.71.
+
+So the old FAIL line already sat within 6 cm of the owner's minimum. What had
+no provenance was the discount between 2.36 and 3.0 m -- a usable six-foot
+balcony scored as a quarter of one.
+
+**New rule: `[2.3, 0.05]`.** Full credit at 2.3 m and above (APL 167's six
+feet clear, plus construction); fails below `2.3 - 0.05*2.146` = 2.19 m; the
+steep side means a terrace narrower than the ruling keeps essentially nothing.
+Everything that reads the value -- `quality_width`, `solver._generic_min_width`,
+`shapecurve` -- reads it from config, so search and scorer move together.
+Programmes may still override it in `patterns.config`; none of the four does.
+
+**Priced before landing**, every committed `+orth` artefact (110: four
+corpora and the 72 e4r runs) scored with both rules:
+
+* **no fail is added or removed, on any artefact** -- every terrace that
+  failed under the old line still fails, and none passes newly;
+* 76 scores rise (by up to 8%): terraces between 2.36 and 3.0 m stop being
+  discounted;
+* 19 fall, by at most 0.018%: slivers that ALREADY failed kept a residual
+  ~1e-6 of credit under the shallow old curve and keep none under the steep
+  new one.
+
+It moves no fail, so nothing a sweep compares by fail count shifts; it moves
+the VALUE landscape the search climbs, in favour of 2.3-3.0 m terraces. And it
+is not `homemaker-py-ek07`'s lever: §39.86's best `place` cuts make terraces
+0.48-1.90 m wide, below any six-foot rule.
+
+**Expected of the next sweep, recorded before it runs:**
+
+* outdoor-space `width` fails no MORE frequent than at `1a24b6a+orth`, and
+  possibly fewer, since a 2.19-2.36 m terrace now passes;
+* terraces in converged artefacts NARROWER on average than at `1a24b6a+orth`
+  (between 2.3 and 3.0 m there is no longer anything to gain by widening one),
+  with the space going to rooms;
+* the rest of the fail census within seed noise.

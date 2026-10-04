@@ -4,7 +4,7 @@
 rooms do not claim, with a one-sided penalty to stop them collapsing into slivers.
 Until §39.76 that penalty was one hard-coded `min_width_generic=1.2` for every
 generic leaf, while the objective reads `width_circulation` [2.4, 0.2] and
-`width_outside` [3.0, 0.3] from the same config the room targets come from --
+`width_outside` (then [3.0, 0.3]) from the same config the room targets come from --
 so the floor sat BELOW both, at 1.2 m against fail thresholds of 1.971 m and
 2.356 m, and the solved point routinely failed `quality_width` on exactly the
 leaves the term exists to protect (41 width fails over the twelve corpus
@@ -22,13 +22,16 @@ from __future__ import annotations
 import math
 
 from homemaker_layout import dom, geometry, solver
+from homemaker_layout.fitness import CONF_DEFAULTS
 from homemaker_layout.programme import SpaceReq
 
 # A plot too small for its programme, so the corridor is what gets squeezed.
 PLOT = [[0.0, 0.0], [8.0, 0.0], [8.0, 4.0], [0.0, 4.0]]
 
-WIDTH_CIRCULATION = (2.4, 0.2)
-WIDTH_OUTSIDE = (3.0, 0.3)
+# Read from the defaults, not copied: §39.87 moved `width_outside` to [2.3, 0.05]
+# and three tests here failed only because they held their own copy of [3.0, 0.3].
+WIDTH_CIRCULATION = tuple(CONF_DEFAULTS["width_circulation"])
+WIDTH_OUTSIDE = tuple(CONF_DEFAULTS["width_outside"])
 
 
 def _fail_threshold(params: tuple[float, float]) -> float:
