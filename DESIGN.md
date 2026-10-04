@@ -13494,3 +13494,33 @@ The decision is the owner's; if taken, it stages as: coordinates first (a
 format and geometry change that preserves every phenotype), then algebraic
 dimensioning for new topologies, then the fixed stair block, then routed
 circulation.
+
+**4. A fixed stair block would cost little, and would have prevented two
+stairless designs** (`diag_8b2u_fixed_shaft.py`). Children drawn with the
+search's own mutation mix (search config 4549a418fc), each evaluated as the
+search evaluates a child, split by whether the child still has an intact shaft:
+
+| parents | kept the shaft: n, beat parent | EMPTIED it: n, beat parent, mean d fails |
+|---|---|---|
+| 07b2058 converged designs | 388, 0.8% | 12, **0**, +8.7 |
+| fresh constructed seeds | 470, 7.4% | 10, **0**, +10.1 |
+
+Moves that empty the shaft are 2-3% of draws (`swap`, `retype`,
+`level_retype`, `divide`), and none of the 22 produced a better child. The
+sample is small -- at the seeds' 7.4% base rate about one win in ten would be
+expected by chance -- so this bounds the cost of forbidding them (a few percent
+of moves) rather than proving them worthless.
+
+The larger finding is in the corpus itself: **2 of the 12 converged designs
+(harbor-house s0, maple-court s2) have no intact shaft at all** after 500k
+evaluations, and pay x0.0225 for it. A pre-placed block makes that state
+unreachable.
+
+Positions settle the block's form. Shafts sit anywhere on the plot (centroids
+from 0.02 to 0.96 of the bounding rectangle on both axes, no consistent spot
+across seeds), and health-centre's designs carry seven or eight qualifying
+columns each. So the block cannot be one global position: it must be **placed
+per run at seeding, one or more as the programme needs, and movable as a unit**
+by its own operator -- with every other move forbidden to break it. That
+replaces today's break-then-`repair_shaft` cycle with a structure that cannot
+be broken.
