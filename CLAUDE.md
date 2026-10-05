@@ -322,19 +322,13 @@ Three consequences that bite:
 - **Score a `+orth` artefact with the switch on, or you get a different
   layout.** `verify_results_table.py` handles this per row; if you score by hand,
   set the variable.
-- Corpora on disk, newest first. `coldstart-07b2058+orth-*` is the **newest
-  complete** one (12/12, all verified, §39.82). §39.84 moved the objective a day
-  later; re-scored with that code only maple-court s1 differs (x1/64, six
-  revealed adjacency fails), so it remains the right comparison for the next
-  sweep. Check the live stamp before relying on any of this.
-  `coldstart-c836457+orth-*` is one generation behind and
-  `coldstart-1138ff1+orth-*` two; all three were measured with the switch
-  **on**. The older `coldstart-055d710-*` and `coldstart-99c85ec-*` were
-  measured with it **off**, at different objectives again — do not compare to
-  these at all. Do not trust a stamp written out here: this
-  sentence named `691cc21+orth` until §39.66 moved the objective under it, and
-  it had gone stale once before that. Derive today's with the command under
-  *Current state* below — it is two lines and it cannot be wrong.
+- **Which corpora exist, and which is newest, is not written here** -- this
+  bullet named the newest corpus and was out of date within a day, twice
+  (§39.82, §39.89). List them with the command under *Current state* below, and
+  read DESIGN.md's latest sweep section for what each was measured against. Two
+  standing rules: compare a sweep only to a corpus at the same objective stamp,
+  and the `coldstart-055d710-*` and `coldstart-99c85ec-*` corpora were measured
+  with the switch **off** -- never compare `+orth` work to them.
 - It defaults **off**, so a bare `pytest` or `homemaker-fitness` run is the
   non-orthogonal objective.
 
@@ -515,8 +509,8 @@ only cases that ever executed compared the native scorer with itself (§39.20).
 The corollary matters when reading the objective: a constant or a rule that
 looks odd is **not** thereby validated by "Urb did it this way". Several
 defects found in §39 were carried straight over from the Perl — see §39.19 on
-`value_supported`, and `homemaker-py-hxi` on circulation, which the owner has
-ruled needs fixing.
+`value_supported`, and `homemaker-py-hxi` on circulation, which the owner ruled
+needed fixing and which was fixed (§39.24/§39.25; closed).
 
 ## Current state — derive it, do not trust this file
 
@@ -674,14 +668,12 @@ comparable.
 **The stamp is not `HEAD`** — it is the last commit that touched any file in
 `OBJECTIVE_SOURCES`, which is usually an older commit, because most work does
 not touch the objective. Getting this wrong once already sent someone looking
-for the wrong string. Derive it from the runner's own list, do not retype it
-(§39.63 was a second, drifted copy of exactly this command):
-
-```bash
-python -c "import importlib.util as u; s=u.spec_from_file_location('r','experiments/run_coldstart_baseline.py'); m=u.module_from_spec(s); s.loader.exec_module(m); print(m.objective_commit())"
-```
-
-and confirm the runner's first line matches. (Set
+for the wrong string. Derive it with the command under *Current state* above -- its first field is
+the stamp -- and confirm the runner's first line matches. That command is
+deliberately the only copy in this file: §39.63 was a second, drifted copy of
+exactly this command, and by 2026-10-05 this section had grown another one
+that had already drifted (it printed one field where the original prints
+three). (Set
 `HOMEMAKER_ORTHOGONAL_DIVISION=1` first if you want the `+orth` suffix — the
 stamp reads it from the environment.)
 
@@ -693,10 +685,10 @@ watching for: the runner refuses to start over uncommitted `fitness.py` or
 
 **Compare the shape, not the fail count**, whenever the fail SET has moved
 between two sweeps (§39.12 clause 3): per-programme deltas and the family
-census. At `07b2058+orth` (§39.82, 261 fails) those are **crinkliness 45.2%,
-proportion 11.1%, size 6.5%**; at `c836457+orth` (248 fails) crinkliness was
-39.1% and size 11.7%. **Write down what you expect before the next one runs** —
-§39.82 did not, so it is a description rather than a check.
+census (`decompose_coldstart.py`; the latest figures are in DESIGN.md's latest
+sweep section, and the crinkliness trend is below). **Write down what you
+expect before the next one runs** -- §39.82 did not, so it is a description
+rather than a check -- and make it about a distribution, not a seed (§39.89).
 
 Quote those two figures carefully. `decompose_coldstart.py --objective
 c836457+orth` re-scores the committed artefacts with **today's** code, so it now
@@ -707,8 +699,10 @@ differing from them by seven.
 
 ### Crinkliness: the largest fail family, and three measured nulls
 
-Crinkliness is far and away the biggest family — **45.2%** of the fail set at
-`07b2058+orth` (118 of 261, §39.82), up from 39.1% at `c836457+orth`. When §39.31
+Crinkliness is far and away the biggest family -- 39.1% of the fail set at
+`c836457+orth`, 45.2% at `07b2058+orth` (§39.82), 46.2% at `1a24b6a+orth`
+(§39.89). The figures carry their stamps on purpose: this is a trend, and the
+next sweep's number belongs in DESIGN.md, not in a second copy here. When §39.31
 measured it, 69% of its residual sat at `crink == 0`: fully buried leaves.
 
 **Three attempts to reach it have now been measured, and all three were inert.**
@@ -731,13 +725,20 @@ Both are different beads from these three.
 
 ### Known limits of the orthogonal geometry
 
-`homemaker-py-ao9`: a slicing cut straightens only the wall family it creates;
-the crossing family is inherited from the plot boundary, so some internal walls
-still run a few degrees off. Measured at 3.3° on programme-house. The real fix
-is `homemaker-py-bzv`, Urb's lost `Straighten()` pass, which moved corners
-rather than cuts. Retiring `quality_perpendicular` means nothing measures that
-residual any more — an accepted trade (the geometry is the fix, not the score),
-recorded so it stays a decision rather than becoming an oversight.
+**Interior walls are exactly axial; only plot-boundary walls are skew.** §39.88
+measured it: 215 of 215 interior walls over three artefacts lie on the frame's
+axes, and every off-axis edge is an exterior wall on a skew plot boundary. So
+the residual non-square corners are where square interior walls meet a skew
+outside wall -- unavoidable while the building follows the plot boundary.
+
+This corrects two older claims, both still in `homemaker-py-ao9` and
+`homemaker-py-bzv`: that "some internal walls still run a few degrees off"
+(ao9's 3.3 deg edges were exterior walls), and that Urb's lost `Straighten()`
+"moved corners rather than cuts" (it re-aimed each cut at its parent's, which
+orthogonal division already does). Changing the corners needs the building to
+stop following the plot exactly -- the rectangle-frame pivot,
+`homemaker-py-8b2u`. Retiring `quality_perpendicular` means nothing measures the
+boundary corners -- an accepted trade, recorded so it stays a decision.
 
 ### The standing principle, in the owner's words
 
