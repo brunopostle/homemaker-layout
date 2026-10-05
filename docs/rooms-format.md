@@ -119,10 +119,11 @@ Placing the building back at its true orientation is a site-placement step
   is split by a **collinear vertex** inserted in the room polygon at the
   change point, so each part gets its own `face_styles` entry. The web server
   accepts this: its convexity check skips collinear vertices
-  (`_is_convex_2d`). **Not yet verified:** that `CellComplex.ByFaces` keeps the
-  two coplanar parts as separate faces, so `ApplyDictionary` can give each its
-  own style, rather than merging them. The exporter's first addon-side test
-  must build such a room and check both styles reach the IFC.
+  (`_is_convex_2d`). **Verified 2026-10-05** (`experiments/check_rooms_split_wall.py`): the
+  cell complex keeps the two coplanar parts as separate faces with their own
+  styles, and the IFC follows -- a south wall that is party for 2 m and street
+  for 2 m gets a window on the street part only (all-street: two windows,
+  all-party: none).
 - **Uncovered outdoor cells are omitted**, as `urb-dom2obj.pl` omitted them: a
   terrace is the roof of the cell below, not a room. Covered outdoor cells are
   written with usage `outside`.
