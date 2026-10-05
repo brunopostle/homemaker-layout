@@ -13553,3 +13553,55 @@ exported the switch for its whole run. It fails the same way on `main`. Landed
 by hand once the suite was confirmed green in the default environment; the test
 module now pins the switch off itself, so it means the same thing in any
 environment.
+
+### 39.90 A shape score for cropped cells: vertex count is the wrong test (`homemaker-py-8b2u.4`)
+
+The owner's first ruling on the rectangle frame's odd cells (2026-10-04) was
+"accepted but scored down so the optimiser avoids them" -- triangles and
+pentagons. Refined 2026-10-05:
+
+> we need a good shape score, because some five sided spaces are actually quads
+> and some are awkward pentagons that are only good for garden space
+
+and, alongside it, plots whose street/party status changes part-way along a
+straight side, which puts a COLLINEAR vertex in a plot -- and in any cell
+cropped against it -- without changing its shape at all.
+
+**Candidate: the usable fraction** -- the largest frame-aligned rectangle
+inside the cell, over the cell's area (`diag_8b2u_rect_frame.usable_fraction`;
+exact for convex cells up to its x-grid, since the lower boundary is convex and
+the upper concave, so the tallest rectangle over [x0, x1] is fixed by the ends).
+On constructed shapes:
+
+| shape | usable fraction |
+|---|---|
+| rectangle | 1.00 |
+| rectangle + collinear street/party vertex ("pentagon") | **1.00** |
+| trapezoid cut by a 4 deg plot edge -- today's boundary cell | 0.96 |
+| 0.3 m clipped corner | 0.93 |
+| 2 m clipped corner | 0.62 |
+| wedge pentagon | 0.57 |
+| right triangle | 0.50 |
+
+On real cells -- the 07b2058 corpus as committed, and with cut positions drawn
+uniformly in the rectangle frame (10 draws per storey):
+
+| cells | n | min | p10 | median | share >= 0.90 |
+|---|---|---|---|---|---|
+| committed designs (all quads) | 545 | 0.89 | 0.96 | 1.00 | 100% |
+| random positions, quads | 2903 | 0.50 | 0.95 | 1.00 | 95% |
+| random positions, pentagons | 49 | 0.54 | 0.70 | 0.97 | 71% |
+| random positions, triangles | 1 | 0.50 | -- | -- | 0% |
+
+**Vertex count misjudges both ways.** 71% of the pentagons a free crop makes
+are near-quads (a clipped corner) that a pentagon penalty would have punished,
+and 5% of quads are awkward wedges at skew plot corners that it would have let
+through. The usable fraction ranks them the way the owner described.
+
+**Calibration falls out of the corpus:** every committed cell scores >= 0.89,
+so a full-credit threshold at or below that leaves every existing design's
+score unchanged, which is what stage 1b (`homemaker-py-8b2u.4`) needs for its
+"bit-identical on the corpus" gate. The thresholds themselves -- where credit
+starts to fall, where a cell fails, and how lenient the score is for outdoor
+cells ("only good for garden space") -- are objective decisions for the owner
+when the scorer takes v2 natively. Not landed; nothing in the objective moved.

@@ -42,7 +42,8 @@ format: homemaker-dom
 version: 2
 frame:
   u: [0.99996, 0.00872]      # unit vector of the frame's first axis (v is u rotated +90 deg)
-plot:                        # the site polygon, OUTER boundary, any number of vertices, CCW
+plot:                        # the site polygon, OUTER boundary, any number of vertices, CCW;
+                             # collinear vertices allowed and meaningful (see Perimeter)
   - [1.671, 11.917]
   - [8.721, 13.712]
   - [6.796, 21.380]
@@ -62,6 +63,24 @@ meta:                        # optional, ignored by geometry and scoring
   search: f067db8/4549a418fc
   seed: 0
 ```
+
+### Perimeter: a status per plot EDGE, not per side
+
+`perimeter` has one entry per plot edge, in plot order. A plot side whose
+status changes part-way -- street for its first 6 m, party wall after that --
+is written as two edges with a **collinear vertex** between them (owner,
+2026-10-05: "we will have plots where the private/street edge will change
+even when there is no change in direction"). So:
+
+- collinear plot vertices are legal and must be PRESERVED by every reader,
+  writer and geometry routine -- a polygon clean-up that drops collinear
+  points (as `diag_8b2u_rect_frame.py`'s `dedupe` does) would erase the
+  status change;
+- a cell's wall along such a side is partly street and partly party wall;
+  geometry splits that wall at the status vertex, so each part carries its own
+  status (and the rooms document gives each part its own `face_styles` entry,
+  `docs/rooms-format.md`);
+- the frame is unaffected: a collinear vertex adds no direction.
 
 ### The frame
 
@@ -110,9 +129,13 @@ A node is either a **cut** or a **cell**:
   wall inset). It may be a quad, a triangle, a pentagon or larger, or EMPTY.
 - Empty cells are legal and are not rooms: they hold no area and take no part
   in adjacency. A writer may emit them; a reader must accept them.
-- Triangles, pentagons and larger polygons are legal and are **scored down so
-  the optimiser avoids them** (owner's ruling, 2026-10-04). The size of that
-  penalty is an objective decision for when the scorer accepts v2 natively,
+- Triangles, pentagons and larger polygons are legal. The owner's first ruling
+  (2026-10-04) was to score them down; refined 2026-10-05: **vertex count is
+  the wrong test** -- "some five sided spaces are actually quads and some are
+  awkward pentagons that are only good for garden space" -- so cells get a
+  SHAPE SCORE instead. DESIGN.md §39.90 measures the candidate (the usable
+  fraction: largest frame-aligned rectangle inside the cell over its area). Its
+  thresholds, and how lenient it is for outdoor cells, are objective decisions,
   not part of the format.
 
 ### Reserved for later stages (not in stage 1)

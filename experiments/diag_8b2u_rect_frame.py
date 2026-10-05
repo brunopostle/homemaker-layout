@@ -219,6 +219,47 @@ def translate(paths, sabotage=None) -> int:
     return 0 if tot["DIFFERENT"] == 0 and tot["skew cuts"] == 0 else 1
 
 
+def usable_fraction(poly, u=(1.0, 0.0), v=(0.0, 1.0), grid: int = 48) -> float:
+    """Largest frame-aligned rectangle inside the convex cell `poly`, over the
+    cell's area -- the candidate SHAPE SCORE (owner, 2026-10-05: "we need a good
+    shape score, because some five sided spaces are actually quads and some are
+    awkward pentagons that are only good for garden space").
+
+    A rectangle scores 1, a rectangle carrying an extra collinear vertex (where a
+    plot edge changes from street to party wall) also 1, a lightly clipped one a
+    little under 1, a wedge or a triangle low. Exact up to the x-grid: for a
+    convex cell the lower boundary is convex and the upper concave, so the
+    tallest rectangle over [x0, x1] is fixed by the two ends alone."""
+    pts = [(p[0] * u[0] + p[1] * u[1], p[0] * v[0] + p[1] * v[1]) for p in poly]
+    A = area(pts)
+    if A < 1e-9:
+        return 0.0
+    xs = sorted({x for x, _ in pts})
+    lo_x, hi_x = xs[0], xs[-1]
+    cand = sorted(set(xs) | {lo_x + (hi_x - lo_x) * i / grid for i in range(grid + 1)})
+
+    def extent(x):
+        ys = []
+        n = len(pts)
+        for i in range(n):
+            (x1, y1), (x2, y2) = pts[i], pts[(i + 1) % n]
+            if min(x1, x2) - 1e-12 <= x <= max(x1, x2) + 1e-12:
+                if abs(x2 - x1) < 1e-12:
+                    ys += [y1, y2]
+                else:
+                    ys.append(y1 + (y2 - y1) * (x - x1) / (x2 - x1))
+        return (min(ys), max(ys)) if ys else (0.0, 0.0)
+
+    ext = {x: extent(x) for x in cand}
+    best = 0.0
+    for i, x0 in enumerate(cand):
+        for x1 in cand[i + 1:]:
+            h = min(ext[x0][1], ext[x1][1]) - max(ext[x0][0], ext[x1][0])
+            if h > 0:
+                best = max(best, (x1 - x0) * h)
+    return best / A
+
+
 def shape_class(poly, u, v, sliver=1.0) -> str:
     """empty / triangle / quad / pentagon / 6+gon, with 'sliver' for a cell whose
     narrow extent along the frame axes is under `sliver` metres."""

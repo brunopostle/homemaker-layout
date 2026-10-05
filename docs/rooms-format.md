@@ -88,6 +88,15 @@ record.)
   `urb-dom2obj.pl`. (`blank` is a real style directory in `share/`; the web
   README's example uses `party`, which is not -- worth correcting there.)
   Everything else is `default`.
+- **A wall that is partly street and partly party wall** -- possible once a
+  plot side can change status part-way (`docs/dom-format-v2.md`, Perimeter) --
+  is split by a **collinear vertex** inserted in the room polygon at the
+  change point, so each part gets its own `face_styles` entry. The web server
+  accepts this: its convexity check skips collinear vertices
+  (`_is_convex_2d`). **Not yet verified:** that `CellComplex.ByFaces` keeps the
+  two coplanar parts as separate faces, so `ApplyDictionary` can give each its
+  own style, rather than merging them. The exporter's first addon-side test
+  must build such a room and check both styles reach the IFC.
 - **Uncovered outdoor cells are omitted**, as `urb-dom2obj.pl` omitted them: a
   terrace is the roof of the cell below, not a room. Covered outdoor cells are
   written with usage `outside`.
