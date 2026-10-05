@@ -12759,7 +12759,7 @@ and re-running with each mechanism neutered in turn separates them into two
 unrelated causes:
 
 *`dom.merge_divided` is not modelled* (programme-house s2). `Fitness.score_with_fails`
-merges same-type sibling leaves IN PLACE before evaluating -- verified: scoring the
+merges same-type sibling leaves IN PLACE before evaluating *(corrected 2026-10-05, §39.91: OUTDOOR sibling leaves -- `O`/`S` pairs; rooms are never merged)* -- verified: scoring the
 artefact takes it from 12 leaves to 11. The DP runs first, on the unmerged tree, and
 bounds leaves that are about to stop existing. Here `0/lr` is divided into two `O`
 leaves 1.27 m and 1.39 m narrow, each failing `wmin` 2.36, so the DP calls the whole
@@ -13626,3 +13626,38 @@ Not landed: it takes effect only once the scorer reads v2 cells natively,
 since today's geometry cannot produce an odd cell, so it lands with
 `homemaker-py-8b2u.4`, between sweeps, with the corpus re-scored before and
 after to confirm the "unchanged" claim.
+
+### 39.91 Evolved layouts reach IFC through homemaker-addon (`homemaker-py-8b2u.5`)
+
+`homemaker-rooms` (`rooms_export.py`) writes a `.dom` as homemaker-addon's web
+rooms document (`docs/rooms-format.md`), the route the owner chose over porting
+`urb-dom2molior.pl`. First end-to-end build, programme-house
+`coldstart-1a24b6a+orth-500000-s0` through the addon's own
+`rooms_to_faces_and_widgets` and `Molior`: 11 rooms -> 11 IfcSpaces with the
+right usages, 51 walls, 18 windows, 13 doors, 7 roofs, in 6 s.
+
+Three things the first build found, none visible from either repo alone:
+
+1. **Snapping breaks T-junctions on a skew plot.** The addon snaps vertices to
+   1 mm; programme-house's axes are 75 deg off the world's, so a corner sitting
+   part-way along a neighbour's wall moved off it, Topologic made a sliver cell
+   (12 cells from 11 rooms) and `ApplyDictionary` stalled -- unfinished after
+   15 minutes. Written in the FRAME (`u` along x), every non-boundary wall is
+   axial and snapping cannot move a point off one: 11 cells, 7 s. The exporter
+   writes frame coordinates and records the rotation in `meta.frame`; a test
+   pins that every skew wall lies on the plot boundary.
+2. **The addon's stair usage is `stair`, not `circulation_stair`.** The latter
+   is only in its widget-name list; exported that way the shaft became two
+   `void` spaces.
+3. **The addon draws no stairs at all yet.** `molior/stair.py`'s `execute()` is
+   `pass` ("needs porting from Perl Molior library"). The shaft arrives as
+   `stair` cells with the stairwell left open; the flights wait on that port.
+   It is the one thing the old `urb-dom2molior.pl` route did that this one
+   does not -- filed for the owner.
+
+**A correction to §39.78's wording.** It says the scorer "merges same-type
+sibling leaves"; `dom.merge_divided` fuses only adjacent OUTDOOR siblings
+(`O`/`S`). Rooms are never merged and the scorer counts room instances per
+leaf, so two adjacent leaves of one room code are two rooms. The exporter
+matches that, and a test holds it -- the first version of that test assumed
+the wording and failed against the code.

@@ -1,6 +1,7 @@
 # The rooms document: this repo's interchange with homemaker-addon — DRAFT
 
-Status: **draft** (2026-10-05). Bead: `homemaker-py-8b2u.5`.
+Status: **implemented** -- `homemaker-rooms` (`src/homemaker_layout/rooms_export.py`),
+verified end to end through homemaker-addon on 2026-10-05. Bead: `homemaker-py-8b2u.5`.
 
 How this repo hands an evolved layout to **homemaker-addon** to build an IFC
 building, replacing Urb's `urb-dom2molior.pl` (owner's decision, 2026-10-05:
@@ -78,6 +79,31 @@ from the documented fields -- so the file stays loadable. (An editor re-save
 drops them; the editor is for looking and tweaking, the `.dom` stays the
 record.)
 
+## Coordinates: the frame, not the world
+
+Rooms are written in the layout's **frame** -- `u` along x, `v` along y, the
+orthogonal axes every cut follows -- not in world coordinates, and
+`meta.frame` records the rotation back:
+
+```json
+"frame": {"u": [0.2525, -0.9676], "angle_degrees": -75.38}
+```
+
+(world = the frame rotated by `angle_degrees` about the origin.)
+
+This is not cosmetic. homemaker-addon snaps every vertex to 1 mm
+(`geometry_adapter._snap`). A slicing tree is full of T-junctions -- a corner
+of one room lying part-way along another's wall -- and on a plot skew to the
+world axes, snapping knocks that corner a hair off the wall. Topologic then
+makes a sliver cell of the gap and `ApplyDictionary` stalls on it: programme-house
+s0 at 75 deg gave 12 cells from 11 rooms and a build that had not finished after
+15 minutes. In the frame, every wall that is not on the plot boundary is
+exactly axial, so snapping cannot move a point off one: 11 cells, built in 7 s.
+It also shows the rooms square to the screen in the web editor.
+
+Placing the building back at its true orientation is a site-placement step
+(the IFC site's rotation), not a change to the rooms.
+
 ## How a layout becomes rooms
 
 - **One room per cell that has a volume**, on every storey. Every cell the
@@ -100,6 +126,10 @@ record.)
 - **Uncovered outdoor cells are omitted**, as `urb-dom2obj.pl` omitted them: a
   terrace is the roof of the cell below, not a room. Covered outdoor cells are
   written with usage `outside`.
+- **Outdoor siblings are fused, rooms never are** -- exactly
+  `dom.merge_divided`, which the scorer applies first and which fuses only
+  adjacent `O`/`S` pairs. The scorer counts room instances per leaf, so two
+  adjacent leaves of one room code are two rooms to it, and two rooms here.
 - Faces two rooms share are written by both; `CellComplex.ByFaces` merges
   them, and the web README documents which style wins.
 - Prior art: `urb-dom2obj.pl` (2022, homemaker-addon issue #39) did the same
@@ -118,7 +148,7 @@ sahn toilet void`.
 | `bedroom`, `kitchen`, `living`, `toilet` | the same | identical names |
 | `none` (6 rooms) | `void` | owner, 2026-10-05: the addon's `void` is its usage for useless spaces |
 | `utility` (18 rooms) | `utility` | **new in homemaker-addon** (owner, 2026-10-05) |
-| `C` forming an intact stair shaft (§39.72) | `circulation_stair` | the column the scorer counts as a staircase |
+| `C` forming an intact stair shaft (§39.72) | `stair` | the column the scorer counts as a staircase. **Not** `circulation_stair`: every stair behaviour in the addon tests `usage == "stair"`, and `circulation_stair` only appears in its widget-name list (it made a `void` space) |
 | `C` otherwise | `circulation` | |
 | `O`, covered | `outside` | uncovered `O` is omitted |
 | `S` | `sahn` | |
@@ -133,3 +163,18 @@ The writer refuses a usage the mapping does not cover, rather than letting
 `rooms_to_faces_and_widgets` lives in `web/geometry_adapter.py` today; moving
 it into the library (beside `molior`) would let the web server and the CLI
 share one copy.
+
+## Verified end to end (2026-10-05)
+
+programme-house `coldstart-1a24b6a+orth-500000-s0`: 11 rooms -> 11 IfcSpaces
+with the right usages (2 stair, 2 circulation, 2 bedroom, 1 living, 3 toilet,
+1 outside), 51 walls, 18 windows, 13 doors, 7 roofs, 3 storeys, in 6 s.
+
+**No IfcStair is produced -- by any input.** homemaker-addon's `Stair` class
+is a stub (`molior/stair.py`: `execute()` is `pass`, "entire stair drawing
+module still needs porting from Perl Molior library"; `share/traces.yml`:
+"FIXME stairs are not implemented yet"). The shaft arrives correctly as
+`stair` cells and `molior/floor.py` already leaves the stairwell open between
+them; the flights appear when the addon's stair module is ported. Urb's
+`urb-dom2molior.pl` route DID draw stairs, so this is the one thing the
+decision not to port it gives up for now.
