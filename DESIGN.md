@@ -13605,3 +13605,24 @@ score unchanged, which is what stage 1b (`homemaker-py-8b2u.4`) needs for its
 starts to fall, where a cell fails, and how lenient the score is for outdoor
 cells ("only good for garden space") -- are objective decisions for the owner
 when the scorer takes v2 natively. Not landed; nothing in the objective moved.
+
+**THE OWNER'S RULING (2026-10-05), on the options above.** All as proposed:
+
+* **form:** a graded quality factor with a fail line -- a clipped Gaussian on
+  the usable fraction, the mechanism `width` and `proportion` already use;
+* **thresholds:** full credit from **0.85**, fail below **0.70** (sigma
+  `0.15 / sqrt(2 ln 10)` = 0.070). The strictest setting that leaves every
+  committed design's score unchanged; at random cut positions it fails 0.7%
+  of quads and 8% of pentagons, and fails wedges, triangles and a 2 m
+  clipped corner while a 0.3 m clipped corner and a 4 deg boundary trapezoid
+  keep full credit;
+* **scope:** rooms, circulation and upper-storey terraces; ground-level
+  outdoor space (garden) exempt;
+* **measure:** the usable fraction, not area-over-bounding-box (which treats
+  a clipped corner much like a triangle) nor the minimum interior angle
+  (which passes a large clipped corner).
+
+Not landed: it takes effect only once the scorer reads v2 cells natively,
+since today's geometry cannot produce an odd cell, so it lands with
+`homemaker-py-8b2u.4`, between sweeps, with the corpus re-scored before and
+after to confirm the "unchanged" claim.

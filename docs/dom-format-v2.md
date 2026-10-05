@@ -134,9 +134,11 @@ A node is either a **cut** or a **cell**:
   the wrong test** -- "some five sided spaces are actually quads and some are
   awkward pentagons that are only good for garden space" -- so cells get a
   SHAPE SCORE instead. DESIGN.md §39.90 measures the candidate (the usable
-  fraction: largest frame-aligned rectangle inside the cell over its area). Its
-  thresholds, and how lenient it is for outdoor cells, are objective decisions,
-  not part of the format.
+  fraction: largest frame-aligned rectangle inside the cell over its area), and
+  the owner ruled its parameters the same day: full credit from 0.85, fail
+  below 0.70, applied to rooms, circulation and terraces, ground-level gardens
+  exempt. That is the objective, not the format; it is recorded here only so
+  the format's legal shapes and their cost are read together.
 
 ### Reserved for later stages (not in stage 1)
 
