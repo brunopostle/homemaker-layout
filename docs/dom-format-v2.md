@@ -1,7 +1,6 @@
 # `.dom` format version 2: the rectangle frame — DRAFT
 
-Status: **draft for the owner's review** (2026-10-05). Nothing here is
-implemented. Epic: `homemaker-py-8b2u`. Evidence: DESIGN.md §39.88.
+Status: **decisions taken 2026-10-05** (below); nothing implemented yet. Epic: `homemaker-py-8b2u`. Evidence: DESIGN.md §39.88.
 
 ## Why a new version
 
@@ -158,7 +157,13 @@ A node is either a **cut** or a **cell**:
   floor and ceiling are faces (styled by what is on either side); its centroid
   is a widget carrying the cell's `usage` from `patterns.config`.
 
-## Decisions for the owner
+## Decisions (owner, 2026-10-05)
+
+All six as recommended, and on (5)/(6): "don't port dom2molior.pl, let's
+target homemaker-addon directly ... best to create a dedicated file format,
+this will make debugging easier." That format is `docs/cellcomplex-format.md`.
+The list below is kept as the record of what was decided.
+
 
 1. **Header** -- `format: homemaker-dom` / `version: 2` as the first keys, and
    "no `format` key" meaning v1. *Recommended.*
