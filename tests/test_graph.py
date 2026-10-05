@@ -15,6 +15,18 @@ from homemaker_layout import dom, geometry
 from homemaker_layout.dom import merge_divided, levels
 from homemaker_layout.graph import build_graphs
 
+
+@pytest.fixture(autouse=True)
+def _perl_geometry(monkeypatch):
+    """Every expectation here is a Perl oracle value, and Perl had no orthogonal
+    division. Pin the switch off so the module means the same thing whatever the
+    caller's environment: with HOMEMAKER_ORTHOGONAL_DIVISION=1 exported,
+    test_edge_counts_match_perl_corpus failed and stopped the §39.87 landing."""
+    monkeypatch.setattr(geometry, "ORTHOGONAL_DIVISION", False)
+    geometry.clear_cache()
+    yield
+    geometry.clear_cache()
+
 CORPUS = Path(__file__).parent.parent / "examples" / "programme-house"
 
 pytestmark = pytest.mark.skipif(not CORPUS.is_dir(), reason="Corpus not available")

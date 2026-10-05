@@ -13524,3 +13524,32 @@ per run at seeding, one or more as the programme needs, and movable as a unit**
 by its own operator -- with every other move forbidden to break it. That
 replaces today's break-then-`repair_shaft` cycle with a structure that cannot
 be broken.
+
+### 39.89 The `1a24b6a+orth` sweep: §39.84's expectations checked
+
+Run 2026-10-04/05 on the owner's desktop, search `f067db8` config `4549a418fc`
+-- identical to `07b2058+orth`'s, so §39.84 (a missing instance no longer
+exempts its siblings) is the only difference. 12/12 rows verify exactly; the
+§39.85 ruling holds on all 12 new artefacts. 249 fails (07b2058: 261);
+crinkliness 46.2%, size 12.0%, proportion 8.4%.
+
+Against what §39.84 recorded BEFORE the run:
+
+| expectation | result |
+|---|---|
+| 0 of 12 converged artefacts omit a required room (was 1) | **holds**: no `missing` line anywhere |
+| maple-court `not adjacent to c` no lower on seeds placing all twelve `r` | **not testable as written** -- independent runs give different designs, so a per-seed comparison means nothing. The count fell 10 -> 6, within noise |
+| the rest of the census within seed noise | **holds**: fails 21.75 -> 20.75, hard 5.17 -> 5.00, all below the MDD (2.99 at N=12) |
+
+The second line is a lesson about how expectations get written: a prediction
+about a sweep must be about a distribution, not about a seed.
+
+**The landing that stopped.** The §39.87 width change was queued to land
+unattended after this sweep, gated on the full suite. It stopped -- correctly,
+leaving `main` untouched -- on one failure: `test_graph.py::
+test_edge_counts_match_perl_corpus`, a Perl-oracle comparison that only holds
+with `HOMEMAKER_ORTHOGONAL_DIVISION` off, failing because the landing script
+exported the switch for its whole run. It fails the same way on `main`. Landed
+by hand once the suite was confirmed green in the default environment; the test
+module now pins the switch off itself, so it means the same thing in any
+environment.
