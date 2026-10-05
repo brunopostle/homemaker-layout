@@ -149,19 +149,19 @@ A node is either a **cut** or a **cell**:
   doors as Molior YAML) reads v1 only. Two options -- see Decisions.
 - **homemaker-addon** builds IFC from a TAGGED CELL COMPLEX:
   `Molior.from_faces_and_widgets()` takes Topologic faces carrying a `style`
-  and widget vertices carrying a `usage`. Its file entry points (`dxf2ifc.py`,
-  `brep2ifc.py`) carry geometry only, no styles or usages; the Blender add-on
-  gets those from material names and widget objects. So **no file format
-  carries a tagged cell complex into homemaker-addon today.** A v2 slicing tree
-  maps onto one directly: every cell on every storey is a prism; its walls,
-  floor and ceiling are faces (styled by what is on either side); its centroid
-  is a widget carrying the cell's `usage` from `patterns.config`.
+  and widget vertices carrying a `usage`. `dxf2ifc.py` and `brep2ifc.py` carry
+  geometry only, but its **web editor's rooms document** (`rooms.json`: a
+  convex plan polygon, elevation, height, per-face styles and a usage per
+  room) carries exactly what a slicing-tree cell needs -- so that is what this
+  repo writes (`docs/rooms-format.md`). *(Corrected 2026-10-05: an earlier
+  draft said no file format carried a tagged cell complex; the web document
+  does.)*
 
 ## Decisions (owner, 2026-10-05)
 
 All six as recommended, and on (5)/(6): "don't port dom2molior.pl, let's
 target homemaker-addon directly ... best to create a dedicated file format,
-this will make debugging easier." That format is `docs/cellcomplex-format.md`.
+this will make debugging easier." That format is `docs/rooms-format.md`.
 The list below is kept as the record of what was decided.
 
 
