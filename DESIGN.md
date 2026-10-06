@@ -14683,3 +14683,62 @@ The port `8b2u.14` describes has to model the crop, not just swap the
 measure. Until it does, `--shapecurve-warmstart` with `--native` starts the
 inner loop from a point that is not the feasible one it claims. Both flags
 default off, so `8b2u.8`'s A/B is not touched by this.
+
+### 39.107 How many trees draw one layout, and what that does and does not cost today (`homemaker-py-8b2u.15`)
+
+The bead's EVALUATE half. Two questions: what `9gp` left behind, and how
+redundant the encoding is on the corpus.
+
+**What `9gp` left.** No canonical encoding. §12.3 re-scoped it to two
+operators on the ordinary tree: `predicted_shape_fails` (a pre-filter) and
+`mutate_reassociate`, the Wong-Liu move `(a|b)|c <-> a|(b|c)`. Both default
+off; their A/B at 20,000 evaluations was negative. `genome.signature` says in
+its own comment that it is "the cheap stand-in for the canonical Polish
+encoding ... which would additionally collapse associativity".
+
+**The redundancy, counted** (`experiments/diag_8b2u15_redundancy.py`, 48
+orthogonal coldstart artefacts as native trees, where an axis is a fact and
+not a rotation to be decoded). Two structural sources: k parallel cuts in a
+row can be bracketed Catalan(k) ways, and any cut can be started from the
+opposite side with its children swapped.
+
+| programme | cuts per storey | cuts in a run of 2+ parallel | longest run | trees per layout: association | turn | both |
+|---|---|---|---|---|---|---|
+| programme-house | 4.7 | 18% | 3 | 2^1.0 | 2^5.8 | 2^6.8 |
+| health-centre | 32.8 | 33% | 4 | 2^6.0 | 2^32.8 | 2^38.8 |
+| harbor-house | 27.9 | 51% | 5 | 2^17.2 | 2^36.6 | 2^53.8 |
+| maple-court | 25.2 | 49% | 5 | 2^24.0 | 2^42.7 | 2^66.7 |
+
+On the two large programmes half of all cuts sit in a run of parallel cuts,
+and a layout has about 150 thousand (harbor-house) to 17 million
+(maple-court) bracketings before turns are counted. `genome.signature` tells none of them apart from a
+different building. The self-test holds the count to trees whose answer is
+known and checks that `mutate_reassociate` -- the one operator that
+re-brackets -- produces a new signature over the same rooms in the same
+strips.
+
+**What that costs the default search: less than the number suggests.**
+
+- Nothing is DEDUPLICATED by signature today. `niche_by_signature` is default
+  off (§11.5, rejected); the signature feeds one statistic,
+  `n_distinct_signatures`, which therefore over-counts distinct topologies by
+  an unknown and probably large factor. Any past sentence of the form "the
+  search explored N distinct topologies" is an upper bound.
+- For mutation the redundancy is not obviously a loss: many names for one
+  layout are many ways to reach it. What differs between two names is what
+  the NEXT move can do -- an undivide removes whichever cut the bracketing
+  put outermost -- and which ratios move together in the inner loop.
+- For crossover (20% of children) it is the cost §14 measured: a subtree is a
+  different set of cells under each bracketing, so a splice between two
+  independently evolved designs rarely lines up. That was the island model's
+  post-mortem, and this is the first count of how many alignments there are
+  to miss.
+
+**Not measured:** how often a crossover child is a real mix with and without
+a canonical form. That needs the canonical form, which is the IMPLEMENT half:
+a multi-way cut in the genome (a run stored as one node with k+1 children,
+which removes association by construction rather than by normalising after
+every move), turns normalised in `signature`, and then the Wong-Liu moves.
+On rectangles a run is exact; on skew quads, the bead notes, re-bracketing a
+run only approximately preserved its strips.
+Whether it improves a search is an A/B on the box. Recorded on the bead.

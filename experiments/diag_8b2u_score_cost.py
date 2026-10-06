@@ -18,6 +18,8 @@ this tool has two halves:
   primitives are called. The call counts are the part that does not wobble.
 * ``--inside`` is `8b2u.9`'s census: how many cells are a whole rectangle, not
   touched by the plot's crop.
+* ``--phases`` is `8b2u.13`'s question: how much of a score is leaf-local,
+  how much per-storey graph work, how much building-level.
 
 Usage (in a worktree, so that the worktree's ``src`` is the one measured)::
 
@@ -229,6 +231,68 @@ def inside_census() -> None:
     print(f"{'all':<16} {cells_:6d} {inside:16d} {100 * inside / cells_:5.1f}%")
 
 
+# --------------------------------------------------------------------------- #
+# 8b2u.13: which part of a score could be made incremental?
+# --------------------------------------------------------------------------- #
+PHASES = (
+    ("leaf-local",      ("evaluate_leaf",)),
+    ("storey graph",    ("leaf_graph", "has_circulation")),
+    ("storey, other",   ("process_storey",)),          # less evaluate_leaf, below
+    ("building, checks", ("check_space_counts", "check_adjacency",
+                          "check_level_constraints", "check_vertical_connectivity",
+                          "evaluate_building", "preprocess_building", "merge_divided",
+                          "mark_voids", "plot_cost", "canonicalize_shares")),
+)
+
+
+def phases(per_programme: int, repeat: int) -> None:
+    """Share of a score's time by what a moved ratio would force to be redone.
+
+    A ratio at node n moves the cells under n. LEAF-LOCAL work (a cell's
+    quality factors) is redone for those cells and their neighbours; a
+    STOREY's graph and its circulation filter are redone for the storey, and
+    for every storey above that inherits the cut; BUILDING-level work (the
+    programme checks, the building factor, the merge) is redone whatever
+    moved, and is the floor under any incremental scheme.
+
+    Measured under cProfile, which charges call-heavy code more than it costs
+    unprofiled: read the shares, not the milliseconds."""
+    import cProfile
+    import pstats
+
+    rt = _rt()
+    by_prog: dict = {}
+    for p, prog in rt.corpus():
+        if "coldstart-" in p.name:
+            by_prog.setdefault(prog.name, []).append((p, prog))
+    names = [n for n, _ in PHASES] + ["everything else"]
+    print(f"{'programme':<16} {'tree':<7}" + "".join(f"{n:>18}" for n in names))
+    for name, items in by_prog.items():
+        for kind in ("quad", "native"):
+            pr = cProfile.Profile()
+            for p, prog in items[-per_programme:]:
+                quad, native = both_trees(p)
+                root, orth = (quad, True) if kind == "quad" else (native, False)
+                fit = _fitness(prog)
+                roots = [copy.deepcopy(root) for _ in range(repeat)]
+                geometry.ORTHOGONAL_DIVISION = orth
+                for r in roots:
+                    geometry.clear_cache()
+                    pr.enable()
+                    fit.score_with_fails(r)
+                    pr.disable()
+                geometry.ORTHOGONAL_DIVISION = False
+                geometry.clear_cache()
+            cum: Counter = Counter()
+            for (_file, _line, fn), (_cc, _nc, _tt, ct, _callers) in pstats.Stats(pr).stats.items():
+                cum[fn] += ct
+            total = cum["score_with_fails"]
+            t = {n: sum(cum[f] for f in fns) for n, fns in PHASES}
+            t["storey, other"] -= t["leaf-local"]
+            t["everything else"] = total - sum(t.values())
+            print(f"{name:<16} {kind:<7}" + "".join(f"{100 * t[n] / total:17.0f}%" for n in names))
+
+
 def self_test() -> int:
     """The diff must FIRE: a snapshot with one cut moved by 1% has to differ
     from the plain one on most entries, or a clean diff says nothing."""
@@ -252,6 +316,8 @@ def main(argv=None) -> int:
     ap.add_argument("--per-programme", type=int, default=3,
                     help="artefacts timed per programme (the newest corpus's)")
     ap.add_argument("--inside", action="store_true")
+    ap.add_argument("--phases", action="store_true",
+                    help="share of a score by what a moved ratio forces to be redone (8b2u.13)")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
     if a.self_test:
@@ -266,6 +332,8 @@ def main(argv=None) -> int:
         timings(a.repeat, a.per_programme)
     if a.inside:
         inside_census()
+    if a.phases:
+        phases(a.per_programme, a.repeat)
     return 0
 
 
