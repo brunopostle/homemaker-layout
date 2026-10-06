@@ -14080,3 +14080,40 @@ Three things follow.
   longer shared wall, or a second outdoor neighbour. Whether the search finds
   those once the objective stops paying it not to is a sweep question, and the
   next re-baseline is the first that can answer it.
+
+### 39.98 The stale ratio in a live search: `undivide` moves a wall upstairs one time in six (`homemaker-py-3tzk`)
+
+§39.96 stopped the SCORER's merge from reviving an inherited node's stale
+ratio. `experiments/diag_3tzk_operator_walls.py` asks the same of the operators:
+each applied to the 48 `+orth` coldstart artefacts, 8 draws, counting upper
+nodes the operator did not touch whose cut end moves more than a millimetre
+because the cut beneath them was removed.
+
+| trees | `undivide`: applied, events, moved | `deslim` |
+|---|---|---|
+| after a genome round trip | 384, 61, **0** | 168, 6, 0 |
+| as loaded from the file (`--raw`) | 384, 61, **60**, median 36 cm | 168, 6, 6, median 147 cm |
+
+The difference is `genome.decode`, which has synchronised these fields since it
+was written -- its docstring counts "97 inherited-cut divisions and 187
+rotations" drifted across the corpus of the day and canonicalises them. But
+the live search never takes that round trip: `driver` calls only
+`genome.signature`, operators deep-copy `Node` trees, and the inner loop
+optimises the ratio of the cut that OWNS a wall while every node above that
+inherits it keeps the value it was created with. So the raw row is the search's
+row. One `undivide` in six (60 of 384) removes a ground-floor cut AND shifts
+the wall above it by a third of a metre, to wherever that node's ratio stood
+when it was last written.
+
+That is a locality defect: an operator documented as one move makes two. The
+inner loop then has 80 evaluations to pull the wall back, which it may or may
+not do. `reassociate`, `swap` and `ruin_recreate` show larger numbers in the
+full table for a different reason -- they restructure the storey below, so a
+path names a different piece of floor afterwards -- and are not this.
+
+Not fixed. The remedy is small (synchronise inherited ratios in the child
+before an operator removes a cut, as `dom._undivide` now does for the merge),
+but it changes what `undivide` does in every search, and whether that helps is
+a search question. It is search-side -- `operators.py` is not an objective
+source -- so it would move `search_commit` and not the stamp. Recorded on
+`homemaker-py-3tzk` for the owner.
