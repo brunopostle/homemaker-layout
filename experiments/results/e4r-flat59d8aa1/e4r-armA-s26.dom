@@ -1,0 +1,120 @@
+node:
+- - 1.67100188077385
+  - 11.9169190395339
+- - 8.72124918939699
+  - 13.7119442286569
+- - 6.79637028658874
+  - 21.3797854212389
+- - -0.42152047183069
+  - 19.9368564494913
+perimeter:
+  a: private
+  b: null
+  c: null
+  d: null
+rotation: 0
+division:
+- 0.42075726845257694
+- 0.42075726845257694
+height: 3.0
+elevation: 0.0
+wall_inner: 0.08
+wall_outer: 0.25
+l:
+  rotation: 3
+  division:
+  - 0.805596567493901
+  - 0.805596567493901
+  l:
+    rotation: 0
+    division:
+    - 0.6851061256233341
+    - 0.6851061256233341
+    l:
+      rotation: 2
+      division:
+      - 0.44415190783883374
+      - 0.44415190783883374
+      l:
+        type: t1
+        rotation: 0
+      r:
+        type: O
+        rotation: 0
+    r:
+      type: C
+      rotation: 0
+  r:
+    type: t3
+    rotation: 0
+r:
+  rotation: 3
+  division:
+  - 0.5138860604350239
+  - 0.5138860604350239
+  l:
+    type: b1
+    rotation: 0
+  r:
+    rotation: 0
+    division:
+    - 0.5319782879130737
+    - 0.5319782879130737
+    l:
+      type: C
+      rotation: 0
+    r:
+      type: l1
+      rotation: 0
+above:
+  rotation: 0
+  division:
+  - 0.577289375870254
+  - 0.577289375870254
+  height: 3.0
+  l:
+    rotation: 0
+    division:
+    - 0.5983502601945088
+    - 0.5983502601945088
+    l:
+      type: C
+      rotation: 0
+    r:
+      type: t2
+      rotation: 0
+  r:
+    rotation: 0
+    division:
+    - 0.18284228372393813
+    - 0.18284228372393813
+    l:
+      rotation: 0
+      division:
+      - 0.5129607096837032
+      - 0.5129607096837032
+      l:
+        rotation: 3
+        division:
+        - 0.5040009535326547
+        - 0.5040009535326547
+        l:
+          type: O
+          rotation: 0
+        r:
+          type: O
+          rotation: 0
+      r:
+        type: O
+        rotation: 0
+    r:
+      rotation: 0
+      division:
+      - 0.46542680690420946
+      - 0.46542680690420946
+      l:
+        type: C
+        rotation: 0
+      r:
+        type: b2
+        rotation: 0
