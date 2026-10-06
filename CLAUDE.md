@@ -425,6 +425,12 @@ Three consequences that bite:
   omission must outscore "no circulation". Run it after any objective change;
   `--self-test` is its negative control, and `tests/test_ruling_omit_vs_circulation.py`
   pins it. The pattern to copy when a ruling is about an ORDERING.
+- `experiments/diag_8b2u_score_cost.py` — for a change that must make a score
+  CHEAPER and no different: `--snapshot` every artefact's score and fail list
+  (quad and native) before and after, `--diff` them bit for bit, `--time` in
+  CPU milliseconds (wall-clock on a busy box swung 2x), `--self-test` for the
+  control (§39.105). Profile before choosing what to optimise: the bead that
+  prompted it named the wrong hot spot.
 - `experiments/trace_harbor_house.py` — reads an architectural SVG, and asks whose
   it is FIRST. §39.77 is the write-up of not doing that.
 

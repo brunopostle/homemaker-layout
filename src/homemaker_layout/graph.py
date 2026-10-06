@@ -49,6 +49,42 @@ def build_graphs(root: Node, door_width: float = DOOR_WIDTH) -> list[nx.Graph]:
     return [geometry.leaf_graph(lvl, door_width) for lvl in levels(root)]
 
 
+def storey_graphs(
+    root: Node,
+    door_width: float,
+    usages: dict[str, str],
+    reuse: "tuple[list[nx.Graph], list[nx.Graph], list[bool]] | None" = None,
+    keep: int = 0,
+) -> tuple[list[nx.Graph], list[nx.Graph], list[bool]]:
+    """``(graph_base, graph_circ, connected)``, one entry per storey.
+
+    ``graph_base[i]`` is the unfiltered adjacency graph for level i,
+    ``graph_circ[i]`` a copy filtered by ``has_circulation``, and
+    ``connected[i]`` what that filter returned.
+
+    ``reuse`` and ``keep`` (`homemaker-py-8b2u.11`): the scorer wants these
+    before and after ``dom.merge_divided``, and the merge leaves every storey
+    below the lowest one it touched exactly as it was. Pass the earlier result
+    as ``reuse`` and that storey's index as ``keep``, and the first ``keep``
+    storeys are handed back rather than built again. The caller must be done
+    with the earlier result: these are the same objects, not copies.
+    """
+    graph_base: list[nx.Graph] = []
+    graph_circ: list[nx.Graph] = []
+    connected: list[bool] = []
+    for i, lvl in enumerate(levels(root)):
+        if reuse is not None and i < keep:
+            g, gc, ok = reuse[0][i], reuse[1][i], reuse[2][i]
+        else:
+            g = geometry.leaf_graph(lvl, door_width)
+            gc = g.copy()
+            ok = has_circulation(gc, usages)
+        graph_base.append(g)
+        graph_circ.append(gc)
+        connected.append(ok)
+    return graph_base, graph_circ, connected
+
+
 def build_graphs_with_circ(
     root: Node,
     door_width: float,
@@ -56,26 +92,16 @@ def build_graphs_with_circ(
     usages: dict[str, str],
 ) -> tuple[list[nx.Graph], list[nx.Graph]]:
     """Build ``(graph_base, graph_circ)`` pairs; mirrors ``setup_storey_graphs``
-    in ``Base.pm:217-241``.
-
-    ``graph_base[i]`` is the unfiltered adjacency graph for level i.
-    ``graph_circ[i]`` is a copy filtered by ``has_circulation``; emits
-    "N inaccessible usable space" via ``fail`` if a level is disconnected after
-    filtering.
+    in ``Base.pm:217-241``. Emits "N inaccessible usable space" via ``fail``
+    if a level is disconnected after filtering.
 
     Perl clone quirk: ``has_circulation`` removes isolated vertices first, so a
     level with no adjacency edges always fires the "inaccessible" failure.
     """
-    lvls = levels(root)
-    graph_base: list[nx.Graph] = []
-    graph_circ: list[nx.Graph] = []
-    for i, lvl in enumerate(lvls):
-        g = geometry.leaf_graph(lvl, door_width)
-        graph_base.append(g)
-        gc = g.copy()
-        if not has_circulation(gc, usages):
+    graph_base, graph_circ, connected = storey_graphs(root, door_width, usages)
+    for i, ok in enumerate(connected):
+        if not ok:
             fail(f"{i} inaccessible usable space")
-        graph_circ.append(gc)
     return graph_base, graph_circ
 
 

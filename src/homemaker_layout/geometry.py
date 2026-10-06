@@ -766,6 +766,67 @@ def _edge_overlap_coords(
     ]
 
 
+def _native_facing(level_root: Node, leaves: "list[Node]",
+                   door_width: float) -> "list[tuple[int, int]]":
+    """Index pairs ``(i, j)``, ``i < j``, sorted, of the cells in ``leaves``
+    that could share a door's width of wall (`homemaker-py-8b2u.10`).
+
+    The floorplanner's rule: in a slicing tree two cells share a wall only
+    across a cut. A shared stretch of wall lies on the boundary of both cells'
+    rectangles, the rectangles do not overlap, and the line that separates
+    them is the cut of the node where their paths part. So for each cut, list
+    the cells of the low side that touch the line and the cells of the high
+    side that touch it -- each list comes out in order along the line, because
+    the tree is walked low side first -- and one pass down the two lists gives
+    every pair whose rectangles overlap by a door's width. That is a superset
+    of the pairs that share that much WALL (the plot's crop only ever shortens
+    a cell's side), and the caller measures each one. Against testing every
+    pair: about 3 n measurements in place of n^2 / 2.
+    """
+    index = {id(leaf): i for i, leaf in enumerate(leaves)}
+    need = door_width - 1e-6
+    pairs: "list[tuple[int, int]]" = []
+
+    def touching(n: Node, fixed: int, high: bool) -> "list[tuple[float, float, int]]":
+        """The live cells under ``n`` on the side of its rectangle where frame
+        coordinate ``fixed`` (0 for u, 1 for v) is highest or lowest, each
+        with its extent along that side, in order."""
+        if not n.divided:
+            i = index.get(id(n))
+            if i is None:                   # a void cell, or one not asked about
+                return []
+            r = _native_rect(n)
+            return [(r[2], r[3], i) if fixed == 0 else (r[0], r[1], i)]
+        axis, _, left_low = _native_cut(n)
+        low, top = (n.left, n.right) if left_low else (n.right, n.left)
+        if (1 if axis == "u" else 0) == fixed:
+            return touching(top if high else low, fixed, high)
+        return touching(low, fixed, high) + touching(top, fixed, high)
+
+    def walk(n: Node) -> None:
+        if not n.divided:
+            return
+        axis, _, left_low = _native_cut(n)
+        low, top = (n.left, n.right) if left_low else (n.right, n.left)
+        fixed = 1 if axis == "u" else 0
+        a, b = touching(low, fixed, True), touching(top, fixed, False)
+        i = j = 0
+        while i < len(a) and j < len(b):
+            if min(a[i][1], b[j][1]) - max(a[i][0], b[j][0]) >= need:
+                x, y = a[i][2], b[j][2]
+                pairs.append((x, y) if x < y else (y, x))
+            if a[i][1] <= b[j][1]:
+                i += 1
+            else:
+                j += 1
+        walk(low)
+        walk(top)
+
+    walk(level_root)
+    pairs.sort()
+    return pairs
+
+
 def leaf_graph(level_root: Node, door_width: float = 1.2):  # -> nx.Graph
     """Leaf-adjacency graph for one storey; mirrors ``Urb::Quad::Graph``.
 
@@ -788,12 +849,15 @@ def leaf_graph(level_root: Node, door_width: float = 1.2):  # -> nx.Graph
         G = nx.Graph()
         G.add_nodes_from(leaves)
         polys = [polygon(leaf) for leaf in leaves]
-        for i, a in enumerate(leaves):
-            for j in range(i + 1, len(leaves)):
-                width, seg = cells.shared_wall(polys[i], polys[j])
-                if width >= door_width:
-                    G.add_edge(a, leaves[j], width=width, coordinates=seg,
-                               weight=_dist(centroid(a), centroid(leaves[j])))
+        # Only cells that face each other across a cut are measured
+        # (`_native_facing`); they are added in the order an all-pairs loop
+        # would reach them, so the graph is the one that loop built, down to
+        # the order a cell's neighbours are listed in.
+        for i, j in _native_facing(level_root, leaves, door_width):
+            width, seg = cells.shared_wall(polys[i], polys[j])
+            if width >= door_width:
+                G.add_edge(leaves[i], leaves[j], width=width, coordinates=seg,
+                           weight=_dist(centroid(leaves[i]), centroid(leaves[j])))
         return G
     groups = boundary_groups(level_root)
 

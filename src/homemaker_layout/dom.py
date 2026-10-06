@@ -478,13 +478,14 @@ def _undivide(n: Node, new_type: str) -> None:
     n.type = new_type
 
 
-def _merge_node(n: Node, allow_sahn: bool) -> None:
-    """Post-order recursive merge; mirrors ``Urb::Dom::Merge_Divided``."""
+def _merge_node(n: Node, allow_sahn: bool, merged: "list[Node] | None" = None) -> None:
+    """Post-order recursive merge; mirrors ``Urb::Dom::Merge_Divided``.
+    Every node it undivides is appended to ``merged``."""
     if n.divided:
-        _merge_node(n.left, allow_sahn)
-        _merge_node(n.right, allow_sahn)
+        _merge_node(n.left, allow_sahn, merged)
+        _merge_node(n.right, allow_sahn, merged)
     if n.above is not None and n.parent is None:
-        _merge_node(n.above, allow_sahn)
+        _merge_node(n.above, allow_sahn, merged)
     if not n.divided:
         return
     lt = n.left.type or ""
@@ -514,12 +515,21 @@ def _merge_node(n: Node, allow_sahn: bool) -> None:
         _undivide(n, "O")
     elif _level_root(n).below is None:   # ground floor: !$self->Level in Perl
         _undivide(n, sahn)
+    if merged is not None and not n.divided:
+        merged.append(n)
 
 
-def merge_divided(root: Node, allow_sahn: bool = False) -> None:
+def merge_divided(root: Node, allow_sahn: bool = False) -> "int | None":
     """Merge adjacent outdoor siblings into a single node in-place;
     mirrors ``Urb::Dom::Merge_Divided``.  Re-links the tree afterward so
     ``below`` / ``parent`` / ``position`` fields stay consistent.
+
+    Returns the index of the LOWEST storey on which anything was merged, or
+    None if nothing was. Geometry is only ever read downwards -- a storey
+    takes its walls from the storeys under it and nothing from those over it --
+    so every storey below that index is exactly the storey it was before the
+    call, which is what lets the scorer keep the adjacency graphs it has
+    already built for them (`homemaker-py-8b2u.11`).
 
     ``allow_sahn`` (homemaker-py-4e7, §39.66) decides whether a merge may mint
     an ``S``. It defaults to **False**, matching
@@ -540,5 +550,13 @@ def merge_divided(root: Node, allow_sahn: bool = False) -> None:
     Only ``Fitness`` knows the programme's setting, so only ``Fitness`` passes
     ``True``.
     """
-    _merge_node(root, allow_sahn)
+    merged: list[Node] = []
+    _merge_node(root, allow_sahn, merged)
+    lowest = None
+    for n in merged:
+        lvl, i = _level_root(n), 0
+        while lvl.below is not None:
+            lvl, i = lvl.below, i + 1
+        lowest = i if lowest is None else min(lowest, i)
     link(root)
+    return lowest

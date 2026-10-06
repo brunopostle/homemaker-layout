@@ -14504,3 +14504,182 @@ becomes the default.
   (§39.103), which at a real budget is hours;
 - `solver` and `shapecurve` were not checked for what they aim at on a
   native tree, only that they run.
+
+### 39.105 A score at half the cost, and one saving declined (`homemaker-py-8b2u.9`, `.10`, `.11`)
+
+The owner's question on reading §39.103's "40% slower": the rectangle frame
+ought to be CHEAPER to process -- are we using what circuit-board layout
+already knows? We were using none of it. Three beads; two landed, one was
+measured and not built. All three touch objective sources, so the standard was
+§39.80's: every score and fail list captured before and after and compared.
+
+**The measure** (`experiments/diag_8b2u_score_cost.py`): `--snapshot` writes
+every orthogonal artefact's score and fail list, as the quad tree it is and as
+the native tree of the same building -- 384 entries -- and `--diff` compares two
+snapshots bit for bit (a score as a float's `repr`). Its `--self-test` moves
+one cut by 1% and requires the diff to fire.
+
+**A profile first, and it re-ordered the work.** One maple-court score, native:
+62% of it in `geometry.leaf_graph`. The quad tree: 48%. Neither bead had named
+the reason -- each storey's graph was built FOUR times a score (the bead said
+three): twice before `dom.merge_divided` and twice after. `build_graphs_with_circ`
+returned the plain graph and a circulation-filtered copy; the scorer kept only
+the filter's fail message, threw both graphs away, and called `build_graphs`
+for the plain one again. Then the same after the merge.
+
+**`8b2u.11`: one build per storey per state of the tree.** `graph.storey_graphs`
+returns the graph, its filtered copy and the filter's verdict together. After
+the merge, only the storeys the merge could have changed are built again:
+`merge_divided` now returns the lowest storey on which it merged anything, and
+everything under that storey is kept. That rests on an argument -- geometry,
+`is_usable` and `is_supported` read the storeys BELOW a cell and nothing
+above it -- so it has a test with a negative control
+(`tests/test_cheaper_scoring_changes_nothing.py`): on children every operator
+makes of two programmes' artefacts, both trees, the score with graphs kept is
+the score with every graph rebuilt; told that a merge touched nothing when it
+did, the scorer trips over a cell that is no longer there. The fail a
+disconnected storey earns is still reported twice, as it always was: that
+double count is in every score in the corpus and is not this bead's to change.
+A finished design rarely merges above the ground, so it builds each storey
+once or twice where it built it four times.
+
+**`8b2u.10`: walls from the cuts.** In a slicing tree two cells share a wall
+only across a cut: the stretch they share lies on both rectangles' boundaries,
+and the line between two rectangles is the cut where their paths part.
+`geometry._native_facing` walks the cuts; at each, the cells of the low side
+touching the line and the cells of the high side touching it come out already
+in order along it, and one pass down the two lists gives every pair whose
+rectangles overlap by a door's width. Those pairs are then measured by the
+same `cells.shared_wall` as before, and added in the order the all-pairs loop
+reached them -- so the graph is that loop's graph by construction, including
+the order a cell's neighbours are listed in, which `has_circulation` can be
+sensitive to. What the bead proposed -- reading the shared length straight off
+the 1-D overlap -- would have been a second implementation of a wall's length
+on cropped cells and not bit-exact. Candidate pairs get nearly all of the
+saving: on maple-court, 158 measurements a score against 3,748. Tested against
+the all-pairs graph on 150+ storeys and 5,000+ walls, including an L-shaped
+plot with void cells and an L-shaped cell, at the door's width and at 1 mm;
+the control hides one pair from the walk.
+
+**The result.** 0 of 384 entries moved, bit for bit, after each change. CPU
+milliseconds per score, fastest of nine, before and after both (wall-clock on
+the box swung 2x between identical runs while the A/B was using every core;
+process time repeated to 2%):
+
+| programme | cells | quad before | quad after | native before | native after | native / quad |
+|---|---|---|---|---|---|---|
+| programme-house | 10 | 8.5 | 6.6 | 9.7 | 7.7 | 1.13 -> 1.17 |
+| health-centre | 34 | 27.1 | 19.0 | 45.8 | 21.5 | 1.69 -> 1.13 |
+| harbor-house | 59 | 47.5 | 29.0 | 77.2 | 32.9 | 1.63 -> 1.13 |
+| maple-court | 77 | 63.2 | 40.8 | 96.1 | 46.8 | 1.52 -> 1.15 |
+
+The DEFAULT search's score is 22-39% cheaper -- `8b2u.11` is in both trees --
+and a native score costs half what it did. Native is still 13-17% dearer than
+the quad tree, spread thinly: a clip per cell, polygons of any length where
+the quad code indexes four corners.
+
+**`8b2u.9`, skip the crop for cells wholly inside the plot: measured, not
+built.** The bead expected most cells to qualify. `--inside` counts them: 990
+of 3,879, **25.5%** -- 0.5% on programme-house, whose ten cells nearly all
+touch the plot, to 66% on harbor-house. And the crop is small: `cells.clip` is
+about 6% of a native score after the two changes above. A quarter of 6% is
+under 2%. Against that, the shortcut is not bit-exact -- the clip computes a
+whole cell's corners by interpolating along the plot's edges, the shortcut
+would write the rectangle's own -- so it would be an objective change to be
+argued at a tolerance, for a saving inside the timing noise. Declined; the
+census and the profile are in the tool if the balance changes (it would with
+a much larger programme on a nearly rectangular plot).
+
+**What this does to `8b2u.8`'s list.** Its item (2), "optimise first", is done.
+Item (3) asked what `solver` and the shape-curve DP aim at on a native tree;
+the answer is that the default search calls neither. `solve_ratios` is called
+only by `compose`, and both shape-curve flags default off. What `operators` and
+`driver` do call from `geometry` is `area`, `aspect`, `boundary_id`,
+`leaf_graph` and `n_edges`, all of which §39.104 made answer for a native
+cell. Item (1), a runner that can ask for a native search and mark its rows,
+is `experiments/native_ab.py`: paired seeds, `quad` against `--native`, rows
+marked `<stamp>+orth` and `<stamp>+native`, `elapsed_s` among the paired
+metrics. Smoke-run at a toy budget; the real run needs the box.
+
+### 39.106 Two readings taken while the box was busy: `core_undivide`, and the shape-curve DP on a native tree (`homemaker-py-w4e`, `8b2u.14`)
+
+Neither changes `src/`. Both are the measurement a bead asked for before
+anyone chooses.
+
+**`core_undivide` has two defects, not one, and the one that was found is the
+smaller** (`experiments/diag_w4e_core_undivide.py`). §39.79 found the operator
+never fires: its precondition wants a path OWNED on two storeys, and
+below-inheritance lets a path be owned on one. The bead offered "delete it" or
+"repair the precondition" and asked for the second to be read carefully first.
+Read against its own docstring -- "reverse of `core_divide`: merge a C
+sub-core back into a single C leaf on all floors" -- the precondition is one
+difference and the RESULT is another: the merged cell takes the type of a room
+child when there is one, and `C` only when there is none. `core_divide` makes
+`C | <type>` on every storey, so the reverse as written puts a room where the
+staircase was, on every floor.
+
+Three variants (the operator copied into the diagnostic), 48 orthogonal
+coldstart artefacts, 8 draws each, in the two settings §39.75 taught us to
+separate:
+
+| variant | setting | fired | of those with a shaft, emptied | mean change in fails | parent restored |
+|---|---|---|---|---|---|
+| shipped | converged | 8 / 384 | 0 / 8 | +12.0 | -- |
+| precondition repaired | converged | 144 / 384 | 68 / 128 | +8.2 | -- |
+| ...and result typed `C` | converged | 144 / 384 | 10 / 128 | +8.5 | -- |
+| shipped | after `core_divide` | 33 / 256 | 0 / 14 | +6.9 | 3 |
+| precondition repaired | after `core_divide` | 256 / 256 | 140 / 208 | +4.8 | 6 |
+| ...and result typed `C` | after `core_divide` | 256 / 256 | 4 / 208 | **-8.4** | **213** |
+
+Three things to take from it.
+
+- **"Can never fire" is no longer true.** The shipped operator fired 8 times in
+  384 here (one artefact, every draw) and 33 in 256 after a `core_divide`.
+  §39.79 measured 0 of 960 on the twelve artefacts of an older corpus; the
+  sandwich it said existed nowhere now exists in one design, maple-court
+  `1a24b6a+orth` s0 (path `lrlrl`, two floors). Rare, not never.
+- **Repairing the precondition alone would be worse than leaving it.** It
+  empties the stair shaft in two firings of three, at x0.0225 each.
+- **With both repaired it is what the docstring says**: after a `core_divide`
+  it restores the parent's topology 213 times in 256 and removes 8.4 fails on
+  average. The 43 other firings chose a different stacked pair. On a converged
+  design it costs 8 fails and never helps -- as any undivide does there, and as
+  `core_divide` itself does; that row says nothing against it.
+
+So the bead's option (b) is a defect repair in two parts, and option (a),
+deletion, would remove the only exact inverse `core_divide` has. It is still
+a change to what a search does -- `core_divide` fires often, and a working
+inverse changes how its damage is undone -- so it is still an A/B on the box
+(`homemaker-py-w4e`, updated). What a container can say is which of the three
+to put in the B arm.
+
+**The shape-curve DP's verdict does not care which tree it reads; its warm
+start does** (`experiments/diag_ekc_shapecurve.py --native`, new flag). `8b2u.14`
+asked how much of §39.78's inexactness was the rectangle approximation, now
+that a native tree's interior cells are rectangles exactly. All 48 artefacts,
+each as a quad tree and as the native tree of the same building:
+
+| | quad tree | native tree |
+|---|---|---|
+| feasible verdicts | 14 of 48 | 14 of 48, the same designs |
+| false negatives (a clean committed point called infeasible) | 1 | 1, the same design |
+| DP passes a width the scorer fails | 0 of 725 | 0 of 725 |
+| feasible, but a shape fail at the point `solve` writes | 2 of 14 | **11 of 14** |
+
+The verdicts are identical, so none of the DP's verdict error was the
+rectangle approximation -- §39.78's conclusion, now measured directly rather
+than argued. The width band is also empty on both; the diagnostic now compares
+the DP's width with the fitted rectangle's, which is what the scorer has read
+since §39.102 (it compared with the shortest of four edges before).
+
+The last row is the finding. The DP works its ratios out on a box measured
+from a cell's cropped edges and writes them as fractions; a native tree draws
+those fractions on the uncropped rectangle. Every cell against a skew plot
+side lands somewhere else, and the DP's point sits on its constraints, so one
+or two cells fail. One attempt at the obvious repair -- let the DP measure a
+native node by its rectangle -- was tried and reverted: the same 11 of 14,
+because a cropped cell is then smaller than the box the DP believes it has.
+The port `8b2u.14` describes has to model the crop, not just swap the
+measure. Until it does, `--shapecurve-warmstart` with `--native` starts the
+inner loop from a point that is not the feasible one it claims. Both flags
+default off, so `8b2u.8`'s A/B is not touched by this.

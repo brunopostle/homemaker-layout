@@ -2410,11 +2410,17 @@ class Fitness:
         failures.extend(check_fails)
 
         self.preprocess_building(root)
-        _, graph_circ_pre = graph_mod.build_graphs_with_circ(
-            root, self.conf("door_width") or 1.2, failures.append, self.usages()
-        )
-
-        graph_base_pre = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
+        # One build per storey per state of the tree (homemaker-py-8b2u.11).
+        # This used to be two -- one for the circulation filter, whose graph
+        # was thrown away, and one for the adjacency checks -- and two more
+        # after the merge: the same graph four times, and half of a score.
+        door_width = self.conf("door_width") or 1.2
+        pre = graph_mod.storey_graphs(root, door_width, self.usages())
+        graph_base_pre = pre[0]
+        # A storey whose circulation does not connect is reported here and
+        # again after the merge, as it always has been: the fail counts twice.
+        failures.extend(f"{i} inaccessible usable space"
+                        for i, ok in enumerate(pre[2]) if not ok)
 
         failures.extend(graph_mod.check_adjacency(
             root, programme, graph_base_pre, missing,
@@ -2428,14 +2434,17 @@ class Fitness:
         # 4e7 (§39.66): the merge must not mint a type the programme has switched
         # off. `preprocess_building` above cannot do this for us -- it has to run
         # BEFORE the merge, so it cannot clean up after it.
-        dom_mod.merge_divided(
+        lowest_merged = dom_mod.merge_divided(
             root, allow_sahn=bool(self.conf("allow_sahn_circulation")))
         geometry.clear_cache()  # mirror Perl Merge_Divided → Clean_Cache
 
-        _, graph_circ = graph_mod.build_graphs_with_circ(
-            root, self.conf("door_width") or 1.2, failures.append, self.usages()
-        )
-        graph_base = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
+        # The storeys under the lowest one the merge touched are the storeys
+        # they were, so their graphs are kept; the rest are built again.
+        keep = len(pre[0]) if lowest_merged is None else lowest_merged
+        graph_base, graph_circ, connected = graph_mod.storey_graphs(
+            root, door_width, self.usages(), reuse=pre, keep=keep)
+        failures.extend(f"{i} inaccessible usable space"
+                        for i, ok in enumerate(connected) if not ok)
 
         cost = self.plot_cost(root)
         value = 0.0

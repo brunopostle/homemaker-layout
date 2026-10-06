@@ -65,9 +65,20 @@ def artefacts():
             yield f"{name}/{path.stem.split('-')[-1]}", path, conf, cost
 
 
+NATIVE = False      # --native: every artefact as its rectangle-frame tree
+
+
 def _load(path, orth=True):
     geometry.ORTHOGONAL_DIVISION = orth
     root = dom.load(str(path))
+    if NATIVE:
+        # `homemaker-py-8b2u.14`: the same building, drawn by splitting the
+        # frame rectangle. Interior cells are then rectangles exactly, and the
+        # DP's rectangle approximation is left only where the plot crops.
+        from homemaker_layout import dom_v2
+        root = dom_v2.to_native(root)
+        geometry.ORTHOGONAL_DIVISION = False
+        dom.link(root)
     geometry.clear_cache()
     return root
 
@@ -80,7 +91,7 @@ def shape_fails(fails):
 def check_width() -> None:
     """Leaves where the DP's mean-pair width clears `wmin` and the true
     narrowest edge does not -- the band in which the DP is optimistic."""
-    print("=== width measure: DP `_dims` min vs geometry.length_narrowest ===")
+    print("=== width measure: DP `_dims` min vs geometry.usable_width ===")
     total = constrained = optimistic = 0
     worst = (1.0, "")
     for tag, path, conf, cost in artefacts():
@@ -92,7 +103,9 @@ def check_width() -> None:
             for leaf in lvl.leaves():
                 bounds = shapecurve.leaf_constraints(fit, leaf)
                 w, h = shapecurve._dims(leaf)
-                dp_min, narrow = min(w, h), geometry.length_narrowest(leaf)
+                # what the scorer reads as width since §39.102: the fitted
+                # rectangle's short side (it was the shortest of four edges)
+                dp_min, narrow = min(w, h), geometry.usable_width(leaf)
                 total += 1
                 if bounds.wmin <= 0:
                     continue
@@ -147,7 +160,7 @@ def check_negatives() -> None:
         print("  %-22s committed %-14s DP %-11s %s" % (
             tag, "shape-fail-free" if witness else "has shape fails",
             "feasible" if ok else "infeasible", "<-- FALSE NEGATIVE" if bad else ""))
-    print(f"  false negatives: {n} of 12")
+    print(f"  false negatives: {n}")
 
 
 def check_cause() -> None:
@@ -191,11 +204,16 @@ def check_cause() -> None:
 
 
 def main(argv=None) -> int:
+    global NATIVE, CORPUS
     ap = argparse.ArgumentParser()
     for flag in ("width", "positives", "negatives", "cause"):
         ap.add_argument(f"--{flag}", action="store_true")
     ap.add_argument("--all", action="store_true")
+    ap.add_argument("--native", action="store_true",
+                    help="measure on native rectangle-frame trees (8b2u.14)")
+    ap.add_argument("--corpus", default=CORPUS)
     args = ap.parse_args(argv)
+    NATIVE, CORPUS = args.native, args.corpus
     run = {k: getattr(args, k) for k in ("width", "positives", "negatives", "cause")}
     if args.all or not any(run.values()):
         run = dict.fromkeys(run, True)
