@@ -14,6 +14,10 @@ Two rules were reading what is not geometry:
   ruling: "fit stairs to cores whichever way is best, so the flight can start
   at any corner and may run clockwise or counter clockwise").
 
+A third was a wall that moved when it should not have: merging two outdoor
+cells on one storey let the storey above fall back on a stale ratio of its own
+(`homemaker-py-3tzk`).
+
 Each test here has its negative control: the old rule, put back, must fail it.
 """
 
@@ -106,18 +110,12 @@ def test_control_urbs_stair_fit_does_read_the_numbering(rt, monkeypatch):
 # --------------------------------------------------------------------------- #
 def _moved_by_a_round_trip(rt) -> int:
     """Scores that change when a design goes through format v2 and back, which
-    moves no wall by more than nanometres. Stale inherited ratios are
-    synchronised first: that is `homemaker-py-3tzk`, a different matter."""
-    import copy
-
+    moves no wall by more than nanometres."""
     moved = 0
     for p, prog in _sample(rt):
         a = dom.load(str(p))
         b = rt.round_trip(a)
-        synced = copy.deepcopy(a)
-        dom.link(synced)
-        rt.sync_dead_fields(synced)
-        sa, fa = rt.score(synced, prog)
+        sa, fa = rt.score(a, prog)
         sb, fb = rt.score(b, prog)
         moved += rt.differs(sa, sb) or len(fa) != len(fb)
     return moved
@@ -149,3 +147,42 @@ def test_control_urbs_daylight_rule_does_read_the_noise(rt, monkeypatch):
     monkeypatch.setattr(Fitness, "area_outside", urb_area_outside)
     assert _moved_by_a_round_trip(rt) > 0
 
+
+
+# --------------------------------------------------------------------------- #
+# the merge that moved a wall upstairs
+# --------------------------------------------------------------------------- #
+STALE = REPO / "experiments" / "results" / "e4r" / "e4r-armA-s7.dom"
+
+
+def _upstairs_cut_moves_when_the_cells_below_merge() -> float:
+    """e4r arm A s7: the ground floor's `lr` is two outdoor cells, cut at
+    0.683; the first floor's `lr` is stair | outdoor and inherits that line,
+    while still storing 0.708 from earlier in its search. Returns how far the
+    first-floor cut moves when `merge_divided` fuses the pair below."""
+    import math
+
+    root = dom.load(str(STALE))
+    upper = dom.levels(root)[1].by_id("lr")
+    lower = dom.levels(root)[0].by_id("lr")
+    assert upper.divided and lower.divided
+    assert (lower.left.type, lower.right.type) == ("O", "O")
+    assert abs(upper.division[0] - lower.division[0]) > 0.01      # it IS stale
+    before = geometry.coord_a(upper)
+    dom.merge_divided(root)
+    geometry.clear_cache()
+    upper, lower = dom.levels(root)[1].by_id("lr"), dom.levels(root)[0].by_id("lr")
+    assert upper.divided and not lower.divided
+    return math.dist(before, geometry.coord_a(upper))
+
+
+def test_merging_outdoor_cells_does_not_move_the_wall_above():
+    assert _upstairs_cut_moves_when_the_cells_below_merge() < 1e-9
+
+
+def test_control_without_the_hand_up_the_wall_moves(monkeypatch):
+    def urb_undivide(n, new_type):
+        n.division, n.left, n.right, n.type = None, None, None, new_type
+
+    monkeypatch.setattr(dom, "_undivide", urb_undivide)
+    assert _upstairs_cut_moves_when_the_cells_below_merge() > 0.05     # 8.6 cm

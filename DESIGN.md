@@ -13973,3 +13973,40 @@ into `C|O` and inherits that line, while storing 0.708 of its own from before.
 `merge_divided` fuses the two `O`s, the first-floor node no longer has a cut
 below to inherit, and it cuts at 0.708 -- 8.6 cm from where the file's
 geometry put it. Not ruled on, not changed.
+
+### 39.96 The merge hands the wall up: the last of §39.94's three (`homemaker-py-3tzk`)
+
+Owner, 2026-10-06, having confirmed the mechanism in §39.95: do the fix.
+`dom._undivide` -- used only by `merge_divided` -- now copies the cut it is
+about to remove into the divided node above it, which had been inheriting that
+cut and would otherwise fall back on a ratio of its own from earlier in the
+search. The merge fuses two outdoor cells; it was never meant to move a wall on
+the storey above. If the node being merged was itself inheriting, the ratio
+handed up is the one actually drawn.
+
+Predicted and found: of the 192 orthogonal artefacts exactly the three §39.94
+named change, by the amounts it gave (e4r arm A s7 x0.987, e4r-tiers arm A s2
+x0.968, arm B s16 x0.999), and no fail list moves. 180 files still CARRY stale
+ratios -- that is how v1 is written -- but none is scored through one.
+
+**With all three in, a v1 -> v2 -> memory round trip keeps the strict score on
+192 of 192.** The table in §39.94 read 95, 75, 3, 0 with two scorer behaviours
+patched out; it now reads 0 with nothing patched, which is what "format v2
+changes how cuts are written down, not which buildings exist" (§39.88) needed
+to be true of the SCORE and not only of the cells.
+
+**A worked example of §39.95's daylight bug**, since "rounding noise" explains
+the mechanism and not the picture. health-centre `1a24b6a+orth`, ground floor,
+room `pt1`, 3.20 x 5.83 m. An outdoor cell sits against 2.79 m of one long
+side. That is its only wall onto open air, so its daylit wall is 2.79 m. But
+the outdoor cell's OTHER side runs along the same straight line as one of
+`pt1`'s short sides -- the two edges are end to end, sharing just the corner
+point where three cells meet. Urb asked, of every line in the plan, "do these
+two cells overlap along it?" and added the 2.79 m each time the answer was
+more than zero. Along the wall they share, the overlap is 2.787 m. Along the
+line they merely both end on, it is 8.9e-16 m: zero, plus the rounding of
+adding two lengths and subtracting their span. More than zero. So `pt1` was
+scored with 5.57 m of daylit wall, crinkliness 0.90 against a target of 0.83,
+a comfortable pass; with 2.79 m it is 0.45. Whether a given pair came out a
+hair above zero or a hair below was arithmetic luck, which is why moving every
+cut by a nanometre re-scored half the corpus.

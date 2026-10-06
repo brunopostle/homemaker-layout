@@ -421,6 +421,20 @@ def is_circulation(n: Node) -> bool:
 # --------------------------------------------------------------------------- #
 
 def _undivide(n: Node, new_type: str) -> None:
+    # The node on the storey above, if it is divided, has been drawing THIS
+    # node's cut: an upper storey inherits a cut wherever the storey below has
+    # one, and its own stored ratio is ignored meanwhile. Once this node is a
+    # single cell there is nothing to inherit and that stored ratio takes over
+    # -- a value left from whenever the search last wrote it, typically a few
+    # centimetres off. So hand the wall's position up before removing it: the
+    # merge fuses two outdoor cells, it is not meant to move a wall upstairs
+    # (homemaker-py-3tzk, DESIGN.md §39.96; owner, 2026-10-06).
+    above = _above_node(n)
+    if above is not None and above.divided:
+        drawn = n
+        while drawn.below is not None and drawn.below.divided:
+            drawn = drawn.below          # this node may be inheriting in turn
+        above.division = list(drawn.division)
     n.division = None
     n.left = None
     n.right = None

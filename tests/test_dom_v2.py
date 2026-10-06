@@ -9,7 +9,6 @@ not geometry are neutralised (DESIGN.md §39.94) -- its score.
 
 from __future__ import annotations
 
-import copy
 import importlib.util
 import math
 from pathlib import Path
@@ -259,20 +258,16 @@ def test_a_round_trip_keeps_the_score():
     the scorer was reading both -- since fixed (§39.95), and this is the test
     that they stay fixed: the STRICT score survives.
 
-    One thing is still set aside. An upper-storey node whose cut is inherited
-    stores a ratio of its own, `merge_divided` can revive it, and v2 does not
-    write it (`homemaker-py-3tzk`); the comparison synchronises those first.
-    One programme per corpus keeps this quick;
+    v2 does not write an inherited node's own stored ratio either, and since
+    §39.96 `merge_divided` no longer revives one. One programme per corpus
+    keeps this quick;
     `diag_8b2u2_roundtrip.py --scores` is the full 192.
     """
     rt = _diag()
     for p, prog in _one_per_corpus(rt):
         a = dom.load(str(p))
         b = rt.round_trip(a)
-        synced = copy.deepcopy(a)
-        dom.link(synced)
-        rt.sync_dead_fields(synced)
-        sa, fa = rt.score(synced, prog)
+        sa, fa = rt.score(a, prog)
         sb, fb = rt.score(b, prog)
         assert math.isclose(sa, sb, rel_tol=1e-6), p
         assert len(fa) == len(fb), p

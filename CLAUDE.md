@@ -477,9 +477,10 @@ holds both, each with Urb's old rule as its negative control, and
 trip is a cheap way to ask "does this rule read anything but geometry?" of any
 change to the objective.
 
-One known exception is still open: an upper-storey node whose cut is inherited
-keeps a ratio of its own, and `merge_divided` can revive it
-(`homemaker-py-3tzk`). The comparison synchronises those before scoring.
+A third was a wall that moved: an upper-storey node whose cut is inherited
+keeps a stale ratio of its own, and `merge_divided` used to revive it by
+undividing the node below. `dom._undivide` now hands the cut up first (§39.96).
+The stale ratios are still IN v1 files (180 of 192) -- they are just never read.
 
 For stairs the owner's ruling is that a flight "can start at any corner and may
 run clockwise or counter clockwise", so `_stair_fit` takes the best of every
