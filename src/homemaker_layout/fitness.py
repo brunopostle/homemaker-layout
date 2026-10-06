@@ -1355,7 +1355,7 @@ class Fitness:
             # structurally needs no Gaussian. The `None` idiom is §39.22/§39.23's.
             return 1.0
         score = 1.0
-        for i in range(4):
+        for i in range(geometry.n_edges(leaf)):
             # 1.570796: Urb::Dom::Perpendicular hard-codes this, not pi/2
             score *= gaussian(geometry.angle(leaf, i), 1.0, 1.570796, sigma)
         return score
@@ -1468,7 +1468,7 @@ class Fitness:
             # `width` is that overlap; `groups` is no longer consulted.
             length += G[leaf][nb]["width"]
         perimeter = _perimeter(leaf)
-        for e in range(4):
+        for e in range(geometry.n_edges(leaf)):
             bid = geometry.boundary_id(leaf, e)
             if bid not in geometry._EXTERNAL:
                 continue
@@ -1821,7 +1821,8 @@ class Fitness:
         if self._is_void(leaf):
             return 0.0                      # v8n: no boundary treatment for a hole
         rate = self.cost("boundary") if dom_mod.is_outside(leaf) else self.cost("boundary_wall")
-        length = sum(geometry.edge_length(leaf, e) for e in range(4)
+        length = sum(geometry.edge_length(leaf, e)
+                     for e in range(geometry.n_edges(leaf))
                      if geometry.boundary_id(leaf, e) in geometry._EXTERNAL)
         return rate * length * _height(leaf)
 
@@ -2000,7 +2001,7 @@ class Fitness:
         """External boundary ids ('a'-'d') for each edge of leaf."""
         _EXT = frozenset("abcd")
         result = []
-        for edge in range(4):
+        for edge in range(geometry.n_edges(leaf)):
             bid = geometry.boundary_id(leaf, edge)
             if bid in _EXT:
                 result.append(bid)

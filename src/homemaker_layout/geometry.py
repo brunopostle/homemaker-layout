@@ -208,6 +208,16 @@ def coord_b(n: Node) -> Point:
     return result
 
 
+def n_edges(n: Node) -> int:
+    """How many sides ``n`` has. Four, while every cell is a quad -- but the
+    scorer asks rather than assumes, so that a cell cropped to a pentagon or a
+    triangle by the plot (`homemaker-py-8b2u.4`, `cells.py`) needs this
+    function changed and not every loop that walks a cell's sides. The stair
+    rules are the exception and say so: a stair core is fitted as a rectangle.
+    """
+    return 4
+
+
 def _dist(a: Point, b: Point) -> float:
     # NOT math.hypot: Urb::Math::distance_2d is sqrt(dx**2 + dy**2) and the
     # two differ in the last ULP. Boundary overlap tests feed the difference
