@@ -3,7 +3,7 @@
 Status: **decisions taken 2026-10-05** (below). **Stage 1a implemented 2026-10-06**
 (`homemaker-py-8b2u.2`, `src/homemaker_layout/dom_v2.py`, DESIGN.md §39.94): the
 reader and writer exist, the in-memory tree is still v1 -- see *Stage 1a* at the
-end for what that means and for the one key it added. Epic: `homemaker-py-8b2u`.
+end for what that means. Epic: `homemaker-py-8b2u`.
 Evidence: DESIGN.md §39.88.
 
 ## Why a new version
@@ -176,25 +176,16 @@ of 3,879 cells identical, and a second dump byte-identical.
   it has the choice, so a design's `l`/`r` paths can differ after a round trip.
   Nothing scored depends on them.
 
-### `origin` on a circulation cell -- PROVISIONAL, awaiting a ruling
+### A leaf's corner numbering is not written, and nothing reads it
 
-```yaml
-{ cell: C, origin: hl }      # corner 0 is the cell's (high u, low v) corner
-```
-
-Decision 3 dropped v1's `rotation` as carrying no information. That holds for
-a cut. It does not hold for a `C` LEAF: the stair-fit rule takes its base edge
-from the lowest-numbered corner in use, so which corner a circulation cell
-counts from changes its stair fit. Turning the `C` leaves of the corpus --
-which moves no wall -- changed the score in 236 of 576 trials, by up to 27x;
-turning every other leaf, 0 of 576 (§39.94). A v2 file without it re-scores.
-
-So the writer records it, in the frame's terms: `ll`, `hl`, `hh` or `lh`, the
-corner of the cell nearest (low|high u, low|high v). Absent means `ll`. It is
-written only on the lowest storey that has the cell, which is where the scorer
-reads it. **Whether this is a design variable to keep (the way a stair runs) or
-a labelling artefact the scorer should not read is the owner's to rule**
-(`homemaker-py-8b2u.6`); if the latter, the key goes and the objective changes.
+v1's `rotation` on a LEAF says only which corner is called 0. The first cut of
+this reader carried it for circulation cells as a provisional `origin` key,
+because the stair-fit rule was reading it (236 of 576 turns of a `C` leaf moved
+a score, §39.94). The owner ruled the same day that a stair is fitted
+"whichever way is best, so the flight can start at any corner and may run
+clockwise or counter clockwise"; the scorer was changed to do that (§39.95),
+turning a leaf now moves no score, and the key was removed before it was ever
+merged. Decision 3 stands as written.
 
 ### What v2 does not carry, and the scorer reads anyway
 

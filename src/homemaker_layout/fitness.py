@@ -1456,11 +1456,17 @@ class Fitness:
         for nb in G.neighbors(leaf):
             if not dom_mod.is_outside(nb) or dom_mod.is_covered(nb):
                 continue
-            # Faithful loop over all internal boundaries: Overlap() is > 0
-            # only on a boundary both quads actually share an edge of.
-            for contributors in groups.values():
-                if geometry.boundary_pair_overlap(contributors, leaf, nb) > 0:
-                    length += G[leaf][nb]["width"]
+            # The wall shared with this neighbour, ONCE. Urb looped over every
+            # boundary and added the width wherever `Overlap() > 0`, and the
+            # port copied it (c01a8a0). Two cells that share a wall usually
+            # also both end on a second line, meeting there end to end, where
+            # the overlap is zero give or take rounding -- so the same wall was
+            # counted twice whenever the rounding fell above zero. 32 of 48
+            # committed coldstart scores rested on that, one by 145x
+            # (homemaker-py-khgi, DESIGN.md §39.94/§39.95). `G` has this edge
+            # only because the pair overlap by a door width somewhere, and its
+            # `width` is that overlap; `groups` is no longer consulted.
+            length += G[leaf][nb]["width"]
         perimeter = _perimeter(leaf)
         for e in range(4):
             bid = geometry.boundary_id(leaf, e)
@@ -1868,7 +1874,20 @@ class Fitness:
         return risers - 1
 
     def _stair_fit(self, leaf: Node, corners: list[int]) -> float:
-        """Stair fit score for one circulation leaf; mirrors ``Urb::Dom::Stair_Fit``."""
+        """Stair fit for one circulation leaf: how the shaft's length compares
+        with the length a stair of this height needs, 1.0 being exact.
+
+        ``Urb::Dom::Stair_Fit`` in its arithmetic. What it measured ALONG is
+        not Urb's: that took the edge leaving ``corners[0]`` as the base, which
+        was whichever in-use corner had the lowest number -- a property of the
+        leaf's ``rotation``, not of the room. Owner's ruling, 2026-10-06
+        (§39.95): "we want to fit stairs to cores whichever way is best, so the
+        flight can start at any corner and may run clockwise or counter
+        clockwise". So every edge is tried as the base with either neighbour as
+        the length, and the fit returned is the one the staircase factor likes
+        best. ``corners`` now matters only for how MANY there are: that is what
+        decides how many turns the stair may take.
+        """
         root = dom_mod._level_root(leaf)
         while root.below is not None:
             root = root.below
@@ -1878,21 +1897,21 @@ class Fitness:
         height = _height(leaf)
         risers = self._risers_number(height, max_riser)
         going = self._ideal_going(height / risers)
-        base = geometry.edge_length(leaf, corners[0])
-        length = geometry.edge_length(leaf, corners[0] + 1)
+        turns = {1: self._three_turn, 2: self._two_turn,
+                 3: self._one_turn}.get(len(set(corners)), self._zero_turn)
 
-        going_a = int((base - 2 * width) / going)
-        n = len(corners)
-        if n == 1:
-            going_b = self._three_turn(risers, going_a)
-        elif n == 2:
-            going_b = self._two_turn(risers, going_a)
-        elif n == 3:
-            going_b = self._one_turn(risers, going_a)
-        else:
-            going_b = self._zero_turn(risers, going_a)
-
-        return length / (width * 2 + going * going_b)
+        best = None
+        for edge in range(4):
+            base = geometry.edge_length(leaf, edge)
+            going_a = int((base - 2 * width) / going)
+            going_b = turns(risers, going_a)
+            for side in (1, 3):                       # the next edge, or the last
+                length = geometry.edge_length(leaf, (edge + side) % 4)
+                fit = length / (width * 2 + going * going_b)
+                key = (self.quality_staircase_volume(fit), -abs(fit - 1.0))
+                if best is None or key > best[0]:
+                    best = (key, fit)
+        return best[1]
 
     # ----------------------------------------------------------------------- #
     # Building-level ratio helpers (Dom.pm:Ratios/Areas/Area_Internal)
@@ -2129,17 +2148,21 @@ class Fitness:
                     corners = graph_mod.stack_corners_in_use(leaf, graph_circ, all_lvls)
                     n_corners = len(corners)
                     if n_corners:
-                        # Mirror Perl check_stair_fit: add entrance door corners so
-                        # the stair loses the corner it shares with the entrance.
+                        # As Perl's check_stair_fit: the entrance door takes the
+                        # two corners of its edge as well. They go in as
+                        # corners, not as raw indices -- `edge + 1` is 4 on
+                        # edge 3, which is corner 0, and appending it to a list
+                        # that already held 0 counted one corner twice.
                         entrance_bid = self._entrance_bid_for_stair(
                             leaf, level_root, G, graph_circ, all_lvls, root
                         )
                         if entrance_bid is not None:
-                            for edge in range(4):
-                                if geometry.boundary_id(leaf, edge) == entrance_bid:
-                                    for ec in (edge, edge + 1):
-                                        if ec not in corners:
-                                            corners = corners + [ec]
+                            door = tuple(
+                                c % 4 for edge in range(4)
+                                if geometry.boundary_id(leaf, edge) == entrance_bid
+                                for c in (edge, edge + 1))
+                            corners = graph_mod.stack_corners_in_use(
+                                leaf, graph_circ, all_lvls, also=door)
                         stair_fit = self._stair_fit(leaf, corners)
                         tracking["stair_fit"].append(stair_fit)
 

@@ -11,6 +11,8 @@ The two directions:
 * :func:`to_document` -- the forward map of ``experiments/diag_8b2u_rect_frame.py``
   (DESIGN.md §39.88, 2,577 of 2,577 cells): each cut, as ``geometry`` computes
   it, becomes an axis and a position in its parent RECTANGLE.
+  A LEAF's ``rotation`` is not written: it only says which corner is called 0,
+  and since §39.95 nothing scored reads that.
 * :func:`from_document` -- the reverse. A v1 node does not store a line; it
   stores which pair of its quad's edges a cut joins (``rotation``) and how far
   along the first (``division[0]``). So each cut is fitted: the rotation whose
@@ -113,45 +115,6 @@ def _cut_of(n: Node, u, v):
 
 
 # --------------------------------------------------------------------------- #
-# `origin`: which corner of a circulation cell is corner 0  -- PROVISIONAL
-# --------------------------------------------------------------------------- #
-# The spec drops v1's `rotation` because in a rectangle it "carries no
-# information", and for a CUT that is so. For a LEAF it is not: the stair-fit
-# rule (`graph.stack_corners_in_use` -> `Fitness._stair_fit`) takes its base
-# edge from the lowest-numbered corner in use, so which corner a `C` leaf calls
-# 0 decides which way its stair is measured. Measured on the 192 orthogonal
-# artefacts (DESIGN.md §39.94): rotating the `C` leaves, which moves no wall,
-# changes the score in 236 of 576 trials, by up to 27x; rotating every other
-# leaf changes it in 0 of 576.
-#
-# So a v2 file that dropped it would re-score. Until the owner rules whether
-# that dependence is a design variable to keep or a defect to remove, the
-# writer records it on `C` cells -- in the frame's terms, not v1's -- as the
-# corner of the cell nearest (low|high u, low|high v), e.g. `origin: hl`.
-# Absent means `ll`. The scorer reads it from the lowest storey that has the
-# cell, so it is written only there.
-_ORIGINS = ("ll", "hl", "hh", "lh")
-
-
-def _origin_index(corners, u, v, name: str) -> int:
-    """Index of the corner of ``corners`` nearest the named corner of their own
-    (u, v) bounding box."""
-    pu = [_dot(p, u) for p in corners]
-    pv = [_dot(p, v) for p in corners]
-    tu = min(pu) if name[0] == "l" else max(pu)
-    tv = min(pv) if name[1] == "l" else max(pv)
-    return min(range(len(corners)),
-               key=lambda i: ((pu[i] - tu) ** 2 + (pv[i] - tv) ** 2, i))
-
-
-def _origin_of(n: Node, u, v) -> str:
-    g = _geometry()
-    corners = [g.coordinate(n, i) for i in range(4)]
-    return min(_ORIGINS, key=lambda name: (_origin_index(corners, u, v, name) != 0,
-                                           _ORIGINS.index(name)))
-
-
-# --------------------------------------------------------------------------- #
 # Node tree -> v2 document
 # --------------------------------------------------------------------------- #
 def to_document(root: Node) -> dict:
@@ -169,8 +132,6 @@ def to_document(root: Node) -> dict:
                 d["share"] = n.share
             if n.co_type:
                 d["co_type"] = n.co_type
-            if n.type == "C" and n.below is None:
-                d["origin"] = _origin_of(n, u, v)
             return d
         cut = _cut_of(n, u, v)
         if cut is None:
@@ -344,14 +305,6 @@ def from_document(doc: dict) -> Node:
                 n.share, n.share_type = int(spec["share"]), n.type
             if spec.get("co_type") is not None:
                 n.co_type = str(spec["co_type"])
-            if spec.get("origin") is not None:
-                if spec["origin"] not in _ORIGINS:
-                    raise DomFormatError(
-                        f"{where}: `origin` is {spec['origin']!r}; it is one of "
-                        f"{', '.join(_ORIGINS)}")
-                if n.below is None:      # read from the storey below otherwise
-                    n.rotation = _origin_index(_unrotated(n), u, v, spec["origin"])
-                    pinned.add(id(n))
             return
         if "low" not in spec or "high" not in spec:
             raise DomFormatError(f"{where}: a node is a `cell` or has `low` and `high`")

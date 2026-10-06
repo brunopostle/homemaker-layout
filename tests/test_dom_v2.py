@@ -46,7 +46,7 @@ def _doc(**over) -> dict:
         "storeys": [
             {"elevation": 0.0, "height": 3.0,
              "tree": {"cut": "v", "at": 0.5,
-                      "low": {"cell": "l1"}, "high": {"cell": "C", "origin": "hl"}}},
+                      "low": {"cell": "l1"}, "high": {"cell": "C"}}},
             {"elevation": 3.0, "height": 2.7,
              "tree": {"low": {"cell": "b1"},
                       "high": {"cut": "u", "at": 0.4,
@@ -90,22 +90,6 @@ def test_a_v2_document_builds_the_cells_it_describes(tmp_path):
     assert root.meta == {"seed": 7}
     t1 = next(lf for lf in upper.leaves() if lf.type == "t1")
     assert (t1.share, t1.share_type) == (2, "t1")
-
-
-def test_origin_names_the_corner_a_circulation_cell_counts_from(tmp_path):
-    """The stair-fit rule measures from corner 0, so v2 says which corner that
-    is in the frame's terms (provisional; DESIGN.md §39.94)."""
-    for name, want in (("ll", (5.0, 0.25)), ("hl", (9.75, 0.25)),
-                       ("hh", (9.75, 7.75)), ("lh", (5.0, 7.75))):
-        doc = _doc()
-        doc["storeys"][0]["tree"]["high"]["origin"] = name
-        doc["storeys"][1]["tree"] = {"low": {"cell": "b1"}, "high": {"cell": "C"}}
-        root = _load(tmp_path, doc)
-        stair = next(lf for lf in root.leaves() if lf.type == "C")
-        c0 = geometry.coordinate(stair, 0)
-        assert (round(c0[0], 9), round(c0[1], 9)) == want, name
-        assert yaml.safe_load(dom.dumps(root, version=2))[
-            "storeys"][0]["tree"]["high"]["origin"] == name
 
 
 def test_dump_then_load_then_dump_is_the_same_text(tmp_path):
@@ -182,20 +166,21 @@ def test_a_cut_that_misses_its_cropped_cell_is_refused(tmp_path):
 
 def test_an_upper_cut_against_a_fixed_orientation_is_refused(tmp_path):
     """`geometry` reads a cell's rotation from the lowest storey that has it.
-    A ground `C` cell with an `origin` has fixed it, so of the two ways the
-    storey above might cut across that cell, exactly one can be held."""
-    held = []
-    for axis in ("u", "v"):
-        doc = _doc(storeys=[
-            {"elevation": 0.0, "height": 3.0, "tree": {"cell": "C", "origin": "ll"}},
-            {"elevation": 3.0, "height": 3.0, "tree": {
-                "cut": axis, "at": 0.5, "low": {"cell": "b1"}, "high": {"cell": "C"}}}])
-        try:
-            _load(tmp_path, doc)
-            held.append(axis)
-        except DomFormatError as e:
-            assert "orientation" in str(e)
-    assert len(held) == 1
+    Ground floor cut one way, first floor left whole, second floor cut the
+    OTHER way across the same cell: the v1 tree cannot hold it, because the
+    ground floor's cut has already fixed which edges a cut there joins."""
+    def doc(top_axis):
+        return _doc(storeys=[
+            {"elevation": 0.0, "height": 3.0, "tree": {
+                "cut": "v", "at": 0.5, "low": {"cell": "l1"}, "high": {"cell": "C"}}},
+            {"elevation": 3.0, "height": 3.0, "tree": {"cell": "C"}},
+            {"elevation": 6.0, "height": 3.0, "tree": {
+                "cut": top_axis, "at": 0.3, "low": {"cell": "b1"}, "high": {"cell": "C"}}}])
+    top = dom.levels(_load(tmp_path, doc("v")))[2]
+    assert sorted(_bbox(lf) for lf in top.leaves()) == [
+        (0.25, 3.1, 0.25, 7.75), (3.1, 9.75, 0.25, 7.75)]
+    with pytest.raises(DomFormatError, match="orientation"):
+        _load(tmp_path, doc("u"))
 
 
 def test_a_skew_design_cannot_be_written_as_v2(tmp_path):
@@ -255,38 +240,39 @@ def test_the_cell_comparison_can_fail():
     assert _diag().mode_cells(self_test=True) == 0
 
 
-@needs_corpus
-def test_a_round_trip_keeps_the_score_once_what_is_not_geometry_is_set_aside():
-    """Cells identical is not score identical: on these artefacts the strict
-    scores move on a round trip, for two reasons that are the scorer's and not
-    the format's (DESIGN.md §39.94) --
-
-    * `boundary_pair_overlap(...) > 0` credits two walls that merely touch end
-      to end whenever rounding leaves their overlap a hair above zero, and a
-      round trip moves every cut by a few ulps;
-    * an upper-storey node whose cut is inherited still stores a ratio of its
-      own, and `merge_divided` can undivide the node below and revive it. v2
-      does not write that ratio.
-
-    With the first floored at 1 nm and the second synchronised, every score
-    and every fail count is the same. One programme per corpus keeps this
-    quick; `diag_8b2u2_roundtrip.py --scores` is the full 192.
-    """
-    rt = _diag()
-    seen = set()
+def _one_per_corpus(rt):
+    seen, out = set(), []
     for p, prog in rt.corpus():
         key = (prog.name, p.parent.name)
-        if key in seen:
-            continue
-        seen.add(key)
+        if key not in seen:
+            seen.add(key)
+            out.append((p, prog))
+    assert len(out) >= 6
+    return out
+
+
+@needs_corpus
+def test_a_round_trip_keeps_the_score():
+    """Cells identical was not score identical when this format was written:
+    75 of 192 scores moved on a round trip (DESIGN.md §39.94). A round trip
+    moves every cut by a few ulps and turns every leaf's corner numbering, and
+    the scorer was reading both -- since fixed (§39.95), and this is the test
+    that they stay fixed: the STRICT score survives.
+
+    One thing is still set aside. An upper-storey node whose cut is inherited
+    stores a ratio of its own, `merge_divided` can revive it, and v2 does not
+    write it (`homemaker-py-3tzk`); the comparison synchronises those first.
+    One programme per corpus keeps this quick;
+    `diag_8b2u2_roundtrip.py --scores` is the full 192.
+    """
+    rt = _diag()
+    for p, prog in _one_per_corpus(rt):
         a = dom.load(str(p))
         b = rt.round_trip(a)
         synced = copy.deepcopy(a)
         dom.link(synced)
         rt.sync_dead_fields(synced)
-        with rt.floor_overlap():
-            sa, fa = rt.score(synced, prog)
-            sb, fb = rt.score(b, prog)
+        sa, fa = rt.score(synced, prog)
+        sb, fb = rt.score(b, prog)
         assert math.isclose(sa, sb, rel_tol=1e-6), p
         assert len(fa) == len(fb), p
-    assert len(seen) >= 6

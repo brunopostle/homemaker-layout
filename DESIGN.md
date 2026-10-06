@@ -13879,3 +13879,97 @@ beside the input and never onto it; and refuses a v1 file whose convention it
 would have to guess (no `--orthogonal`, no `+orth` in the name). Its negative
 control is a reader that moves one cut by 1e-3: nothing is written. Committed
 artefacts stay v1 -- they are records (decision 4).
+
+### 39.95 Two of §39.94's three, fixed on the owner's rulings: daylight counted once, and stairs fitted whichever way is best (`homemaker-py-khgi`, `homemaker-py-8b2u.6`)
+
+Both on branch `dom-v2`, both objective changes, neither landed while
+`homemaker-py-qkp0` runs.
+
+**How long the daylight bug has been there: always.** `Urb::Dom::Area_Outside`
+loops over every boundary and adds the neighbour's width wherever
+`Overlap() > 0` (Dom.pm:733-746), and the port copied the loop on its first
+day (c01a8a0, 2026-06-13). The loop exists in Urb to find which boundary to
+sample the sky from; with the illumination pinned to 1 it only counts. Every
+corpus this project has measured carries it, orthogonal or not, each scored
+under its own convention with today's code:
+
+| corpus | phantom pairs | scores resting on one, of 12 | fails as scored -> without |
+|---|---|---|---|
+| `055d710` | 49 | 9 | 277 -> 294 |
+| `99c85ec` | 49 | 9 | 244 -> 263 |
+| `c836457+orth` | 40 | 7 | 257 -> 276 |
+| `1138ff1+orth` | 41 | 9 | 267 -> 285 |
+| `07b2058+orth` | 24 | 8 | 267 -> 275 |
+| `1a24b6a+orth` | 33 | 8 | 248 -> 257 |
+
+So every sweep's fail total has been 3-8% low, and all of it in one family.
+
+*The fix* is to count the wall shared with a neighbour once. The graph has
+that edge only because the pair overlap by a door width on some boundary, and
+its `width` is that overlap, so the boundary loop is not needed at all. It
+equals the old rule with the overlap floored at 1 nm on all 192 artefacts,
+score and fail list -- which is the evidence that nothing but the noise went.
+
+**Stairs.** The owner: "we want to fit stairs to cores whichever way is best,
+so the flight can start at any corner and may run clockwise or counter
+clockwise". Three places read the numbering instead, all inherited from Urb:
+
+- `_stair_fit` took the edge leaving `corners[0]` as its base -- the lowest
+  NUMBERED corner in use. It now tries every edge as the base with either
+  neighbour as the length and keeps the fit the staircase factor scores best.
+- `corners_in_use` returned the first run of corners it met and could not see
+  one wrapping from 3 to 0 (Perl read `corners[4]`, undef), so such a pair came
+  back as three corners -- and not always the right three. Runs now wrap, every
+  smallest run is returned (`_corner_runs`), and `stack_corners_in_use` chooses
+  among them across the storeys so as to leave the stair the most corners.
+- the entrance door's corners were appended as raw indices, so `edge + 1 == 4`
+  was added beside a 0 already there and one corner counted twice.
+
+Turning the `C` leaves now moves 0 of 576 scores (was 236), and v2's
+provisional `origin` key is gone before it was ever merged.
+
+**What the two do to the 192 artefacts** (re-scored, `59d8aa1+orth` code vs
+the branch; the stair row is on top of the daylight row):
+
+| | daylight once | stairs, best way |
+|---|---|---|
+| harbor-house (12) | fails 331 -> 341, 9 scores down | no fail moves; 6 up, 1 down |
+| health-centre (12) | 66 -> 73, 10 down | nothing moves |
+| maple-court (12) | 626 -> 663, 12 down, geo-mean x0.11 | no fail moves; 2 up |
+| programme-house (12) | nothing moves | 5 up |
+| e4r + e4r-tiers (144) | 1 score moves | 62 up, 2 down, no fail moves |
+
+Every new fail is `crinkliness` (54 of them), as the bead predicted before the
+fix: fail counts stay or rise, programme-house does not move, the family grows
+on the large programmes. §39.82's "45% of fails are crinkliness" was therefore
+an under-count, and CLAUDE.md's standing note that the tail is too small to
+move a search should be re-read against the next sweep.
+
+**One part of Urb's rule was kept on purpose.** When no three corners hold
+every wall -- doors on three sides, or four -- Urb still answered three: its
+last test read two undef corners and `is_between_2d(point, undef, undef)` is
+true of anything. Counting honestly there holds such a core to a straight
+flight, and four artefacts fell by x0.13 to x0.70 when it was tried. That is a
+question about stairs, not about numbering, so the cap stays (any three
+corners, not specifically 3, 0 and 1) and the question is
+`homemaker-py-8b2u.7`.
+
+**Three scores FELL under the stair rule**, worth a line each because "best
+way" sounds as though it could only help. All three are the corner COUNT
+changing, not the orientation. harbor-house `1a24b6a+orth` s1 (x0.79): a shaft
+counted four because the entrance corner was added twice; it is three, a
+tighter stair fits, and the shaft is now oversized for it. e4r-tiers arm B s21
+(x0.95): three becomes two, the same way round. e4r-tiers arm B s24 (x0.13, no
+fail): doors on two sides upstairs need corners 2, 3 and 0; Urb's undef read
+reported 3, 0 and 1 instead, which happened to contain the entrance door's
+corners, so three "sufficed". With the right three the entrance makes four,
+and a straight flight does not fit that shaft.
+
+**Still open from §39.94: the stale ratio** (`homemaker-py-3tzk`). The owner
+asked whether an orphaned ratio can matter unless the cell above the undivided
+one is itself divided. It cannot, and that is exactly the case: e4r arm A s7
+has ground-floor `lr` cut into `O|O` at 0.683; the first floor's `lr` is cut
+into `C|O` and inherits that line, while storing 0.708 of its own from before.
+`merge_divided` fuses the two `O`s, the first-floor node no longer has a cut
+below to inherit, and it cuts at 0.708 -- 8.6 cm from where the file's
+geometry put it. Not ruled on, not changed.

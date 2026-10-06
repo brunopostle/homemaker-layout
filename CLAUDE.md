@@ -466,6 +466,26 @@ When adding or editing a programme, run
 `python experiments/audit_programme_config.py` — it reports reserved-name
 collisions, the usage class each code picks up, and per-room-spec satisfiability.
 
+### A score depends on walls, not on labels (DESIGN.md §39.94/§39.95)
+
+Two things that move no wall must move no score: **turning a leaf's corner
+numbering** (its `rotation`) and **shifting every cut by nanometres**. Both did,
+on half the corpus, until format v2 -- the first thing to rewrite a design
+without changing it -- showed it. `tests/test_scorer_reads_geometry_only.py`
+holds both, each with Urb's old rule as its negative control, and
+`experiments/diag_8b2u2_roundtrip.py` is the tool: a v1 -> v2 -> memory round
+trip is a cheap way to ask "does this rule read anything but geometry?" of any
+change to the objective.
+
+One known exception is still open: an upper-storey node whose cut is inherited
+keeps a ratio of its own, and `merge_divided` can revive it
+(`homemaker-py-3tzk`). The comparison synchronises those before scoring.
+
+For stairs the owner's ruling is that a flight "can start at any corner and may
+run clockwise or counter clockwise", so `_stair_fit` takes the best of every
+orientation and only the NUMBER of corners the doors need
+(`graph.stack_corners_in_use`) constrains it.
+
 ### The stair shaft is a full-height column (owner's ruling, DESIGN.md §39.72)
 
 **A staircase exists only where the cell is identical on every floor.** The owner's
@@ -718,6 +738,11 @@ Crinkliness is far and away the biggest family -- 39.1% of the fail set at
 (§39.89). The figures carry their stamps on purpose: this is a trend, and the
 next sweep's number belongs in DESIGN.md, not in a second copy here. When §39.31
 measured it, 69% of its residual sat at `crink == 0`: fully buried leaves.
+
+**Every figure above is an under-count.** Until §39.95 a cell was credited
+daylight twice through a wall whenever a neighbour also met it end to end and
+rounding fell the right way; 3-8% of every corpus's fails were hidden, all of
+them crinkliness. Read the next sweep's share against that, not against these.
 
 **Three attempts to reach it have now been measured, and all three were inert.**
 Read §39.68 before starting a fourth:

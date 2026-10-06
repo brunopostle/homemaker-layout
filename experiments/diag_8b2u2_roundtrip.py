@@ -23,6 +23,12 @@ of v2, all of them things the objective reads that are not geometry:
 `--self-test` is the negative control for --cells: one `at` moved by 1e-4 must
 be reported as a different cell.
 
+SINCE §39.95 the first two are fixed, so `--rotation` and `--noise` are
+regression checks that should report nothing moved, and `--scores` moves only
+on the three files `--dead-fields` names. The numbers in §39.94 are what these
+modes printed BEFORE; `tests/test_scorer_reads_geometry_only.py` carries the old
+rules as negative controls, which is how to see them fire again.
+
     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/diag_8b2u2_roundtrip.py --scores
 """
 
@@ -201,39 +207,46 @@ def mode_scores() -> int:
     return 0 if not tot["noise floored + dead fields synced: score moved"] else 1
 
 
+def turn_leaves(base, group: str, k: int):
+    """A copy of `base` with the corner numbering of its `C` leaves (group
+    "C") or of every other leaf ("other") turned `k` places. Only leaves whose
+    rotation no geometry reads are turned -- nothing below them, and no storey
+    above cutting across them -- so not one wall moves."""
+    lvls = dom.levels(base)
+
+    def free(leaf, li):
+        if leaf.below is not None:
+            return False
+        for up in lvls[li + 1:]:
+            n = up.by_id(leaf.id)
+            if n is None:
+                break
+            if n.divided:
+                return False
+        return True
+
+    pick = [[free(lf, li) for lf in lvl.leaves()] for li, lvl in enumerate(lvls)]
+    t = copy.deepcopy(base)
+    dom.link(t)
+    for li, lvl in enumerate(dom.levels(t)):
+        for lf, ok in zip(lvl.leaves(), pick[li]):
+            if ok and ((lf.type == "C") == (group == "C")):
+                lf.rotation = (lf.rotation + k) % 4
+    g.clear_cache()
+    return t
+
+
 def mode_rotation() -> int:
     tot = collections.Counter()
     worst = 1.0
     for p, prog in corpus():
         base = dom.load(str(p))
         s0, _ = score(base, prog)
-        lvls = dom.levels(base)
-
-        def free(leaf, li, lvls=lvls):
-            """A leaf whose rotation no geometry reads: nothing below it, and
-            no storey above cuts across it."""
-            if leaf.below is not None:
-                return False
-            for up in lvls[li + 1:]:
-                n = up.by_id(leaf.id)
-                if n is None:
-                    break
-                if n.divided:
-                    return False
-            return True
-
-        pick = [[free(lf, li) for lf in lvl.leaves()] for li, lvl in enumerate(lvls)]
         for group in ("C", "other"):
             for k in (1, 2, 3):
-                t = copy.deepcopy(base)
-                dom.link(t)
-                for li, lvl in enumerate(dom.levels(t)):
-                    for lf, ok in zip(lvl.leaves(), pick[li]):
-                        if ok and ((lf.type == "C") == (group == "C")):
-                            lf.rotation = (lf.rotation + k) % 4
-                g.clear_cache()
-                s, fails = score(t, prog)
+                s, _ = score(turn_leaves(base, group, k), prog)
                 tot[f"{group}: trials"] += 1
+                tot[f"{group}: score moved"] += 0
                 if differs(s, s0, 1e-9):
                     tot[f"{group}: score moved"] += 1
                     worst = max(worst, s0 / s, s / s0)
