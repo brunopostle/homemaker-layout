@@ -19,6 +19,9 @@ and the same with `mutate_bridge_circulation` applied after the move, the
 follow-up the operator's docstring relies on to clear the access fail it can
 cause -- which the searches in §39.81 ran with switched OFF.
 
+Parents are the arm-A artefacts that carry the fail when scored TODAY, from
+either A/B (`--source flat tiers`); §39.93 is the re-run at 2.3 m.
+
     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/diag_ek07_support_outside_trade.py
 """
 
@@ -40,8 +43,11 @@ import numpy as np  # noqa: E402
 from homemaker_layout import dom, driver, geometry, innerloop, operators, programme  # noqa: E402
 
 PROG = REPO / "examples" / "programme-house"
-AB = REPO / "experiments" / "results" / "e4r_support_outside_ab.tsv"
-ARTEFACTS = REPO / "experiments" / "results" / "e4r"
+# Where the arm-A artefacts of each A/B live: §39.81's flat run (07b2058+orth),
+# §39.91's --use-tiers run (59d8aa1+orth), and any --tag run beside them.
+RESULTS = REPO / "experiments" / "results"
+SOURCES = {"flat": ("e4r", "e4r_support_outside_ab.tsv"),
+           "tiers": ("e4r-tiers", "e4r_support_outside_ab_tiers.tsv")}
 ROOF = "no outside space"
 # the search config both §39.81 arms used (search_configs/4549a418fc.json)
 SEARCH = dict(leaf_sharing=True, collapse_insearch=True)
@@ -76,15 +82,52 @@ def evaluate(root, parent_ratios):
     return ind.fitness, fails
 
 
-def exhaustive() -> int:
-    rows = list(csv.DictReader(AB.open(), delimiter="\t"))
-    seeds = [r["seed"] for r in rows if r["arm"] == "armA" and r["roof_fail"] == "1"]
+def parents(sources) -> "list[tuple[str, str, Path]]":
+    """(source, seed, path) of every arm-A artefact that carries the fail WHEN
+    SCORED NOW. The A/B tables record it at the objective each run was made at
+    -- §39.87 has since narrowed the outdoor width from 3.0 m to 2.3 m -- so
+    the table's `roof_fail` column is the wrong thing to select on."""
+    fit, out = driver._fitness_for(str(PROG), **SEARCH), []
+    for src in sources:
+        name, table = SOURCES.get(src, (src, None))
+        d = RESULTS / name
+        doms = sorted(d.glob("e4r-armA-s*.dom"),
+                      key=lambda q: int(q.stem.rsplit("-s", 1)[1]))
+        if not doms:
+            raise SystemExit(f"no arm-A artefacts in {d}")
+        was = {r["seed"] for r in csv.DictReader((RESULTS / table).open(),
+                                                 delimiter="\t")
+               if r["arm"] == "armA" and r["roof_fail"] == "1"} if table else set()
+        now = set()
+        for q in doms:
+            root = dom.load(str(q))
+            dom.link(root)
+            _, fails = fit.score_with_fails(root)
+            geometry.clear_cache()
+            if any(ROOF in f for f in fails):
+                seed = q.stem.rsplit("-s", 1)[1]
+                now.add(seed)
+                out.append((src, seed, q))
+        note = ""
+        if table and was != now:
+            note = (f"  (its table says {len(was)}: "
+                    f"no longer {sorted(was - now, key=int)}, "
+                    f"newly {sorted(now - was, key=int)})")
+        print(f"{src}: {len(now)} of {len(doms)} arm-A artefacts carry "
+              f"`{ROOF}` at today's objective{note}")
+    print()
+    return out
+
+
+def exhaustive(sources) -> int:
+    seeds = parents(sources)
     print(f"every `place` cut on the {len(seeds)} arm-A artefacts carrying `{ROOF}`\n")
     print(f"{'seed':>5} {'cuts':>5} {'clear':>6} {'win':>4}  {'parent':>9} {'best cut':>9}"
           f"  best cut's fails gained / lost")
     wins = 0
-    for seed in seeds:
-        parent = dom.load(str(ARTEFACTS / f"e4r-armA-s{seed}.dom"))
+    for src, seed, path in seeds:
+        seed_label = f"{src[0]}{seed}"
+        parent = dom.load(str(path))
         dom.link(parent)
         ratios = innerloop.ratio_map(parent)
         p_score, p_fails = evaluate(parent, ratios)
@@ -118,14 +161,18 @@ def exhaustive() -> int:
                                 best = (s, f, f"{li}/{t.id} rot{rot} side{side} {r}")
         wins += won > 0
         if best is None:
-            print(f"{seed:>5} {n:5d}   no cut clears the fail")
+            print(f"{seed_label:>5} {n:5d}   no cut clears the fail")
             continue
         gained = sorted((collections.Counter(map(family, best[1]))
                          - collections.Counter(map(family, p_fails))).elements())
         lost = sorted((collections.Counter(map(family, p_fails))
                        - collections.Counter(map(family, best[1]))).elements())
-        print(f"{seed:>5} {n:5d} {cleared:6d} {won:4d}  {p_score:9.4f} {best[0]:9.4f}"
+        print(f"{seed_label:>5} {n:5d} {cleared:6d} {won:4d}  {p_score:9.4f} {best[0]:9.4f}"
               f"  +{gained} -{lost}  ({best[2]})")
+        # the raw lines, because WHOSE width fails is the finding (§39.86: the
+        # new terrace's own) and a family name cannot say
+        for line in sorted(set(best[1]) - set(p_fails)):
+            print(f"{'':>11}{line}")
     print(f"\nartefacts where at least one single cut beats the parent: {wins} of {len(seeds)}")
     return 0
 
@@ -138,21 +185,25 @@ def main(argv=None) -> int:
                     help="instead of random draws, try EVERY place cut (eligible "
                          "leaf x 4 rotations x 2 sides x ratios 1/4,1/2,3/4) and "
                          "report the best per artefact: does ANY single cut win?")
+    ap.add_argument("--source", nargs="+", default=["flat"],
+                    help="which A/B's arm-A artefacts to use: flat (results/e4r, "
+                         "the default), tiers (results/e4r-tiers), or any other "
+                         "directory name under experiments/results. Several may "
+                         "be given; seeds are then prefixed f/t in the table.")
     args = ap.parse_args(argv)
     geometry.ORTHOGONAL_DIVISION = True
     if args.exhaustive:
-        return exhaustive()
+        return exhaustive(args.source)
 
     reqs = programme.load_programme_dir(str(PROG))
     types = sorted(reqs) + ["C", "O"]
-    rows = list(csv.DictReader(AB.open(), delimiter="\t"))
-    seeds = [r["seed"] for r in rows if r["arm"] == "armA" and r["roof_fail"] == "1"]
-    print(f"{len(seeds)} arm-A artefacts carry `{ROOF}` (seeds {', '.join(seeds)}); "
+    seeds = parents(args.source)
+    print(f"{len(seeds)} arm-A artefacts carry `{ROOF}`; "
           f"{args.draws} draws each, child_budget {CHILD_BUDGET}\n")
 
     stats = collections.defaultdict(lambda: collections.defaultdict(list))
-    for seed in seeds:
-        parent = dom.load(str(ARTEFACTS / f"e4r-armA-s{seed}.dom"))
+    for _, seed, path in seeds:
+        parent = dom.load(str(path))
         dom.link(parent)
         ratios = innerloop.ratio_map(parent)
         p_score, p_fails = evaluate(parent, ratios)

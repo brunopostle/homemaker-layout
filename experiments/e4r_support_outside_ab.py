@@ -81,6 +81,7 @@ SRC_PROGRAMME = REPO / "examples" / "programme-house"
 ARMS = ("armA", "armB")
 EXTRA: "list[str]" = []        # flags BOTH arms get (--tiers sets --use-tiers)
 WORK = "e4r_arms"
+LABEL = "e4r"                  # commit-subject prefix; --tiers/--tag extend it
 FIELDS = ["arm", "seed", "objective", "budget", "storeys", "fails", "hard",
           "soft", "roof_fail", "score", "elapsed_s", "dom", "fail_list"]
 
@@ -160,7 +161,7 @@ def record(row: dict, dom: Path, mod) -> None:
     shutil.copy(dom, kept)
     mod.commit_and_push(
         [str(RESULTS.relative_to(REPO)), str(kept.relative_to(REPO))],
-        f"e4r {row['arm']} seed {row['seed']}: {row['fails']} fails "
+        f"{LABEL} {row['arm']} seed {row['seed']}: {row['fails']} fails "
         f"(roof_fail={row['roof_fail']}), score {row['score']}",
         "support_outside operator A/B (homemaker-py-e4r, DESIGN.md §39.53).\n"
         "Pushed per run because the container is ephemeral.")
@@ -237,12 +238,23 @@ def main() -> int:
                          "fail for a soft one, a near-tie under the flat "
                          "comparator and a win under tiers -- does the operator "
                          "pay then? (homemaker-py-ek07, option 1)")
+    ap.add_argument("--tag", default="",
+                    help="give this run its own results file, artefact dir and "
+                         "work dir (suffix _TAG / -TAG), so a re-run at a new "
+                         "objective does not land in an older run's table. "
+                         "Composes with --tiers. (homemaker-py-qkp0)")
     args = ap.parse_args()
-    global RESULTS, ARTEFACTS, EXTRA, WORK
+    global RESULTS, ARTEFACTS, EXTRA, WORK, LABEL
     if args.tiers:
         RESULTS = RESULTS.with_name("e4r_support_outside_ab_tiers.tsv")
         ARTEFACTS = ARTEFACTS.with_name("e4r-tiers")
-        EXTRA, WORK = ["--use-tiers"], "e4r_arms_tiers"
+        EXTRA, WORK, LABEL = ["--use-tiers"], "e4r_arms_tiers", "e4r tiers"
+    if args.tag:
+        if not args.tag.replace("-", "").replace("+", "").isalnum():
+            ap.error("--tag: letters, digits, '-' and '+' only")
+        RESULTS = RESULTS.with_name(f"{RESULTS.stem}_{args.tag}.tsv")
+        ARTEFACTS = ARTEFACTS.with_name(f"{ARTEFACTS.name}-{args.tag}")
+        WORK, LABEL = f"{WORK}_{args.tag}", f"{LABEL} {args.tag}"
 
     if args.report_only:
         return report()
@@ -260,6 +272,15 @@ def main() -> int:
     # and an inherited env override would silently set BOTH arms
     os.environ.update(env)
     objective = mod.objective_commit()
+    # One table, one objective. Appending -- or resuming -- into rows measured
+    # at another stamp makes a table whose pairs are not comparable, and the
+    # report would pair them without a word (homemaker-py-qkp0).
+    stale = sorted({r["objective"] for r in rows()} - {objective})
+    if stale:
+        print(f"{RESULTS.relative_to(REPO)} holds rows at {', '.join(stale)}; "
+              f"the live objective is {objective}.\nGive this run its own "
+              f"table with --tag rather than mixing the two.")
+        return 2
 
     work = Path(tempfile.gettempdir()) / WORK
     work.mkdir(parents=True, exist_ok=True)

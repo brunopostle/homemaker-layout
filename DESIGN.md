@@ -13757,3 +13757,45 @@ sibling leaves"; `dom.merge_divided` fuses only adjacent OUTDOOR siblings
 leaf, so two adjacent leaves of one room code are two rooms. The exporter
 matches that, and a test holds it -- the first version of that test assumed
 the wording and failed against the code.
+
+### 39.93 The `place` trade re-measured at 2.3 m: the same trade, a little cheaper (`homemaker-py-ek07`)
+
+§39.86 measured one application of `support_outside`'s `place` at
+`1a24b6a+orth`, when an outdoor space had to be 3.0 m wide; §39.87 made that
+2.3 m, so a host gives up 0.7 m less, and §39.91 asked for the measurement
+again before either candidate move is built. Same method
+(`diag_ek07_support_outside_trade.py --exhaustive`: every eligible leaf x 4
+rotations x 2 sides x 3 ratios, each child scored as the search scores one), at
+`59d8aa1+orth`, now on both A/Bs' arm-A artefacts (`--source flat tiers`).
+
+**The parents are chosen by scoring them today, not from the tables.** The
+tables record `roof_fail` at the objective each run was made at. Re-scored, the
+flat A/B's artefacts carry `no outside space` in the same 8 of 36 as at
+`07b2058+orth`, and the tiers A/B's in the same 3 of 36. So two objective
+changes took the fail off none of the layouts that had it -- which says
+nothing about what a SEARCH at this objective ends with (`qkp0`'s question),
+only that §39.91's "3/36 against 8/36" is not a re-scoring effect.
+
+| | artefacts | a single cut beats the parent | best cut's fail is the terrace's own width | the host's |
+|---|---|---|---|---|
+| flat (`f`) | 8 | 3 (s12, s27, s33) | 7 | s5 (width), s12 (width, as well) |
+| tiers (`t`) | 3 | 1 (s19) | 2 | s31 (size) |
+| §39.86, 3.0 m, flat | 8 | 2 | 8 | -- |
+
+Every cut still clears the fail (672 of 672) and every best cut still pays for
+it: nine of eleven with a `width` fail on the new `O` leaf, the other two (and
+s12 besides) on the host it was cut from. The winners win by 1-3% and the four
+worst lose half their score to a second fail (`not connected`,
+`not adjacent to b1` twice, `crinkliness`). Which leaf fails is read off the cut
+(`side` says which child is the `O`) and is printed under each row.
+
+**So narrowing the requirement did not change the lever.** One more artefact in
+eight has a winning cut; the trade is otherwise §39.86's. A single small leaf
+still cannot yield a passing terrace and stay whole, and the two candidate
+moves stand as written there. Still gated on `qkp0`: if the flat search at this
+objective no longer ends with the fail, there is no trade to improve.
+
+*Not a search result.* "Beats the parent" is the flat comparator's test on one
+child after 80 inner-loop evaluations. Under `--use-tiers` every cut that
+trades this hard fail for one soft fail is an improvement by construction, and
+§39.91 found that the search made nothing of it.

@@ -299,6 +299,11 @@ Key modules:
   from the storey below, so `compose` writes the axis where the engine reads it
   and raises `InheritedCut` for a trace that contradicts the wall downstairs
 - `fitness_cmd.py` — `homemaker-fitness` CLI entry point
+- `rooms_export.py` — `homemaker-rooms`: a finished `.dom` -> homemaker-addon's web
+  rooms document (`docs/rooms-format.md`), the route to IFC (DESIGN.md §39.92).
+  Export only: nothing scores or searches through it. It writes rooms in the
+  layout's FRAME, not world coordinates, because the addon's 1 mm snapping breaks
+  T-junctions on a skew plot
 - `collapse_cmd.py` — `homemaker-collapse` CLI: finish-time global cell→room collapse (94g)
 - `graph.py` — leaf-adjacency graph for programme-driven fitness checks
 - `genome.py` — topology genome: base-floor tree + per-storey deltas
