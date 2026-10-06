@@ -13626,3 +13626,99 @@ Not landed: it takes effect only once the scorer reads v2 cells natively,
 since today's geometry cannot produce an odd cell, so it lands with
 `homemaker-py-8b2u.4`, between sweeps, with the corpus re-scored before and
 after to confirm the "unchanged" claim.
+
+### 39.91 The support_outside A/B under the tiered comparator: all its effect gone, and §39.86's cheap lever with it (`homemaker-py-ek07`)
+
+§39.86 ended on a prediction: every best `place` cut trades a HARD fail for a
+SOFT one, so under `--use-tiers` the operator's move is a win rather than a
+near-tie, and the tiered comparator is "a cheaper candidate for making this
+operator pay than any new move". This is that A/B. Owner's desktop,
+2026-10-05/06, 72 runs, makespan 18 h 27 m at `--slots 8`. Objective
+`59d8aa1+orth`, search `f067db8` (no `src/` difference from §39.81's
+`f7e6dcd`), programme-house, 500k evals, `--use-tiers` in BOTH arms, arm A
+`--no-support-outside`, arm B as shipped. Rows:
+`experiments/results/e4r_support_outside_ab_tiers.tsv`; `--tiers --report-only`
+reproduces the first table, `experiments/diag_e4r_flat_vs_tiers.py` the rest.
+
+**Against the three expectations recorded on the bead before the run:**
+
+| expectation | result | |
+|---|---|---|
+| `roof_fail` cleared at least as often as under flat (7 of 7) | off 3/36, on 4/36; 5 discordant pairs, **2 cleared, 3 broken**; sign test p = 1 | **does not hold** |
+| arm B hard fails significantly lower | 0.22 vs 0.19, 4W/3L/29T, p = 0.71; margin 0.028 against an MDD of 0.151 | **does not hold** |
+| total fails and score a wash | fails 1.39 vs 1.31, p = 0.70; score 0.151 vs 0.180, on higher in 21 of 36, p = 0.22 | holds |
+
+Every margin is below what N=36 resolves. The score margin (0.029 against an
+MDD of 0.047) is the closest and would need ~91 pairs; it is not a result.
+
+**The one effect §39.81 resolved is not here.** Flat: 7 discordant pairs, 7
+cleared. Tiers: 5 discordant, 2 cleared and 3 broken. Those two splits differ
+(Fisher exact on the 2x2, p = 0.045 -- one test, chosen after seeing both, so
+suggestive and no more). What changed is both ends: the control carries the
+fail less often (8/36 to 3/36) and the operator's arm more often (1/36 to
+4/36). Neither end is resolved on its own.
+
+The five discordant seeds, for the record:
+
+```
+s 0  off 0.194 [no outside space]        on 0.394 []
+s14  off 0.102 [size | not connected]    on 0.023 [width | size | width | no outside space]
+s19  off 0.215 [no outside space]        on 0.199 [proportion]
+s21  off 0.207 [size]                    on 0.187 [no outside space]
+s22  off 0.374 []                        on 0.182 [no outside space]
+```
+
+**This cannot be attributed to the comparator.** Two things moved between
+§39.81 and this run: flat became tiers, AND the objective moved twice (§39.84's
+sibling checks, §39.87's outdoor width from 3.0 m to 2.3 m). §39.87 priced its
+own change as moving no fail on any committed artefact, and re-scoring §39.81's
+72 artefacts today bears that out -- 58 scores move, and the per-arm fail
+means, hard means and `no outside space` counts are all unchanged. But that
+is the scorer's verdict on finished layouts, not what a search climbing the
+new objective ends up with. So there are two readings and this data cannot
+choose:
+
+1. *tiers hides it* -- the tiered comparator already ranks a `no outside
+   space` layout below every layout without it, so the control search clears
+   the fail by itself and the operator has nothing left to add;
+2. *the objective removed it* -- with a 2.3 m terrace earning full credit, the
+   search finds outdoor space unaided, under either comparator.
+
+Reading 1 keeps §39.65's default-on ruling exactly where §39.81 left it.
+Reading 2 means the operator's measured benefit belonged to an objective that
+no longer exists. **Under the default (flat) search at the live objective the
+operator is currently unmeasured**, and that is `homemaker-py-qkp0`.
+
+**Flat against tiers, same arm, same seed** -- confounded as above, so a
+description and not a verdict (all scored with today's code):
+
+| | fails | hard | soft | score | zero-fail | `size` fails |
+|---|---|---|---|---|---|---|
+| flat, off | 1.11 | 0.33 | 0.78 | 0.200 | 8 | 11 |
+| tiers, off | 1.39 | 0.22 | 1.17 | 0.151 | 3 | 22 |
+| flat, on | 1.08 | 0.11 | 0.97 | 0.188 | 5 | 13 |
+| tiers, on | 1.31 | 0.19 | 1.11 | 0.180 | 6 | 17 |
+
+One margin clears its MDD: with the operator off, tiers carries **more soft
+fails** (+0.39, p = 0.029, MDD 0.346), the `size` family doubling, with no
+resolved fall in hard fails (p = 0.32) and a lower score in 24 of 36 seeds
+(p = 0.09, unresolved). That is one of eight comparisons, uncorrected. What it
+does NOT show is the thing tiers was adopted for: §37.1 measured a lower
+hard-fail count at 20k evals on harbor-house and maple-court, and on
+programme-house at 500k there is no sign of it in either arm.
+
+Also unchanged from §39.81: the search does not reach the owner's
+three-storey design. One run of 72 ended above two storeys (flat: 4 of 72).
+
+**Reading.** §39.86's cheap lever is spent: the tiered comparator does not
+make `support_outside` pay, and nothing here says tiers should become a
+default. `homemaker-py-ek07` goes back to the two moves §39.86 named and did
+not build -- slice the terrace from a branch, or filter `place` hosts by
+whether they can yield the strip and stay whole -- with the caveat that both
+were sized for a 3 m strip and §39.87 made it 2.3 m. §39.87 noted the best
+cuts' terraces (0.48-1.90 m) fail the new rule too, so the diagnosis stands,
+but a host now has 0.7 m less to give up:
+`diag_ek07_support_outside_trade.py --exhaustive` should be re-run at the live
+objective before either is built. And before any of that, `qkp0`: if the
+objective change has already removed the fail, there is no trade left to
+improve.
