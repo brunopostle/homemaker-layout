@@ -120,6 +120,8 @@ def _cut_of(n: Node, u, v):
 def to_document(root: Node) -> dict:
     """The v2 document for a linked ``Node`` tree. Raises :class:`DomFormatError`
     for a tree v2 cannot express (a skew cut)."""
+    if root.plot is not None:
+        return _native_to_document(root)
     _need_orthogonal("writing v2")
     g = _geometry()
     g.clear_cache()
@@ -243,10 +245,142 @@ def _unrotated(base: Node):
     return [g.coord_a(p), g.coordinate(p, 1), g.coordinate(p, 2), g.coord_b(p)]
 
 
-def from_document(doc: dict) -> Node:
+def _leaf_spec(n: Node) -> dict:
+    d: dict = {"cell": n.type}
+    if n.share > 1 and n.share_type == n.type:
+        d["share"] = n.share
+    if n.co_type:
+        d["co_type"] = n.co_type
+    return d
+
+
+def _native_to_document(root: Node) -> dict:
+    """A native tree written back: it already holds what the file says."""
+    def emit(n: Node) -> dict:
+        if not n.divided:
+            return _leaf_spec(n)
+        d: dict = {}
+        if not (n.below is not None and n.below.divided):
+            d["cut"], d["at"] = n.cut, n.at
+        d["low"], d["high"] = emit(n.left), emit(n.right)
+        return d
+
+    doc: dict = {"format": FORMAT, "version": VERSION,
+                 "frame": {"u": list(root.frame_u)},
+                 "plot": [list(p) for p in root.plot]}
+    if root.perimeter is not None:
+        doc["perimeter"] = [root.perimeter.get(f"#{k}") for k in range(len(root.plot))]
+    for key in ("wall_inner", "wall_outer"):
+        if getattr(root, key) is not None:
+            doc[key] = getattr(root, key)
+    doc["storeys"] = []
+    for lvl in levels(root):
+        storey: dict = {}
+        for key in ("elevation", "height"):
+            if getattr(lvl, key) is not None:
+                storey[key] = getattr(lvl, key)
+        storey["tree"] = emit(lvl)
+        doc["storeys"].append(storey)
+    if root.meta:
+        doc["meta"] = dict(root.meta)
+    return doc
+
+
+def _native_from_document(doc: dict) -> Node:
+    """A NATIVE tree for a parsed v2 document: the cuts as the file states
+    them, drawn by ``geometry`` as rectangles cropped to the plot. Nothing is
+    fitted and nothing v2 can say is refused -- a plot of any shape, a frame of
+    the file's own, cells that crop to wedges or to nothing. The orthogonal-
+    division switch is not consulted: a native tree has no other geometry.
+    """
+    from . import cells, dom
+    g = _geometry()
+
+    plot = [[float(p[0]), float(p[1])] for p in doc["plot"]]
+    if len(plot) < 3:
+        raise DomFormatError("a plot needs at least three vertices")
+    if cells._signed_area(plot) <= 0:
+        raise DomFormatError("the plot must be listed anticlockwise")
+    fu = doc["frame"].get("u")
+    if fu is None or (float(fu[0]) == 0.0 and float(fu[1]) == 0.0):
+        raise DomFormatError("v2 file has no usable frame.u")
+    wall_outer = float(doc["wall_outer"]) if doc.get("wall_outer") is not None else 0.25
+    wall_inner = float(doc["wall_inner"]) if doc.get("wall_inner") is not None else 0.08
+    perimeter = None
+    if doc.get("perimeter") is not None:
+        if len(doc["perimeter"]) != len(plot):
+            raise DomFormatError("`perimeter` must have one entry per plot edge")
+        perimeter = {f"#{k}": status for k, status in enumerate(doc["perimeter"])}
+
+    roots: list[Node] = []
+    for i, storey in enumerate(doc["storeys"]):
+        if "tree" not in storey:
+            raise DomFormatError(f"storey {i} has no `tree`")
+        below_root = roots[-1] if roots else None
+
+        def build(spec, path: str, i=i, below_root=below_root) -> Node:
+            where = f"storey {i} {path or 'root'}"
+            if not isinstance(spec, dict):
+                raise DomFormatError(f"{where}: a node must be a mapping")
+            n = Node()
+            if "cell" in spec:
+                n.type = None if spec["cell"] is None else str(spec["cell"])
+                if spec.get("share") is not None:
+                    n.share, n.share_type = int(spec["share"]), n.type
+                if spec.get("co_type") is not None:
+                    n.co_type = str(spec["co_type"])
+                return n
+            if "low" not in spec or "high" not in spec:
+                raise DomFormatError(f"{where}: a node is a `cell` or has `low` and `high`")
+            under = below_root.by_id(path) if below_root is not None else None
+            if under is not None and under.divided:
+                if "cut" in spec or "at" in spec:
+                    raise DomFormatError(
+                        f"{where}: the storey below is cut here, so this storey "
+                        "inherits that cut and must not write `cut`/`at` of its own")
+                n.cut, n.at = under.cut, under.at
+            else:
+                if spec.get("cut") not in ("u", "v") or "at" not in spec:
+                    raise DomFormatError(f"{where}: a cut needs `cut: u|v` and `at`")
+                n.cut, n.at = spec["cut"], float(spec["at"])
+                if not 0.0 < n.at < 1.0:
+                    raise DomFormatError(f"{where}: `at` is {n.at}, outside (0, 1)")
+            n.division = [n.at, n.at]
+            n.left, n.right = build(spec["low"], path + "l"), build(spec["high"], path + "r")
+            return n
+
+        lvl = build(storey["tree"], "")
+        lvl.wall_inner, lvl.wall_outer = wall_inner, wall_outer
+        for key in ("elevation", "height"):
+            if storey.get(key) is not None:
+                setattr(lvl, key, float(storey[key]))
+        if roots:
+            roots[-1].above = lvl
+        roots.append(lvl)
+    root = roots[0]
+    root.plot, root.frame_u = plot, [float(fu[0]), float(fu[1])]
+    root.perimeter = perimeter
+    if doc.get("meta") is not None:
+        root.meta = dict(doc["meta"])
+    dom.link(root)
+    g.clear_cache()
+    g.mark_voids(root)
+    return root
+
+
+def to_native(root: Node) -> Node:
+    """A quad tree (orthogonal) re-made as a native one: the same building."""
+    return _native_from_document(to_document(root))
+
+
+def from_document(doc: dict, native: bool = False) -> Node:
     """The linked ``Node`` tree for a parsed v2 document (wall inset applied, as
-    :func:`dom.load` does for v1)."""
+    :func:`dom.load` does for v1). ``native=True`` builds a native tree
+    (:func:`_native_from_document`); the default fits the quad tree every older
+    tool works on, and refuses what that tree cannot hold."""
     _check_header(doc)
+    if native:
+        return _native_from_document(doc)
     _need_orthogonal("reading v2")
     g = _geometry()
 

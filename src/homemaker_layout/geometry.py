@@ -63,6 +63,141 @@ def clear_cache() -> None:
 ORTHOGONAL_DIVISION = os.environ.get("HOMEMAKER_ORTHOGONAL_DIVISION", "") == "1"
 
 
+# --------------------------------------------------------------------------- #
+# Native rectangle-frame trees (homemaker-py-8b2u.4, DESIGN.md §39.103)
+# --------------------------------------------------------------------------- #
+# A tree whose lowest root carries a `plot` is drawn here and not by the quad
+# recursion below: the frame rectangle is split by each cut, and a leaf is its
+# rectangle cropped to the plot -- a polygon of three or more corners, or
+# nothing. Every function a scorer calls dispatches on `_native(n)`; the quad
+# code underneath is untouched and still draws every v1 tree.
+def _native(n: Node) -> "Node | None":
+    """The lowest root of ``n``'s building if the tree is native, else None."""
+    key = (id(n), "native?")
+    hit = _cache.get(key)
+    if hit is None:
+        r = n
+        while r.parent is not None:
+            r = r.parent
+        while r.below is not None:
+            r = r.below
+        hit = _cache[key] = (r if r.plot is not None else False)
+    return hit or None
+
+
+def _native_frame(g0: Node):
+    """``(u, v, inner plot, frame box)`` for a native building."""
+    key = (id(g0), "frame")
+    hit = _cache.get(key)
+    if hit is None:
+        from . import cells
+
+        u = _unit(g0.frame_u[0], g0.frame_u[1])
+        v = (-u[1], u[0])
+        inner = cells.inset(g0.plot, g0.wall_outer if g0.wall_outer is not None else 0.25)
+        pu = [p[0] * u[0] + p[1] * u[1] for p in inner]
+        pv = [p[0] * v[0] + p[1] * v[1] for p in inner]
+        hit = _cache[key] = (u, v, inner, (min(pu), max(pu), min(pv), max(pv)))
+    return hit
+
+
+def _native_cut(n: Node) -> "tuple[str, float]":
+    """``(axis, position)`` of the line across divided node ``n``: its own, or
+    -- where the storey below is cut at this path -- that storey's."""
+    key = (id(n), "cut")
+    hit = _cache.get(key)
+    if hit is None:
+        if n.below is not None and n.below.divided:
+            hit = _native_cut(n.below)
+        else:
+            r = _native_rect(n)
+            lo, hi = (r[2], r[3]) if n.cut == "u" else (r[0], r[1])
+            hit = (n.cut, lo + n.at * (hi - lo))
+        _cache[key] = hit
+    return hit
+
+
+def _native_rect(n: Node) -> "tuple[float, float, float, float]":
+    """``(u0, u1, v0, v1)`` of ``n`` in the frame."""
+    key = (id(n), "rect")
+    hit = _cache.get(key)
+    if hit is None:
+        if n.parent is None:
+            hit = _native_frame(_native(n))[3]
+        else:
+            u0, u1, v0, v1 = _native_rect(n.parent)
+            axis, s = _native_cut(n.parent)
+            low = n.position == "l"
+            if axis == "u":                 # a line along u fixes v
+                hit = (u0, u1, v0, s) if low else (u0, u1, s, v1)
+            else:
+                hit = (u0, s, v0, v1) if low else (s, u1, v0, v1)
+        _cache[key] = hit
+    return hit
+
+
+def polygon(n: Node) -> "list[Point]":
+    """The corners of ``n``, anticlockwise: four for a quad tree, three or more
+    (or none, for a cell outside the plot) for a native one. Collinear vertices
+    the plot carries -- a change of street/party status along a straight side --
+    are kept."""
+    key = (id(n), "poly")
+    hit = _cache.get(key)
+    if hit is None:
+        g0 = _native(n)
+        if g0 is None:
+            hit = [coordinate(n, i) for i in range(4)]
+        else:
+            from . import cells
+
+            u, v, inner, _ = _native_frame(g0)
+            hit = cells.clip(inner, _native_rect(n), u, v)
+        _cache[key] = hit
+    return hit
+
+
+def mark_voids(root: Node) -> int:
+    """Set ``void`` on every leaf of a native tree that crops to nothing, and
+    clear it on the rest; returns how many there are. A quad tree has none."""
+    from . import cells
+
+    count = 0
+    if root.plot is None:
+        return 0
+    lvl: "Node | None" = root
+    while lvl is not None:
+        stack = [lvl]
+        while stack:
+            n = stack.pop()
+            if n.divided:
+                stack += [n.left, n.right]
+            else:
+                n.void = cells.area(polygon(n)) < cells.EMPTY_AREA
+                count += n.void
+        lvl = lvl.above
+    clear_cache()
+    return count
+
+
+def is_external(bid: str) -> bool:
+    """Is this boundary id a side of the plot? 'a'..'d' in a quad tree; '#0',
+    '#1', ... (the plot edge's index) in a native one, where a plot may have
+    any number of sides and a letter would collide with a path."""
+    return bid in _EXTERNAL or bid[:1] == "#"
+
+
+def quad_corners(n: Node) -> "list[Point] | None":
+    """The four corners of ``n`` if it is four-cornered, else None. Status
+    vertices along a straight side do not count as corners. The stair rules
+    are written for a rectangle-like core and ask this first."""
+    if _native(n) is None:
+        return [coordinate(n, i) for i in range(4)]
+    from . import cells
+
+    c = cells.corners(polygon(n))
+    return c if len(c) == 4 else None
+
+
 def _level_root_of(n: Node) -> Node:
     while n.parent is not None:
         n = n.parent
@@ -86,6 +221,11 @@ def _reference_axes(n: Node) -> "tuple[tuple[float, float], tuple[float, float]]
     hit = _cache.get(key)
     if hit is not None:
         return hit
+    g0 = _native(n)
+    if g0 is not None:
+        result = _native_frame(g0)[:2]
+        _cache[key] = result
+        return result
     best = max(range(4), key=lambda i: edge_length(root, i))
     a, b = coordinate(root, best), coordinate(root, (best + 1) % 4)
     u = _unit(b[0] - a[0], b[1] - a[1])
@@ -160,7 +300,10 @@ def coordinate(n: Node, idx: int) -> Point:
     hit = _cache.get(key)
     if hit is not None:
         return hit
-    if n.below is not None:  # upper storey inherits geometry from below
+    if _native(n) is not None:
+        poly = polygon(n)
+        result = poly[idx % len(poly)]
+    elif n.below is not None:  # upper storey inherits geometry from below
         result = coordinate(n.below, idx)
     else:
         rid = (idx + n.rotation) % 4
@@ -248,7 +391,7 @@ def n_edges(n: Node) -> int:
     function changed and not every loop that walks a cell's sides. The stair
     rules are the exception and say so: a stair core is fitted as a rectangle.
     """
-    return 4
+    return 4 if _native(n) is None else len(polygon(n))
 
 
 def _dist(a: Point, b: Point) -> float:
@@ -267,22 +410,28 @@ def _triangle_area(a: Point, b: Point, c: Point) -> float:
 
 
 def area(n: Node) -> float:
-    """Area of quad ``n``; mirrors ``Urb::Quad::Area`` (two Heron triangles)."""
+    """Area of quad ``n``; mirrors ``Urb::Quad::Area`` (two Heron triangles).
+    A native cell's is its polygon's."""
+    if _native(n) is not None:
+        from . import cells
+
+        return cells.area(polygon(n))
     c = [coordinate(n, i) for i in range(4)]
     return _triangle_area(c[0], c[1], c[2]) + _triangle_area(c[0], c[2], c[3])
 
 
 def edge_length(n: Node, idx: int) -> float:
     """Length of edge from corner ``idx`` to ``idx+1`` (``Urb::Quad::Length``)."""
-    return _dist(coordinate(n, idx), coordinate(n, (idx + 1) % 4))
+    return _dist(coordinate(n, idx), coordinate(n, (idx + 1) % n_edges(n)))
 
 
 def angle(n: Node, idx: int) -> float:
     """Interior angle at corner ``idx`` in radians (``Urb::Quad::Angle``,
     cosine rule). Clamped acos argument — Perl leaves it unclamped but only a
     degenerate quad would push it out of [-1, 1]."""
+    sides = n_edges(n)
     a = edge_length(n, idx)
-    b = edge_length(n, (idx + 3) % 4)
+    b = edge_length(n, (idx - 1) % sides)
     if a * b == 0.0:
         # A corner with a zero-length adjacent edge has no interior angle: the
         # two rays that would define it are the same ray. The cosine rule
@@ -297,7 +446,7 @@ def angle(n: Node, idx: int) -> float:
         # Defence in depth -- `_orthogonal_b` no longer manufactures these --
         # but a pure-geometry primitive should not raise on a valid Node.
         return 0.0
-    c = _dist(coordinate(n, (idx + 1) % 4), coordinate(n, (idx + 3) % 4))
+    c = _dist(coordinate(n, (idx + 1) % sides), coordinate(n, (idx - 1) % sides))
     return math.acos(max(-1.0, min(1.0, (a * a + b * b - c * c) / (2 * a * b))))
 
 
@@ -355,6 +504,24 @@ def boundary_id(n: Node, edge: int) -> str:
     nodes store their own rotation in the YAML but Urb ignores it and uses the
     ground-floor counterpart's rotation instead.
     """
+    g0 = _native(n)
+    if g0 is not None:
+        # A native cell's side is on the plot ('#k', the plot edge it lies
+        # along -- a side whose status changes arrives as two, each on its
+        # own) or it is an interior wall. Which cut made an interior wall is
+        # not recorded: nothing native asks, the adjacency graph is built from
+        # the shared walls themselves.
+        poly = polygon(n)
+        a, b = poly[edge % len(poly)], poly[(edge + 1) % len(poly)]
+        mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+        inner = _native_frame(g0)[2]
+        for k in range(len(inner)):
+            p, q = inner[k], inner[(k + 1) % len(inner)]
+            if abs(_dist(p, mid) + _dist(mid, q) - _dist(p, q)) < 1e-7:
+                dx, dy = q[0] - p[0], q[1] - p[1]
+                if abs(dx * (b[1] - a[1]) - dy * (b[0] - a[0])) < 1e-7 * max(1.0, _dist(p, q)):
+                    return f"#{k}"
+        return "interior"
     nb = n
     while nb.below is not None:
         nb = nb.below
@@ -382,7 +549,15 @@ def boundary_id(n: Node, edge: int) -> str:
 
 
 def centroid(n: Node) -> Point:
-    """Average of the four corners; mirrors ``Urb::Quad::Centroid``."""
+    """Average of the four corners; mirrors ``Urb::Quad::Centroid``. For a
+    native cell, the average of its corners -- status vertices excluded, so
+    that marking a change of street status does not move a room's centre."""
+    if _native(n) is not None:
+        from . import cells
+
+        poly = polygon(n)
+        c = cells.corners(poly) or poly
+        return [sum(p[0] for p in c) / len(c), sum(p[1] for p in c) / len(c)]
     c = [coordinate(n, i) for i in range(4)]
     return [(c[0][0] + c[1][0] + c[2][0] + c[3][0]) / 4,
             (c[0][1] + c[1][1] + c[2][1] + c[3][1]) / 4]
@@ -431,6 +606,8 @@ def boundary_groups(level_root: Node) -> dict[str, list[tuple[Node, int]]]:
     from collections import defaultdict
 
     groups: dict[str, list[tuple[Node, int]]] = defaultdict(list)
+    if _native(level_root) is not None:
+        return groups       # nothing native reads them; see `leaf_graph`
     for leaf in level_root.leaves():
         for edge in range(4):
             bid = boundary_id(leaf, edge)
@@ -520,6 +697,22 @@ def leaf_graph(level_root: Node, door_width: float = 1.2):  # -> nx.Graph
     import networkx as nx
 
     leaves = level_root.leaves()
+    if _native(level_root) is not None:
+        # Two cells are neighbours if their outlines share a door's width of
+        # wall. On every orthogonal design this is the graph the boundary-id
+        # walk below builds, wall for wall (6,517 of them, §39.101).
+        from . import cells
+
+        G = nx.Graph()
+        G.add_nodes_from(leaves)
+        polys = [polygon(leaf) for leaf in leaves]
+        for i, a in enumerate(leaves):
+            for j in range(i + 1, len(leaves)):
+                width, seg = cells.shared_wall(polys[i], polys[j])
+                if width >= door_width:
+                    G.add_edge(a, leaves[j], width=width, coordinates=seg,
+                               weight=_dist(centroid(a), centroid(leaves[j])))
+        return G
     groups = boundary_groups(level_root)
 
     G: nx.Graph = nx.Graph()

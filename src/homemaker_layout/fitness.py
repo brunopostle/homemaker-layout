@@ -117,6 +117,7 @@ _SOFT_FAIL_MARKERS = (
     " width",
     " crinkliness",
     " access",
+    " shape",           # 8b2u.4/§39.103 -- a cell too far from a rectangle
     "staircase volume",
     "excess internal area",  # m3s/§39.58 -- internal area over `area_cap`
 )
@@ -1470,7 +1471,7 @@ class Fitness:
         perimeter = _perimeter(leaf)
         for e in range(geometry.n_edges(leaf)):
             bid = geometry.boundary_id(leaf, e)
-            if bid not in geometry._EXTERNAL:
+            if not geometry.is_external(bid):
                 continue
             ptype = (perimeter.get(bid) or "").lower()
             if ptype in ("private", "fortified"):
@@ -1673,7 +1674,42 @@ class Fitness:
 
         if self._quality_aggregate == "geometric_mean":
             quality = self._aggregate_geometric(leaf, factors)
+
+        # Shape multiplies the leaf's quality AFTER the factors above are
+        # combined, and joins `factors` only here. It is a condition on the
+        # cell rather than a seventh question averaged with the other six:
+        # put inside the geometric mean, a factor that is 1.0 for almost every
+        # cell would still change the root taken, and so the score of every
+        # design, including the ones with no odd cell at all (§39.103).
+        f = self.quality_shape(leaf)
+        if f < FAIL_THRESHOLD:
+            fail(f"{level_id}/{lid} shape")
+        factors["shape"] = f
+        quality *= f
         return quality, factors
+
+    def quality_shape(self, leaf: Node) -> float:
+        """How much of the cell is a usable rectangle (owner's ruling
+        2026-10-05, DESIGN.md §39.90): `cells.shape_quality` of the largest
+        frame-aligned rectangle that fits, over the cell's area -- full credit
+        from 0.85, the fail line at 0.70.
+
+        Rooms, circulation and upper-storey terraces are asked. Ground-level
+        outdoor space is exempt ("awkward pentagons that are only good for
+        garden space"), and so is outdoor space that is not a terrace at all:
+        a void through the building, or anything unsupported.
+        """
+        from . import cells
+
+        if dom_mod.is_outside(leaf) and (
+                not dom_mod.level_of(leaf) or self._is_void(leaf)
+                or not dom_mod.is_usable(leaf)):
+            return 1.0
+        area = geometry.area(leaf)
+        if area < cells.EMPTY_AREA:
+            return 0.0
+        du, dv = geometry.usable_rectangle(leaf)
+        return cells.shape_quality(min(1.0, du * dv / area))
 
     def factor_is_asked(self, name: str, leaf: Node) -> bool:
         """Is this factor a real question for this leaf, or an exemption?
@@ -1823,7 +1859,7 @@ class Fitness:
         rate = self.cost("boundary") if dom_mod.is_outside(leaf) else self.cost("boundary_wall")
         length = sum(geometry.edge_length(leaf, e)
                      for e in range(geometry.n_edges(leaf))
-                     if geometry.boundary_id(leaf, e) in geometry._EXTERNAL)
+                     if geometry.is_external(geometry.boundary_id(leaf, e)))
         return rate * length * _height(leaf)
 
     def plot_cost(self, root: Node) -> float:
@@ -1901,13 +1937,17 @@ class Fitness:
         turns = {1: self._three_turn, 2: self._two_turn,
                  3: self._one_turn}.get(len(set(corners)), self._zero_turn)
 
+        # A stair is fitted to a four-cornered core. `stack_corners_in_use`
+        # returns nothing for any other cell, so this is never reached with one.
+        quad = geometry.quad_corners(leaf)
+        sides = [math.dist(quad[i], quad[(i + 1) % 4]) for i in range(4)]
         best = None
         for edge in range(4):
-            base = geometry.edge_length(leaf, edge)
+            base = sides[edge]
             going_a = int((base - 2 * width) / going)
             going_b = turns(risers, going_a)
             for side in (1, 3):                       # the next edge, or the last
-                length = geometry.edge_length(leaf, (edge + side) % 4)
+                length = sides[(edge + side) % 4]
                 fit = length / (width * 2 + going * going_b)
                 key = (self.quality_staircase_volume(fit), -abs(fit - 1.0))
                 if best is None or key > best[0]:
@@ -1999,11 +2039,10 @@ class Fitness:
     @staticmethod
     def _access_external(leaf: Node) -> list[str]:
         """External boundary ids ('a'-'d') for each edge of leaf."""
-        _EXT = frozenset("abcd")
         result = []
         for edge in range(geometry.n_edges(leaf)):
             bid = geometry.boundary_id(leaf, edge)
-            if bid in _EXT:
+            if geometry.is_external(bid):
                 result.append(bid)
         return result
 
@@ -2156,9 +2195,10 @@ class Fitness:
                             leaf, level_root, G, graph_circ, all_lvls, root
                         )
                         if entrance_bid is not None:
+                            sides = geometry.n_edges(leaf)
                             door = [[geometry.coordinate(leaf, edge),
-                                     geometry.coordinate(leaf, (edge + 1) % 4)]
-                                    for edge in range(4)
+                                     geometry.coordinate(leaf, (edge + 1) % sides)]
+                                    for edge in range(sides)
                                     if geometry.boundary_id(leaf, edge) == entrance_bid]
                             corners = graph_mod.stack_corners_in_use(
                                 leaf, graph_circ, all_lvls, doors=door)

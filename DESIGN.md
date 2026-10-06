@@ -14353,3 +14353,74 @@ scoring path. It now puts its own checkout's `src` first; and the full suite on
 a branch is to be run with `PYTHONPATH=<worktree>/src`, or every test that
 shells out to `homemaker-evolve` or `homemaker-fitness` is testing main (723
 passed that way).
+
+### 39.103 The native tree: a v2 file scored as itself (`homemaker-py-8b2u.4`)
+
+Stage 1b's substance. `dom.load(path, native=True)` no longer fits a v2
+document into Urb's quad tree. Each divided `Node` keeps the file's `cut` and
+`at`; the lowest root carries the `plot` polygon and `frame_u`; and
+`geometry` draws such a tree by splitting the frame rectangle and cropping
+each leaf to the plot (`geometry.polygon`, on `cells.clip`). Every function a
+scorer calls -- `coordinate`, `area`, `edge_length`, `angle`, `centroid`,
+`boundary_id`, `leaf_graph`, `usable_rectangle` -- dispatches on whether the
+tree is native. The quad recursion underneath is untouched.
+
+What the scorer needed, beyond §39.101/§39.102's measures:
+
+- **sides and plot edges by asking.** `n_edges`, and `is_external(bid)` in
+  place of `bid in "abcd"`: a native plot side is `#k`, the index of the plot
+  edge it lies on, so a plot may have any number of sides and a side whose
+  status changes part-way is two.
+- **the adjacency graph from shared walls**, which §39.101 showed is today's
+  graph on every orthogonal design.
+- **void cells.** A leaf whose rectangle misses the plot is marked `void` and
+  `Node.leaves()` passes over it, so it stays in the tree and the file and
+  enters no loop. This is the one change to a structural primitive.
+- **stairs on four-cornered cores only** (`quad_corners`); a core the plot has
+  cropped to a pentagon gets no stair.
+- **the shape factor** (owner's ruling, §39.90): `quality_shape`, the fitted
+  rectangle's share of the cell, full credit from 0.85, fail below 0.70, asked
+  of rooms, circulation and upper-storey terraces.
+
+**Where the shape factor sits is a decision made here.** It multiplies a
+leaf's quality AFTER the other factors are combined, and is not one of them.
+The combination is a geometric mean over the factors a leaf is asked; a
+seventh factor equal to 1.0 would change the root taken and so the score of
+every design, including those with no odd cell. As a multiplier it is exactly
+neutral at full credit. The cost is that a failing shape is not softened by a
+leaf's other good factors -- which reads as right for "this cell is not a
+room", but it is a choice.
+
+**The gate.** Each of the 192 orthogonal artefacts scored as the quad tree it
+is (orthogonal division on) and as the native tree of the same building (the
+switch off, since a native tree has no other geometry): the same score to
+9e-10 and the same fail count, 192 of 192. The control -- one cut of the native
+tree moved by 1% -- differs on more than 100. So there are now two independent
+implementations of the geometry agreeing on every design the project holds,
+which is a stronger statement about the old one than any test it had.
+
+**The shape factor on the corpus.** §39.99 counted six cells below full
+credit. Scored, 2 of 192 artefacts move and one gains a fail: maple-court
+`c836457+orth` s2, `2/lrrr shape`, the 8.9 m toilet. None of the
+outdoor cells among the six ends up losing credit -- the ground-floor garden is
+exempt by the ruling; why the upper-storey slivers are not asked (merged with
+a neighbour, void, or unsupported) was not traced cell by cell.
+
+**What only a native tree can hold now scores**
+(`tests/test_native_tree.py`): a room cropped to a triangle by a leaning plot
+side (drawn, three sides, fails on shape; the same cell as ground-level garden
+does not); an L-shaped plot of two storeys with a status vertex, its notch
+void on both floors and its areas summing to the plot's; a frame at 45 degrees
+to the plot's longest edge; a merge below that leaves the native wall above
+where it was.
+
+**Cost.** A native tree scores about 40% slower than the quad tree on
+maple-court (108 ms against 77 ms, on a loaded machine): a clip per leaf and
+an all-pairs wall test per storey. Nothing searches native trees yet, so it
+has not been optimised; the rectangles make a sweep-line graph easy when it
+is.
+
+**Not done, and it is the last stage:** the search. Operators edit `rotation`
+and ratios; `genome`, `innerloop`, `solver` and `shapecurve` assume the quad
+tree. Until they are ported `homemaker-evolve` works on quad trees and writes
+v1, and a native tree is something you can score, write and read.

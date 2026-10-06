@@ -283,11 +283,16 @@ types, and adjacency only.
 Key modules:
 - `dom.py` — read/write Urb `.dom` YAML into a `Node` tree
 - `dom_v2.py` — `.dom` format version 2, the rectangle frame
-  (`docs/dom-format-v2.md`, DESIGN.md §39.94). `dom.load` dispatches to it on a
-  `format` key; `dom.dumps(root, version=2)` writes it, and v1 stays the default.
-  Stage 1a: the FILE is v2, the in-memory tree is still v1, so it refuses what
-  that tree cannot hold (a non-quad plot, an empty cell, a `frame.u` other than
-  the derived one) and it refuses outright while orthogonal division is off
+  (`docs/dom-format-v2.md`, DESIGN.md §39.94/§39.103). `dom.load` dispatches to
+  it on a `format` key; `dom.dumps(root, version=2)` writes it, and v1 stays the
+  default. **There are two trees a v2 file can become.** `native=False` (the
+  default, and what the search uses) FITS it into Urb's quad tree, refusing what
+  that cannot hold and refusing outright while orthogonal division is off.
+  `native=True` (what `homemaker-fitness` uses) keeps each cut as the file
+  states it -- `Node.cut` / `Node.at`, a polygon `plot` on the lowest root --
+  and `geometry` draws it by splitting the frame rectangle and cropping to the
+  plot: any plot, odd and empty cells, no switch. Native trees are scoreable
+  and writable, **not searchable**: no operator understands them yet
 - `geometry.py` — faithful port of Urb's top-down geometry
 - `programme.py` — parse `patterns.config` space requirements
 - `solver.py` — bottom-up ratio solve (scipy)
@@ -510,6 +515,24 @@ a cut keeps a stale ratio of its own; `dom.hand_cut_up(n)` gives it the real one
 before `n`'s cut goes. The scorer's merge and `mutate_undivide` / `mutate_deslim`
 call it. A new operator that removes a single cut must too --
 `experiments/diag_3tzk_operator_walls.py --raw` is the census that will say so.
+
+### Two geometries behind one set of functions (DESIGN.md §39.103)
+
+`geometry.coordinate`, `area`, `edge_length`, `centroid`, `boundary_id`,
+`leaf_graph` and the rest dispatch on `geometry._native(n)`. For a quad tree
+they are Urb's recursion; for a native tree they read `geometry.polygon(n)`, a
+rectangle cropped to the plot. Three habits follow for anything that scores:
+
+- **ask `geometry.n_edges(leaf)`**, never assume four -- except the stair
+  rules, which ask `geometry.quad_corners(leaf)` and fit nothing to a core that
+  is not four-cornered;
+- **ask `geometry.is_external(bid)`**, never test `bid in "abcd"`: a native
+  plot side is `#k`;
+- **`Node.leaves()` skips void leaves** (cells outside the plot). Walk
+  `left`/`right` yourself if you need the tree as written.
+
+`tests/test_native_tree.py` holds the two geometries to the same score on every
+orthogonal artefact. A change to one side that the other does not get fails it.
 
 ### The stair shaft is a full-height column (owner's ruling, DESIGN.md §39.72)
 

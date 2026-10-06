@@ -309,7 +309,7 @@ def _corner_runs(leaf: Node, G: nx.Graph, neighbors: list[Node],
             coords = G[leaf][nb].get("coordinates")
             if coords is not None:
                 walls.append(coords)
-    corners = [geometry.coordinate(leaf, i) for i in range(4)]
+    corners = geometry.quad_corners(leaf)
     ib = geometry.is_between_2d
 
     def holds(run: list[int]) -> bool:
@@ -380,6 +380,10 @@ def stack_corners_in_use(
     inherits them -- so no index is remapped.
     """
     if leaf.type != "C":
+        return []
+    if geometry.quad_corners(leaf) is None:
+        # A core cropped to a wedge or a pentagon by the plot is not somewhere
+        # a stair is fitted (native trees only; every quad-tree cell has four).
         return []
 
     stack = [leaf] + _stack_levels_above(leaf)

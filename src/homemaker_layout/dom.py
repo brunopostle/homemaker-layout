@@ -58,6 +58,25 @@ class Node:
     # seed, ...). Geometry and scoring never read it; v1 has nowhere to put it.
     meta: dict | None = None
 
+    # NATIVE rectangle-frame trees only (DESIGN.md §39.103). A tree is native
+    # when its lowest root has a ``plot``: a polygon of any number of vertices,
+    # with the frame's first axis beside it. Each divided node then says where
+    # its line is -- ``cut`` ('u' runs along u and fixes v; 'v' the other) and
+    # ``at``, a fraction of its own RECTANGLE -- and ``left`` is always the low
+    # side. ``rotation`` means nothing in such a tree, and ``division`` is kept
+    # equal to ``[at, at]`` only so that ``divided`` and everything written
+    # against it go on working. ``geometry`` draws a native tree by splitting
+    # the frame rectangle and cropping to the plot.
+    cut: "str | None" = None
+    at: "float | None" = None
+    plot: list[list[float]] | None = None          # lowest root only
+    frame_u: list[float] | None = None             # lowest root only
+    # A leaf whose rectangle lies wholly outside the plot: it holds no area,
+    # is not a room, and takes no part in anything. ``leaves()`` passes over
+    # it, so it stays in the tree (the file has it) and out of every loop.
+    # Set by ``geometry.mark_voids``.
+    void: bool = False
+
     # runtime linkage (never serialised)
     parent: "Node | None" = field(default=None, repr=False, compare=False)
     below: "Node | None" = field(default=None, repr=False, compare=False)
@@ -79,7 +98,7 @@ class Node:
 
     def leaves(self) -> list["Node"]:
         if not self.divided:
-            return [self]
+            return [] if self.void else [self]
         return self.left.leaves() + self.right.leaves()
 
     def by_id(self, path: str) -> "Node | None":
@@ -182,8 +201,14 @@ def link(root: Node) -> None:
         _set(lvls[i])
 
 
-def load(path: str) -> Node:
+def load(path: str, native: bool = False) -> Node:
     """Load a ``.dom`` file and return the fully-linked lowest level root.
+
+    ``native`` matters only for a format-v2 file. False (the default) reads it
+    into the same quad tree a v1 file makes, which is the tree the search and
+    every older tool work on, and refuses what that tree cannot hold. True
+    builds a NATIVE tree (see ``Node.cut``): anything v2 can say, scoreable,
+    not yet searchable.
 
     The plot stored on disk is the *outer* boundary; Urb::Dom insets it by
     ``wall_outer`` on load (and offsets back out on save). We mirror that so
@@ -201,7 +226,7 @@ def load(path: str) -> Node:
         # know rather than guessing.
         from . import dom_v2
 
-        return dom_v2.from_document(doc)
+        return dom_v2.from_document(doc, native=native)
     root = _parse(doc)
     link(root)
     if root.wall_outer is None:
@@ -441,6 +466,7 @@ def hand_cut_up(n: Node) -> None:
         while drawn.below is not None and drawn.below.divided:
             drawn = drawn.below          # this node may be inheriting in turn
         above.division = list(drawn.division)
+        above.cut, above.at = drawn.cut, drawn.at      # a native tree's own fields
 
 
 def _undivide(n: Node, new_type: str) -> None:

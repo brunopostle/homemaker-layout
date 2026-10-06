@@ -151,6 +151,31 @@ A node is either a **cut** or a **cell**:
   Reserved so a stage-1 reader can refuse a file that uses it rather than
   mis-reading it.
 
+## Stage 1b: a v2 file scored as itself (2026-10-06, DESIGN.md §39.103)
+
+`dom.load(path, native=True)` -- which is what `homemaker-fitness` does --
+builds a NATIVE tree: every divided node keeps the `cut` and `at` the file
+gives it, and `geometry` draws the building by splitting the frame rectangle
+and cropping each leaf to the plot. Nothing below under *Stage 1a* is refused
+on this path: a plot of any number of vertices, L-shaped or not; collinear
+status vertices; the file's own `frame.u`; cells that crop to a wedge, a
+pentagon or nothing. The orthogonal-division switch is not consulted.
+
+- A cell outside the plot is **void**: it stays in the tree and in the file,
+  and is passed over by everything else.
+- A plot side is identified as `#k`, the index of the plot edge, so `perimeter`
+  in memory is `{"#0": ..., "#1": ...}`.
+- **Shape** is scored: a room, corridor or upper-storey terrace whose largest
+  fitted rectangle covers under 85% of it loses credit, and under 70% fails
+  (`N/path shape`). Ground-level outdoor space is exempt.
+- A stair is fitted only to a four-cornered core.
+- Every one of the 192 orthogonal designs scores the same as a native tree as
+  it does as a quad tree.
+
+A native tree can be scored and written, **not yet searched**: the operators
+still edit `rotation` and ratios, so `homemaker-evolve` and every other tool
+use the default, `native=False`, described next.
+
 ## Stage 1a: what the reader and writer do today
 
 `dom.load` reads either version; `dom.dumps(root, version=2)` writes v2 and
