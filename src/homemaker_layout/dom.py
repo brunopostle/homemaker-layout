@@ -420,21 +420,31 @@ def is_circulation(n: Node) -> bool:
 # Merge_Divided (Urb::Dom::Merge_Divided)
 # --------------------------------------------------------------------------- #
 
-def _undivide(n: Node, new_type: str) -> None:
-    # The node on the storey above, if it is divided, has been drawing THIS
-    # node's cut: an upper storey inherits a cut wherever the storey below has
-    # one, and its own stored ratio is ignored meanwhile. Once this node is a
-    # single cell there is nothing to inherit and that stored ratio takes over
-    # -- a value left from whenever the search last wrote it, typically a few
-    # centimetres off. So hand the wall's position up before removing it: the
-    # merge fuses two outdoor cells, it is not meant to move a wall upstairs
-    # (homemaker-py-3tzk, DESIGN.md §39.96; owner, 2026-10-06).
+def hand_cut_up(n: Node) -> None:
+    """Call before removing ``n``'s cut: give the wall's position to the node
+    above, so the storey above keeps its wall where it is.
+
+    The node on the storey above, if it is divided, has been drawing THIS
+    node's cut: an upper storey inherits a cut wherever the storey below has
+    one, and its own stored ratio is ignored meanwhile. Once this node is a
+    single cell there is nothing to inherit and that stored ratio takes over --
+    a value left from whenever the search last wrote it, a third of a metre
+    off at the median (DESIGN.md §39.98). Owner, 2026-10-06: "undividing a cell
+    shouldn't undivide cells above by default" -- nor move their walls. Used by
+    the scorer's merge (§39.96) and by the operators that remove one cut
+    (§39.100); an operator that means to change the storey above does that
+    itself.
+    """
     above = _above_node(n)
     if above is not None and above.divided:
         drawn = n
         while drawn.below is not None and drawn.below.divided:
             drawn = drawn.below          # this node may be inheriting in turn
         above.division = list(drawn.division)
+
+
+def _undivide(n: Node, new_type: str) -> None:
+    hand_cut_up(n)
     n.division = None
     n.left = None
     n.right = None

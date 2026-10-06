@@ -10,9 +10,12 @@ stale ratio says.
 
 The census pattern (CLAUDE.md): every operator applied to every `+orth`
 coldstart artefact, `--draws` times. An EVENT is a divided upper node, present
-in parent and child with its stored ratio unchanged, whose node below was
-divided in the parent and is not in the child. It MOVED if its cut end is more
-than a millimetre from where it was.
+in parent and child, whose node below was divided in the parent and is not in
+the child. It MOVED if its cut end is more than a millimetre from where it was.
+
+Since §39.100 `undivide` and `deslim` hand the cut up before removing it
+(`dom.hand_cut_up`), and this reports 0 moved for both; §39.98's 60 of 384 is
+what it printed before.
 
 READ THE RESULT WITH TWO CAUTIONS (DESIGN.md §39.98).
 
@@ -48,7 +51,6 @@ sys.path.insert(0, str(REPO / "src"))
 from homemaker_layout import dom, genome, geometry, operators, programme  # noqa: E402
 from homemaker_layout.fitness import Fitness, load_config  # noqa: E402
 
-RAW = False
 PROGRAMMES = ("programme-house", "health-centre", "harbor-house", "maple-court")
 
 
@@ -73,20 +75,14 @@ def upper_cuts(root) -> dict:
     return out
 
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--draws", type=int, default=8)
-    ap.add_argument("--raw", action="store_true",
-                    help="apply operators to the tree as loaded from the file, "
-                         "not after a genome round trip")
-    ap.add_argument("--only", action="append")
-    args = ap.parse_args(argv)
-    global RAW
-    RAW = args.raw
+def census(draws: int = 8, only=None, raw: bool = True,
+           programmes=PROGRAMMES) -> dict:
+    """{operator: {applied, events, moved, children, dist}} over the `+orth`
+    coldstart artefacts of `programmes`."""
     geometry.ORTHOGONAL_DIVISION = True
     stats = defaultdict(lambda: {"n": 0, "applied": 0, "events": 0, "moved": 0,
                                  "children": 0, "dist": []})
-    for name in PROGRAMMES:
+    for name in programmes:
         prog = REPO / "examples" / name
         conf, cost = load_config(prog)
         reqs = programme.load_programme_dir(str(prog))
@@ -94,14 +90,14 @@ def main(argv=None) -> int:
         fit = Fitness(conf, cost)
         for path in sorted(prog.glob("coldstart-*+orth-500000-s*.dom")):
             root = dom.load(str(path))
-            if not RAW:
+            if not raw:
                 root = genome.decode(genome.encode(root))
             before = upper_cuts(root)
-            for op_name in sorted(args.only or operators.MUTATIONS):
+            for op_name in sorted(only or operators.MUTATIONS):
                 op = operators.MUTATIONS[op_name]
                 params = inspect.signature(op).parameters
                 kw = {k: v for k, v in (("reqs", reqs), ("fit", fit)) if k in params}
-                for seed in range(args.draws):
+                for seed in range(draws):
                     row = stats[op_name]
                     row["n"] += 1
                     geometry.clear_cache()
@@ -114,9 +110,9 @@ def main(argv=None) -> int:
                     row["applied"] += 1
                     after = upper_cuts(child)
                     hit = False
-                    for key, (ratio, inherited, end) in before.items():
+                    for key, (_ratio, inherited, end) in before.items():
                         now = after.get(key)
-                        if now is None or not inherited or now[1] or now[0] != ratio:
+                        if now is None or not inherited or now[1]:
                             continue
                         row["events"] += 1
                         d = math.dist(end, now[2])
@@ -125,6 +121,19 @@ def main(argv=None) -> int:
                             row["dist"].append(d)
                             hit = True
                     row["children"] += hit
+    geometry.clear_cache()
+    return stats
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--draws", type=int, default=8)
+    ap.add_argument("--raw", action="store_true",
+                    help="apply operators to the tree as loaded from the file, "
+                         "not after a genome round trip")
+    ap.add_argument("--only", action="append")
+    args = ap.parse_args(argv)
+    stats = census(args.draws, args.only, args.raw)
     print(f"{'operator':20} {'applied':>8} {'events':>7} {'moved':>6} "
           f"{'children':>9}  median move")
     tot = {"applied": 0, "children": 0}

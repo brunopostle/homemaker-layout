@@ -145,6 +145,45 @@ def mirror(root, keep_perimeter: bool = True):
     return dom_v2.from_document(doc)
 
 
+class relisted:
+    """Context: every storey's cells and walls handed to the scorer in a
+    shuffled order. Not a re-description of the building at all -- the same
+    tree, the same file -- only of the order things are listed in, which
+    follows the tree's left/right naming (`homemaker-py-rwwv`)."""
+
+    def __init__(self, seed: int):
+        self.seed = seed
+
+    def __enter__(self):
+        import random
+
+        import networkx as nx
+
+        self._orig = orig = g.leaf_graph
+        seed = self.seed
+
+        def shuffled(level_root, door_width=1.2):
+            G = orig(level_root, door_width)
+            rng = random.Random(seed)
+            nodes = list(G.nodes())
+            rng.shuffle(nodes)
+            edges = list(G.edges(data=True))
+            rng.shuffle(edges)
+            H = nx.Graph()
+            H.add_nodes_from(nodes)
+            for a, b, d in edges:
+                if rng.random() < 0.5:
+                    a, b = b, a
+                H.add_edge(a, b, **d)
+            return H
+
+        g.leaf_graph = shuffled
+        return self
+
+    def __exit__(self, *exc):
+        g.leaf_graph = self._orig
+
+
 TRANSFORMS = {
     "translate": [translate],
     "rotate": [rotate],

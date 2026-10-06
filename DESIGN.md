@@ -14166,3 +14166,72 @@ statuses, shared walls) taken from a cell polygon rather than a quad; the
 adjacency graph from shared rectangle edges rather than boundary ids; empty
 cells dropped before either; then the shape factor, and only then the search
 writing positions rather than ratios. Each step has the same gate as this one.
+
+### 39.100 Three more rulings: the wall above stays, listing order decides nothing, and a boxed-in core is a straight flight (`homemaker-py-3tzk`, `rwwv`, `8b2u.7`)
+
+Owner, 2026-10-06, on §39.97-§39.99's three open questions. All on branch
+`dom-v2`.
+
+**"Undividing a cell shouldn't undivide cells above by default."** Nor move
+their walls. `dom.hand_cut_up(n)` is §39.96's hand-up made public, and
+`mutate_undivide` and `mutate_deslim` call it before removing a cut. The
+census on trees as the search holds them (`--raw`): the case still arises --
+61 events in 384 `undivide` applications -- and the wall above now moves in 0
+of them (was 60, median 36 cm). `core_undivide` removes a cut on every floor on
+purpose and `ruin_recreate` regrows a whole wing; neither is changed.
+Search-side: `search_commit` moves, the stamp does not.
+
+**The listing-order defect, tracked down and fixed** (`homemaker-py-rwwv`).
+`has_circulation` lets a classified room keep one circulation neighbour, and
+one outdoor neighbour per outdoor component, chosen by how central each is.
+Urb measured centrality inside the loop, on a graph the loop was cutting, so
+each room's choice depended on the rooms listed before it. Centrality is now
+measured once, before each of the two loops trims anything, and exact ties go
+to area and position (`graph._centrality`). The fix changes the score of **0
+of 192** artefacts as listed -- so it removes the dependence without moving
+the objective for any design the project holds -- and afterwards mirroring
+moves 0 of 192 (was 1) and shuffling each storey's listing five ways moves 0
+of 192 (was 1). On the one design that showed it, 20 shuffles give 31 fails 20
+times (was 19 times, and 33 once).
+
+**Stairs and doors** (`homemaker-py-8b2u.7`). The owner:
+
+> a stair core with doors on three or four sides is going to need a single
+> straight flight, unless the doors can be moved, for example doors are
+> typically in the corner of a room, but can be moved to any other position
+> along a shared wall if it frees up space to place stair flights
+
+Two changes follow, and one thing that turns out to be there already.
+
+- *Already there.* A wall has always been served by any one corner it
+  reaches, or by lying on an edge between two reserved corners -- that is a
+  door standing wherever along the wall suits. What §39.95 added was choosing
+  among the equally small answers, across storeys, to leave the stair the most
+  corners. So "doors on four sides" is not automatically four corners: four
+  neighbours each along a whole side of the core need three, because a door in
+  a corner serves the wall on either side of it.
+- *The cap goes.* When no three corners serve every wall wherever the doors
+  stand, the count is four and the stair is a straight flight. Urb said three
+  (§39.95) and that is no longer kept.
+- *The entrance door moves too.* Urb reserved BOTH corners of the entrance
+  edge. It is now one more wall needing a door somewhere along it.
+
+On the 192 artefacts, against §39.95's rule: 8 scores move, no fail moves.
+Two rise -- e4r-tiers arm B s24 by x7.6, the shaft §39.95 recorded as counting
+four only because of the pinned entrance, and maple-court `1138ff1+orth` s0.
+Six fall. Three by a third to a half (x0.49, x0.67, x0.70) are cores that are
+honestly boxed in; the other three fall by 1-12% and were not examined one by
+one. e4r arm B s21 is the plain case: on the ground floor two rooms along
+one long side, two along the other and one across the end, so four of the five
+walls reach a different corner each and no placing of doors frees one. Its
+shaft is 2.5 x 5.0 m, sized for the one-turn stair Urb's count allowed, and a
+straight flight needs it longer (fit 0.88).
+
+Turning a `C` leaf's corner numbering still moves 0 of 576 scores.
+
+**Where the objective now stands on "reads only the building".** Every
+re-description tried -- a v2 round trip, a turned corner numbering, a moved,
+rotated or re-listed plot, a mirror image, a shuffled listing -- leaves every
+score on all 192 artefacts unchanged. Six defects were found that way in one
+day (§39.94-§39.100), every one of them Urb's, and none had been found by
+reading.

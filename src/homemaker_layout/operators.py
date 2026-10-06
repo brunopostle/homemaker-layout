@@ -102,6 +102,7 @@ def mutate_undivide(root: dom.Node, rng: np.random.Generator,
     # one when collapsing two children into one leaf (§39.4)
     keep = [t for t in (n.left.type, n.right.type) if t and not dom.is_generic(t)]
     n.type = keep[0] if keep else (n.left.type or str(_pick(rng, types)))
+    dom.hand_cut_up(n)      # one cut goes; the wall above it stays (§39.100)
     n.division = None
     n.left = n.right = None
     return _finalise(child), f"undivide {li}/{n.id or 'root'}"
@@ -853,6 +854,7 @@ def mutate_deslim(root: dom.Node, rng: np.random.Generator,
     else:
         survivor = max((n.left, n.right), key=_geo.area)
     n.type = survivor.type if not dom.is_generic(survivor.type) and survivor.type else "C"
+    dom.hand_cut_up(n)      # as mutate_undivide (§39.100)
     n.division = None
     n.left = n.right = None
     return _finalise(child), f"deslim {li}/{n.id or 'root'} (kept {n.type})"

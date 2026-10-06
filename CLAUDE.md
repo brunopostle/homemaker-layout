@@ -491,7 +491,20 @@ The stale ratios are still IN v1 files (180 of 192) -- they are just never read.
 For stairs the owner's ruling is that a flight "can start at any corner and may
 run clockwise or counter clockwise", so `_stair_fit` takes the best of every
 orientation and only the NUMBER of corners the doors need
-(`graph.stack_corners_in_use`) constrains it.
+(`graph.stack_corners_in_use`) constrains it. A door may stand anywhere along
+its wall -- the entrance door included -- so a wall costs the stair a corner
+only if no placing of its door avoids it; and a core whose doors take all four
+corners gets a single straight flight (§39.100, `tests/test_stair_doors.py`).
+
+The ORDER cells are listed in is a label too: `graph.has_circulation` measures
+centrality once, before it trims anything (`_centrality`), because measuring
+inside the loop made a hard fail depend on the tree's left/right naming.
+
+**Removing a cut must not move the wall above it.** An upper node that inherits
+a cut keeps a stale ratio of its own; `dom.hand_cut_up(n)` gives it the real one
+before `n`'s cut goes. The scorer's merge and `mutate_undivide` / `mutate_deslim`
+call it. A new operator that removes a single cut must too --
+`experiments/diag_3tzk_operator_walls.py --raw` is the census that will say so.
 
 ### The stair shaft is a full-height column (owner's ruling, DESIGN.md §39.72)
 

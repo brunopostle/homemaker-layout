@@ -2148,21 +2148,19 @@ class Fitness:
                     corners = graph_mod.stack_corners_in_use(leaf, graph_circ, all_lvls)
                     n_corners = len(corners)
                     if n_corners:
-                        # As Perl's check_stair_fit: the entrance door takes the
-                        # two corners of its edge as well. They go in as
-                        # corners, not as raw indices -- `edge + 1` is 4 on
-                        # edge 3, which is corner 0, and appending it to a list
-                        # that already held 0 counted one corner twice.
+                        # As Perl's check_stair_fit, the entrance door needs
+                        # room too -- but as a door somewhere along its wall,
+                        # not as BOTH corners of that edge (§39.100).
                         entrance_bid = self._entrance_bid_for_stair(
                             leaf, level_root, G, graph_circ, all_lvls, root
                         )
                         if entrance_bid is not None:
-                            door = tuple(
-                                c % 4 for edge in range(4)
-                                if geometry.boundary_id(leaf, edge) == entrance_bid
-                                for c in (edge, edge + 1))
+                            door = [[geometry.coordinate(leaf, edge),
+                                     geometry.coordinate(leaf, (edge + 1) % 4)]
+                                    for edge in range(4)
+                                    if geometry.boundary_id(leaf, edge) == entrance_bid]
                             corners = graph_mod.stack_corners_in_use(
-                                leaf, graph_circ, all_lvls, also=door)
+                                leaf, graph_circ, all_lvls, doors=door)
                         stair_fit = self._stair_fit(leaf, corners)
                         tracking["stair_fit"].append(stair_fit)
 

@@ -222,3 +222,36 @@ def test_control_a_mirror_that_drops_the_perimeter_does_change_scores(rt):
     mirror image with its `private` side left behind on the wrong wall."""
     inv = _invariance()
     assert inv.run(["mirror"], _one_per_corpus(rt), rt, broken=True) > 0
+
+
+# --------------------------------------------------------------------------- #
+# the order things are listed in
+# --------------------------------------------------------------------------- #
+ORDERED = REPO / "examples" / "harbor-house" / "coldstart-1a24b6a+orth-500000-s1.dom"
+
+
+def _fail_counts_over_relistings(rt) -> set:
+    """Fail counts of one design scored as listed, mirrored, and with each
+    storey's cells and walls shuffled twenty ways (§39.100)."""
+    inv = _invariance()
+    prog = ORDERED.parent
+    root = dom.load(str(ORDERED))
+    seen = {len(rt.score(root, prog)[1]), len(rt.score(inv.mirror(root), prog)[1])}
+    for seed in range(20):
+        with inv.relisted(seed):
+            seen.add(len(rt.score(root, prog)[1]))
+    return seen
+
+
+def test_listing_order_decides_no_fail(rt):
+    assert len(_fail_counts_over_relistings(rt)) == 1
+
+
+def test_control_urbs_trim_does_depend_on_listing_order(rt, monkeypatch):
+    """`Urb::Dom::Has_Circulation` measured centrality inside the loop, on a
+    graph the loop was already cutting. Put back, the count wobbles."""
+    from homemaker_layout import graph
+
+    monkeypatch.setattr(graph, "_centrality",
+                        lambda G: lambda n: graph._avg_path_len_from(G, n))
+    assert len(_fail_counts_over_relistings(rt)) > 1

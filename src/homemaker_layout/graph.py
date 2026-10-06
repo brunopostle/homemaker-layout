@@ -97,6 +97,23 @@ def _avg_path_len_from(G: nx.Graph, node: Node) -> float:
         return 0.0
 
 
+def _centrality(G: nx.Graph):
+    """A sort key for the nodes of ``G`` as it is NOW: average path length to
+    everything reachable, then -- for nodes exactly as central as each other --
+    area and position, which are properties of the cell and not of where it
+    falls in a list."""
+    cache: dict = {}
+
+    def key(n: Node):
+        if n not in cache:
+            c = geometry.centroid(n)
+            cache[n] = (_avg_path_len_from(G, n), geometry.area(n),
+                        round(c[0], 6), round(c[1], 6))
+        return cache[n]
+
+    return key
+
+
 def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
     """Port of ``Urb::Dom::Has_Circulation`` (modifies G in place).
 
@@ -143,13 +160,22 @@ def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
         G.remove_edges_from((v, nb) for nb in to_remove)
 
     # Any classified room keeps only one circulation neighbour.
+    #
+    # How central each neighbour is gets measured ONCE, on the graph as it
+    # stands before any of this trimming, and ties go to geometry. Urb measured
+    # inside the loop: every room's trim changed the path lengths the next room
+    # sorted by, so which edges survived depended on the order the rooms were
+    # listed in -- the tree's left/right naming. A harbor-house design and its
+    # mirror image differed by two hard fails that way, and re-listing the same
+    # storey in a shuffled order reproduced it (homemaker-py-rwwv, §39.100).
+    central = _centrality(G)
     for v in list(G.nodes()):
         if _usage(v) not in _pr.PRIVATE_USAGES + ("toilet",) + _pr.SOCIABLE_USAGES:
             continue
         circ_nbs = [nb for nb in list(G.neighbors(v)) if dom.is_circulation(nb)]
         if len(circ_nbs) <= 1:
             continue
-        circ_nbs.sort(key=lambda nb: _avg_path_len_from(G, nb))
+        circ_nbs.sort(key=central)
         # terminal rooms and toilets keep their LEAST central circulation
         # neighbour (privacy); sociable rooms keep their MOST central one.
         sociable = _usage(v) in _pr.SOCIABLE_USAGES
@@ -165,6 +191,8 @@ def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
     outside_components = list(nx.connected_components(outside_graph)) if len(outside_graph.nodes()) > 0 else []
 
     # blkc nodes: keep only one outdoor neighbour per outdoor component
+    # (centrality again fixed before the loop, for the same reason as above)
+    outdoor_central = _centrality(G)
     for v in list(G.nodes()):
         # terminal rooms, sociable rooms, and generic circulation
         if not (_usage(v) in _pr.PRIVATE_USAGES + _pr.SOCIABLE_USAGES
@@ -176,7 +204,7 @@ def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
         ]
         if len(out_nbs) <= 1:
             continue
-        out_nbs.sort(key=lambda nb: _avg_path_len_from(G, nb))
+        out_nbs.sort(key=outdoor_central)
 
         for component in outside_components:
             component_nbs = [nb for nb in out_nbs if nb in component]
@@ -247,7 +275,8 @@ def connected_circulation(G: nx.Graph) -> bool:
 # Stair-corner detection (Quad.pm:1490-1544, Dom.pm:648-668)
 # --------------------------------------------------------------------------- #
 
-def _corner_runs(leaf: Node, G: nx.Graph, neighbors: list[Node]) -> list[frozenset]:
+def _corner_runs(leaf: Node, G: nx.Graph, neighbors: list[Node],
+                 doors: "tuple | list" = ()) -> list[frozenset]:
     """Every SMALLEST run of consecutive corners that contains all of the
     leaf's shared walls -- the corners a stair must leave clear for doors.
 
@@ -264,8 +293,17 @@ def _corner_runs(leaf: Node, G: nx.Graph, neighbors: list[Node]) -> list[frozens
     whichever way is best, so the flight can start at any corner and may run
     clockwise or counter clockwise". So runs wrap, and ALL the smallest ones
     are returned: the caller picks, and nothing here depends on the numbering.
+
+    A DOOR MAY STAND ANYWHERE ALONG ITS WALL (owner, same day, §39.100: "doors
+    are typically in the corner of a room, but can be moved to any other
+    position along a shared wall if it frees up space to place stair flights").
+    That is what the test below already means: a wall is served by any one
+    corner it reaches, or by lying on an edge between two corners of the run,
+    and the caller is free to choose which. ``doors`` are further walls to
+    serve in the same way -- the entrance door's wall, which Urb pinned to
+    BOTH corners of its edge.
     """
-    walls = []
+    walls = [list(w) for w in doors]
     for nb in neighbors:
         if G.has_edge(leaf, nb):
             coords = G[leaf][nb].get("coordinates")
@@ -290,16 +328,14 @@ def _corner_runs(leaf: Node, G: nx.Graph, neighbors: list[Node]) -> list[frozens
         found = [frozenset(r) for r in runs if holds(r)]
         if found:
             return found
-    # No three corners hold every wall: there are doors on three sides or all
-    # four. Urb answered THREE here and never four -- its last test read
-    # corners[4] and [5], both undef, and `is_between_2d(point, undef, undef)`
-    # is true of anything, so [3,4,5] "held" whatever the walls were. That is
-    # an accident, but it is also what every stair in every corpus was scored
-    # under, and whether such a core should be held to a straight flight is a
-    # question about stairs rather than about numbering
-    # (`homemaker-py-8b2u.7`). So the count is kept and only the numbering is
-    # dropped: any three corners, rather than specifically 3, 0 and 1.
-    return [frozenset(r) for r in runs]
+    # No three corners serve every wall, wherever the doors are put: all four
+    # are taken, and the stair is a single straight flight. Urb answered THREE
+    # here and never four -- its last test read corners[4] and [5], both undef,
+    # and `is_between_2d(point, undef, undef)` is true of anything. Owner's
+    # ruling (`homemaker-py-8b2u.7`, §39.100): "a stair core with doors on three
+    # or four sides is going to need a single straight flight, unless the doors
+    # can be moved" -- and they have been, above.
+    return [frozenset(range(4))]
 
 
 def corners_in_use(leaf: Node, G: nx.Graph, neighbors: list[Node]) -> list[int]:
@@ -326,7 +362,7 @@ def stack_corners_in_use(
     leaf: Node,
     graph_circ_list: list[nx.Graph],
     all_levels: list[Node],
-    also: "tuple[int, ...]" = (),
+    doors: "tuple | list" = (),
 ) -> list[int]:
     """The fewest corners a stair in this shaft must leave clear; mirrors
     ``Urb::Dom::Stack_Corners_In_Use`` in what it means, not in how it counts.
@@ -338,9 +374,10 @@ def stack_corners_in_use(
     equally small runs of corners (:func:`_corner_runs`). Urb took the first
     run on each storey and united them, so the total depended on how the
     corners happened to be numbered. Here the runs are chosen TOGETHER, to
-    leave the stair as many corners as the doors allow, with ``also`` (the
-    entrance door's two corners) counted in. Every node of the stack has the
-    same corners -- an upper storey inherits them -- so no index is remapped.
+    leave the stair as many corners as the doors allow. ``doors`` are extra
+    walls on ``leaf``'s own storey that need a door somewhere along them (the
+    entrance). Every node of the stack has the same corners -- an upper storey
+    inherits them -- so no index is remapped.
     """
     if leaf.type != "C":
         return []
@@ -364,12 +401,12 @@ def stack_corners_in_use(
             break
         G = graph_circ_list[level_idx]
         nbs = list(G.neighbors(node)) if G.has_node(node) else []
-        options.append(_corner_runs(node, G, nbs))
+        options.append(_corner_runs(node, G, nbs,
+                                    doors if level_offset == 0 else ()))
 
-    fixed = frozenset(c % 4 for c in also)
     best = None
     for choice in itertools.product(*options):
-        union = fixed.union(*choice)
+        union = frozenset().union(*choice)
         key = (len(union), sorted(union))
         if best is None or key < best:
             best = key
