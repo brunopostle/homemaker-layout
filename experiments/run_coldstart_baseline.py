@@ -138,6 +138,10 @@ SEARCH_SOURCES = ("src/homemaker_layout/cpsat.py",
 # stamp on a coldstart row, which no composed artefact ever appears in.
 NEITHER_SOURCES = ("src/homemaker_layout/__init__.py",
                    "src/homemaker_layout/bubble.py",
+                   # native rectangle-frame geometry (8b2u.4), the core only:
+                   # nothing scores through it yet. It becomes an OBJECTIVE
+                   # source the moment the scorer reads cells from it.
+                   "src/homemaker_layout/cells.py",
                    "src/homemaker_layout/collapse_cmd.py",
                    "src/homemaker_layout/compose.py",
                    "src/homemaker_layout/compose_cmd.py",

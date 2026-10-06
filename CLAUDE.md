@@ -305,6 +305,12 @@ Key modules:
   from the storey below, so `compose` writes the axis where the engine reads it
   and raises `InheritedCut` for a trace that contradicts the wall downstairs
 - `fitness_cmd.py` — `homemaker-fitness` CLI entry point
+- `cells.py` — native rectangle-frame geometry: the cells of a v2 document from
+  the document alone (split the frame rectangle, crop to the plot), with the
+  owner's shape score. Handles what the v1 tree cannot -- polygon plots, status
+  vertices, the file's own frame, empty and odd cells. **Nothing scores through
+  it yet** (`homemaker-py-8b2u.4`); `tests/test_cells.py` holds it to today's
+  geometry on every orthogonal artefact
 - `dom_upgrade_cmd.py` — `homemaker-dom-upgrade`: v1 -> v2 (and `--to-v1`), every
   cell verified before anything is written, the input never overwritten. A v1
   file's convention comes from `--orthogonal` or a `+orth` stamp in its name

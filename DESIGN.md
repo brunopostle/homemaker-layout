@@ -14117,3 +14117,52 @@ but it changes what `undivide` does in every search, and whether that helps is
 a search question. It is search-side -- `operators.py` is not an objective
 source -- so it would move `search_commit` and not the stamp. Recorded on
 `homemaker-py-3tzk` for the owner.
+
+### 39.99 The native geometry core, and a calibration that held on one corpus (`homemaker-py-8b2u.4`)
+
+`cells.py` computes the cells of a v2 document from the document alone: inset
+the plot, take its bounding rectangle in the file's frame, split by each cut,
+crop each leaf rectangle to the plot. It is the core of stage 1b and not stage
+1b -- the scorer still reads `geometry`'s quads -- but it is where everything
+the v1 tree refuses (§39.94) is now drawn: a plot of any number of vertices,
+convex or L-shaped; a collinear vertex marking a change of street/party status,
+kept through the wall inset and carried by the cell cropped against it; a
+`frame.u` of the file's own; cells that crop to a wedge or to nothing. The
+shape score of §39.90 lives there too, with the owner's thresholds.
+
+**The gate passes on geometry.** Every one of the 192 orthogonal artefacts,
+drawn natively from its v2 document, has the same cells as `geometry` draws
+from its v1 tree: 3,879 of 3,879, corner for corner, none empty. The negative
+control (one cut moved by 1e-4) fails it.
+
+**It does not pass on the shape score, where §39.90 said it would.** That
+section calibrated full credit at 0.85 because "every committed cell scores
+>= 0.89", so the score would change no existing design. The measurement was of
+one corpus, `07b2058+orth`. Over all of them:
+
+| corpus | cells | lowest usable fraction | below 0.85 | below 0.70 (fail) |
+|---|---|---|---|---|
+| `c836457+orth` | 541 | 0.64 | 4 | 1 |
+| `1138ff1+orth` | 539 | 0.87 | 0 | 0 |
+| `07b2058+orth` | 552 | 0.89 | 0 | 0 |
+| `1a24b6a+orth` | 546 | 0.87 | 0 | 0 |
+| e4r (flat) | 843 | 0.52 | 1 | 1 |
+| e4r-tiers | 858 | 0.74 | 1 | 0 |
+
+Six cells of 3,879. The two that would fail are exactly what the score is for:
+a 0.16 m2 first-floor terrace sliver a few centimetres wide, and a maple-court
+toilet 0.4-0.8 m wide and 8.9 m long. The other four are wedges against a skew
+boundary, one of them a ground-floor garden, which the ruling exempts.
+So the ruling's thresholds are doing their job; what was wrong is the claim
+that they are free. When the shape score lands, `c836457+orth` and two e4r
+artefacts re-score, and the three newest coldstart corpora do not. Stage 1b's
+"bit-identical on the corpus" gate has to be stated per corpus, and
+`tests/test_cells.py` pins the six so the next change to either the score or
+the corpus has to account for them.
+
+**What is left of stage 1b**, in the order it should be done: the scorer's
+leaf measures (area, narrowest width, aspect, external edges and their
+statuses, shared walls) taken from a cell polygon rather than a quad; the
+adjacency graph from shared rectangle edges rather than boundary ids; empty
+cells dropped before either; then the shape factor, and only then the search
+writing positions rather than ratios. Each step has the same gate as this one.
