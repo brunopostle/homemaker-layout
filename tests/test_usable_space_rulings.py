@@ -183,7 +183,7 @@ def test_area_cap_default_is_the_owners_twenty_percent():
 
 
 @needs_examples
-def test_undersized_building_is_not_penalised_by_the_area_rule():
+def test_undersized_building_is_not_penalised_by_the_area_rule(monkeypatch):
     """The floor is gone. A building whose rooms fall short is the per-room
     `quality_size` checks' business, where maldistribution is visible; a sum
     cannot see it (§39.57: 101% of the required area with eight rooms failing).
@@ -196,20 +196,19 @@ def test_undersized_building_is_not_penalised_by_the_area_rule():
     tracking = {"_failures": [], "stair_fit": []}
 
     tiny = room_area * 0.1
-    orig = Fitness._area_internal
-    try:
-        Fitness._area_internal = staticmethod(lambda root: tiny)
-        root = dom_mod.load(str(sorted(d.glob("coldstart-*-500000-s*.dom"))[0]))
-        geometry.clear_cache()
-        factor = fit.evaluate_building(root, tracking)
-    finally:
-        Fitness._area_internal = orig
+    # monkeypatch, not a hand-rolled save/restore: `Fitness._area_internal` read
+    # off the class is the bare function, so assigning it back drops the
+    # `staticmethod` and every later score in the process raises TypeError.
+    monkeypatch.setattr(Fitness, "_area_internal", staticmethod(lambda root: tiny))
+    root = dom_mod.load(str(sorted(d.glob("coldstart-*-500000-s*.dom"))[0]))
+    geometry.clear_cache()
+    factor = fit.evaluate_building(root, tracking)
     assert "excess internal area" not in tracking["_failures"]
     assert factor > 0.0
 
 
 @needs_examples
-def test_oversized_building_is_penalised_and_registers_a_fail():
+def test_oversized_building_is_penalised_and_registers_a_fail(monkeypatch):
     """And it registers — the old block had no `fail()` call at all, so a
     building 1.8x over the programme took a silent x0.004.
     """
@@ -220,14 +219,10 @@ def test_oversized_building_is_penalised_and_registers_a_fail():
                     if not dom_mod.is_generic(r.code) and r.size > 0)
     tracking = {"_failures": [], "stair_fit": []}
     huge = room_area * 2.0          # well past the 1.59x fail threshold
-    orig = Fitness._area_internal
-    try:
-        Fitness._area_internal = staticmethod(lambda root: huge)
-        root = dom_mod.load(str(sorted(d.glob("coldstart-*-500000-s*.dom"))[0]))
-        geometry.clear_cache()
-        fit.evaluate_building(root, tracking)
-    finally:
-        Fitness._area_internal = orig
+    monkeypatch.setattr(Fitness, "_area_internal", staticmethod(lambda root: huge))
+    root = dom_mod.load(str(sorted(d.glob("coldstart-*-500000-s*.dom"))[0]))
+    geometry.clear_cache()
+    fit.evaluate_building(root, tracking)
     assert "excess internal area" in tracking["_failures"]
 
 
