@@ -145,6 +145,18 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "circulation that the binary 'not connected' fail lacks. "
                         "Does not change the scalar fitness or fail count "
                         "(default: off)")
+    p.add_argument("--native", dest="native",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_NATIVE", False),
+                   help="homemaker-py-8b2u (DESIGN.md §39.104): search a NATIVE "
+                        "rectangle-frame tree -- every cut a line across the "
+                        "frame rectangle, every cell cropped to the plot -- and "
+                        "write format v2. The seed is converted if it is not "
+                        "native already. The orthogonal-division switch is not "
+                        "consulted. A ratio then means a fraction of the "
+                        "rectangle, not of a cropped edge, so this is a different "
+                        "search from the default on any plot that is not a "
+                        "rectangle (default: off)")
     p.add_argument("--use-tiers", dest="use_tiers",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_USE_TIERS", False),
@@ -349,6 +361,11 @@ def _preflight(programme_dir) -> None:
               f"(DESIGN.md §39.17)", file=sys.stderr)
 
 
+def _dumps(root) -> str:
+    """A native tree has no v1 form to speak of; it is written as format v2."""
+    return dom.dumps(root, version=2 if root.plot is not None else 1)
+
+
 def main(argv=None) -> int:
     args = _parse_args(argv)
 
@@ -395,7 +412,7 @@ def main(argv=None) -> int:
             fd, tmp = tempfile.mkstemp(dir=d, suffix=".ckpt")
             try:
                 with os.fdopen(fd, "w") as fh:
-                    fh.write(dom.dumps(best.root))
+                    fh.write(_dumps(best.root))
                 os.replace(tmp, path)
             except BaseException:
                 if os.path.exists(tmp):
@@ -437,7 +454,11 @@ def main(argv=None) -> int:
         anneal_ladder = tuple(int(g) for g in args.anneal_grain.split(",")
                               if g.strip())
 
-    seed_root = dom.load(str(seed_file))
+    seed_root = dom.load(str(seed_file), native=args.native)
+    if args.native:
+        from . import dom_v2
+
+        seed_root = dom_v2.to_native(seed_root)
     t0 = time.perf_counter()
 
     # SIGTERM → KeyboardInterrupt so the driver's interrupt handler fires.
@@ -567,9 +588,9 @@ def main(argv=None) -> int:
             print(f"  [{ev:6d}] {fit_val:.6g}  ({lin})", file=sys.stderr)
 
     if out is None:
-        sys.stdout.write(dom.dumps(r.best.root))
+        sys.stdout.write(_dumps(r.best.root))
     else:
-        dom.dump(r.best.root, str(out))
+        Path(out).write_text(_dumps(r.best.root))
         print(f"written      : {out}", file=sys.stderr)
 
     return 0

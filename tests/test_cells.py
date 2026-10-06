@@ -325,3 +325,18 @@ def test_the_scorer_reads_width_and_proportion_from_the_fitted_rectangle(tmp_pat
     # today's quad formulas, kept for the search's heuristics, say otherwise
     assert geometry.aspect(b) == pytest.approx((8 + math.hypot(1, 8)) / 5, rel=1e-6)
     geometry.clear_cache()
+
+
+def test_an_l_shaped_cell_is_not_given_its_bounding_box():
+    """A cell wrapped round the inner corner of an L-shaped plot is an L. The
+    convex routine would read its top and bottom and call it a full
+    rectangle; its largest real rectangle is one arm."""
+    ell = [[0, 0], [6, 0], [6, 2], [2, 2], [2, 5], [0, 5]]
+    assert cells.area(ell) == pytest.approx(18.0)
+    du, dv = cells.usable_rectangle(ell)
+    assert du * dv == pytest.approx(12.0)                 # the 6 x 2 arm
+    assert (du, dv) == pytest.approx((6.0, 2.0))
+    assert cells.usable_fraction(ell) == pytest.approx(12 / 18)
+    assert cells.shape_quality(cells.usable_fraction(ell)) < 0.1      # it fails
+    # and a convex cell still takes the convex path to the same answer
+    assert cells.usable_rectangle([[0, 0], [4, 0], [3, 2], [1, 2]]) == pytest.approx((2, 2))

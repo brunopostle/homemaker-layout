@@ -232,6 +232,8 @@ def usable_rectangle(poly, u=(1.0, 0.0), v=(0.0, 1.0),
     x2, y2 = np.roll(x1, -1), np.roll(y1, -1)
     if abs(float(np.dot(x1, y2) - np.dot(x2, y1))) / 2 < EMPTY_AREA:
         return 0.0, 0.0
+    if not _convex(px, py):
+        return _usable_rectangle_any(px, py)
     lo, hi = float(x1.min()), float(x1.max())
     cand = np.unique(np.concatenate([x1, np.linspace(lo, hi, grid + 1)]))
     dx = x2 - x1
@@ -250,6 +252,70 @@ def usable_rectangle(poly, u=(1.0, 0.0), v=(0.0, 1.0),
     if size.flat[k] <= 0:
         return 0.0, 0.0
     return float(width.flat[k]), float(height.flat[k])
+
+
+def _convex(px, py) -> bool:
+    sign = 0
+    n = len(px)
+    for i in range(n):
+        cross = (px[i - 1] - px[i - 2]) * (py[i] - py[i - 1]) \
+            - (py[i - 1] - py[i - 2]) * (px[i] - px[i - 1])
+        if abs(cross) < 1e-9:
+            continue
+        if sign and (cross > 0) != (sign > 0):
+            return False
+        sign = 1 if cross > 0 else -1
+    return True
+
+
+def _usable_rectangle_any(px, py, grid: int = 12) -> "tuple[float, float]":
+    """The largest frame-aligned rectangle inside a cell that is NOT convex --
+    one wrapped round an inner corner of an L-shaped plot is itself an L.
+
+    The convex routine reads the cell's top and bottom at each x and would
+    hand an L the whole of its bounding box. Here, for each pair of candidate
+    x's, the stretches of y inside the cell are found at every x where the
+    outline can change between them (just inside each end, and at each vertex
+    between), and intersected; what survives is inside for the whole strip.
+    Slower, and only reached for a non-convex cell.
+    """
+    n = len(px)
+    lo, hi = min(px), max(px)
+    xs = sorted(set(px) | {lo + (hi - lo) * i / grid for i in range(grid + 1)})
+    tiny = 1e-7 * max(1.0, hi - lo)
+
+    def inside_at(x):
+        """Sorted (y0, y1) stretches of the vertical line at `x` inside."""
+        ys = []
+        for i in range(n):
+            xa, ya, xb, yb = px[i], py[i], px[(i + 1) % n], py[(i + 1) % n]
+            if (xa > x) != (xb > x):
+                ys.append(ya + (yb - ya) * (x - xa) / (xb - xa))
+        ys.sort()
+        return list(zip(ys[0::2], ys[1::2]))
+
+    cache: dict = {}
+
+    def at(x):
+        if x not in cache:
+            cache[x] = inside_at(x)
+        return cache[x]
+
+    best = (0.0, 0.0, 0.0)
+    for i, x0 in enumerate(xs):
+        for x1 in xs[i + 1:]:
+            stops = [x0 + tiny, x1 - tiny] + [x for x in px if x0 + tiny < x < x1 - tiny]
+            spans = at(stops[0])
+            for x in stops[1:]:
+                other = at(x)
+                spans = [(max(a, c), min(b, d)) for a, b in spans for c, d in other
+                         if min(b, d) > max(a, c)]
+                if not spans:
+                    break
+            for a, b in spans:
+                if (x1 - x0) * (b - a) > best[0]:
+                    best = ((x1 - x0) * (b - a), x1 - x0, b - a)
+    return best[1], best[2]
 
 
 def usable_fraction(poly, u=(1.0, 0.0), v=(0.0, 1.0), grid: int = 48) -> float:

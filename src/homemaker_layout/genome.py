@@ -23,8 +23,10 @@ from dataclasses import dataclass, field
 
 from . import dom
 
+# `plot` and `frame_u` are what make a tree native (dom.Node.plot); a genome
+# that dropped them would decode a native building as a quad tree with no plot.
 _BASE_META = ("node", "node_file", "perimeter", "height", "elevation",
-              "wall_inner", "wall_outer")
+              "wall_inner", "wall_outer", "plot", "frame_u")
 
 
 @dataclass

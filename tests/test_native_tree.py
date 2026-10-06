@@ -161,13 +161,13 @@ def test_merging_outdoor_cells_below_keeps_the_native_wall_above():
     upper = {"low": {"cell": "b1"}, "high": {"cell": "b2"}}
     root = _native(_doc(square, tree, upper))
     up = dom.levels(root)[1]
-    up.at = up.division[0] = up.division[1] = 0.9               # stale, as v1's are
+    up.division = [0.9, 0.9]                                    # stale, as v1's are
     geometry.clear_cache()
-    assert geometry._native_cut(up) == ("v", pytest.approx(3.0))
+    assert geometry._native_cut(up)[:2] == ("v", pytest.approx(3.0))
     dom.merge_divided(root)
     geometry.clear_cache()
     assert not root.divided and dom.levels(root)[1].divided
-    assert geometry._native_cut(dom.levels(root)[1]) == ("v", pytest.approx(3.0))
+    assert geometry._native_cut(dom.levels(root)[1])[:2] == ("v", pytest.approx(3.0))
 
 
 def test_homemaker_fitness_scores_a_v2_file_natively(tmp_path):
@@ -224,3 +224,125 @@ def test_every_orthogonal_artefact_scores_the_same_as_a_native_tree():
 @needs_corpus
 def test_control_a_native_tree_with_one_cut_moved_scores_differently():
     assert _native_and_quad_scores(_diag(), nudge=0.01) > 100
+
+
+# --------------------------------------------------------------------------- #
+# the search edits a native tree with the genes it always had (§39.104)
+# --------------------------------------------------------------------------- #
+def _native_artefact():
+    from homemaker_layout import programme
+
+    path = sorted(PH.glob("coldstart-1a24b6a+orth-500000-s*.dom"))[0]
+    geometry.ORTHOGONAL_DIVISION = True
+    quad = dom.load(str(path))
+    root = dom_v2.to_native(quad)
+    geometry.ORTHOGONAL_DIVISION = False
+    reqs = programme.load_programme_dir(str(PH))
+    return root, reqs, sorted(reqs) + ["C", "O"]
+
+
+@needs_corpus
+def test_every_operator_edits_a_native_tree_and_the_genome_carries_it():
+    """Rotation and ratio mean on a rectangle what they meant on a quad, so
+    no operator had to be rewritten -- which is a claim, and this is its test:
+    each one applied to a native design gives a native child that scores, and
+    that survives the genome with the same score."""
+    import inspect
+
+    import numpy as np
+
+    from homemaker_layout import genome, operators
+
+    root, reqs, types = _native_artefact()
+    conf, cost = load_config(PH)
+    fit = Fitness(conf, cost)
+    fired = set()
+    for name, op in sorted(operators.MUTATIONS.items()):
+        params = inspect.signature(op).parameters
+        kw = {k: v for k, v in (("reqs", reqs), ("fit", fit)) if k in params}
+        for seed in range(4):
+            geometry.clear_cache()
+            child, desc = op(root, np.random.default_rng(seed), types, **kw)
+            assert child.plot is not None, name
+            if "noop" in desc:
+                continue
+            fired.add(name)
+            score, _ = fit.score_with_fails(child)
+            assert math.isfinite(score), name
+            back = genome.decode(genome.encode(child))
+            assert back.plot == child.plot and back.frame_u == child.frame_u, name
+            assert fit.score_with_fails(back)[0] == pytest.approx(score, rel=1e-9), name
+    assert len(fired) >= 12
+
+
+@needs_corpus
+def test_a_native_tree_the_search_has_turned_round_is_written_and_read_back():
+    """The reader always puts `low` on the left. The search does not: half its
+    cuts start from the far side, and the left child is then the HIGH one.
+    The writer has to say so in the frame's terms."""
+    import numpy as np
+
+    from homemaker_layout import dom_upgrade_cmd, operators
+
+    root, _reqs, types = _native_artefact()
+    rng = np.random.default_rng(3)
+    for _ in range(12):
+        root, _ = operators.mutate_rotate(root, rng, types)
+        root, _ = operators.mutate_swap(root, rng, types)
+    assert any(not geometry._native_cut(n)[2]
+               for lvl in dom.levels(root) for n in _divided(lvl))
+    text = dom.dumps(root, version=2)
+    back = dom_v2.from_document(yaml.safe_load(text), native=True)
+    assert dom_upgrade_cmd.unmatched_cells(root, back) == 0
+    assert dom.dumps(back, version=2) == text
+
+
+def _divided(n):
+    if n.divided:
+        yield n
+        yield from _divided(n.left)
+        yield from _divided(n.right)
+
+
+def _evolve(tmp_path, seed_doc_or_none, budget=250):
+    from homemaker_layout import evolve
+
+    for cfg in PH.glob("*.config"):
+        (tmp_path / cfg.name).write_text(cfg.read_text())
+    if seed_doc_or_none is None:
+        (tmp_path / "init.dom").write_text((PH / "init.dom").read_text())
+    else:
+        (tmp_path / "init.dom").write_text(yaml.safe_dump(seed_doc_or_none, sort_keys=False))
+    out = tmp_path / "out.dom"
+    import os
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        assert evolve.main(["init.dom", "--budget", str(budget), "--seed", "0",
+                            "--workers", "1", "--native", "--output", str(out)]) == 0
+    finally:
+        os.chdir(cwd)
+    return out
+
+
+def test_homemaker_evolve_native_from_a_v1_seed_writes_v2(tmp_path):
+    out = _evolve(tmp_path, None)
+    doc = yaml.safe_load(out.read_text())
+    assert (doc["format"], doc["version"]) == ("homemaker-dom", 2)
+    root = dom.load(str(out), native=True)
+    assert root.plot is not None and len(dom.levels(root)) >= 1
+    assert math.isfinite(_score(root)[0])
+
+
+def test_homemaker_evolve_native_on_an_l_shaped_plot(tmp_path):
+    """What the pivot was for: a plot Urb's quad tree cannot even load."""
+    plot = [[0, 0], [14, 0], [14, 7], [7, 7], [7, 13], [0, 13]]
+    seed = _doc(plot, {"cell": None}, wall_outer=0.25,
+                perimeter=["street", None, None, None, None, "private"])
+    root = dom.load(str(_evolve(tmp_path, seed)), native=True)
+    assert len(root.plot) == 6
+    inner = 14 * 13 - 7 * 6 - 0.25 * (2 * (14 + 13)) + 4 * 0.0625
+    for lvl in dom.levels(root):
+        assert lvl.leaves()
+        assert sum(geometry.area(lf) for lf in lvl.leaves()) == pytest.approx(inner)
+    assert math.isfinite(_score(root)[0])

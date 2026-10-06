@@ -58,17 +58,19 @@ class Node:
     # seed, ...). Geometry and scoring never read it; v1 has nowhere to put it.
     meta: dict | None = None
 
-    # NATIVE rectangle-frame trees only (DESIGN.md §39.103). A tree is native
-    # when its lowest root has a ``plot``: a polygon of any number of vertices,
-    # with the frame's first axis beside it. Each divided node then says where
-    # its line is -- ``cut`` ('u' runs along u and fixes v; 'v' the other) and
-    # ``at``, a fraction of its own RECTANGLE -- and ``left`` is always the low
-    # side. ``rotation`` means nothing in such a tree, and ``division`` is kept
-    # equal to ``[at, at]`` only so that ``divided`` and everything written
-    # against it go on working. ``geometry`` draws a native tree by splitting
-    # the frame rectangle and cropping to the plot.
-    cut: "str | None" = None
-    at: "float | None" = None
+    # NATIVE rectangle-frame trees only (DESIGN.md §39.103/§39.104). A tree is
+    # native when its lowest root has a ``plot``: a polygon of any number of
+    # vertices, with the frame's first axis beside it. ``geometry`` then draws
+    # it by splitting the frame RECTANGLE and cropping each leaf to the plot.
+    #
+    # The genes are the same two as in a quad tree, read on a rectangle:
+    # ``rotation`` picks which side of the node's rectangle the cut starts from
+    # (so its axis, and which child is the low one) and ``division[0]`` how far
+    # along that side, as a fraction of the rectangle. That is what Urb's quad
+    # recursion does when every quad is a rectangle -- so every operator, the
+    # genome and the inner loop edit a native tree exactly as they edit a quad
+    # one. A v2 file's `cut` / `at` / `low` / `high` are this, written down in
+    # the frame's terms (`dom_v2`).
     plot: list[list[float]] | None = None          # lowest root only
     frame_u: list[float] | None = None             # lowest root only
     # A leaf whose rectangle lies wholly outside the plot: it holds no area,
@@ -466,7 +468,6 @@ def hand_cut_up(n: Node) -> None:
         while drawn.below is not None and drawn.below.divided:
             drawn = drawn.below          # this node may be inheriting in turn
         above.division = list(drawn.division)
-        above.cut, above.at = drawn.cut, drawn.at      # a native tree's own fields
 
 
 def _undivide(n: Node, new_type: str) -> None:

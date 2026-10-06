@@ -2359,6 +2359,9 @@ class Fitness:
         from . import graph as graph_mod
 
         geometry.clear_cache()
+        # A native tree's cells are cropped to the plot, and a cut that has
+        # moved can push one off it or bring one back (§39.103).
+        geometry.mark_voids(root)
         # homemaker-py-r5a: canonicalise stale share stamps before any
         # relabelling pass (collapse_superposition/collapse_global) or read
         # can resurrect one -- see dom.canonicalize_shares.

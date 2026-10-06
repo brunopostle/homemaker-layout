@@ -1338,8 +1338,8 @@ def _ext_exposure(leaf: dom.Node) -> int:
     leaves — those whose room neighbours have no facade and so would otherwise
     fail crinkliness (``area_outside`` ~ 0)."""
     from . import geometry
-    return sum(1 for e in range(4)
-               if geometry.boundary_id(leaf, e) in geometry._EXTERNAL)
+    return sum(1 for e in range(geometry.n_edges(leaf))
+               if geometry.is_external(geometry.boundary_id(leaf, e)))
 
 
 def _assign_adjacency_aware(lvl: dom.Node, room_codes: list[str], reqs,

@@ -101,18 +101,48 @@ def _native_frame(g0: Node):
     return hit
 
 
-def _native_cut(n: Node) -> "tuple[str, float]":
-    """``(axis, position)`` of the line across divided node ``n``: its own, or
-    -- where the storey below is cut at this path -- that storey's."""
+def _native_turn(n: Node) -> int:
+    """Which corner of ``n``'s rectangle its cut starts from, 0..3 counting
+    anticlockwise from (low u, low v) -- ``rotation`` accumulated down the
+    tree exactly as the quad recursion accumulates it: a child's own corner 0
+    is its parent's (turned) corner 0, and an upper-storey node takes the turn
+    of the node below it, its own ``rotation`` being a dead field there too.
+    """
+    key = (id(n), "turn")
+    hit = _cache.get(key)
+    if hit is None:
+        if n.below is not None:
+            hit = _native_turn(n.below)
+        else:
+            base = 0 if n.parent is None else _native_turn(n.parent)
+            hit = (base + n.rotation) % 4
+        _cache[key] = hit
+    return hit
+
+
+def _native_cut(n: Node) -> "tuple[str, float, bool]":
+    """``(axis, position, left is the low side)`` of the line across divided
+    node ``n``: its own, or -- where the storey below is cut at this path --
+    that storey's.
+
+    Turn 0 starts on the low-v side and runs up: the line fixes u (`cut: v`),
+    ``division[0]`` is measured from low u, and the left child is the low one.
+    Turn 1 the same a quarter round: it fixes v, measured from low v. Turns 2
+    and 3 are those two started from the opposite side, so the ratio counts
+    down from the high end and the LEFT child is the high one.
+    """
     key = (id(n), "cut")
     hit = _cache.get(key)
     if hit is None:
         if n.below is not None and n.below.divided:
             hit = _native_cut(n.below)
         else:
+            turn = _native_turn(n)
             r = _native_rect(n)
-            lo, hi = (r[2], r[3]) if n.cut == "u" else (r[0], r[1])
-            hit = (n.cut, lo + n.at * (hi - lo))
+            axis = "v" if turn % 2 == 0 else "u"
+            lo, hi = (r[0], r[1]) if axis == "v" else (r[2], r[3])
+            d = n.division[0] if turn < 2 else 1.0 - n.division[0]
+            hit = (axis, lo + d * (hi - lo), turn < 2)
         _cache[key] = hit
     return hit
 
@@ -122,18 +152,29 @@ def _native_rect(n: Node) -> "tuple[float, float, float, float]":
     key = (id(n), "rect")
     hit = _cache.get(key)
     if hit is None:
-        if n.parent is None:
+        if n.below is not None:
+            hit = _native_rect(n.below)     # walls stack: the same piece of floor
+        elif n.parent is None:
             hit = _native_frame(_native(n))[3]
         else:
             u0, u1, v0, v1 = _native_rect(n.parent)
-            axis, s = _native_cut(n.parent)
-            low = n.position == "l"
+            axis, s, left_low = _native_cut(n.parent)
+            low = (n.position == "l") == left_low
             if axis == "u":                 # a line along u fixes v
                 hit = (u0, u1, v0, s) if low else (u0, u1, s, v1)
             else:
                 hit = (u0, s, v0, v1) if low else (s, u1, v0, v1)
         _cache[key] = hit
     return hit
+
+
+def native_cut(n: Node) -> "tuple[str, float, bool]":
+    """``(axis, at, left is low)`` of divided native node ``n`` as a v2 file
+    states it: ``at`` a fraction of the node's rectangle across the cut."""
+    axis, s, left_low = _native_cut(n)
+    r = _native_rect(n)
+    lo, hi = (r[0], r[1]) if axis == "v" else (r[2], r[3])
+    return axis, (s - lo) / (hi - lo), left_low
 
 
 def polygon(n: Node) -> "list[Point]":
@@ -151,14 +192,43 @@ def polygon(n: Node) -> "list[Point]":
             from . import cells
 
             u, v, inner, _ = _native_frame(g0)
-            hit = cells.clip(inner, _native_rect(n), u, v)
+            rect = _native_rect(n)
+            hit = cells.clip(inner, rect, u, v)
+            if hit:
+                # Start the list where the quad recursion would: at the corner
+                # this node's turn names. Nothing scored reads which corner is
+                # first (§39.95), but the search's heuristics still do -- the
+                # solver and the shape-curve DP take "edge 0" to be the side a
+                # cut starts from -- and they should see a native cell the way
+                # round they see a quad one.
+                cu, cv = ((rect[0], rect[2]), (rect[1], rect[2]),
+                          (rect[1], rect[3]), (rect[0], rect[3]))[_native_turn(n)]
+                first = min(range(len(hit)), key=lambda i: (
+                    (hit[i][0] * u[0] + hit[i][1] * u[1] - cu) ** 2
+                    + (hit[i][0] * v[0] + hit[i][1] * v[1] - cv) ** 2))
+                hit = hit[first:] + hit[:first]
         _cache[key] = hit
     return hit
 
 
+def _native_rect_corners(n: Node) -> "list[Point]":
+    """The four corners of ``n``'s rectangle in world coordinates, from the
+    corner its turn names. What a VOID cell answers with when the search's
+    heuristics ask where it is: it has no polygon, but it has a place, and a
+    move that would bring it back onto the plot needs to know it."""
+    u, v = _native_frame(_native(n))[:2]
+    u0, u1, v0, v1 = _native_rect(n)
+    c = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+    t = _native_turn(n)
+    return [[a * u[0] + b * v[0], a * u[1] + b * v[1]] for a, b in c[t:] + c[:t]]
+
+
 def mark_voids(root: Node) -> int:
     """Set ``void`` on every leaf of a native tree that crops to nothing, and
-    clear it on the rest; returns how many there are. A quad tree has none."""
+    clear it on the rest; returns how many there are. A quad tree has none.
+    Geometry must be current (the scorer calls this right after clearing the
+    cache), because a cut that moves can push a cell off the plot or back on.
+    """
     from . import cells
 
     count = 0
@@ -175,7 +245,6 @@ def mark_voids(root: Node) -> int:
                 n.void = cells.area(polygon(n)) < cells.EMPTY_AREA
                 count += n.void
         lvl = lvl.above
-    clear_cache()
     return count
 
 
@@ -301,7 +370,7 @@ def coordinate(n: Node, idx: int) -> Point:
     if hit is not None:
         return hit
     if _native(n) is not None:
-        poly = polygon(n)
+        poly = polygon(n) or _native_rect_corners(n)
         result = poly[idx % len(poly)]
     elif n.below is not None:  # upper storey inherits geometry from below
         result = coordinate(n.below, idx)
@@ -368,7 +437,7 @@ def usable_rectangle(n: Node) -> "tuple[float, float]":
         from . import cells
 
         u, v = _reference_axes(n)
-        hit = cells.usable_rectangle([coordinate(n, i) for i in range(n_edges(n))], u, v)
+        hit = cells.usable_rectangle(polygon(n), u, v)
         _cache[key] = hit
     return hit
 
@@ -391,7 +460,7 @@ def n_edges(n: Node) -> int:
     function changed and not every loop that walks a cell's sides. The stair
     rules are the exception and say so: a stair core is fitted as a rectangle.
     """
-    return 4 if _native(n) is None else len(polygon(n))
+    return 4 if _native(n) is None else (len(polygon(n)) or 4)
 
 
 def _dist(a: Point, b: Point) -> float:
@@ -451,7 +520,15 @@ def angle(n: Node, idx: int) -> float:
 
 
 def aspect(n: Node) -> float:
-    """Plan aspect ratio, always >= 1 (``Urb::Quad::Aspect``)."""
+    """Plan aspect ratio, always >= 1 (``Urb::Quad::Aspect``). A native cell
+    has no pair of opposite edges to average; it answers with its fitted
+    rectangle, or its own rectangle if it is off the plot."""
+    if _native(n) is not None:
+        a, b = usable_rectangle(n)
+        if min(a, b) <= 0:
+            u0, u1, v0, v1 = _native_rect(n)
+            a, b = u1 - u0, v1 - v0
+        return max(a, b) / min(a, b) if min(a, b) > 0 else 1e9
     asp = (edge_length(n, 0) + edge_length(n, 2)) / (edge_length(n, 1) + edge_length(n, 3))
     if 0 < asp < 1:
         asp = 1 / asp
@@ -459,7 +536,10 @@ def aspect(n: Node) -> float:
 
 
 def length_narrowest(n: Node) -> float:
-    """Shortest of the four edge lengths (``Urb::Quad::Length_Narrowest``)."""
+    """Shortest of the four edge lengths (``Urb::Quad::Length_Narrowest``); for
+    a native cell, the short side of its fitted rectangle."""
+    if _native(n) is not None:
+        return usable_width(n)
     return min(edge_length(n, i) for i in range(4))
 
 
@@ -512,6 +592,8 @@ def boundary_id(n: Node, edge: int) -> str:
         # not recorded: nothing native asks, the adjacency graph is built from
         # the shared walls themselves.
         poly = polygon(n)
+        if not poly:
+            return "interior"       # a void cell touches nothing
         a, b = poly[edge % len(poly)], poly[(edge + 1) % len(poly)]
         mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
         inner = _native_frame(g0)[2]

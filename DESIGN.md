@@ -14424,3 +14424,83 @@ is.
 and ratios; `genome`, `innerloop`, `solver` and `shapecurve` assume the quad
 tree. Until they are ported `homemaker-evolve` works on quad trees and writes
 v1, and a native tree is something you can score, write and read.
+
+### 39.104 The search runs on native trees, with the genes it always had (`homemaker-py-8b2u`)
+
+The last stage was expected to be a port of twenty-two operators, the genome,
+the inner loop, the solver and the shape-curve DP from "rotation and ratio"
+to "axis and position". It was not, because of one observation: **Urb's quad
+recursion, when every quad is a rectangle, already IS the rectangle frame.**
+`rotation` says which side of the node's quad the cut starts from, and so its
+axis and which child is the near one; `division[0]` says how far along. On a
+rectangle that is a line across it and a fraction of it. So a native node
+keeps exactly those two genes, and `geometry` reads them on the node's
+rectangle (`_native_turn`: rotation accumulated down the tree as the quad
+recursion accumulates it, an upper storey taking the turn of the node below;
+`_native_cut`: axis, position, and whether the left child is the low one).
+
+§39.103's `Node.cut` / `Node.at`, one day old, are gone -- they would have
+been a second copy of the same information that no operator kept in step. A
+v2 file's `cut` / `at` / `low` / `high` are the genes restated in the frame's
+terms, converted on the way in and out (`dom_v2`, `geometry.native_cut`). The
+reader builds `low` on the left; a search turns half its cuts round, and the
+writer then says the right child is `low`.
+
+**What had to change for the search: almost nothing.**
+
+- `genome._BASE_META` carries `plot` and `frame_u`, or a decoded native
+  building came back as a quad tree with no plot.
+- The scorer re-marks void cells at the start of every evaluation: a ratio
+  that moves can push a cell off the plot or bring it back.
+- The quad helpers the search's heuristics call -- `aspect`,
+  `length_narrowest`, `coordinate`, `boundary_id` -- answer for a native cell
+  (from its fitted rectangle) and for a void one (from the rectangle it would
+  occupy), and a native cell's corners are listed from the corner its turn
+  names, so "edge 0" is the side a cut starts from in both geometries.
+- One operator helper counted `range(4)` sides against `"abcd"`.
+- `homemaker-evolve --native` converts the seed, and writes v2.
+
+**Tests** (`tests/test_native_tree.py`): every operator applied to a native
+design gives a native child that scores and survives the genome with the same
+score (at least twelve of the twenty-two fire on one artefact); a tree the
+search has turned round is written and read back with every cell; a native
+search from the v1 `init.dom` writes a v2 file; and a native search on an
+L-shaped plot -- which the quad tree cannot load at all -- returns storeys
+whose cells sum to the plot's area.
+
+**A defect the L-shaped plot found within the hour.** A cell wrapped round
+the plot's inner corner is itself an L. `cells.usable_rectangle` assumed a
+convex cell, read its top and bottom at each x, and handed an L its whole
+bounding box: full width, full shape credit. Non-convex cells now take a
+general path (`_usable_rectangle_any`: the stretches of y inside the cell,
+intersected across the strip), and an L of 18 m2 whose best rectangle is 12 m2
+scores 0.67 and fails on shape. Convex cells do not reach it.
+
+**What a native search is, and is not yet known to be.** On a quad plot it is
+NOT the default search with a different file format: a ratio is a fraction of
+the rectangle, not of a cropped edge, so the same genome draws slightly
+different cells wherever a cell touches a skew boundary, and the search's own
+heuristics (`solver`'s target ratios, the shape-curve DP) still reason about
+quad edges. Six paired seeds on programme-house at 6,000 evaluations:
+
+| seed | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|---|
+| quad tree, orthogonal: fails | 3 | 6 | 6 | 5 | 3 | 2 |
+| native: fails | 5 | 5 | 5 | 4 | 5 | 8 |
+
+Three seeds each way. That is not a result -- six pairs at a hundredth of the
+budget cannot resolve anything, and nothing here should be quoted as "native
+is as good" or "native is worse". It says the native search is a working
+search in the same range. Whether it matches the default at a real budget is
+an A/B on the box, and it is the measurement that decides whether `--native`
+becomes the default.
+
+**Still to do before that A/B is worth running:**
+
+- the sweep runner has no way to ask for a native search or to stamp one (the
+  objective stamp says `+orth` or nothing; a native corpus needs its own
+  mark);
+- native scoring is unoptimised, about 40% slower on a large programme
+  (§39.103), which at a real budget is hours;
+- `solver` and `shapecurve` were not checked for what they aim at on a
+  native tree, only that they run.

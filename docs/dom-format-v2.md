@@ -172,9 +172,15 @@ pentagon or nothing. The orthogonal-division switch is not consulted.
 - Every one of the 192 orthogonal designs scores the same as a native tree as
   it does as a quad tree.
 
-A native tree can be scored and written, **not yet searched**: the operators
-still edit `rotation` and ratios, so `homemaker-evolve` and every other tool
-use the default, `native=False`, described next.
+**And searched** (DESIGN.md §39.104): `homemaker-evolve --native` converts its
+seed to a native tree, searches it with the same operators, and writes v2. In
+memory a native node holds the same two genes a quad node does -- a `rotation`
+(which side of its rectangle the cut starts from) and a ratio -- and the
+file's `cut` / `at` / `low` / `high` are those, restated in the frame: the
+axis, the distance from the LOW side as a fraction of the rectangle, and which
+subtree lies on that side. A search that starts cuts from the far side gets
+files whose `low` is its right child; the reader always builds `low` on the
+left. Every other tool still uses the default, `native=False`, described next.
 
 ## Stage 1a: what the reader and writer do today
 

@@ -255,14 +255,21 @@ def _leaf_spec(n: Node) -> dict:
 
 
 def _native_to_document(root: Node) -> dict:
-    """A native tree written back: it already holds what the file says."""
+    """A native tree written in the frame's terms. Its genes are a rotation and
+    a ratio (see ``Node.plot``); the file says which axis, how far across the
+    rectangle from the LOW side, and which subtree is on that side."""
+    g = _geometry()
+    g.clear_cache()
+
     def emit(n: Node) -> dict:
         if not n.divided:
             return _leaf_spec(n)
+        axis, at, left_low = g.native_cut(n)
         d: dict = {}
         if not (n.below is not None and n.below.divided):
-            d["cut"], d["at"] = n.cut, n.at
-        d["low"], d["high"] = emit(n.left), emit(n.right)
+            d["cut"], d["at"] = axis, round(at, AT_DIGITS)
+        lchild, rchild = emit(n.left), emit(n.right)
+        d["low"], d["high"] = (lchild, rchild) if left_low else (rchild, lchild)
         return d
 
     doc: dict = {"format": FORMAT, "version": VERSION,
@@ -284,6 +291,18 @@ def _native_to_document(root: Node) -> dict:
     if root.meta:
         doc["meta"] = dict(root.meta)
     return doc
+
+
+def _index_storey(lvl: Node, below_root, chain: dict, aligned: dict) -> None:
+    """Record, for every node of a finished storey, the nodes it stacks on."""
+    stack = [(lvl, "")]
+    while stack:
+        n, path = stack.pop()
+        under = below_root.by_id(path) if below_root is not None else None
+        chain[id(n)] = [n] + (chain[id(under)] if under is not None else [])
+        aligned.setdefault(id(chain[id(n)][-1]), []).append(n)
+        if n.divided:
+            stack += [(n.left, path + "l"), (n.right, path + "r")]
 
 
 def _native_from_document(doc: dict) -> Node:
@@ -312,17 +331,33 @@ def _native_from_document(doc: dict) -> Node:
             raise DomFormatError("`perimeter` must have one entry per plot edge")
         perimeter = {f"#{k}": status for k, status in enumerate(doc["perimeter"])}
 
+    # The file gives each cut as an axis and a position from the low side;
+    # the tree wants a rotation and a ratio. The reader always puts `low` on
+    # the left, so the turn it needs is 0 for a `cut: v` and 1 for a `cut: u`,
+    # and a node's rotation is that turn less the one it starts from (its
+    # parent's; `geometry._native_turn`). `turns` carries them down and up.
     roots: list[Node] = []
+    turns: dict[int, int] = {}
+    low_left: dict[int, bool] = {}
+    pinned: set[int] = set()            # nodes whose turn a cut already relies on
+    chain: dict[int, list[Node]] = {}   # node -> itself and everything it stacks on
+    aligned: dict[int, list[Node]] = {} # bottom node -> all that stack on it
     for i, storey in enumerate(doc["storeys"]):
         if "tree" not in storey:
             raise DomFormatError(f"storey {i} has no `tree`")
         below_root = roots[-1] if roots else None
 
-        def build(spec, path: str, i=i, below_root=below_root) -> Node:
+        def build(spec, path: str, start: int, i=i, below_root=below_root) -> Node:
             where = f"storey {i} {path or 'root'}"
             if not isinstance(spec, dict):
                 raise DomFormatError(f"{where}: a node must be a mapping")
             n = Node()
+            under = below_root.by_id(path) if below_root is not None else None
+            if under is not None:
+                turns[id(n)] = turns[id(under)]     # walls stack: the same turn
+                n.rotation = under.rotation
+            else:
+                turns[id(n)] = start
             if "cell" in spec:
                 n.type = None if spec["cell"] is None else str(spec["cell"])
                 if spec.get("share") is not None:
@@ -332,24 +367,49 @@ def _native_from_document(doc: dict) -> Node:
                 return n
             if "low" not in spec or "high" not in spec:
                 raise DomFormatError(f"{where}: a node is a `cell` or has `low` and `high`")
-            under = below_root.by_id(path) if below_root is not None else None
+            left_low = True
             if under is not None and under.divided:
                 if "cut" in spec or "at" in spec:
                     raise DomFormatError(
                         f"{where}: the storey below is cut here, so this storey "
                         "inherits that cut and must not write `cut`/`at` of its own")
-                n.cut, n.at = under.cut, under.at
+                n.division = list(under.division)
+                left_low = low_left[id(under)]
             else:
                 if spec.get("cut") not in ("u", "v") or "at" not in spec:
                     raise DomFormatError(f"{where}: a cut needs `cut: u|v` and `at`")
-                n.cut, n.at = spec["cut"], float(spec["at"])
-                if not 0.0 < n.at < 1.0:
-                    raise DomFormatError(f"{where}: `at` is {n.at}, outside (0, 1)")
-            n.division = [n.at, n.at]
-            n.left, n.right = build(spec["low"], path + "l"), build(spec["high"], path + "r")
+                at = float(spec["at"])
+                if not 0.0 < at < 1.0:
+                    raise DomFormatError(f"{where}: `at` is {at}, outside (0, 1)")
+                want = 0 if spec["cut"] == "v" else 1
+                if under is None:
+                    n.rotation = (want - start) % 4
+                    turns[id(n)] = want
+                elif turns[id(n)] % 2 != want:
+                    # the cell exists on the storey below, uncut, and its turn
+                    # is read from there: this storey may only cut it the way
+                    # that turn allows -- unless nothing below relies on it yet
+                    if id(under) in pinned:
+                        raise DomFormatError(
+                            f"{where}: cut {spec['cut']} is across the grain a "
+                            "lower storey has already fixed for this cell")
+                    bottom = chain[id(under)][-1]       # where the turn is read
+                    bottom.rotation = (bottom.rotation + 1) % 4
+                    for other in aligned[id(bottom)]:
+                        turns[id(other)] = (turns[id(other)] + 1) % 4
+                    turns[id(n)] = turns[id(under)]
+                if under is not None:
+                    pinned.update(id(x) for x in chain[id(under)])
+                turn = turns[id(n)]
+                left_low = turn < 2
+                n.division = [at, at] if left_low else [1.0 - at, 1.0 - at]
+            low_left[id(n)] = left_low
+            lo = build(spec["low"], path + ("l" if left_low else "r"), turns[id(n)])
+            hi = build(spec["high"], path + ("r" if left_low else "l"), turns[id(n)])
+            n.left, n.right = (lo, hi) if left_low else (hi, lo)
             return n
 
-        lvl = build(storey["tree"], "")
+        lvl = build(storey["tree"], "", 0)
         lvl.wall_inner, lvl.wall_outer = wall_inner, wall_outer
         for key in ("elevation", "height"):
             if storey.get(key) is not None:
@@ -357,6 +417,7 @@ def _native_from_document(doc: dict) -> Node:
         if roots:
             roots[-1].above = lvl
         roots.append(lvl)
+        _index_storey(lvl, below_root, chain, aligned)
     root = roots[0]
     root.plot, root.frame_u = plot, [float(fu[0]), float(fu[1])]
     root.perimeter = perimeter
@@ -369,8 +430,19 @@ def _native_from_document(doc: dict) -> Node:
 
 
 def to_native(root: Node) -> Node:
-    """A quad tree (orthogonal) re-made as a native one: the same building."""
-    return _native_from_document(to_document(root))
+    """A quad tree re-made as a native one: the same building, as orthogonal
+    division draws it. That is the only reading a native tree has, so the
+    switch is held on for the conversion whatever it was set to."""
+    if root.plot is not None:
+        return root
+    g = _geometry()
+    was, g.ORTHOGONAL_DIVISION = g.ORTHOGONAL_DIVISION, True
+    try:
+        g.clear_cache()
+        return _native_from_document(to_document(root))
+    finally:
+        g.ORTHOGONAL_DIVISION = was
+        g.clear_cache()
 
 
 def from_document(doc: dict, native: bool = False) -> Node:

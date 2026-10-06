@@ -288,11 +288,14 @@ Key modules:
   default. **There are two trees a v2 file can become.** `native=False` (the
   default, and what the search uses) FITS it into Urb's quad tree, refusing what
   that cannot hold and refusing outright while orthogonal division is off.
-  `native=True` (what `homemaker-fitness` uses) keeps each cut as the file
-  states it -- `Node.cut` / `Node.at`, a polygon `plot` on the lowest root --
-  and `geometry` draws it by splitting the frame rectangle and cropping to the
-  plot: any plot, odd and empty cells, no switch. Native trees are scoreable
-  and writable, **not searchable**: no operator understands them yet
+  `native=True` (what `homemaker-fitness` uses) builds a NATIVE tree -- a
+  polygon `plot` on the lowest root -- which `geometry` draws by splitting the
+  frame rectangle and cropping to the plot: any plot, odd and empty cells, no
+  switch. Its genes are the quad tree's own, `rotation` and `division[0]`,
+  read on a rectangle, so every operator, the genome and the inner loop edit
+  it unchanged, and `homemaker-evolve --native` searches it and writes v2
+  (§39.104). A v2 file's `cut` / `at` / `low` / `high` are those genes in the
+  frame's terms; `geometry.native_cut` converts
 - `geometry.py` — faithful port of Urb's top-down geometry
 - `programme.py` — parse `patterns.config` space requirements
 - `solver.py` — bottom-up ratio solve (scipy)
