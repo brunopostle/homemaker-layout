@@ -141,7 +141,11 @@ NEITHER_SOURCES = ("src/homemaker_layout/__init__.py",
                    "src/homemaker_layout/collapse_cmd.py",
                    "src/homemaker_layout/compose.py",
                    "src/homemaker_layout/compose_cmd.py",
-                   "src/homemaker_layout/fitness_cmd.py")
+                   "src/homemaker_layout/fitness_cmd.py",
+                   # export only: reads a finished .dom and writes a rooms
+                   # document for homemaker-addon; nothing scores or searches
+                   # through it
+                   "src/homemaker_layout/rooms_export.py")
 
 # The search knobs a row must pin down. Everything else in `homemaker-evolve`'s
 # namespace is per-run (budget, seed, workers, output paths) and already in the
