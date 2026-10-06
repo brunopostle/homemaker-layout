@@ -186,3 +186,39 @@ def test_control_without_the_hand_up_the_wall_moves(monkeypatch):
 
     monkeypatch.setattr(dom, "_undivide", urb_undivide)
     assert _upstairs_cut_moves_when_the_cells_below_merge() > 0.05     # 8.6 cm
+
+
+# --------------------------------------------------------------------------- #
+# where the plot is, which way it faces, which corner comes first
+# --------------------------------------------------------------------------- #
+INVARIANCE = REPO / "experiments" / "diag_scorer_invariance.py"
+
+
+def _invariance():
+    spec = importlib.util.spec_from_file_location("_inv", INVARIANCE)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _one_per_corpus(rt):
+    seen, out = set(), []
+    for p, prog in rt.corpus():
+        if (prog.name, p.parent.name) not in seen:
+            seen.add((prog.name, p.parent.name))
+            out.append((p, prog))
+    return out
+
+
+def test_moving_turning_or_relisting_the_plot_changes_no_score(rt):
+    """A building does not know where the survey's origin was, where north is,
+    or which corner was listed first (DESIGN.md §39.97: 0 of 960 trials)."""
+    inv = _invariance()
+    assert inv.run(["translate", "rotate", "restart"], _one_per_corpus(rt), rt) == 0
+
+
+def test_control_a_mirror_that_drops_the_perimeter_does_change_scores(rt):
+    """The same harness on a re-description that is NOT the same building: the
+    mirror image with its `private` side left behind on the wrong wall."""
+    inv = _invariance()
+    assert inv.run(["mirror"], _one_per_corpus(rt), rt, broken=True) > 0

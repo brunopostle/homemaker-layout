@@ -14010,3 +14010,73 @@ scored with 5.57 m of daylit wall, crinkliness 0.90 against a target of 0.83,
 a comfortable pass; with 2.79 m it is 0.45. Whether a given pair came out a
 hair above zero or a hair below was arithmetic luck, which is why moving every
 cut by a nanometre re-scored half the corpus.
+
+### 39.97 Four more ways to re-describe a building, and crinkliness re-measured without the phantom walls
+
+Two container measurements made while `homemaker-py-qkp0` runs, both on branch
+`dom-v2`.
+
+**Does the scorer read anything else that is not the building?** §39.94 found
+three defects with one re-description. `experiments/diag_scorer_invariance.py`
+tries four more on the 192 orthogonal artefacts, checking first that each
+leaves every cell's storey, type and area alone:
+
+| re-description | trials | scores moved |
+|---|---|---|
+| plot translated 137.5 m, 62.25 m | 192 | 0 |
+| plot rotated 33 degrees | 192 | 0 |
+| plot's corner list started 1, 2, 3 corners later | 576 | 0 |
+| building mirrored (perimeter statuses carried) | 192 | **1** |
+
+Negative control: the mirror with its `private` side left on the wrong wall
+moves 6 of 6.
+
+The one is harbor-house `1a24b6a+orth` s1, whose mirror image gains
+`0 inaccessible usable space` twice: 31 fails to 33, x0.25. It is not the
+mirror. `graph.has_circulation` trims edges room by room in the order the cells
+are listed, and each trim changes the path lengths later rooms sort their
+neighbours by, so which edges survive depends on the listing order -- which
+follows the tree's left/right naming. Listing the same storey in a shuffled
+order reproduces it on that design in 1 of 20 shuffles, and breaking sort ties
+by position does not cure it, so it is the sequence and not the ties. Five
+shuffles each over all 192 move only that design. Urb's, rare, and a hard fail
+appearing by accident of naming: `homemaker-py-rwwv`, not fixed.
+
+So with §39.95/§39.96 in, the objective is clean under every re-description
+tried except that one.
+
+**Crinkliness without the phantom walls**
+(`experiments/diag_khgi_crinkliness.py`: every corpus under its own convention,
+today's code, with Urb's rule put back in the "old" columns so they differ by
+that rule alone). Leaves carrying a minimum-exposure requirement:
+
+| corpus | leaves | fail, old rule (buried) | fail, corrected (buried) | all fails | crinkliness share |
+|---|---|---|---|---|---|
+| `055d710` | 430 | 112 (77) | 129 (77) | 277 -> 294 | 40.4% -> 43.9% |
+| `99c85ec` | 437 | 109 (80) | 128 (80) | 244 -> 263 | 44.7% -> 48.7% |
+| `c836457+orth` | 423 | 97 (65) | 116 (65) | 257 -> 276 | 37.7% -> 42.0% |
+| `1138ff1+orth` | 423 | 111 (77) | 129 (77) | 267 -> 285 | 41.6% -> 45.3% |
+| `07b2058+orth` | 440 | 118 (98) | 126 (98) | 267 -> 275 | 44.2% -> 45.8% |
+| `1a24b6a+orth` | 443 | 115 (90) | 124 (90) | 248 -> 257 | 46.4% -> 48.2% |
+
+The `055d710` old-rule row is §39.13's own -- 430 leaves, 112 failing, 77 at
+exactly zero -- which is the check that the old rule is reconstructed
+faithfully.
+
+Three things follow.
+
+- **The family is two to four points larger than every section quoted**, and
+  approaching half of all fails.
+- **The buried population is untouched**, as it must be: a leaf with no daylit
+  wall had nothing to double. So §39.13 and §39.68's argument stands as
+  written -- the buried tail is worth nothing to a re-weighting, and the three
+  inert attempts stay inert.
+- **The 90 newly failing leaves are a population nobody has looked at.** None
+  is buried. Every one has a real wall onto open air and between a fifth and
+  three fifths of the exposure it needs (45 under 40%, 45 between 40 and 60%);
+  55 are on maple-court, 19 harbor-house, 16 health-centre, none
+  programme-house. They were passing on a wall counted twice. Unlike the
+  buried leaves these are within reach of the moves the search already has: a
+  longer shared wall, or a second outdoor neighbour. Whether the search finds
+  those once the objective stops paying it not to is a sweep question, and the
+  next re-baseline is the first that can answer it.
