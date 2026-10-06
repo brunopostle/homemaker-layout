@@ -176,11 +176,13 @@ list ordering churn as well, so the first export after an import is a ~200-line
 diff on a git-tracked file.
 
 Separately, **the v66 schema migration bumped `updated_at` on 59 issues** to its
-own clock, which is `homemaker-py-a72v` — `bd stale` is unreliable for anything
-last touched before 2026-10-01. That one was missed on the first pass because
-the check iterated a hand-typed field list that omitted `updated_at`. **When you
-verify a migration, diff every key present in either record**, not the ones you
-thought to name.
+own clock (`homemaker-py-a72v`, repaired 2026-10-06, so `bd stale` can be
+trusted again). That one was missed on the first pass because the check
+iterated a hand-typed field list that omitted `updated_at`. **When you verify a
+migration, diff every key present in either record**, not the ones you thought
+to name. The repair is the reusable part: `bd sql` is unsupported in embedded
+mode, but `bd import --allow-stale` of a record whose only change is an OLDER
+`updated_at` rewrites that field and nothing else.
 
 ### In an agent container
 
