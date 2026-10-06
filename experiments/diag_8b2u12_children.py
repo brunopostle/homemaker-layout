@@ -13,7 +13,12 @@ the search scores a child (`driver._evaluate`, the same overrides).
   sol       `solver.solve_ratios` from the inherited ratios (least squares on
             area, width and proportion; it calls no scorer), then ONE score
   sol+20    the same, then 20 evaluations
-  sol10+20  the solver stopped after 10 iterations, then 20 evaluations
+  sol10+20  the solver stopped after 10 function evaluations, then 20
+
+The solver is stopped at 100 function evaluations in `sol` and `sol+20`: at
+its own limit of 4,000 a single call ran for more than ten minutes on a
+harbor-house child, which is its own answer to "can a search call this per
+child" (DESIGN.md §39.109).
 
 Reported: fails and CPU seconds per child, each arm paired against `today`
 on the same child (`ab_report.paired_report`, so the MDD is beside the
@@ -67,7 +72,7 @@ def size(arm, child, prog, ratios, reqs, conf, search):
         geometry.clear_cache()
         try:
             solver.solve_ratios(root, reqs, strip=False, conf=conf,
-                                max_nfev=10 if arm.startswith("sol10") else 4000)
+                                max_nfev=10 if arm.startswith("sol10") else 100)
         except Exception:               # it may refuse a tree; the start stands
             pass
         budget = 20 if arm.endswith("+20") else 1

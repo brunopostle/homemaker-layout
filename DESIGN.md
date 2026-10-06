@@ -14742,3 +14742,40 @@ every move), turns normalised in `signature`, and then the Wong-Liu moves.
 On rectangles a run is exact; on skew quads, the bead notes, re-bracketing a
 run only approximately preserved its strips.
 Whether it improves a search is an A/B on the box. Recorded on the bead.
+
+### 39.108 Outdoor slivers, re-measured at three later corpora: not reproduced (`homemaker-py-jak`)
+
+§39.35 found the population of outdoor cells flat and its narrow tail growing
+(2 -> 9 below the width fail edge over twelve matched runs), with the paired
+delta exactly on the MDD -- unresolved -- and asked for a re-measurement "at
+the next corpus sweep". Three sweeps later, nobody had
+(`experiments/diag_jak_outdoor_slivers.py`).
+
+One ruler for all four orthogonal corpora: today's scorer, the fitted
+rectangle's short side as the width (§39.102), the cells counted after
+`preprocess_building` and `merge_divided` as the scorer sees them, and two
+thresholds that depend on no ruling. Outdoor cells the scorer asks about
+width (ground, covered or supported; a roof garden over nothing is waived):
+
+| corpus (oldest first) | cells | per design | fail on width | under 1.2 m | under 0.5 m | designs with one under 1.2 m | narrowest |
+|---|---|---|---|---|---|---|---|
+| `1138ff1+orth` | 60 | 5.0 | 4 | 2 | 1 | 2 of 12 | 0.18 m |
+| `c836457+orth` | 61 | 5.1 | 4 | 3 | 0 | 2 of 12 | 0.78 m |
+| `07b2058+orth` | 66 | 5.5 | 5 | 0 | 0 | 0 of 12 | 1.20 m |
+| `1a24b6a+orth` | 62 | 5.2 | 4 | 0 | 0 | 0 of 12 | 1.20 m |
+
+The population is as flat as §39.35 found it, and the tail has not grown: 4
+or 5 width fails in about sixty cells at every corpus, and in the two newest
+no outdoor cell narrower than a door. The narrowest cell in both is 1.201 m,
+a hair over the 1.2 m door width -- presumably because a cell narrower than
+that cannot share a door's width of wall across its end, though that was not
+traced. The degenerate slivers the bead worried about (0.075 m) are gone, not
+merely fewer.
+
+This is four populations searched against four objectives, not an A/B, and it
+is on orthogonal geometry where §39.35's count was not; it cannot say what
+removed the slivers. It does answer the bead: its step (1) was this
+re-measurement, and its step (2) -- ask the owner whether the per-level
+outdoor rule should demand a minimum USABLE cell -- was conditional on the
+effect holding. It does not hold. Closed; the tool reads any future corpus in
+seconds if it comes back.

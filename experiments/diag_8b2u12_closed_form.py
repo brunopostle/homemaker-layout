@@ -32,6 +32,14 @@ Starts, each followed by N evaluations of the inner loop the search uses
                                           iterates, but calls no scorer
   cf+sol  the same, started from `closed`
 
+The solver is stopped at `--solver-nfev` function evaluations (default 100).
+Left at its own limit of 4,000 it usually converges in seconds, but the first
+run of this experiment sat for more than twenty minutes inside ONE call on
+maple-court and was abandoned at 41 designs of 48; its fail counts for those
+41 are in DESIGN.md §39.109 beside the capped ones. A step that takes seconds
+or half an hour is not one a search can call per child, and the cap is part
+of what is being measured.
+
 and `R`, the design as committed: the ratios 500k evaluations of search found.
 N evaluations INCLUDE scoring the start, so N = 0 is the start itself scored
 once for the table and N = 10 is the start plus nine moves.
@@ -153,9 +161,17 @@ def boundary_share(root) -> float:
     return on / n if n else 0.0
 
 
-def run(programmes, pattern, stack, budgets=BUDGETS, limit=None):
+def run(programmes, pattern, stack, budgets=BUDGETS, limit=None, nfev=100, checkpoint=None):
+    import pickle
+
     rows = []
+    if checkpoint and Path(checkpoint).exists():
+        rows = pickle.loads(Path(checkpoint).read_bytes())
+        print(f"  resuming: {len(rows)} designs already in {checkpoint}", file=sys.stderr)
+    done = {(r["programme"], r["name"]) for r in rows}
     for prog, p in corpus(programmes, pattern):
+        if (prog.name, p.name) in done:
+            continue
         if limit is not None and sum(r["programme"] == prog.name for r in rows) >= limit:
             continue
         fit = Fitness(*load_config(prog))
@@ -181,7 +197,10 @@ def run(programmes, pattern, stack, budgets=BUDGETS, limit=None):
                 closed_form(start, reqs, conf, stack, outside_absorbs=arm == "closedO")
             if arm in ("solver", "cf+sol"):
                 try:
-                    solver.solve_ratios(start, reqs, strip=False, conf=conf)
+                    res = solver.solve_ratios(start, reqs, strip=False, conf=conf,
+                                              max_nfev=nfev)
+                    row[arm, "nfev"] = res.nfev
+                    row[arm, "capped"] = res.status == 0
                 except Exception:           # it may refuse a tree
                     row[arm, "raised"] = True
             row[arm, "setup_s"] = time.process_time() - t0
@@ -192,6 +211,8 @@ def run(programmes, pattern, stack, budgets=BUDGETS, limit=None):
                     innerloop.optimise(r, str(prog), x0=None, budget=n)
                 row[arm, n] = score(r)
         rows.append(row)
+        if checkpoint:
+            Path(checkpoint).write_bytes(pickle.dumps(rows))
         print(f"  {prog.name}/{p.name.replace('coldstart-', '')}: R {row['R'][1]} fails; "
               + "; ".join(f"{a} " + "/".join(str(row[a, n][1]) for n in budgets)
                           for a in ARMS), file=sys.stderr, flush=True)
@@ -234,8 +255,12 @@ def report(rows, budgets=BUDGETS) -> None:
                 for n in budgets))
     print("\nmean CPU time to make the start, per design: " + ", ".join(
         f"{a} {1e3 * sum(r[a, 'setup_s'] for r in rows) / len(rows):.1f} ms" for a in arms[1:]))
-    raised = {a: sum(bool(r.get((a, "raised"))) for r in rows) for a in ("solver", "cf+sol")}
-    print(f"solve_ratios raised on {raised['solver']} designs from 0.5, {raised['cf+sol']} from the closed form")
+    for a in ("solver", "cf+sol"):
+        ok = [r for r in rows if (a, "nfev") in r]
+        print(f"{a}: raised on {sum(bool(r.get((a, 'raised'))) for r in rows)} designs, stopped "
+              f"at the cap on {sum(r[a, 'capped'] for r in ok)} of {len(ok)}, "
+              f"mean {sum(r[a, 'nfev'] for r in ok) / max(1, len(ok)):.0f} function evaluations, "
+              f"longest {max((r[a, 'setup_s'] for r in rows), default=0):.0f} s")
     print("\nDesign by design against `half` + 80 evaluations (fewer fails / the same / more):")
     for arm, n in (("closed", 0), ("closedO", 0), ("closed", 20), ("closedO", 20),
                    ("solver", 0), ("cf+sol", 0), ("solver", 20), ("cf+sol", 20)):
@@ -283,12 +308,17 @@ def main(argv=None) -> int:
     ap.add_argument("--programme", action="append", choices=PROGRAMMES)
     ap.add_argument("--stack", choices=("max", "mean"), default="max")
     ap.add_argument("--limit", type=int, help="designs per programme")
+    ap.add_argument("--solver-nfev", type=int, default=100,
+                    help="stop solve_ratios after this many function evaluations")
+    ap.add_argument("--checkpoint", metavar="FILE",
+                    help="keep finished designs here and resume from it")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
     geometry.ORTHOGONAL_DIVISION = False
     if a.self_test:
         return self_test()
-    rows = run(a.programme or PROGRAMMES, a.corpus, a.stack, limit=a.limit)
+    rows = run(a.programme or PROGRAMMES, a.corpus, a.stack, limit=a.limit,
+               nfev=a.solver_nfev, checkpoint=a.checkpoint)
     report(rows)
     return 0
 
