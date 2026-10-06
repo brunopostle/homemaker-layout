@@ -289,3 +289,39 @@ def test_usable_rectangle_gives_a_width_and_a_proportion_to_any_cell():
     du, dv = cells.usable_rectangle([[0, 0], [4, 0], [4, 2.7], [3.7, 3], [0, 3]])
     assert min(du, dv) > 2.6
     assert cells.usable_rectangle([]) == (0.0, 0.0)
+
+
+# --------------------------------------------------------------------------- #
+# the fitted rectangle is what the scorer calls width and proportion (§39.102)
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("a, b, h", [(3.8, 4.0, 3.0), (2.5, 4.0, 3.0), (1.0, 4.0, 3.0),
+                                     (0.2, 6.0, 2.0)])
+def test_the_closed_form_for_a_boundary_cell_is_the_general_answer(a, b, h):
+    """A rectangle cropped by one skew line takes a shortcut; the same cell
+    with a redundant vertex on one side takes the general path. They must
+    agree -- including when it tapers so far that the best rectangle lies
+    under the slope rather than against the short side."""
+    quad = [[0, 0], [b, 0], [a, h], [0, h]]
+    general = cells.usable_rectangle([[0, 0], [b / 2, 0]] + quad[1:], grid=960)
+    fast = cells.usable_rectangle(quad)
+    assert fast[0] * fast[1] == pytest.approx(general[0] * general[1], rel=1e-4)
+    if a >= b / 2:
+        assert fast == pytest.approx((a, h))
+
+
+def test_the_scorer_reads_width_and_proportion_from_the_fitted_rectangle(tmp_path, monkeypatch):
+    from homemaker_layout import dom_v2
+
+    monkeypatch.setattr(geometry, "ORTHOGONAL_DIVISION", True)
+    # a plot whose right side leans: the right-hand cell is 3 m wide at the
+    # bottom and 2 m at the top, 8 m deep
+    doc = _doc([[0, 0], [10, 0], [9, 8], [0, 8]], {
+        "cut": "v", "at": 0.7, "low": {"cell": "a"}, "high": {"cell": "b"}})
+    root = dom_v2.from_document(doc)
+    b = next(lf for lf in root.leaves() if lf.type == "b")
+    assert geometry.usable_rectangle(b) == pytest.approx((2.0, 8.0))
+    assert geometry.usable_width(b) == pytest.approx(2.0)
+    assert geometry.usable_aspect(b) == pytest.approx(4.0)
+    # today's quad formulas, kept for the search's heuristics, say otherwise
+    assert geometry.aspect(b) == pytest.approx((8 + math.hypot(1, 8)) / 5, rel=1e-6)
+    geometry.clear_cache()

@@ -66,6 +66,10 @@ def _modules_loaded_by_a_score() -> set[str]:
     imported the whole package."""
     code = (
         "import sys, copy, json\n"
+        # THIS checkout's source, not whichever one `pip install -e` points at:
+        # in a git worktree those differ, and the test would measure the wrong
+        # tree's imports (it did, the day cells.py joined the scoring path).
+        f"sys.path.insert(0, {str(REPO / 'src')!r})\n"
         "from homemaker_layout import dom, fitness\n"
         f"conf, cost = fitness.load_config({str(PROGRAMME)!r})\n"
         "fit = fitness.Fitness(conf, cost)\n"

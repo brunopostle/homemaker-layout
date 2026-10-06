@@ -1382,7 +1382,7 @@ class Fitness:
                 co_params = self.get_space_params(co_type, "proportion")
                 params = _gaussian_product(params[0], params[1],
                                            co_params[0], co_params[1])
-        aspect = geometry.aspect(leaf)
+        aspect = geometry.usable_aspect(leaf)
         return _clipped_gaussian(aspect, params[0], params[1], "below")
 
     def quality_size(self, leaf: Node) -> float:
@@ -1444,7 +1444,7 @@ class Fitness:
                 co_params = self.get_space_params(co_type, "width")
                 params = _gaussian_product(params[0], params[1],
                                            co_params[0], co_params[1])
-        width = geometry.length_narrowest(leaf)
+        width = geometry.usable_width(leaf)
         return _clipped_gaussian(width, params[0], params[1], "above")
 
     # --- simple crinkliness (URB_NO_OCCLUSION: illumination factor = 1) --- #

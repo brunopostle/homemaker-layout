@@ -208,6 +208,39 @@ def coord_b(n: Node) -> Point:
     return result
 
 
+def usable_rectangle(n: Node) -> "tuple[float, float]":
+    """The two sides of the largest frame-aligned rectangle that fits inside
+    ``n`` (`cells.usable_rectangle`), cached with the coordinates.
+
+    This is what the scorer means by a cell's WIDTH and PROPORTION (owner's
+    ruling 2026-10-06, DESIGN.md §39.102). The quad formulas below --
+    `length_narrowest`, the shortest of four edges, and `aspect`, the mean of
+    opposite edges -- stay for the search's own heuristics; neither means
+    anything once a cell can be cropped to five corners, and a room with a
+    30 cm clipped corner is not 42 cm wide.
+    """
+    key = (id(n), "usable")
+    hit = _cache.get(key)
+    if hit is None:
+        from . import cells
+
+        u, v = _reference_axes(n)
+        hit = cells.usable_rectangle([coordinate(n, i) for i in range(n_edges(n))], u, v)
+        _cache[key] = hit
+    return hit
+
+
+def usable_width(n: Node) -> float:
+    """Short side of the fitted rectangle."""
+    return min(usable_rectangle(n))
+
+
+def usable_aspect(n: Node) -> float:
+    """Long side of the fitted rectangle over its short side, always >= 1."""
+    a, b = usable_rectangle(n)
+    return max(a, b) / min(a, b) if min(a, b) > 0 else 1e9
+
+
 def n_edges(n: Node) -> int:
     """How many sides ``n`` has. Four, while every cell is a quad -- but the
     scorer asks rather than assumes, so that a cell cropped to a pentagon or a

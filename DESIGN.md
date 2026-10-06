@@ -14295,3 +14295,61 @@ So proportion is a choice about meaning, for the owner:
   cell is usable. +7 fails.
 
 Not landed; `cells.usable_rectangle` exists and nothing scores through it.
+
+### 39.102 Width and proportion are read from the biggest fitted rectangle (`homemaker-py-8b2u.4`)
+
+Owner, 2026-10-06, on §39.101's question:
+
+> Base the scoring on the biggest fitted rectangle for now as long as this is
+> cheap. We can always change it later if we need to
+
+`quality_width` now reads `geometry.usable_width` and `quality_proportion`
+reads `geometry.usable_aspect`: the short side, and the long side over the
+short, of `cells.usable_rectangle` -- the largest frame-aligned rectangle that
+fits in the cell, which the shape score is built on too. `cells.py` is
+therefore an objective source, and `OBJECTIVE_SOURCES` has six files. The quad
+formulas `geometry.length_narrowest` and `geometry.aspect` are untouched and
+still serve the search's own heuristics (`solver`, `operators`, `shapecurve`);
+that those now aim at a slightly different target than the scorer is recorded
+here and not yet measured.
+
+**Cheap.** Computed once per leaf and cached with the coordinates. Of the
+3,879 corpus cells 35% are frame-aligned rectangles and answer from their
+corners; 46% are a rectangle cropped by one skew line and have a closed form
+(`a x h`, unless the cell tapers to under half, when the best rectangle lies
+under the slope); 19% have two skew sides and take one vectorised pass over a
+48-point grid, about 0.4 ms. A full score of a maple-court artefact takes
+72.3 ms against 72.2 ms; programme-house, where more cells are corner cells,
+10.9 ms against 9.4 ms.
+
+**How exact.** The two fast paths are exact (the closed form agrees with a
+fine grid to 4e-16 on 2,000 random trapezoids). The grid path's median error
+is zero and 4% of the cells that take it are off by more than 0.1% in
+proportion, the worst 2% -- a 5 cm sliver. It is a continuous function of the
+cell, so it is not noise to the inner loop, but it is not exact either, and a
+cell with two skew sides can trade width for depth at nearly constant area.
+If proportion on corner cells ever needs to be trusted to the percent, that is
+the place to look.
+
+**What moved**, on the 192 artefacts, exactly as §39.101 predicted:
+
+| | scores moved (over 1%) | fails | new fails |
+|---|---|---|---|
+| harbor-house (12) | 12 (8) | 341 -> 348 | proportion 7 |
+| health-centre (12) | 12 (3) | 73 -> 76 | proportion 3 |
+| maple-court (12) | 12 (6) | 663 -> 674 | proportion 11 |
+| programme-house (12) | 12 (0) | 16 -> 16 | -- |
+| e4r + e4r-tiers (144) | 143 (21) | 176 -> 193 | proportion 17 |
+
+1269 -> 1307, every new fail a `proportion`, none removed, no `width` fail
+either way. Seventeen of the 38 are rooms that scored 0.100-0.107 before: the
+search had parked them on the line.
+
+**One thing this turned up about the tests.** `test_objective_sources.py`
+measures which modules a score loads by running one in a subprocess -- which
+imported whatever `pip install -e` points at, the MAIN checkout, not the
+worktree under test. It passed for the wrong tree until `cells.py` joined the
+scoring path. It now puts its own checkout's `src` first; and the full suite on
+a branch is to be run with `PYTHONPATH=<worktree>/src`, or every test that
+shells out to `homemaker-evolve` or `homemaker-fitness` is testing main (723
+passed that way).

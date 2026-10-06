@@ -27,6 +27,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+import numpy as np
+
 Point = list[float]
 
 EPS = 1e-9           # metres: coincident points, a line "on" an edge
@@ -187,37 +189,67 @@ def usable_rectangle(poly, u=(1.0, 0.0), v=(0.0, 1.0),
     """``(extent along u, extent along v)`` of the largest frame-aligned
     rectangle inside the convex cell `poly`; ``(0, 0)`` for an empty one.
 
+    The scorer's width and proportion are read from this (owner, 2026-10-06:
+    "base the scoring on the biggest fitted rectangle for now as long as this
+    is cheap"), so it is called for every leaf of every evaluation and is
+    written to be cheap: a cell that IS a frame-aligned rectangle answers
+    from its corners, and anything else is one vectorised pass.
+
     Exact up to the grid: for a convex cell the lower boundary is convex and
     the upper concave, so the tallest rectangle over [x0, x1] is fixed by its
     two ends, and every vertex is a candidate end.
     """
-    pts = [(p[0] * u[0] + p[1] * u[1], p[0] * v[0] + p[1] * v[1]) for p in poly]
-    if area(pts) < EMPTY_AREA:
+    if len(poly) < 3:
         return 0.0, 0.0
-    xs = sorted({x for x, _ in pts})
-    lo, hi = xs[0], xs[-1]
-    cand = sorted(set(xs) | {lo + (hi - lo) * i / grid for i in range(grid + 1)})
-    n = len(pts)
-
-    def extent(x):
-        ys = []
-        for i in range(n):
-            (x1, y1), (x2, y2) = pts[i], pts[(i + 1) % n]
-            if min(x1, x2) - 1e-12 <= x <= max(x1, x2) + 1e-12:
-                if abs(x2 - x1) < 1e-12:
-                    ys += [y1, y2]
-                else:
-                    ys.append(y1 + (y2 - y1) * (x - x1) / (x2 - x1))
-        return (min(ys), max(ys)) if ys else (0.0, 0.0)
-
-    ext = [extent(x) for x in cand]
-    best = (0.0, 0.0, 0.0)
-    for i, x0 in enumerate(cand):
-        for j in range(i + 1, len(cand)):
-            h = min(ext[i][1], ext[j][1]) - max(ext[i][0], ext[j][0])
-            if h > 0 and (cand[j] - x0) * h > best[0]:
-                best = ((cand[j] - x0) * h, cand[j] - x0, h)
-    return best[1], best[2]
+    px = [p[0] * u[0] + p[1] * u[1] for p in poly]
+    py = [p[0] * v[0] + p[1] * v[1] for p in poly]
+    n = len(px)
+    if n == 4:
+        along_v = [abs(px[i] - px[i - 1]) < 1e-9 for i in range(4)]   # side i-1 -> i
+        along_u = [abs(py[i] - py[i - 1]) < 1e-9 for i in range(4)]
+        skew = [i for i in range(4) if not (along_u[i] or along_v[i])]
+        if not skew:
+            # a frame-aligned rectangle: every side runs along one axis
+            return max(px) - min(px), max(py) - min(py)
+        if len(skew) == 1:
+            # A rectangle cropped by one skew line -- what a cell against a
+            # plot boundary is -- has a closed form. Its two sides next to the
+            # skew one are parallel, lengths a < b, a distance h apart. The
+            # best rectangle is a x h, unless the cell tapers so much (a under
+            # half of b) that a wider, lower one under the slope beats it.
+            i = skew[0]
+            before, after = (i - 1) % 4, (i + 1) % 4       # the two parallel sides
+            la = math.hypot(px[before] - px[before - 1], py[before] - py[before - 1])
+            lb = math.hypot(px[after] - px[after - 1], py[after] - py[after - 1])
+            a, b = min(la, lb), max(la, lb)
+            opp = (i + 2) % 4
+            h = math.hypot(px[opp] - px[opp - 1], py[opp] - py[opp - 1])
+            if a < b / 2:
+                a, h = b / 2, h * (b / 2) / (b - a)
+            return (a, h) if along_u[before] else (h, a)
+    x1 = np.asarray(px)
+    y1 = np.asarray(py)
+    x2, y2 = np.roll(x1, -1), np.roll(y1, -1)
+    if abs(float(np.dot(x1, y2) - np.dot(x2, y1))) / 2 < EMPTY_AREA:
+        return 0.0, 0.0
+    lo, hi = float(x1.min()), float(x1.max())
+    cand = np.unique(np.concatenate([x1, np.linspace(lo, hi, grid + 1)]))
+    dx = x2 - x1
+    upright = np.abs(dx) < 1e-12
+    t = (cand[None, :] - x1[:, None]) / np.where(upright, 1.0, dx)[:, None]
+    y = y1[:, None] + (y2 - y1)[:, None] * np.where(upright[:, None], 0.0, t)
+    other = np.where(upright[:, None], y2[:, None], y)   # an upright edge gives both ends
+    inside = (cand[None, :] >= np.minimum(x1, x2)[:, None] - 1e-12) & \
+             (cand[None, :] <= np.maximum(x1, x2)[:, None] + 1e-12)
+    top = np.where(inside, np.maximum(y, other), -np.inf).max(axis=0)
+    bot = np.where(inside, np.minimum(y, other), np.inf).min(axis=0)
+    height = np.minimum.outer(top, top) - np.maximum.outer(bot, bot)
+    width = cand[None, :] - cand[:, None]
+    size = np.where((width > 0) & (height > 0), width * height, 0.0)
+    k = int(size.argmax())
+    if size.flat[k] <= 0:
+        return 0.0, 0.0
+    return float(width.flat[k]), float(height.flat[k])
 
 
 def usable_fraction(poly, u=(1.0, 0.0), v=(0.0, 1.0), grid: int = 48) -> float:

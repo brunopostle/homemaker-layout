@@ -308,9 +308,14 @@ Key modules:
 - `cells.py` — native rectangle-frame geometry: the cells of a v2 document from
   the document alone (split the frame rectangle, crop to the plot), with the
   owner's shape score. Handles what the v1 tree cannot -- polygon plots, status
-  vertices, the file's own frame, empty and odd cells. **Nothing scores through
-  it yet** (`homemaker-py-8b2u.4`); `tests/test_cells.py` holds it to today's
-  geometry on every orthogonal artefact
+  vertices, the file's own frame, empty and odd cells. **An objective source
+  since §39.102**: the scorer's WIDTH and PROPORTION are the short side and the
+  long/short ratio of `cells.usable_rectangle`, the largest frame-aligned
+  rectangle that fits in the cell (`geometry.usable_width` / `usable_aspect`).
+  `geometry.length_narrowest` and `geometry.aspect` are the old quad formulas,
+  now used only by the search's own heuristics. The cells and the adjacency
+  graph are still `geometry`'s; `tests/test_cells.py` holds the native ones to
+  them on every orthogonal artefact
 - `dom_upgrade_cmd.py` — `homemaker-dom-upgrade`: v1 -> v2 (and `--to-v1`), every
   cell verified before anything is written, the input never overwritten. A v1
   file's convention comes from `--orthogonal` or a `+orth` stamp in its name
@@ -598,7 +603,7 @@ prose. (§39.69 pruned exactly that.)
   only to a corpus at the same stamp, and never across the `+orth` switch
   (§39.12 clause 3).
 - **The stamp can move without the objective changing.** It is
-  `git log -1 -- OBJECTIVE_SOURCES`, so a pure rename in one of those five files
+  `git log -1 -- OBJECTIVE_SOURCES`, so a pure rename in one of those files
   moves it (§39.65 is the worked example, §39.80 the second: a docstring edit to
   `graph.py` recording an owner ruling). Re-score before concluding anything
   changed — §39.80 captured all twelve artefact scores before and after and
@@ -658,8 +663,8 @@ A single sweep measures the NET effect of everything landed since the last one,
 and nothing can be attributed to any individual change (§39.12 clause 3). So:
 
 - **Prefer search-side work.** "Search-side" means the file is **not in
-  `OBJECTIVE_SOURCES`** — five modules, `dom` / `fitness` / `geometry` / `graph` /
-  `programme`, because those are the five a score actually executes. It is NOT
+  `OBJECTIVE_SOURCES`** — six modules, `cells` / `dom` / `fitness` / `geometry` /
+  `graph` / `programme`, because those are the six a score actually executes. It is NOT
   "anything outside `fitness.py` and `geometry.py`": that reading held until
   §39.63 and was wrong. `tests/test_objective_sources.py` measures the set rather
   than trusting anyone's memory of it, and `tests/test_search_config.py` holds a
