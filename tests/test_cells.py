@@ -227,3 +227,65 @@ def test_control_a_moved_cut_is_not_todays_geometry(monkeypatch):
     doc = yaml.safe_load(dom.dumps(root, version=2))
     doc["storeys"][0]["tree"]["at"] += 1e-4
     assert _unmatched(root, cells.build(doc)) > 0
+
+
+# --------------------------------------------------------------------------- #
+# shared walls: the adjacency graph, natively
+# --------------------------------------------------------------------------- #
+def test_cells_that_only_meet_end_to_end_share_no_wall():
+    """`homemaker-py-khgi` as geometry: two cells along one line, touching at a
+    point, share nothing; two side by side share their common stretch."""
+    a = [[0, 0], [4, 0], [4, 3], [0, 3]]
+    assert cells.shared_wall(a, [[4, 3], [8, 3], [8, 6], [4, 6]])[0] == 0.0     # corner
+    width, seg = cells.shared_wall(a, [[4, 1], [8, 1], [8, 5], [4, 5]])
+    assert width == pytest.approx(2.0)
+    assert sorted(seg) == [[4.0, 1.0], [4.0, 3.0]]
+
+
+def test_a_wall_narrower_than_a_door_is_not_an_adjacency():
+    lay = cells.build(_doc(SQUARE, {
+        "cut": "v", "at": 0.5,
+        "low": {"cut": "u", "at": 0.9, "low": {"cell": "a"}, "high": {"cell": "b"}},
+        "high": {"cut": "u", "at": 0.05, "low": {"cell": "c"}, "high": {"cell": "d"}}}))
+    names = [c.type for c in lay.storeys[0]]
+    pairs = {frozenset((names[i], names[j])): round(w, 6)
+             for i, j, w, _ in cells.adjacency(lay.storeys[0])}
+    assert pairs == {frozenset("ab"): 5.0, frozenset("cd"): 5.0,
+                     frozenset("ad"): 8.5}          # a|c share 0.5 m, b|d 1.0 m
+
+
+@pytest.mark.skipif(not (REPO / "examples" / "maple-court").is_dir(),
+                    reason="examples absent")
+def test_the_native_adjacency_graph_is_todays_graph(monkeypatch):
+    """The second half of the gate: every wall `geometry.leaf_graph` finds
+    between two leaves, the native cells find between the same two, the same
+    width -- and no others. 6,517 of them (DESIGN.md §39.101)."""
+    monkeypatch.setattr(geometry, "ORTHOGONAL_DIVISION", True)
+    spec = importlib.util.spec_from_file_location(
+        "_m", REPO / "experiments" / "diag_8b2u4_measures.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    walls = 0
+    for p, _ in _diag().corpus():
+        root = dom.load(str(p))
+        lay = cells.build(yaml.safe_load(dom.dumps(root, version=2)))
+        pair = m.match(root, lay)
+        index = {id(c): i for s in lay.storeys for i, c in enumerate(s)}
+        for li, lvl in enumerate(dom.levels(root)):
+            today = {frozenset((index[id(pair[a])], index[id(pair[b])])): d["width"]
+                     for a, b, d in geometry.leaf_graph(lvl).edges(data=True)}
+            native = {frozenset((i, j)): w
+                      for i, j, w, _ in cells.adjacency(lay.storeys[li])}
+            assert set(today) == set(native), p
+            assert all(abs(today[k] - native[k]) < 1e-6 for k in today), p
+            walls += len(today)
+        geometry.clear_cache()
+    assert walls > 6000
+
+
+def test_usable_rectangle_gives_a_width_and_a_proportion_to_any_cell():
+    assert cells.usable_rectangle([[0, 0], [4, 0], [4, 3], [0, 3]]) == pytest.approx((4, 3))
+    # a 30 cm clipped corner: the shortest EDGE is 0.42 m, the room is still ~3 m wide
+    du, dv = cells.usable_rectangle([[0, 0], [4, 0], [4, 2.7], [3.7, 3], [0, 3]])
+    assert min(du, dv) > 2.6
+    assert cells.usable_rectangle([]) == (0.0, 0.0)

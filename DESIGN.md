@@ -14235,3 +14235,63 @@ rotated or re-listed plot, a mirror image, a shuffled listing -- leaves every
 score on all 192 artefacts unchanged. Six defects were found that way in one
 day (§39.94-§39.100), every one of them Urb's, and none had been found by
 reading.
+
+### 39.101 Width, proportion and adjacency for a cell that need not be a quad (`homemaker-py-8b2u.4`)
+
+The scorer reads a leaf through quad formulas: `area` (two Heron triangles),
+`length_narrowest` (the shortest of four EDGES), `aspect` (opposite edge pairs),
+and `leaf_graph` (pairs on one tree boundary whose edges overlap by a door
+width). `experiments/diag_8b2u4_measures.py` asks what each becomes for a
+native cell, on the 3,879 cells of the 192 orthogonal artefacts -- all quads,
+so today's formula is there to compare against.
+
+**Area and adjacency carry over exactly.** Shoelace area agrees to the last
+digit printed. `cells.adjacency` -- two cells are neighbours if their polygons
+share a door's width of boundary -- finds 6,517 walls, the same 6,517 pairs as
+`leaf_graph`, the same widths, none extra and none missing. That is the second
+half of stage 1b's gate (the cells themselves were the first, §39.99), and it
+is now a test. It also retires `_edge_overlap`'s "do NOT replace with
+intersection length" warning for orthogonal designs: on these, true shared
+length IS what it computes.
+
+**Width and proportion need a definition, and the shortest edge cannot be
+it**: a room with a 30 cm clipped corner has a 42 cm edge and is still three
+metres wide. Candidates, each against today's formula and with the corpus
+re-scored under it:
+
+| | same as today | median diff | p99 | scores moved (over 1%) | fails |
+|---|---|---|---|---|---|
+| width: **usable rectangle**, short side | 90% | 0.000% | 0.01% | 25 (0) | 1269 -> 1269 |
+| width: bounding box | 61% | 0.000% | 17.1% | 80 (5) | 1269 -> 1268 |
+| width: mean chord | 35% | 0.306% | 8.5% | 123 (26) | 1269 -> 1296 |
+| proportion: **usable rectangle**, long / short | 35% | 0.302% | 8.4% | 191 (38) | 1269 -> 1307 |
+| proportion: bounding box | 35% | 0.308% | 7.3% | 190 (22) | 1269 -> 1279 |
+| proportion: second moments | 35% | 0.003% | 0.8% | 189 (6) | 1269 -> 1276 |
+| proportion: mean chord / extent | 35% | 0.062% | 14.0% | 190 (36) | 1269 -> 1272 |
+
+*Width is settled by the measurement.* The usable rectangle's short side -- the
+rectangle the shape score is already built on -- is today's number on 90% of
+cells, within 0.01% on 99%, and moves no fail. Where it differs most it is
+right and the edge is wrong (a tapering cell whose narrow end is an edge).
+
+*Proportion is not, and cannot be.* No definition is the same as today's on
+more than 35% of cells, because 65% touch a skew boundary and "the mean of two
+opposite edges" has no meaning that survives a fifth vertex. And every one
+moves fails, for a reason that is the search's rather than the measure's: 179
+of the 3,790 leaves that pass proportion today pass within a hair of the line
+(quality 0.10-0.20), and of the 39 the usable rectangle newly fails, 17 score
+0.100-0.107 today. They were parked on the threshold. Any re-definition of a
+few tenths of a percent tips them, and a sweep at the new definition would
+park them again.
+
+So proportion is a choice about meaning, for the owner:
+
+- **the usable rectangle** (long side over short): one idea serving width,
+  proportion and shape -- "the rectangle of this room you can furnish". The
+  strictest: a wedge is judged on the part that is not wedge. +38 fails on
+  192 artefacts as they stand.
+- **second moments**: the ratio of the cell's spread along the two axes.
+  Closest to today (0.003% median), smooth, and blind to which part of the
+  cell is usable. +7 fails.
+
+Not landed; `cells.usable_rectangle` exists and nothing scores through it.

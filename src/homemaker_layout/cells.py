@@ -182,21 +182,18 @@ def corners(poly: "list[Point]") -> "list[Point]":
 # --------------------------------------------------------------------------- #
 # the shape score
 # --------------------------------------------------------------------------- #
-def usable_fraction(poly, u=(1.0, 0.0), v=(0.0, 1.0), grid: int = 48) -> float:
-    """Largest frame-aligned rectangle inside the convex cell `poly`, over the
-    cell's area (DESIGN.md §39.90; owner: "some five sided spaces are actually
-    quads and some are awkward pentagons that are only good for garden space").
+def usable_rectangle(poly, u=(1.0, 0.0), v=(0.0, 1.0),
+                     grid: int = 48) -> "tuple[float, float]":
+    """``(extent along u, extent along v)`` of the largest frame-aligned
+    rectangle inside the convex cell `poly`; ``(0, 0)`` for an empty one.
 
-    A rectangle scores 1, and so does a rectangle carrying a collinear
-    street/party vertex; a lightly clipped corner a little under 1; a wedge or
-    a triangle 0.5. Exact up to the grid: for a convex cell the lower boundary
-    is convex and the upper concave, so the tallest rectangle over [x0, x1] is
-    fixed by its two ends.
+    Exact up to the grid: for a convex cell the lower boundary is convex and
+    the upper concave, so the tallest rectangle over [x0, x1] is fixed by its
+    two ends, and every vertex is a candidate end.
     """
     pts = [(p[0] * u[0] + p[1] * u[1], p[0] * v[0] + p[1] * v[1]) for p in poly]
-    a = area(pts)
-    if a < EMPTY_AREA:
-        return 0.0
+    if area(pts) < EMPTY_AREA:
+        return 0.0, 0.0
     xs = sorted({x for x, _ in pts})
     lo, hi = xs[0], xs[-1]
     cand = sorted(set(xs) | {lo + (hi - lo) * i / grid for i in range(grid + 1)})
@@ -214,13 +211,29 @@ def usable_fraction(poly, u=(1.0, 0.0), v=(0.0, 1.0), grid: int = 48) -> float:
         return (min(ys), max(ys)) if ys else (0.0, 0.0)
 
     ext = [extent(x) for x in cand]
-    best = 0.0
+    best = (0.0, 0.0, 0.0)
     for i, x0 in enumerate(cand):
         for j in range(i + 1, len(cand)):
             h = min(ext[i][1], ext[j][1]) - max(ext[i][0], ext[j][0])
-            if h > 0:
-                best = max(best, (cand[j] - x0) * h)
-    return min(1.0, best / a)
+            if h > 0 and (cand[j] - x0) * h > best[0]:
+                best = ((cand[j] - x0) * h, cand[j] - x0, h)
+    return best[1], best[2]
+
+
+def usable_fraction(poly, u=(1.0, 0.0), v=(0.0, 1.0), grid: int = 48) -> float:
+    """The largest frame-aligned rectangle inside the cell, over the cell's
+    area (DESIGN.md §39.90; owner: "some five sided spaces are actually quads
+    and some are awkward pentagons that are only good for garden space").
+
+    A rectangle scores 1, and so does a rectangle carrying a collinear
+    street/party vertex; a lightly clipped corner a little under 1; a wedge or
+    a triangle 0.5.
+    """
+    a = area(poly)
+    if a < EMPTY_AREA:
+        return 0.0
+    du, dv = usable_rectangle(poly, u, v, grid)
+    return min(1.0, du * dv / a)
 
 
 def shape_quality(fraction: float) -> float:
@@ -336,4 +349,55 @@ def edge_sides(cell: Cell, layout: Layout) -> "list[int | None]":
                     hit = k
                     break
         out.append(hit)
+    return out
+
+
+# --------------------------------------------------------------------------- #
+# shared walls
+# --------------------------------------------------------------------------- #
+def shared_wall(a: "list[Point]", b: "list[Point]"):
+    """The longest stretch of boundary two cell polygons share:
+    ``(length, [p, q])``, or ``(0.0, None)`` if they share none.
+
+    Two edges share a stretch when they lie on one line and their spans along
+    it overlap. Edges that only meet end to end share nothing -- the overlap is
+    floored at EPS, which is the whole of `homemaker-py-khgi` in one line.
+    """
+    best = (0.0, None)
+    for i in range(len(a)):
+        p, q = a[i], a[(i + 1) % len(a)]
+        dx, dy = q[0] - p[0], q[1] - p[1]
+        length = math.hypot(dx, dy)
+        if length < EPS:
+            continue
+        ux, uy = dx / length, dy / length
+        for k in range(len(b)):
+            r, s = b[k], b[(k + 1) % len(b)]
+            # both ends of the other edge on this edge's line?
+            if abs((r[0] - p[0]) * uy - (r[1] - p[1]) * ux) > 1e-7 or \
+                    abs((s[0] - p[0]) * uy - (s[1] - p[1]) * ux) > 1e-7:
+                continue
+            t0 = (r[0] - p[0]) * ux + (r[1] - p[1]) * uy
+            t1 = (s[0] - p[0]) * ux + (s[1] - p[1]) * uy
+            lo, hi = max(0.0, min(t0, t1)), min(length, max(t0, t1))
+            if hi - lo > max(EPS, best[0]):
+                best = (hi - lo, [[p[0] + lo * ux, p[1] + lo * uy],
+                                  [p[0] + hi * ux, p[1] + hi * uy]])
+    return best
+
+
+def adjacency(storey: "list[Cell]", door_width: float = 1.2):
+    """``[(i, j, width, [p, q]), ...]``: every pair of non-empty cells on one
+    storey sharing at least a door's width of wall."""
+    out = []
+    live = [(i, c) for i, c in enumerate(storey) if not c.empty]
+    for x, (i, a) in enumerate(live):
+        for j, b in live[x + 1:]:
+            # rectangles that do not touch cannot share a wall
+            if a.rect[0] > b.rect[1] + EPS or b.rect[0] > a.rect[1] + EPS \
+                    or a.rect[2] > b.rect[3] + EPS or b.rect[2] > a.rect[3] + EPS:
+                continue
+            width, seg = shared_wall(a.polygon, b.polygon)
+            if width >= door_width:
+                out.append((i, j, width, seg))
     return out
