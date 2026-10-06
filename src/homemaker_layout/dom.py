@@ -54,6 +54,9 @@ class Node:
     elevation: float | None = None
     wall_inner: float | None = None
     wall_outer: float | None = None
+    # format v2 only, lowest root only: free-form provenance (objective stamp,
+    # seed, ...). Geometry and scoring never read it; v1 has nowhere to put it.
+    meta: dict | None = None
 
     # runtime linkage (never serialised)
     parent: "Node | None" = field(default=None, repr=False, compare=False)
@@ -190,7 +193,16 @@ def load(path: str) -> Node:
     from . import geometry  # local import avoids a module-load cycle
 
     with open(path) as fh:
-        root = _parse(yaml.safe_load(fh))
+        doc = yaml.safe_load(fh)
+    if isinstance(doc, dict) and "format" in doc:
+        # Format v2 (docs/dom-format-v2.md). A v1 file -- Urb's, and everything
+        # this repo wrote before v2 -- has no `format` key; anything that has
+        # one is read by the versioned reader, which refuses what it does not
+        # know rather than guessing.
+        from . import dom_v2
+
+        return dom_v2.from_document(doc)
+    root = _parse(doc)
     link(root)
     if root.wall_outer is None:
         root.wall_outer = 0.25  # Urb::Dom::Wall_Outer default
@@ -242,15 +254,25 @@ def _emit(n: Node, is_level_root: bool) -> dict:
     return d
 
 
-def dumps(root: Node) -> str:
-    return yaml.safe_dump(
-        _emit(root, True), default_flow_style=False, sort_keys=False, allow_unicode=True
-    )
+def dumps(root: Node, version: int = 1) -> str:
+    """Serialise ``root``. ``version=1`` is Urb's format and stays the default;
+    ``version=2`` is the rectangle frame (docs/dom-format-v2.md), which needs
+    orthogonal division on and refuses a design with a skew cut."""
+    if version == 2:
+        from . import dom_v2
+
+        doc = dom_v2.to_document(root)
+    elif version == 1:
+        doc = _emit(root, True)
+    else:
+        raise ValueError(f"cannot write .dom version {version!r}")
+    return yaml.safe_dump(doc, default_flow_style=False, sort_keys=False,
+                          allow_unicode=True)
 
 
-def dump(root: Node, path: str) -> None:
+def dump(root: Node, path: str, version: int = 1) -> None:
     with open(path, "w") as fh:
-        fh.write(dumps(root))
+        fh.write(dumps(root, version))
 
 
 # --------------------------------------------------------------------------- #

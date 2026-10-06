@@ -141,6 +141,16 @@ NEITHER_SOURCES = ("src/homemaker_layout/__init__.py",
                    "src/homemaker_layout/collapse_cmd.py",
                    "src/homemaker_layout/compose.py",
                    "src/homemaker_layout/compose_cmd.py",
+                   # format v2 reader/writer. `dom.load` reaches it only for a
+                   # file with a `format` key, and nothing scored is one yet:
+                   # every committed artefact is v1 and `homemaker-evolve`
+                   # still writes v1. THE DAY A SCORED FILE IS V2 THIS MOVES TO
+                   # OBJECTIVE_SOURCES -- it decides that file's rotation and
+                   # ratios, so its geometry -- and test_objective_sources.py
+                   # must then measure a v2 artefact as well as a v1 one.
+                   "src/homemaker_layout/dom_v2.py",
+                   # `homemaker-dom-upgrade`: converts a file, scores nothing
+                   "src/homemaker_layout/dom_upgrade_cmd.py",
                    "src/homemaker_layout/fitness_cmd.py",
                    # export only: reads a finished .dom and writes a rooms
                    # document for homemaker-addon; nothing scores or searches

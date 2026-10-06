@@ -1,6 +1,10 @@
 # `.dom` format version 2: the rectangle frame — DRAFT
 
-Status: **decisions taken 2026-10-05** (below); nothing implemented yet. Epic: `homemaker-py-8b2u`. Evidence: DESIGN.md §39.88.
+Status: **decisions taken 2026-10-05** (below). **Stage 1a implemented 2026-10-06**
+(`homemaker-py-8b2u.2`, `src/homemaker_layout/dom_v2.py`, DESIGN.md §39.94): the
+reader and writer exist, the in-memory tree is still v1 -- see *Stage 1a* at the
+end for what that means and for the one key it added. Epic: `homemaker-py-8b2u`.
+Evidence: DESIGN.md §39.88.
 
 ## Why a new version
 
@@ -147,6 +151,60 @@ A node is either a **cut** or a **cell**:
   Reserved so a stage-1 reader can refuse a file that uses it rather than
   mis-reading it.
 
+## Stage 1a: what the reader and writer do today
+
+`dom.load` reads either version; `dom.dumps(root, version=2)` writes v2 and
+`version=1` stays the default, so `homemaker-evolve` still writes v1. A v2 file
+is read into the SAME `Node` tree a v1 file makes -- the reader fits the
+`rotation` and ratio under which `geometry` draws each line -- so geometry,
+scorer and search are untouched. Over the 192 tracked orthogonal designs: 3,879
+of 3,879 cells identical, and a second dump byte-identical.
+
+- **`at` is written to 10 decimal places.** It is recomputed from geometry on
+  every write and comes back a few ulps away; rounding is what makes
+  load -> dump reproduce the file. 1e-10 of a plot is nanometres.
+- **Orthogonal division must be on**, for reading and for writing, and the
+  reader says so rather than switching it on: that would change what every v1
+  file loaded afterwards means. This goes away with native geometry (`8b2u.4`).
+- **Refused until native geometry**, each with a message naming the node: a
+  plot that is not a quad; a `frame.u` other than the one derived from the
+  longest edge; a cut that misses its cropped cell (an empty cell); and an
+  upper-storey cut across a cell whose orientation a storey below has fixed the
+  other way. The last is the v1 tree's limit, not the format's: `geometry`
+  reads a node's rotation from the lowest storey that has it.
+- **Leaf names are not preserved.** The reader puts `low` on the left wherever
+  it has the choice, so a design's `l`/`r` paths can differ after a round trip.
+  Nothing scored depends on them.
+
+### `origin` on a circulation cell -- PROVISIONAL, awaiting a ruling
+
+```yaml
+{ cell: C, origin: hl }      # corner 0 is the cell's (high u, low v) corner
+```
+
+Decision 3 dropped v1's `rotation` as carrying no information. That holds for
+a cut. It does not hold for a `C` LEAF: the stair-fit rule takes its base edge
+from the lowest-numbered corner in use, so which corner a circulation cell
+counts from changes its stair fit. Turning the `C` leaves of the corpus --
+which moves no wall -- changed the score in 236 of 576 trials, by up to 27x;
+turning every other leaf, 0 of 576 (§39.94). A v2 file without it re-scores.
+
+So the writer records it, in the frame's terms: `ll`, `hl`, `hh` or `lh`, the
+corner of the cell nearest (low|high u, low|high v). Absent means `ll`. It is
+written only on the lowest storey that has the cell, which is where the scorer
+reads it. **Whether this is a design variable to keep (the way a stair runs) or
+a labelling artefact the scorer should not read is the owner's to rule**
+(`homemaker-py-8b2u.6`); if the latter, the key goes and the objective changes.
+
+### What v2 does not carry, and the scorer reads anyway
+
+An upper-storey node whose cut is inherited still stores a ratio of its own in
+v1 ("dead fields"). v2 does not write it. It is not quite dead:
+`dom.merge_divided` can undivide the node below, and the upper node then cuts
+at its own stale ratio. 180 of the 192 designs carry such ratios and 3 are
+scored through one (§39.94, `homemaker-py-3tzk`). After a round trip the
+upper cut stays where the lower one was.
+
 ## Migration
 
 | tracked `.dom` files | count | v2 |
@@ -161,6 +219,8 @@ A node is either a **cut** or a **cell**:
 - A v1 file's convention is not in the file. The converter takes it from an
   explicit argument (`--orthogonal`), defaulting from the `+orth` stamp in the
   filename where there is one, and refuses otherwise.
+- *(implemented 2026-10-06, `dom_upgrade_cmd.py`; output is `<name>.v2.dom`
+  beside the input, never the input itself)*
 - `homemaker-dom-upgrade FILE...` converts v1 (orthogonal) to v2 and VERIFIES
   every converted file by rebuilding its cells and comparing them with the v1
   geometry, as experiment 1 does; it writes nothing for a file that does not

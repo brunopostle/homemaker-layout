@@ -282,6 +282,12 @@ types, and adjacency only.
 
 Key modules:
 - `dom.py` — read/write Urb `.dom` YAML into a `Node` tree
+- `dom_v2.py` — `.dom` format version 2, the rectangle frame
+  (`docs/dom-format-v2.md`, DESIGN.md §39.94). `dom.load` dispatches to it on a
+  `format` key; `dom.dumps(root, version=2)` writes it, and v1 stays the default.
+  Stage 1a: the FILE is v2, the in-memory tree is still v1, so it refuses what
+  that tree cannot hold (a non-quad plot, an empty cell, a `frame.u` other than
+  the derived one) and it refuses outright while orthogonal division is off
 - `geometry.py` — faithful port of Urb's top-down geometry
 - `programme.py` — parse `patterns.config` space requirements
 - `solver.py` — bottom-up ratio solve (scipy)
@@ -299,6 +305,9 @@ Key modules:
   from the storey below, so `compose` writes the axis where the engine reads it
   and raises `InheritedCut` for a trace that contradicts the wall downstairs
 - `fitness_cmd.py` — `homemaker-fitness` CLI entry point
+- `dom_upgrade_cmd.py` — `homemaker-dom-upgrade`: v1 -> v2 (and `--to-v1`), every
+  cell verified before anything is written, the input never overwritten. A v1
+  file's convention comes from `--orthogonal` or a `+orth` stamp in its name
 - `rooms_export.py` — `homemaker-rooms`: a finished `.dom` -> homemaker-addon's web
   rooms document (`docs/rooms-format.md`), the route to IFC (DESIGN.md §39.92).
   Export only: nothing scores or searches through it. It writes rooms in the

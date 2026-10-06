@@ -19,6 +19,7 @@ homemaker-fitness = "homemaker_layout.fitness_cmd:main"
 homemaker-collapse = "homemaker_layout.collapse_cmd:main"
 homemaker-compose = "homemaker_layout.compose_cmd:main"
 homemaker-rooms = "homemaker_layout.rooms_export:main"
+homemaker-dom-upgrade = "homemaker_layout.dom_upgrade_cmd:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.5"]

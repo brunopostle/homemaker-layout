@@ -13799,3 +13799,83 @@ objective no longer ends with the fail, there is no trade to improve.
 child after 80 inner-loop evaluations. Under `--use-tiers` every cut that
 trades this hard fail for one soft fail is an improvement by construction, and
 §39.91 found that the search made nothing of it.
+
+### 39.94 Format v2 reads and writes; the round trip found three things the scorer reads that are not geometry (`homemaker-py-8b2u.2`)
+
+Stage 1a of the rectangle-frame pivot. `dom_v2.py` writes a `Node` tree as a v2
+document (§39.88's forward map: each cut an axis and a position in its parent
+rectangle) and reads one back by FITTING the v1 fields -- the `rotation` whose
+edges the line crosses and under which `_orthogonal_b` would pick its axis, and
+the ratio that puts end 'a' on it. `dom.load` dispatches on the `format` key;
+`dom.dumps(root, version=2)` writes it; v1 stays the default and
+`homemaker-evolve` still writes v1. Geometry, scorer and search are untouched,
+and the stamp moves only because `dom.py` is an objective source (the second
+worked example of §39.65's "the stamp can move without the objective changing").
+
+**The format's own test passes.** 192 tracked orthogonal designs (48 coldstart,
+144 e4r) through v1 -> v2 -> memory: 3,879 of 3,879 cells identical, second dump
+byte-identical on all 192. The negative control (one `at` moved by 1e-4) is
+reported as different. Three things had to be decided on the way, all in
+`docs/dom-format-v2.md`: `at` is written to 10 decimal places, because it is
+recomputed from geometry on every write and idempotence needs it; the reader
+REFUSES a v2 file while orthogonal division is off rather than switching it on;
+and it refuses what the v1 tree cannot hold (non-quad plot, empty cell, a
+foreign `frame.u`, an upper cut against an orientation fixed below).
+
+**Cells identical was not score identical.** Scored before and after
+(`experiments/diag_8b2u2_roundtrip.py --scores`, objective `59d8aa1+orth`):
+
+| round trip scored... | scores that moved, of 192 |
+|---|---|
+| with no `origin` key | 95 |
+| as shipped (strict scorer) | 75 |
+| + overlap floored at 1 nm | 3 |
+| + inherited ratios synchronised | **0**, and no fail count moves |
+
+Each step is one thing the objective reads that the cells do not contain.
+
+**1. Which corner a `C` leaf counts from** (`homemaker-py-8b2u.6`).
+`graph.stack_corners_in_use` returns corner indices in the leaf's rotated
+frame and `_stair_fit` takes its base edge from the lowest. Turning the `C`
+leaves of the corpus -- no wall moves -- changes the score in 236 of 576
+trials, by up to 26.7x, and can add `staircase volume`; turning every other
+leaf, 0 of 576 (`--rotation`). So decision 3 of the format ("`rotation`
+carries no information") is right for a cut and wrong for a circulation leaf:
+today it is a hidden gene for how the stair is measured. v2 carries it as a
+PROVISIONAL `origin: ll|hl|hh|lh` on `C` cells so that stage 1a changes no
+score; whether it is a design variable or an artefact is the owner's ruling.
+
+**2. Daylight through walls that only touch** (`homemaker-py-khgi`).
+`area_outside` adds a neighbour's whole wall width for every boundary group on
+which `boundary_pair_overlap(...) > 0`, and for two collinear edges meeting end
+to end that overlap is zero plus or minus rounding. A round trip moves every
+cut by a few ulps and re-rolls it, which is how it surfaced -- but it is in the
+COMMITTED scores (`--noise`): 32 of the 48 coldstart artefacts rest on such a
+pair (138 pairs), 23 change fail count, and maple-court `1138ff1+orth` s0 is
+145x too high, 56 fails as scored against 63. Programme-house barely has them
+(1 of 144). The largest fail family is partly passing on phantom wall.
+
+**3. Dead fields that are not dead** (`homemaker-py-3tzk`). An upper node
+whose cut is inherited still stores a ratio of its own; `merge_divided` runs
+before scoring, can fuse the `O|O` pair below, and the upper node then cuts at
+that stale ratio. 180 of 192 designs carry one (1,243 nodes) and 3 are scored
+through it, by 0.1-3.2% (`--dead-fields`). v2 does not write the field.
+
+**None of the three is landed, and none is v2's.** (2) reads as a plain defect
+and (3) as a small one; both change the objective, so they wait for
+`homemaker-py-qkp0` to finish and land between sweeps with the corpus re-scored
+either side. Expectation for (2), on file in the bead before any fix: every
+corpus fail count stays or rises, programme-house barely moves, the crinkliness
+family grows on maple-court and harbor-house. (1) needs the ruling first.
+
+**What this does to the queue.** The next re-baseline was going to be the first
+corpus at the rectangle-frame objective. (2) alone changes 23 of 48 fail counts
+at the present one, so it belongs in that same landing rather than after it.
+
+**`homemaker-dom-upgrade` (`homemaker-py-8b2u.3`) is on the same branch.** It
+converts v1 -> v2 and, with `--to-v1`, back; reads the converted text again and
+compares every cell with the original's before writing; writes `<name>.v2.dom`
+beside the input and never onto it; and refuses a v1 file whose convention it
+would have to guess (no `--orthogonal`, no `+orth` in the name). Its negative
+control is a reader that moves one cut by 1e-3: nothing is written. Committed
+artefacts stay v1 -- they are records (decision 4).
