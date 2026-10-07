@@ -107,9 +107,12 @@ Placing the building back at its true orientation is a site-placement step
 
 ## How a layout becomes rooms
 
-- **One room per cell that has a volume**, on every storey. Every cell the
-  slicing tree produces is convex -- a rectangle cropped by a convex plot, in
-  v1 and v2 alike -- so the convexity rule always holds.
+- **One room per cell that has a volume**, on every storey, with as many
+  corners as the cell has: four in a v1 design, three or more where a v2
+  design's plot crops a cell (a v2 file is read as the native tree it
+  describes). Every cell is a rectangle cropped by the plot, so on a convex
+  plot the convexity rule always holds; a cell wrapped round the inner corner
+  of an L-shaped plot is refused. A cell wholly off the plot is not written.
 - **Party walls** get style `blank`: a plot-boundary edge whose `perimeter`
   entry is `private`, which is Urb's `IsParty` (`lib/Urb/Dom.pm`) as used by
   `urb-dom2obj.pl`. (`blank` is a real style directory in `share/`; the web

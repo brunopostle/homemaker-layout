@@ -15487,8 +15487,20 @@ roofs' parapets, which was counted and not inspected. Both pitched builds
 were looked at as a rendering of the document, not in an IFC viewer -- the
 owner's eye on the IFC is still owed.
 
-**Not done.** A native (format v2) cell with more than four corners is not
-exported at all yet, roof or no roof: `rooms_export` still reads four corners
-per cell. Roofs at more than one height (a two-storey wing beside a
-three-storey block) get a pitched roof only on the top storey; the wing's
-roof is a terrace in the model and stays flat. Both are noted on the bead.
+**Native designs export too.** `rooms_export` wrote every cell from four
+corners, so a format-v2 design -- what `homemaker-evolve --native` writes, and
+what the second A/B in the queue will produce -- could be exported only if it
+happened to fit the quad tree. It now reads a v2 file as the native tree it
+describes and writes each cell as the polygon it is, with a wall style per
+side. Held two ways (`tests/test_rooms_export_native.py`): the nine newest
+artefacts of three programmes export the same rooms, walls and roof from
+either tree (a native design with one wall moved does not); and a plot that
+crops one room to a triangle and another to five corners exports both, with
+the party wall on the right sides, and builds through `rooms2ifc.py` to three
+rooms and a roof.
+
+**Not done.** Roofs at more than one height: a two-storey wing beside a
+three-storey block gets a pitched roof only on the top storey, because the
+wing's roof is a terrace in the model and stays flat. A NON-CONVEX cell (one
+wrapped round the inner corner of an L-shaped plot) is still refused: the
+addon's rooms are convex. Both are on the bead.

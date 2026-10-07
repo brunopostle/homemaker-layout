@@ -132,15 +132,23 @@ def rooms(root, programme_dir) -> list:
             usage = _usage(leaf, reqs, stair_ids)
             if usage is None:
                 continue
-            corners = [[x * u[0] + y * u[1], x * v[0] + y * v[1]]
-                       for x, y in (geometry.coordinate(leaf, i) for i in range(4))]
+            # A cell is whatever polygon it is: four corners in Urb's quad
+            # tree, three or more in a native rectangle-frame one, where the
+            # plot can crop a corner off or leave a status vertex part-way
+            # along a side (`geometry.polygon`, §39.103). A cell wholly off
+            # the plot is void and `leaves()` has already passed over it.
+            outline = geometry.polygon(leaf)
+            n = len(outline)
+            if n < 3:
+                continue
+            corners = [[x * u[0] + y * u[1], x * v[0] + y * v[1]] for x, y in outline]
             walls = ["blank" if perimeter.get(geometry.boundary_id(leaf, i)) == "private"
-                     else "default" for i in range(4)]
+                     else "default" for i in range(n)]
             poly, flipped = _ccw(corners)
             if flipped:
-                # reversing the vertices reverses the edges: edge i of the reversed
-                # polygon is edge (2 - i) mod 4 of the original
-                walls = [walls[(2 - i) % 4] for i in range(4)]
+                # reversing the vertices reverses the edges: edge i of the
+                # reversed polygon is edge (n - 2 - i) mod n of the original
+                walls = [walls[(n - 2 - i) % n] for i in range(n)]
             if not _convex(poly):
                 raise ExportError(f"cell {li}/{leaf.id} is not convex")
             out.append({
@@ -178,7 +186,9 @@ def document(dom_path, programme_dir=None, roof_pitch: "float | None" = 35.0,
     not taken for a room. ``roof_pitch=None`` leaves the roofs flat."""
     dom_path = Path(dom_path)
     programme_dir = Path(programme_dir) if programme_dir else dom_path.parent
-    root = dom.load(str(dom_path))
+    # A format-v2 file is read as the native tree it describes, which is what
+    # `homemaker-fitness` scores; for a v1 file `native` changes nothing.
+    root = dom.load(str(dom_path), native=True)
     u, _ = geometry._reference_axes(root)
     made = rooms(root, programme_dir)
     extra: dict = {}
