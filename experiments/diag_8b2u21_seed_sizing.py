@@ -46,11 +46,97 @@ def _load(name):
     return mod
 
 
+def shared(a) -> int:
+    """Seeds as the DEFAULT search builds them -- shared leaves and all -- and
+    the pass as the driver applies it (`driver.solve_seed`), each followed by
+    the 80 evaluations a constructed seed really gets.
+
+      built+80          today
+      solved+80         `--seed-solver`
+      blind+80          the same pass with every share hidden from the solver:
+                        the control for whether being share-aware matters
+    """
+    import inspect
+
+    import numpy as np
+
+    from homemaker_layout import evolve, innerloop, operators
+
+    geometry.ORTHOGONAL_DIVISION = True
+    ab = _load("ab_report")
+    defaults = {k: v.default for k, v in inspect.signature(driver.search).parameters.items()}
+    args = evolve._parse_args(["init.dom"])
+    search = dict(leaf_sharing=args.leaf_sharing, collapse_insearch=args.collapse_insearch)
+    arms = ("built+80", "solved+80", "blind+80")
+    rows = []
+    for name in a.programme or PROGRAMMES:
+        prog = REPO / "examples" / name
+        reqs = programme.load_programme_dir(str(prog))
+        types = sorted(reqs) + ["C", "O"]
+        conf = driver._fitness_for(str(prog), **search)._conf
+        seed_root = dom.load(str(prog / "init.dom"))
+        for seed in range(a.seeds):
+            topo = operators.constructive_topology(
+                seed_root, reqs, np.random.default_rng(seed), types,
+                min_storeys=max(programme.n_storeys_required(reqs),
+                                programme.storey_minimum(str(prog))),
+                adjacency_aware=defaults["seed_adjacency_aware"],
+                proportion_aware=defaults["seed_proportion_aware"],
+                circ_divisor=defaults["circ_divisor"],
+                leaf_sharing=args.leaf_sharing, leaf_share_factor=args.leaf_share_factor,
+                depth_balanced=defaults["depth_balanced"],
+                interior_outside=defaults["interior_outside"],
+                outside_divisor=defaults["outside_divisor"])
+            dom.link(topo)
+            n_shared = sum(lf.share > 1 and lf.share_type == lf.type
+                           for lvl in dom.levels(topo) for lf in lvl.leaves())
+            row = {"programme": name, "shared": n_shared}
+            for arm in arms:
+                root = copy.deepcopy(topo)
+                dom.link(root)
+                if arm != "built+80":
+                    hidden = []
+                    if arm == "blind+80":
+                        for lvl in dom.levels(root):
+                            for lf in lvl.leaves():
+                                hidden.append((lf, lf.share))
+                                lf.share = 1
+                    driver.solve_seed(root, reqs, conf)
+                    for lf, k in hidden:
+                        lf.share = k
+                geometry.clear_cache()
+                ind, _ = driver._evaluate(root, str(prog), None, 80, {}, "seed", **search)
+                row[arm] = ind.n_fails
+            rows.append(row)
+            print(f"  {name} seed {seed} ({n_shared} shared cells): " + "  ".join(
+                f"{arm} {row[arm]}" for arm in arms), file=sys.stderr, flush=True)
+    print(f"\n{len(rows)} seeds as the default search constructs them "
+          f"(leaf_sharing={args.leaf_sharing}, factor {args.leaf_share_factor}), fails\n")
+    print(f"{'programme':<16} {'n':>3} {'shared cells':>13} " + "".join(f"{x:>12}" for x in arms))
+    groups = [*dict.fromkeys(r["programme"] for r in rows), "ALL"]
+    for g in groups:
+        sel = [r for r in rows if g == "ALL" or r["programme"] == g]
+        print(f"{g:<16} {len(sel):3d} {sum(r['shared'] for r in sel) / len(sel):13.1f} "
+              + "".join(f"{sum(r[x] for r in sel) / len(sel):12.1f}" for x in arms))
+    for g in ("ALL", *groups[:-1]):
+        sel = [r for r in rows if g == "ALL" or r["programme"] == g]
+        print(f"\n== {g}: fails, paired on the same seed (a W is the second arm LOWER)")
+        for x, y in (("built+80", "solved+80"), ("blind+80", "solved+80")):
+            print(f"{x} against {y}:")
+            print(ab.format_report(ab.paired_report(
+                [float(r[x]) for r in sel], [float(r[y]) for r in sel], x, y)))
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--programme", action="append", choices=PROGRAMMES)
     ap.add_argument("--seeds", type=int, default=6)
+    ap.add_argument("--shared", action="store_true",
+                    help="seeds as the default search builds them, shared leaves included")
     a = ap.parse_args(argv)
+    if a.shared:
+        return shared(a)
     geometry.ORTHOGONAL_DIVISION = True
     build_seed, ab = _load("diag_3i3_missing_room").build_seed, _load("ab_report")
 

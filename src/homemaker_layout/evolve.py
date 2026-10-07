@@ -199,6 +199,13 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "never fires and would replace the staircase with a room "
                         "if it did. Changes what a search does; the A/B that "
                         "decides it has not been run (default: off)")
+    p.add_argument("--seed-solver", dest="seed_solver",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_SEED_SOLVER", False),
+                   help="homemaker-py-8b2u.21 (DESIGN.md §39.118): size each "
+                        "constructed seed with the ratio solver before it is "
+                        "first evaluated. Seeds only, never children. The A/B "
+                        "that decides it has not been run (default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
@@ -383,6 +390,8 @@ def main(argv=None) -> int:
     from . import operators
     os.environ["HOMEMAKER_CORE_UNDIVIDE_REPAIRED"] = "1" if args.core_undivide_repaired else "0"
     operators.CORE_UNDIVIDE_REPAIRED = bool(args.core_undivide_repaired)
+    os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
+    driver.SEED_SOLVER = bool(args.seed_solver)
 
     seed_file = args.seed_dom.resolve()
     if not seed_file.exists():
@@ -460,6 +469,7 @@ def main(argv=None) -> int:
     print(f"level add+migrate  : {args.level_add_migrate}", file=sys.stderr)
     print(f"repair shaft       : {args.repair_shaft}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
+    print(f"seed solver        : {args.seed_solver}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)
