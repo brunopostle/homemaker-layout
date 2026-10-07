@@ -15308,3 +15308,33 @@ to 3 as rates and one that pins circulation as the deliberate exception. The
 end-to-end test fails there, which is this section. Whatever number is ruled,
 it lands after the A/B queue and with a note that no corpus exists at the
 objective it makes.
+
+### 39.117 The terrace is worth 120, until daylight scores outdoor space (owner's ruling, `homemaker-py-ecx`)
+
+Owner, 2026-10-07, on §39.116's two readings: "Do 120 and we will revise when
+daylight is used to score down the value of outside space."
+
+So `value_supported` goes from 100 to 120 in the four programmes and in
+`CONF_DEFAULTS`: above the 110 a terrace costs, above a garden's 100, and
+under the ~123 at which a terrace would out-earn a room per square metre on
+the designs we have. Ruling 3 stays as §39.19's end-to-end test reads it, and
+that test passes unchanged. The number is provisional by the ruling's own
+terms: its ceiling is a property of how good the corpus's rooms are, and the
+proper fix -- an outdoor space whose value falls when it gets no sun -- is
+`homemaker-py-2g5`.
+
+Priced on the 48 orthogonal coldstart artefacts before the change lands: no
+fail list moves on any design; scores rise by a median 1.2% on
+programme-house and harbor-house and 2.3% on maple-court (at most 3.8%);
+health-centre has no terrace and does not move; three programme-house designs
+change rank among their twelve.
+
+**Expectation for the next sweep, recorded now:** nothing attributable. A 1-2%
+change in score with no fail moved is far inside seed noise, and the next
+sweep will also carry everything else landed since `1a24b6a+orth`. The
+ruling's rightness does not depend on a measurement; this section exists so
+that nobody later looks for its effect.
+
+On branch `terrace-value`, to merge when the A/B queue has finished: it is an
+objective change, and the queue's five experiments should end at the
+objective they began at.
