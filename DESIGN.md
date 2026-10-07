@@ -15245,3 +15245,66 @@ corner as one wall per segment, and `<polyline>`
 (`tests/test_hand_design_kit.py`). `compose.py` is in `NEITHER_SOURCES` and
 nothing a search imports it, so the change touched neither stamp nor the
 queue.
+
+### 39.116 A terrace is worth more than a garden; circulation is outside the rule; and the number is not yet settled (`homemaker-py-ecx`)
+
+Owner, 2026-10-07, on §39.115's two rows: "Yes a terrace should be more
+valuable than garden. Any usable space didn't intend to include circulation as
+a building without any circulation has an efficient plan."
+
+**Circulation: no change.** 50 against a cost of 200 is intended, and is now
+a ruling and not only §39.24's reasoning.
+
+**The terrace: three rulings now bear on one number**, `value_supported`,
+today 100 per square metre.
+
+1. worth more than it costs to build -- above 110 (`outside_supported`);
+2. worth more than a garden -- above 100 (`value_outside`);
+3. not worth more per square metre than a room (§39.19).
+
+As RATES these leave everything from 110 to 300, and 150 was the figure put
+to the owner. Priced on the 48 orthogonal coldstart artefacts before anything
+was edited: no fail list changes on any design, scores rise by a median 3%
+(programme-house), 3% (harbor-house) and 6% (maple-court), health-centre has
+no terrace and does not move, and three programme-house designs change rank.
+
+But §39.19's ruling is not tested as a rate. `tests/test_terrace_value_ruling.py`
+holds it END TO END -- value per square metre after quality, averaged over the
+corpus -- because that is where it was first broken: a terrace is asked almost
+nothing and keeps 96% of its rate, while a room is asked about size,
+proportion, daylight and access and, in the evolved corpus, keeps 40% of its
+300. So on today's designs:
+
+| `value_supported` | terrace, realised per m² | room, realised per m² | ruling 3, end to end |
+|---|---|---|---|
+| 100 (today) | 96 | 119 | holds |
+| 120 | 115 | 119 | holds, by 3% |
+| 124 | 119 | 119 | the edge |
+| 150 | 144 | 119 | **broken** |
+
+All three rulings hold end to end only between 110 and about 123 -- and the
+upper edge is a property of how poor the corpus's rooms are, not a constant:
+it rises as designs improve and it would be 300 for a design with no faults.
+
+That is a choice between two readings of ruling 3, and it is the owner's:
+
+- **as realised on the designs we have**: the terrace goes to about 120 and
+  the existing test stands. Safe today; the margin is thin and moves with
+  every corpus.
+- **as a rate, like for like**: a faultless room (300) against a faultless
+  terrace. Then 150 stands and the test is rewritten to compare at equal
+  quality. The cost is the thing §39.19 was written to stop: on a mediocre
+  design, a square metre of terrace outscores a square metre of room, so the
+  search is paid to turn poor rooms into terrace.
+
+A third way out is not a number at all: ask more of a terrace (it is asked
+about width and little else), so that its quality can fall as a room's does.
+That is the daylight-and-sun question the owner has deferred.
+
+Parked on branch `terrace-value` (not merged, marked so): the four
+`patterns.config` files and `CONF_DEFAULTS` at 150, the old
+`value_supported == value_outside` test replaced by one that states rulings 1
+to 3 as rates and one that pins circulation as the deliberate exception. The
+end-to-end test fails there, which is this section. Whatever number is ruled,
+it lands after the A/B queue and with a note that no corpus exists at the
+objective it makes.

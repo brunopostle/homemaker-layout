@@ -57,7 +57,7 @@ index is how to get from a question to the section that answers it.
 | §39.76-§39.80 | The ratio solver's target, the shape-curve DP's exactness, the operator census with negative controls, what a missing room costs. |
 | §39.81-§39.93 | `support_outside` A/Bs (flat, then tiers), two sweeps, the omit-vs-circulation ruling, outdoor width 3.0 -> 2.3 m, the rectangle-frame pivot measured before commitment, export to IFC. |
 | §39.94-§39.104 | Format v2 and the native rectangle-frame tree; six scorer defects found on the way and fixed on rulings (daylight counted once, the wall above stays, listing order, stair fit, width from the fitted rectangle). |
-| §39.115 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand. |
+| §39.115-§39.116 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
 ## Owner's rulings, and where each is recorded
@@ -80,6 +80,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Daylight through a shared wall is counted once; stairs are fitted whichever way is best | §39.95 |
 | Undividing a cell does not move the wall above; listing order decides nothing; a boxed-in core is a straight flight | §39.96, §39.100 |
 | Usable space should be worth more than it costs; an outdoor cell's value does not follow its daylight until the sun calculation is rebuilt | §39.115 |
+| A terrace is worth more than a garden (the number is open, §39.116); circulation is deliberately NOT worth its cost, "a building without any circulation has an efficient plan" | §39.116 |
 | The briefs' gaps are fixed at a good time, which is just before a full re-baseline | §39.115 |
 | The stair shaft's position is found by the search, and it is a cell made by division like any other -- no pre-placed block | §39.112, §39.113 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
@@ -116,7 +117,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (220 of them, 15247 lines)
+## Every section of DESIGN.md (221 of them, 15310 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -387,4 +388,5 @@ below are the most recent work.
 - §39.112 · 15056-15101 · Three owner rulings on §39.105-§39.111's open questions (2026-10-07)
 - §39.113 · 15102-15121 · The stair shaft is a cell made by division, like every other cell (owner's ruling, `homemaker-py-8b2u.16`)
 - §39.114 · 15122-15181 · Would a canonical genome help? What the run logs say (`homemaker-py-8b2u.15`)
-- §39.115 · 15182-15247 · Rulings on outdoor value and on the briefs, and a kit for drawing a design by hand (`homemaker-py-ecx`, `5nw`, `2g7.1`)
+- §39.115 · 15182-15248 · Rulings on outdoor value and on the briefs, and a kit for drawing a design by hand (`homemaker-py-ecx`, `5nw`, `2g7.1`)
+- §39.116 · 15249-15310 · A terrace is worth more than a garden; circulation is outside the rule; and the number is not yet settled (`homemaker-py-ecx`)
