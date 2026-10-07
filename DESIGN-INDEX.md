@@ -117,7 +117,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (223 of them, 15376 lines)
+## Every section of DESIGN.md (223 of them, 15400 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -391,4 +391,4 @@ below are the most recent work.
 - §39.115 · 15182-15248 · Rulings on outdoor value and on the briefs, and a kit for drawing a design by hand (`homemaker-py-ecx`, `5nw`, `2g7.1`)
 - §39.116 · 15249-15311 · A terrace is worth more than a garden; circulation is outside the rule; and the number is not yet settled (`homemaker-py-ecx`)
 - §39.117 · 15312-15341 · The terrace is worth 120, until daylight scores outdoor space (owner's ruling, `homemaker-py-ecx`)
-- §39.118 · 15342-15376 · A solver pass does make a better seed (`homemaker-py-8b2u.21`, container half)
+- §39.118 · 15342-15400 · A solver pass does make a better seed (`homemaker-py-8b2u.21`, container half)

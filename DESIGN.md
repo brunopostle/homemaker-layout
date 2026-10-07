@@ -15366,10 +15366,34 @@ programme, each as built, after the 200 evaluations a seed gets today, after
   three large programmes -- holds for harbor-house, and in direction only for
   the other two.
 
-**Two things this does not cover.** These seeds have no shared leaves; the
-default search's seeds do (one cell standing for several rooms), and the
-solver aims every cell at one room's area, so a pass in the search must scale
-its targets by the share first. And a better seed is not a better result:
+**On seeds as the default search builds them** (added the same day; branch
+`seed-solver`, `diag_8b2u21_seed_sizing.py --shared`). Those seeds carry
+shared leaves -- one cell standing for several rooms; nine per seed on
+harbor-house, eleven on maple-court -- and the solver aimed every cell at ONE
+room's area. `solve_ratios` now multiplies by the live share, and
+`driver.solve_seed` is the pass. 24 seeds, each then given the 80 evaluations
+a constructed seed really gets, with a control in which the shares are hidden
+from the solver:
+
+| programme | shared cells | today | share-aware pass | share-blind pass |
+|---|---|---|---|---|
+| programme-house | 0 | 12.8 | 10.3 | 10.3 |
+| health-centre | 1 | 30.2 | 27.7 | 29.7 |
+| harbor-house | 9 | 74.5 | 68.8 | 93.7 |
+| maple-court | 11 | 110.8 | 101.0 | 143.2 |
+| all | 5.2 | 57.1 | 52.0 | 69.2 |
+
+The pass is 5.1 fails better than today over all 24 (MDD 4.9: just resolved),
+resolved on health-centre alone and inside a very wide MDD on harbor-house
+(+5.7, MDD 17) and maple-court (+9.8, MDD 18): on the large programmes it
+helps some seeds by twenty fails and costs others as many. Blind to shares it
+is 17 fails WORSE than aware and 12 worse than doing nothing, so the
+share-awareness is not a refinement, it is the difference between a gain and
+a loss. (The first two harbor-house seeds came in worse than today and were
+reported to the owner as a warning before the other twenty-two; that is what
+two seeds are worth.)
+
+**What this does not cover.** A better seed is not a better result:
 §12.2 found seeding an accelerator and not a new asymptote, and whether
 twelve fewer fails at evaluation 200 survive to evaluation 500,000 is the
 box's question. The bead now holds the arm to build: a share-aware solver
