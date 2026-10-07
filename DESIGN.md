@@ -15052,3 +15052,49 @@ the old objective, not the flat comparator.
   (§39.94-§39.110) and the stamp is now `64512f1+orth`: daylight is counted
   once, width is the fitted rectangle's. No corpus exists at the live
   objective, and none of these numbers should be compared to one that does.
+
+### 39.112 Three owner rulings on §39.105-§39.111's open questions (2026-10-07)
+
+**The stair shaft's position is found, not given** (`homemaker-py-8b2u.16`).
+Owner: "Positioning stair shafts is definitely something that should be part
+of finding a layout rather than something predetermined before a run." So a
+pre-placed block, if built, is a GENE: a rectangle the search places and
+moves as a unit, outside the slicing tree, and no input file fixes it.
+§39.88 had reached the same place from the data (shafts sit anywhere on the
+plot, centroids 0.02 to 0.96 on both axes), and §39.110's bead note adds that
+their size varies about tenfold on the large programmes, so the gene carries
+a size as well as a position. What the ruling leaves open is the
+representation: a slicing tree cannot hold a fixed rectangle directly, so
+either the tree is forced to cut along the block's sides first or the block
+waits for a non-slicing representation (`homemaker-py-8b2u.19`).
+
+**Incremental re-scoring is set aside, and kept as an idea**
+(`homemaker-py-8b2u.13`, deferred). The idea, so that it need not be
+re-derived: when one ratio moves, only the cells under that cut move, so
+re-score only what they touch instead of the whole building. What §39.109
+measured about it:
+
+- a score divides into leaf-local work (21-36%), each storey's graph and
+  circulation filter (23-42%), other per-storey work such as stairs and edge
+  costs (23-31%), and building-level checks (7-19%). The last cannot be made
+  incremental and is the floor; a ground-floor cut forces every storey's
+  graph, because storeys above inherit it;
+- only the first n of a child's 80 evaluations move one ratio (Nelder-Mead
+  building its simplex) -- about half of them on a large programme, 6 of 80
+  on programme-house. The rest move every ratio and gain nothing;
+- so the ceiling is roughly half the evaluations at under half their cost on
+  the large programmes, and nothing on a small one;
+- the risk is the kind this project has paid for before: a cache that is
+  wrong is a silent change to the objective. Any implementation needs a gate
+  comparing incremental against from-scratch scores on RANDOM ratio moves,
+  not on the corpus.
+
+It becomes worth another look if the inner loop changes to one that moves a
+ratio at a time, or if `child_budget` falls (`homemaker-py-8b2u.20`) and the
+simplex-building evaluations become most of a child's budget.
+
+**`support_outside` stays on.** Owner: "If there is no harm ... then leave it
+on." §39.111 measured none: with the operator fails 1.08 against 1.28, hard
+fails 0.11 against 0.17, score 0.194 against 0.179, every margin inside its
+MDD and each leaning the operator's way. The default is unchanged; the
+question is closed until a measurement shows a cost.
