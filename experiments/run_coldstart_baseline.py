@@ -106,7 +106,12 @@ ORTH_SUFFIX = "+orth"
 # shapecurve.py, cpsat.py. They decide how the search MOVES, not what it is
 # scored against; none of them is loaded by a score. `other_dirty_sources`
 # warns about those instead.
-OBJECTIVE_SOURCES = ("src/homemaker_layout/dom.py",
+OBJECTIVE_SOURCES = ("src/homemaker_layout/cells.py",   # width/proportion, §39.102
+                     "src/homemaker_layout/dom.py",
+                     # the v2 reader decides a v2 file's rotations and ratios,
+                     # so its geometry; `homemaker-evolve --native` writes v2
+                     # and `experiments/flag_ab.py native` scores what it writes
+                     "src/homemaker_layout/dom_v2.py",
                      "src/homemaker_layout/fitness.py",
                      "src/homemaker_layout/geometry.py",
                      "src/homemaker_layout/graph.py",
@@ -141,6 +146,8 @@ NEITHER_SOURCES = ("src/homemaker_layout/__init__.py",
                    "src/homemaker_layout/collapse_cmd.py",
                    "src/homemaker_layout/compose.py",
                    "src/homemaker_layout/compose_cmd.py",
+                   # `homemaker-dom-upgrade`: converts a file, scores nothing
+                   "src/homemaker_layout/dom_upgrade_cmd.py",
                    "src/homemaker_layout/fitness_cmd.py",
                    # export only: reads a finished .dom and writes a rooms
                    # document for homemaker-addon; nothing scores or searches
@@ -151,6 +158,7 @@ NEITHER_SOURCES = ("src/homemaker_layout/__init__.py",
 # namespace is per-run (budget, seed, workers, output paths) and already in the
 # row or irrelevant to it.
 SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
+                "core_undivide_repaired",
                 "collapse_insearch", "collapse_local_search", "conn_grade",
                 "leaf_share_factor", "leaf_sharing", "level_add_migrate",
                 "multi_use", "pop", "repair_shaft", "ruin_recreate",

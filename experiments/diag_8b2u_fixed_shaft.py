@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import collections
 import copy
+import hashlib
 import sys
 from pathlib import Path
 
@@ -120,7 +121,12 @@ def main(argv=None) -> int:
                 f"u {a:.2f} v {b:.2f} ({ar:.1f} m2)" for a, b, ar in locs))
             ratios = innerloop.ratio_map(parent)
             p_fit, p_fails = evaluate(parent, prog, ratios)
-            rng = np.random.default_rng(abs(hash(p.name)) % 2**32)
+            # A stable hash of programme and file. This was `hash(p.name)`,
+            # which Python salts per process: no two runs drew the same
+            # children, so §39.88's table cannot be reproduced to the digit
+            # (its conclusion does not rest on one).
+            rng = np.random.default_rng(int.from_bytes(hashlib.blake2b(
+                f"{name}/{p.name}".encode(), digest_size=8).digest(), "little"))
             for _ in range(args.draws):
                 child, desc = operators.mutate(parent, rng, types, weights=weights,
                                                reqs=reqs)

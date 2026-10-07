@@ -54,6 +54,30 @@ class Node:
     elevation: float | None = None
     wall_inner: float | None = None
     wall_outer: float | None = None
+    # format v2 only, lowest root only: free-form provenance (objective stamp,
+    # seed, ...). Geometry and scoring never read it; v1 has nowhere to put it.
+    meta: dict | None = None
+
+    # NATIVE rectangle-frame trees only (DESIGN.md §39.103/§39.104). A tree is
+    # native when its lowest root has a ``plot``: a polygon of any number of
+    # vertices, with the frame's first axis beside it. ``geometry`` then draws
+    # it by splitting the frame RECTANGLE and cropping each leaf to the plot.
+    #
+    # The genes are the same two as in a quad tree, read on a rectangle:
+    # ``rotation`` picks which side of the node's rectangle the cut starts from
+    # (so its axis, and which child is the low one) and ``division[0]`` how far
+    # along that side, as a fraction of the rectangle. That is what Urb's quad
+    # recursion does when every quad is a rectangle -- so every operator, the
+    # genome and the inner loop edit a native tree exactly as they edit a quad
+    # one. A v2 file's `cut` / `at` / `low` / `high` are this, written down in
+    # the frame's terms (`dom_v2`).
+    plot: list[list[float]] | None = None          # lowest root only
+    frame_u: list[float] | None = None             # lowest root only
+    # A leaf whose rectangle lies wholly outside the plot: it holds no area,
+    # is not a room, and takes no part in anything. ``leaves()`` passes over
+    # it, so it stays in the tree (the file has it) and out of every loop.
+    # Set by ``geometry.mark_voids``.
+    void: bool = False
 
     # runtime linkage (never serialised)
     parent: "Node | None" = field(default=None, repr=False, compare=False)
@@ -76,7 +100,7 @@ class Node:
 
     def leaves(self) -> list["Node"]:
         if not self.divided:
-            return [self]
+            return [] if self.void else [self]
         return self.left.leaves() + self.right.leaves()
 
     def by_id(self, path: str) -> "Node | None":
@@ -179,8 +203,14 @@ def link(root: Node) -> None:
         _set(lvls[i])
 
 
-def load(path: str) -> Node:
+def load(path: str, native: bool = False) -> Node:
     """Load a ``.dom`` file and return the fully-linked lowest level root.
+
+    ``native`` matters only for a format-v2 file. False (the default) reads it
+    into the same quad tree a v1 file makes, which is the tree the search and
+    every older tool work on, and refuses what that tree cannot hold. True
+    builds a NATIVE tree (see ``Node.cut``): anything v2 can say, scoreable,
+    not yet searchable.
 
     The plot stored on disk is the *outer* boundary; Urb::Dom insets it by
     ``wall_outer`` on load (and offsets back out on save). We mirror that so
@@ -190,7 +220,16 @@ def load(path: str) -> Node:
     from . import geometry  # local import avoids a module-load cycle
 
     with open(path) as fh:
-        root = _parse(yaml.safe_load(fh))
+        doc = yaml.safe_load(fh)
+    if isinstance(doc, dict) and "format" in doc:
+        # Format v2 (docs/dom-format-v2.md). A v1 file -- Urb's, and everything
+        # this repo wrote before v2 -- has no `format` key; anything that has
+        # one is read by the versioned reader, which refuses what it does not
+        # know rather than guessing.
+        from . import dom_v2
+
+        return dom_v2.from_document(doc, native=native)
+    root = _parse(doc)
     link(root)
     if root.wall_outer is None:
         root.wall_outer = 0.25  # Urb::Dom::Wall_Outer default
@@ -242,15 +281,25 @@ def _emit(n: Node, is_level_root: bool) -> dict:
     return d
 
 
-def dumps(root: Node) -> str:
-    return yaml.safe_dump(
-        _emit(root, True), default_flow_style=False, sort_keys=False, allow_unicode=True
-    )
+def dumps(root: Node, version: int = 1) -> str:
+    """Serialise ``root``. ``version=1`` is Urb's format and stays the default;
+    ``version=2`` is the rectangle frame (docs/dom-format-v2.md), which needs
+    orthogonal division on and refuses a design with a skew cut."""
+    if version == 2:
+        from . import dom_v2
+
+        doc = dom_v2.to_document(root)
+    elif version == 1:
+        doc = _emit(root, True)
+    else:
+        raise ValueError(f"cannot write .dom version {version!r}")
+    return yaml.safe_dump(doc, default_flow_style=False, sort_keys=False,
+                          allow_unicode=True)
 
 
-def dump(root: Node, path: str) -> None:
+def dump(root: Node, path: str, version: int = 1) -> None:
     with open(path, "w") as fh:
-        fh.write(dumps(root))
+        fh.write(dumps(root, version))
 
 
 # --------------------------------------------------------------------------- #
@@ -398,20 +447,45 @@ def is_circulation(n: Node) -> bool:
 # Merge_Divided (Urb::Dom::Merge_Divided)
 # --------------------------------------------------------------------------- #
 
+def hand_cut_up(n: Node) -> None:
+    """Call before removing ``n``'s cut: give the wall's position to the node
+    above, so the storey above keeps its wall where it is.
+
+    The node on the storey above, if it is divided, has been drawing THIS
+    node's cut: an upper storey inherits a cut wherever the storey below has
+    one, and its own stored ratio is ignored meanwhile. Once this node is a
+    single cell there is nothing to inherit and that stored ratio takes over --
+    a value left from whenever the search last wrote it, a third of a metre
+    off at the median (DESIGN.md §39.98). Owner, 2026-10-06: "undividing a cell
+    shouldn't undivide cells above by default" -- nor move their walls. Used by
+    the scorer's merge (§39.96) and by the operators that remove one cut
+    (§39.100); an operator that means to change the storey above does that
+    itself.
+    """
+    above = _above_node(n)
+    if above is not None and above.divided:
+        drawn = n
+        while drawn.below is not None and drawn.below.divided:
+            drawn = drawn.below          # this node may be inheriting in turn
+        above.division = list(drawn.division)
+
+
 def _undivide(n: Node, new_type: str) -> None:
+    hand_cut_up(n)
     n.division = None
     n.left = None
     n.right = None
     n.type = new_type
 
 
-def _merge_node(n: Node, allow_sahn: bool) -> None:
-    """Post-order recursive merge; mirrors ``Urb::Dom::Merge_Divided``."""
+def _merge_node(n: Node, allow_sahn: bool, merged: "list[Node] | None" = None) -> None:
+    """Post-order recursive merge; mirrors ``Urb::Dom::Merge_Divided``.
+    Every node it undivides is appended to ``merged``."""
     if n.divided:
-        _merge_node(n.left, allow_sahn)
-        _merge_node(n.right, allow_sahn)
+        _merge_node(n.left, allow_sahn, merged)
+        _merge_node(n.right, allow_sahn, merged)
     if n.above is not None and n.parent is None:
-        _merge_node(n.above, allow_sahn)
+        _merge_node(n.above, allow_sahn, merged)
     if not n.divided:
         return
     lt = n.left.type or ""
@@ -441,12 +515,21 @@ def _merge_node(n: Node, allow_sahn: bool) -> None:
         _undivide(n, "O")
     elif _level_root(n).below is None:   # ground floor: !$self->Level in Perl
         _undivide(n, sahn)
+    if merged is not None and not n.divided:
+        merged.append(n)
 
 
-def merge_divided(root: Node, allow_sahn: bool = False) -> None:
+def merge_divided(root: Node, allow_sahn: bool = False) -> "int | None":
     """Merge adjacent outdoor siblings into a single node in-place;
     mirrors ``Urb::Dom::Merge_Divided``.  Re-links the tree afterward so
     ``below`` / ``parent`` / ``position`` fields stay consistent.
+
+    Returns the index of the LOWEST storey on which anything was merged, or
+    None if nothing was. Geometry is only ever read downwards -- a storey
+    takes its walls from the storeys under it and nothing from those over it --
+    so every storey below that index is exactly the storey it was before the
+    call, which is what lets the scorer keep the adjacency graphs it has
+    already built for them (`homemaker-py-8b2u.11`).
 
     ``allow_sahn`` (homemaker-py-4e7, §39.66) decides whether a merge may mint
     an ``S``. It defaults to **False**, matching
@@ -467,5 +550,13 @@ def merge_divided(root: Node, allow_sahn: bool = False) -> None:
     Only ``Fitness`` knows the programme's setting, so only ``Fitness`` passes
     ``True``.
     """
-    _merge_node(root, allow_sahn)
+    merged: list[Node] = []
+    _merge_node(root, allow_sahn, merged)
+    lowest = None
+    for n in merged:
+        lvl, i = _level_root(n), 0
+        while lvl.below is not None:
+            lvl, i = lvl.below, i + 1
+        lowest = i if lowest is None else min(lowest, i)
     link(root)
+    return lowest

@@ -284,6 +284,20 @@ types, and adjacency only.
 
 Key modules:
 - `dom.py` — read/write Urb `.dom` YAML into a `Node` tree
+- `dom_v2.py` — `.dom` format version 2, the rectangle frame
+  (`docs/dom-format-v2.md`, DESIGN.md §39.94/§39.103). `dom.load` dispatches to
+  it on a `format` key; `dom.dumps(root, version=2)` writes it, and v1 stays the
+  default. **There are two trees a v2 file can become.** `native=False` (the
+  default, and what the search uses) FITS it into Urb's quad tree, refusing what
+  that cannot hold and refusing outright while orthogonal division is off.
+  `native=True` (what `homemaker-fitness` uses) builds a NATIVE tree -- a
+  polygon `plot` on the lowest root -- which `geometry` draws by splitting the
+  frame rectangle and cropping to the plot: any plot, odd and empty cells, no
+  switch. Its genes are the quad tree's own, `rotation` and `division[0]`,
+  read on a rectangle, so every operator, the genome and the inner loop edit
+  it unchanged, and `homemaker-evolve --native` searches it and writes v2
+  (§39.104). A v2 file's `cut` / `at` / `low` / `high` are those genes in the
+  frame's terms; `geometry.native_cut` converts
 - `geometry.py` — faithful port of Urb's top-down geometry
 - `programme.py` — parse `patterns.config` space requirements
 - `solver.py` — bottom-up ratio solve (scipy)
@@ -301,6 +315,20 @@ Key modules:
   from the storey below, so `compose` writes the axis where the engine reads it
   and raises `InheritedCut` for a trace that contradicts the wall downstairs
 - `fitness_cmd.py` — `homemaker-fitness` CLI entry point
+- `cells.py` — native rectangle-frame geometry: the cells of a v2 document from
+  the document alone (split the frame rectangle, crop to the plot), with the
+  owner's shape score. Handles what the v1 tree cannot -- polygon plots, status
+  vertices, the file's own frame, empty and odd cells. **An objective source
+  since §39.102**: the scorer's WIDTH and PROPORTION are the short side and the
+  long/short ratio of `cells.usable_rectangle`, the largest frame-aligned
+  rectangle that fits in the cell (`geometry.usable_width` / `usable_aspect`).
+  `geometry.length_narrowest` and `geometry.aspect` are the old quad formulas,
+  now used only by the search's own heuristics. The cells and the adjacency
+  graph are still `geometry`'s; `tests/test_cells.py` holds the native ones to
+  them on every orthogonal artefact
+- `dom_upgrade_cmd.py` — `homemaker-dom-upgrade`: v1 -> v2 (and `--to-v1`), every
+  cell verified before anything is written, the input never overwritten. A v1
+  file's convention comes from `--orthogonal` or a `+orth` stamp in its name
 - `rooms_export.py` — `homemaker-rooms`: a finished `.dom` -> homemaker-addon's web
   rooms document (`docs/rooms-format.md`), the route to IFC (DESIGN.md §39.92).
   Export only: nothing scores or searches through it. It writes rooms in the
@@ -399,6 +427,17 @@ Three consequences that bite:
   omission must outscore "no circulation". Run it after any objective change;
   `--self-test` is its negative control, and `tests/test_ruling_omit_vs_circulation.py`
   pins it. The pattern to copy when a ruling is about an ORDERING.
+- `experiments/flag_ab.py` — the paired A/B of ONE `homemaker-evolve` flag, same
+  seeds with and without: `native` (default search against `--native`) and `w4e`
+  (`--core-undivide-repaired`). Add an entry to its `EXPERIMENTS` table rather
+  than copying `e4r_support_outside_ab.py` a third time. Needs the box; `--scratch`
+  is the smoke run.
+- `experiments/diag_8b2u_score_cost.py` — for a change that must make a score
+  CHEAPER and no different: `--snapshot` every artefact's score and fail list
+  (quad and native) before and after, `--diff` them bit for bit, `--time` in
+  CPU milliseconds (wall-clock on a busy box swung 2x), `--self-test` for the
+  control (§39.105). Profile before choosing what to optimise: the bead that
+  prompted it named the wrong hot spot.
 - `experiments/trace_harbor_house.py` — reads an architectural SVG, and asks whose
   it is FIRST. §39.77 is the write-up of not doing that.
 
@@ -458,6 +497,58 @@ Leaf types share a first character across three namespaces:
 When adding or editing a programme, run
 `python experiments/audit_programme_config.py` — it reports reserved-name
 collisions, the usage class each code picks up, and per-room-spec satisfiability.
+
+### A score depends on walls, not on labels (DESIGN.md §39.94/§39.95)
+
+Two things that move no wall must move no score: **turning a leaf's corner
+numbering** (its `rotation`) and **shifting every cut by nanometres**. Both did,
+on half the corpus, until format v2 -- the first thing to rewrite a design
+without changing it -- showed it. `tests/test_scorer_reads_geometry_only.py`
+holds both, each with Urb's old rule as its negative control, and
+`experiments/diag_8b2u2_roundtrip.py` is the tool: a v1 -> v2 -> memory round
+trip is a cheap way to ask "does this rule read anything but geometry?" of any
+change to the objective.
+
+A third was a wall that moved: an upper-storey node whose cut is inherited
+keeps a stale ratio of its own, and `merge_divided` used to revive it by
+undividing the node below. `dom._undivide` now hands the cut up first (§39.96).
+The stale ratios are still IN v1 files (180 of 192) -- they are just never read.
+
+For stairs the owner's ruling is that a flight "can start at any corner and may
+run clockwise or counter clockwise", so `_stair_fit` takes the best of every
+orientation and only the NUMBER of corners the doors need
+(`graph.stack_corners_in_use`) constrains it. A door may stand anywhere along
+its wall -- the entrance door included -- so a wall costs the stair a corner
+only if no placing of its door avoids it; and a core whose doors take all four
+corners gets a single straight flight (§39.100, `tests/test_stair_doors.py`).
+
+The ORDER cells are listed in is a label too: `graph.has_circulation` measures
+centrality once, before it trims anything (`_centrality`), because measuring
+inside the loop made a hard fail depend on the tree's left/right naming.
+
+**Removing a cut must not move the wall above it.** An upper node that inherits
+a cut keeps a stale ratio of its own; `dom.hand_cut_up(n)` gives it the real one
+before `n`'s cut goes. The scorer's merge and `mutate_undivide` / `mutate_deslim`
+call it. A new operator that removes a single cut must too --
+`experiments/diag_3tzk_operator_walls.py --raw` is the census that will say so.
+
+### Two geometries behind one set of functions (DESIGN.md §39.103)
+
+`geometry.coordinate`, `area`, `edge_length`, `centroid`, `boundary_id`,
+`leaf_graph` and the rest dispatch on `geometry._native(n)`. For a quad tree
+they are Urb's recursion; for a native tree they read `geometry.polygon(n)`, a
+rectangle cropped to the plot. Three habits follow for anything that scores:
+
+- **ask `geometry.n_edges(leaf)`**, never assume four -- except the stair
+  rules, which ask `geometry.quad_corners(leaf)` and fit nothing to a core that
+  is not four-cornered;
+- **ask `geometry.is_external(bid)`**, never test `bid in "abcd"`: a native
+  plot side is `#k`;
+- **`Node.leaves()` skips void leaves** (cells outside the plot). Walk
+  `left`/`right` yourself if you need the tree as written.
+
+`tests/test_native_tree.py` holds the two geometries to the same score on every
+orthogonal artefact. A change to one side that the other does not get fails it.
 
 ### The stair shaft is a full-height column (owner's ruling, DESIGN.md §39.72)
 
@@ -551,7 +642,7 @@ prose. (§39.69 pruned exactly that.)
   only to a corpus at the same stamp, and never across the `+orth` switch
   (§39.12 clause 3).
 - **The stamp can move without the objective changing.** It is
-  `git log -1 -- OBJECTIVE_SOURCES`, so a pure rename in one of those five files
+  `git log -1 -- OBJECTIVE_SOURCES`, so a pure rename in one of those files
   moves it (§39.65 is the worked example, §39.80 the second: a docstring edit to
   `graph.py` recording an owner ruling). Re-score before concluding anything
   changed — §39.80 captured all twelve artefact scores before and after and
@@ -611,8 +702,9 @@ A single sweep measures the NET effect of everything landed since the last one,
 and nothing can be attributed to any individual change (§39.12 clause 3). So:
 
 - **Prefer search-side work.** "Search-side" means the file is **not in
-  `OBJECTIVE_SOURCES`** — five modules, `dom` / `fitness` / `geometry` / `graph` /
-  `programme`, because those are the five a score actually executes. It is NOT
+  `OBJECTIVE_SOURCES`** — seven modules, `cells` / `dom` / `dom_v2` / `fitness` /
+  `geometry` / `graph` / `programme`, because those are the seven a score actually
+  executes (`dom_v2` only for a format-v2 file, which is what a native search writes). It is NOT
   "anything outside `fitness.py` and `geometry.py`": that reading held until
   §39.63 and was wrong. `tests/test_objective_sources.py` measures the set rather
   than trusting anyone's memory of it, and `tests/test_search_config.py` holds a
@@ -711,6 +803,11 @@ Crinkliness is far and away the biggest family -- 39.1% of the fail set at
 (§39.89). The figures carry their stamps on purpose: this is a trend, and the
 next sweep's number belongs in DESIGN.md, not in a second copy here. When §39.31
 measured it, 69% of its residual sat at `crink == 0`: fully buried leaves.
+
+**Every figure above is an under-count.** Until §39.95 a cell was credited
+daylight twice through a wall whenever a neighbour also met it end to end and
+rounding fell the right way; 3-8% of every corpus's fails were hidden, all of
+them crinkliness. Read the next sweep's share against that, not against these.
 
 **Three attempts to reach it have now been measured, and all three were inert.**
 Read §39.68 before starting a fourth:

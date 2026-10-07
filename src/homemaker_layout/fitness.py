@@ -117,6 +117,7 @@ _SOFT_FAIL_MARKERS = (
     " width",
     " crinkliness",
     " access",
+    " shape",           # 8b2u.4/§39.103 -- a cell too far from a rectangle
     "staircase volume",
     "excess internal area",  # m3s/§39.58 -- internal area over `area_cap`
 )
@@ -1355,7 +1356,7 @@ class Fitness:
             # structurally needs no Gaussian. The `None` idiom is §39.22/§39.23's.
             return 1.0
         score = 1.0
-        for i in range(4):
+        for i in range(geometry.n_edges(leaf)):
             # 1.570796: Urb::Dom::Perpendicular hard-codes this, not pi/2
             score *= gaussian(geometry.angle(leaf, i), 1.0, 1.570796, sigma)
         return score
@@ -1382,7 +1383,7 @@ class Fitness:
                 co_params = self.get_space_params(co_type, "proportion")
                 params = _gaussian_product(params[0], params[1],
                                            co_params[0], co_params[1])
-        aspect = geometry.aspect(leaf)
+        aspect = geometry.usable_aspect(leaf)
         return _clipped_gaussian(aspect, params[0], params[1], "below")
 
     def quality_size(self, leaf: Node) -> float:
@@ -1444,7 +1445,7 @@ class Fitness:
                 co_params = self.get_space_params(co_type, "width")
                 params = _gaussian_product(params[0], params[1],
                                            co_params[0], co_params[1])
-        width = geometry.length_narrowest(leaf)
+        width = geometry.usable_width(leaf)
         return _clipped_gaussian(width, params[0], params[1], "above")
 
     # --- simple crinkliness (URB_NO_OCCLUSION: illumination factor = 1) --- #
@@ -1456,15 +1457,21 @@ class Fitness:
         for nb in G.neighbors(leaf):
             if not dom_mod.is_outside(nb) or dom_mod.is_covered(nb):
                 continue
-            # Faithful loop over all internal boundaries: Overlap() is > 0
-            # only on a boundary both quads actually share an edge of.
-            for contributors in groups.values():
-                if geometry.boundary_pair_overlap(contributors, leaf, nb) > 0:
-                    length += G[leaf][nb]["width"]
+            # The wall shared with this neighbour, ONCE. Urb looped over every
+            # boundary and added the width wherever `Overlap() > 0`, and the
+            # port copied it (c01a8a0). Two cells that share a wall usually
+            # also both end on a second line, meeting there end to end, where
+            # the overlap is zero give or take rounding -- so the same wall was
+            # counted twice whenever the rounding fell above zero. 32 of 48
+            # committed coldstart scores rested on that, one by 145x
+            # (homemaker-py-khgi, DESIGN.md §39.94/§39.95). `G` has this edge
+            # only because the pair overlap by a door width somewhere, and its
+            # `width` is that overlap; `groups` is no longer consulted.
+            length += G[leaf][nb]["width"]
         perimeter = _perimeter(leaf)
-        for e in range(4):
+        for e in range(geometry.n_edges(leaf)):
             bid = geometry.boundary_id(leaf, e)
-            if bid not in geometry._EXTERNAL:
+            if not geometry.is_external(bid):
                 continue
             ptype = (perimeter.get(bid) or "").lower()
             if ptype in ("private", "fortified"):
@@ -1667,7 +1674,42 @@ class Fitness:
 
         if self._quality_aggregate == "geometric_mean":
             quality = self._aggregate_geometric(leaf, factors)
+
+        # Shape multiplies the leaf's quality AFTER the factors above are
+        # combined, and joins `factors` only here. It is a condition on the
+        # cell rather than a seventh question averaged with the other six:
+        # put inside the geometric mean, a factor that is 1.0 for almost every
+        # cell would still change the root taken, and so the score of every
+        # design, including the ones with no odd cell at all (§39.103).
+        f = self.quality_shape(leaf)
+        if f < FAIL_THRESHOLD:
+            fail(f"{level_id}/{lid} shape")
+        factors["shape"] = f
+        quality *= f
         return quality, factors
+
+    def quality_shape(self, leaf: Node) -> float:
+        """How much of the cell is a usable rectangle (owner's ruling
+        2026-10-05, DESIGN.md §39.90): `cells.shape_quality` of the largest
+        frame-aligned rectangle that fits, over the cell's area -- full credit
+        from 0.85, the fail line at 0.70.
+
+        Rooms, circulation and upper-storey terraces are asked. Ground-level
+        outdoor space is exempt ("awkward pentagons that are only good for
+        garden space"), and so is outdoor space that is not a terrace at all:
+        a void through the building, or anything unsupported.
+        """
+        from . import cells
+
+        if dom_mod.is_outside(leaf) and (
+                not dom_mod.level_of(leaf) or self._is_void(leaf)
+                or not dom_mod.is_usable(leaf)):
+            return 1.0
+        area = geometry.area(leaf)
+        if area < cells.EMPTY_AREA:
+            return 0.0
+        du, dv = geometry.usable_rectangle(leaf)
+        return cells.shape_quality(min(1.0, du * dv / area))
 
     def factor_is_asked(self, name: str, leaf: Node) -> bool:
         """Is this factor a real question for this leaf, or an exemption?
@@ -1815,8 +1857,9 @@ class Fitness:
         if self._is_void(leaf):
             return 0.0                      # v8n: no boundary treatment for a hole
         rate = self.cost("boundary") if dom_mod.is_outside(leaf) else self.cost("boundary_wall")
-        length = sum(geometry.edge_length(leaf, e) for e in range(4)
-                     if geometry.boundary_id(leaf, e) in geometry._EXTERNAL)
+        length = sum(geometry.edge_length(leaf, e)
+                     for e in range(geometry.n_edges(leaf))
+                     if geometry.is_external(geometry.boundary_id(leaf, e)))
         return rate * length * _height(leaf)
 
     def plot_cost(self, root: Node) -> float:
@@ -1868,7 +1911,20 @@ class Fitness:
         return risers - 1
 
     def _stair_fit(self, leaf: Node, corners: list[int]) -> float:
-        """Stair fit score for one circulation leaf; mirrors ``Urb::Dom::Stair_Fit``."""
+        """Stair fit for one circulation leaf: how the shaft's length compares
+        with the length a stair of this height needs, 1.0 being exact.
+
+        ``Urb::Dom::Stair_Fit`` in its arithmetic. What it measured ALONG is
+        not Urb's: that took the edge leaving ``corners[0]`` as the base, which
+        was whichever in-use corner had the lowest number -- a property of the
+        leaf's ``rotation``, not of the room. Owner's ruling, 2026-10-06
+        (§39.95): "we want to fit stairs to cores whichever way is best, so the
+        flight can start at any corner and may run clockwise or counter
+        clockwise". So every edge is tried as the base with either neighbour as
+        the length, and the fit returned is the one the staircase factor likes
+        best. ``corners`` now matters only for how MANY there are: that is what
+        decides how many turns the stair may take.
+        """
         root = dom_mod._level_root(leaf)
         while root.below is not None:
             root = root.below
@@ -1878,21 +1934,25 @@ class Fitness:
         height = _height(leaf)
         risers = self._risers_number(height, max_riser)
         going = self._ideal_going(height / risers)
-        base = geometry.edge_length(leaf, corners[0])
-        length = geometry.edge_length(leaf, corners[0] + 1)
+        turns = {1: self._three_turn, 2: self._two_turn,
+                 3: self._one_turn}.get(len(set(corners)), self._zero_turn)
 
-        going_a = int((base - 2 * width) / going)
-        n = len(corners)
-        if n == 1:
-            going_b = self._three_turn(risers, going_a)
-        elif n == 2:
-            going_b = self._two_turn(risers, going_a)
-        elif n == 3:
-            going_b = self._one_turn(risers, going_a)
-        else:
-            going_b = self._zero_turn(risers, going_a)
-
-        return length / (width * 2 + going * going_b)
+        # A stair is fitted to a four-cornered core. `stack_corners_in_use`
+        # returns nothing for any other cell, so this is never reached with one.
+        quad = geometry.quad_corners(leaf)
+        sides = [math.dist(quad[i], quad[(i + 1) % 4]) for i in range(4)]
+        best = None
+        for edge in range(4):
+            base = sides[edge]
+            going_a = int((base - 2 * width) / going)
+            going_b = turns(risers, going_a)
+            for side in (1, 3):                       # the next edge, or the last
+                length = sides[(edge + side) % 4]
+                fit = length / (width * 2 + going * going_b)
+                key = (self.quality_staircase_volume(fit), -abs(fit - 1.0))
+                if best is None or key > best[0]:
+                    best = (key, fit)
+        return best[1]
 
     # ----------------------------------------------------------------------- #
     # Building-level ratio helpers (Dom.pm:Ratios/Areas/Area_Internal)
@@ -1979,11 +2039,10 @@ class Fitness:
     @staticmethod
     def _access_external(leaf: Node) -> list[str]:
         """External boundary ids ('a'-'d') for each edge of leaf."""
-        _EXT = frozenset("abcd")
         result = []
-        for edge in range(4):
+        for edge in range(geometry.n_edges(leaf)):
             bid = geometry.boundary_id(leaf, edge)
-            if bid in _EXT:
+            if geometry.is_external(bid):
                 result.append(bid)
         return result
 
@@ -2129,17 +2188,20 @@ class Fitness:
                     corners = graph_mod.stack_corners_in_use(leaf, graph_circ, all_lvls)
                     n_corners = len(corners)
                     if n_corners:
-                        # Mirror Perl check_stair_fit: add entrance door corners so
-                        # the stair loses the corner it shares with the entrance.
+                        # As Perl's check_stair_fit, the entrance door needs
+                        # room too -- but as a door somewhere along its wall,
+                        # not as BOTH corners of that edge (§39.100).
                         entrance_bid = self._entrance_bid_for_stair(
                             leaf, level_root, G, graph_circ, all_lvls, root
                         )
                         if entrance_bid is not None:
-                            for edge in range(4):
-                                if geometry.boundary_id(leaf, edge) == entrance_bid:
-                                    for ec in (edge, edge + 1):
-                                        if ec not in corners:
-                                            corners = corners + [ec]
+                            sides = geometry.n_edges(leaf)
+                            door = [[geometry.coordinate(leaf, edge),
+                                     geometry.coordinate(leaf, (edge + 1) % sides)]
+                                    for edge in range(sides)
+                                    if geometry.boundary_id(leaf, edge) == entrance_bid]
+                            corners = graph_mod.stack_corners_in_use(
+                                leaf, graph_circ, all_lvls, doors=door)
                         stair_fit = self._stair_fit(leaf, corners)
                         tracking["stair_fit"].append(stair_fit)
 
@@ -2297,6 +2359,9 @@ class Fitness:
         from . import graph as graph_mod
 
         geometry.clear_cache()
+        # A native tree's cells are cropped to the plot, and a cut that has
+        # moved can push one off it or bring one back (§39.103).
+        geometry.mark_voids(root)
         # homemaker-py-r5a: canonicalise stale share stamps before any
         # relabelling pass (collapse_superposition/collapse_global) or read
         # can resurrect one -- see dom.canonicalize_shares.
@@ -2345,11 +2410,17 @@ class Fitness:
         failures.extend(check_fails)
 
         self.preprocess_building(root)
-        _, graph_circ_pre = graph_mod.build_graphs_with_circ(
-            root, self.conf("door_width") or 1.2, failures.append, self.usages()
-        )
-
-        graph_base_pre = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
+        # One build per storey per state of the tree (homemaker-py-8b2u.11).
+        # This used to be two -- one for the circulation filter, whose graph
+        # was thrown away, and one for the adjacency checks -- and two more
+        # after the merge: the same graph four times, and half of a score.
+        door_width = self.conf("door_width") or 1.2
+        pre = graph_mod.storey_graphs(root, door_width, self.usages())
+        graph_base_pre = pre[0]
+        # A storey whose circulation does not connect is reported here and
+        # again after the merge, as it always has been: the fail counts twice.
+        failures.extend(f"{i} inaccessible usable space"
+                        for i, ok in enumerate(pre[2]) if not ok)
 
         failures.extend(graph_mod.check_adjacency(
             root, programme, graph_base_pre, missing,
@@ -2363,14 +2434,17 @@ class Fitness:
         # 4e7 (§39.66): the merge must not mint a type the programme has switched
         # off. `preprocess_building` above cannot do this for us -- it has to run
         # BEFORE the merge, so it cannot clean up after it.
-        dom_mod.merge_divided(
+        lowest_merged = dom_mod.merge_divided(
             root, allow_sahn=bool(self.conf("allow_sahn_circulation")))
         geometry.clear_cache()  # mirror Perl Merge_Divided → Clean_Cache
 
-        _, graph_circ = graph_mod.build_graphs_with_circ(
-            root, self.conf("door_width") or 1.2, failures.append, self.usages()
-        )
-        graph_base = graph_mod.build_graphs(root, self.conf("door_width") or 1.2)
+        # The storeys under the lowest one the merge touched are the storeys
+        # they were, so their graphs are kept; the rest are built again.
+        keep = len(pre[0]) if lowest_merged is None else lowest_merged
+        graph_base, graph_circ, connected = graph_mod.storey_graphs(
+            root, door_width, self.usages(), reuse=pre, keep=keep)
+        failures.extend(f"{i} inaccessible usable space"
+                        for i, ok in enumerate(connected) if not ok)
 
         cost = self.plot_cost(root)
         value = 0.0

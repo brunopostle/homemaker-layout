@@ -13799,3 +13799,1172 @@ objective no longer ends with the fail, there is no trade to improve.
 child after 80 inner-loop evaluations. Under `--use-tiers` every cut that
 trades this hard fail for one soft fail is an improvement by construction, and
 §39.91 found that the search made nothing of it.
+
+### 39.94 Format v2 reads and writes; the round trip found three things the scorer reads that are not geometry (`homemaker-py-8b2u.2`)
+
+Stage 1a of the rectangle-frame pivot. `dom_v2.py` writes a `Node` tree as a v2
+document (§39.88's forward map: each cut an axis and a position in its parent
+rectangle) and reads one back by FITTING the v1 fields -- the `rotation` whose
+edges the line crosses and under which `_orthogonal_b` would pick its axis, and
+the ratio that puts end 'a' on it. `dom.load` dispatches on the `format` key;
+`dom.dumps(root, version=2)` writes it; v1 stays the default and
+`homemaker-evolve` still writes v1. Geometry, scorer and search are untouched,
+and the stamp moves only because `dom.py` is an objective source (the second
+worked example of §39.65's "the stamp can move without the objective changing").
+
+**The format's own test passes.** 192 tracked orthogonal designs (48 coldstart,
+144 e4r) through v1 -> v2 -> memory: 3,879 of 3,879 cells identical, second dump
+byte-identical on all 192. The negative control (one `at` moved by 1e-4) is
+reported as different. Three things had to be decided on the way, all in
+`docs/dom-format-v2.md`: `at` is written to 10 decimal places, because it is
+recomputed from geometry on every write and idempotence needs it; the reader
+REFUSES a v2 file while orthogonal division is off rather than switching it on;
+and it refuses what the v1 tree cannot hold (non-quad plot, empty cell, a
+foreign `frame.u`, an upper cut against an orientation fixed below).
+
+**Cells identical was not score identical.** Scored before and after
+(`experiments/diag_8b2u2_roundtrip.py --scores`, objective `59d8aa1+orth`):
+
+| round trip scored... | scores that moved, of 192 |
+|---|---|
+| with no `origin` key | 95 |
+| as shipped (strict scorer) | 75 |
+| + overlap floored at 1 nm | 3 |
+| + inherited ratios synchronised | **0**, and no fail count moves |
+
+Each step is one thing the objective reads that the cells do not contain.
+
+**1. Which corner a `C` leaf counts from** (`homemaker-py-8b2u.6`).
+`graph.stack_corners_in_use` returns corner indices in the leaf's rotated
+frame and `_stair_fit` takes its base edge from the lowest. Turning the `C`
+leaves of the corpus -- no wall moves -- changes the score in 236 of 576
+trials, by up to 26.7x, and can add `staircase volume`; turning every other
+leaf, 0 of 576 (`--rotation`). So decision 3 of the format ("`rotation`
+carries no information") is right for a cut and wrong for a circulation leaf:
+today it is a hidden gene for how the stair is measured. v2 carries it as a
+PROVISIONAL `origin: ll|hl|hh|lh` on `C` cells so that stage 1a changes no
+score; whether it is a design variable or an artefact is the owner's ruling.
+
+**2. Daylight through walls that only touch** (`homemaker-py-khgi`).
+`area_outside` adds a neighbour's whole wall width for every boundary group on
+which `boundary_pair_overlap(...) > 0`, and for two collinear edges meeting end
+to end that overlap is zero plus or minus rounding. A round trip moves every
+cut by a few ulps and re-rolls it, which is how it surfaced -- but it is in the
+COMMITTED scores (`--noise`): 32 of the 48 coldstart artefacts rest on such a
+pair (138 pairs), 23 change fail count, and maple-court `1138ff1+orth` s0 is
+145x too high, 56 fails as scored against 63. Programme-house barely has them
+(1 of 144). The largest fail family is partly passing on phantom wall.
+
+**3. Dead fields that are not dead** (`homemaker-py-3tzk`). An upper node
+whose cut is inherited still stores a ratio of its own; `merge_divided` runs
+before scoring, can fuse the `O|O` pair below, and the upper node then cuts at
+that stale ratio. 180 of 192 designs carry one (1,243 nodes) and 3 are scored
+through it, by 0.1-3.2% (`--dead-fields`). v2 does not write the field.
+
+**None of the three is landed, and none is v2's.** (2) reads as a plain defect
+and (3) as a small one; both change the objective, so they wait for
+`homemaker-py-qkp0` to finish and land between sweeps with the corpus re-scored
+either side. Expectation for (2), on file in the bead before any fix: every
+corpus fail count stays or rises, programme-house barely moves, the crinkliness
+family grows on maple-court and harbor-house. (1) needs the ruling first.
+
+**What this does to the queue.** The next re-baseline was going to be the first
+corpus at the rectangle-frame objective. (2) alone changes 23 of 48 fail counts
+at the present one, so it belongs in that same landing rather than after it.
+
+**`homemaker-dom-upgrade` (`homemaker-py-8b2u.3`) is on the same branch.** It
+converts v1 -> v2 and, with `--to-v1`, back; reads the converted text again and
+compares every cell with the original's before writing; writes `<name>.v2.dom`
+beside the input and never onto it; and refuses a v1 file whose convention it
+would have to guess (no `--orthogonal`, no `+orth` in the name). Its negative
+control is a reader that moves one cut by 1e-3: nothing is written. Committed
+artefacts stay v1 -- they are records (decision 4).
+
+### 39.95 Two of §39.94's three, fixed on the owner's rulings: daylight counted once, and stairs fitted whichever way is best (`homemaker-py-khgi`, `homemaker-py-8b2u.6`)
+
+Both on branch `dom-v2`, both objective changes, neither landed while
+`homemaker-py-qkp0` runs.
+
+**How long the daylight bug has been there: always.** `Urb::Dom::Area_Outside`
+loops over every boundary and adds the neighbour's width wherever
+`Overlap() > 0` (Dom.pm:733-746), and the port copied the loop on its first
+day (c01a8a0, 2026-06-13). The loop exists in Urb to find which boundary to
+sample the sky from; with the illumination pinned to 1 it only counts. Every
+corpus this project has measured carries it, orthogonal or not, each scored
+under its own convention with today's code:
+
+| corpus | phantom pairs | scores resting on one, of 12 | fails as scored -> without |
+|---|---|---|---|
+| `055d710` | 49 | 9 | 277 -> 294 |
+| `99c85ec` | 49 | 9 | 244 -> 263 |
+| `c836457+orth` | 40 | 7 | 257 -> 276 |
+| `1138ff1+orth` | 41 | 9 | 267 -> 285 |
+| `07b2058+orth` | 24 | 8 | 267 -> 275 |
+| `1a24b6a+orth` | 33 | 8 | 248 -> 257 |
+
+So every sweep's fail total has been 3-8% low, and all of it in one family.
+
+*The fix* is to count the wall shared with a neighbour once. The graph has
+that edge only because the pair overlap by a door width on some boundary, and
+its `width` is that overlap, so the boundary loop is not needed at all. It
+equals the old rule with the overlap floored at 1 nm on all 192 artefacts,
+score and fail list -- which is the evidence that nothing but the noise went.
+
+**Stairs.** The owner: "we want to fit stairs to cores whichever way is best,
+so the flight can start at any corner and may run clockwise or counter
+clockwise". Three places read the numbering instead, all inherited from Urb:
+
+- `_stair_fit` took the edge leaving `corners[0]` as its base -- the lowest
+  NUMBERED corner in use. It now tries every edge as the base with either
+  neighbour as the length and keeps the fit the staircase factor scores best.
+- `corners_in_use` returned the first run of corners it met and could not see
+  one wrapping from 3 to 0 (Perl read `corners[4]`, undef), so such a pair came
+  back as three corners -- and not always the right three. Runs now wrap, every
+  smallest run is returned (`_corner_runs`), and `stack_corners_in_use` chooses
+  among them across the storeys so as to leave the stair the most corners.
+- the entrance door's corners were appended as raw indices, so `edge + 1 == 4`
+  was added beside a 0 already there and one corner counted twice.
+
+Turning the `C` leaves now moves 0 of 576 scores (was 236), and v2's
+provisional `origin` key is gone before it was ever merged.
+
+**What the two do to the 192 artefacts** (re-scored, `59d8aa1+orth` code vs
+the branch; the stair row is on top of the daylight row):
+
+| | daylight once | stairs, best way |
+|---|---|---|
+| harbor-house (12) | fails 331 -> 341, 9 scores down | no fail moves; 6 up, 1 down |
+| health-centre (12) | 66 -> 73, 10 down | nothing moves |
+| maple-court (12) | 626 -> 663, 12 down, geo-mean x0.11 | no fail moves; 2 up |
+| programme-house (12) | nothing moves | 5 up |
+| e4r + e4r-tiers (144) | 1 score moves | 62 up, 2 down, no fail moves |
+
+Every new fail is `crinkliness` (54 of them), as the bead predicted before the
+fix: fail counts stay or rise, programme-house does not move, the family grows
+on the large programmes. §39.82's "45% of fails are crinkliness" was therefore
+an under-count, and CLAUDE.md's standing note that the tail is too small to
+move a search should be re-read against the next sweep.
+
+**One part of Urb's rule was kept on purpose.** When no three corners hold
+every wall -- doors on three sides, or four -- Urb still answered three: its
+last test read two undef corners and `is_between_2d(point, undef, undef)` is
+true of anything. Counting honestly there holds such a core to a straight
+flight, and four artefacts fell by x0.13 to x0.70 when it was tried. That is a
+question about stairs, not about numbering, so the cap stays (any three
+corners, not specifically 3, 0 and 1) and the question is
+`homemaker-py-8b2u.7`.
+
+**Three scores FELL under the stair rule**, worth a line each because "best
+way" sounds as though it could only help. All three are the corner COUNT
+changing, not the orientation. harbor-house `1a24b6a+orth` s1 (x0.79): a shaft
+counted four because the entrance corner was added twice; it is three, a
+tighter stair fits, and the shaft is now oversized for it. e4r-tiers arm B s21
+(x0.95): three becomes two, the same way round. e4r-tiers arm B s24 (x0.13, no
+fail): doors on two sides upstairs need corners 2, 3 and 0; Urb's undef read
+reported 3, 0 and 1 instead, which happened to contain the entrance door's
+corners, so three "sufficed". With the right three the entrance makes four,
+and a straight flight does not fit that shaft.
+
+**Still open from §39.94: the stale ratio** (`homemaker-py-3tzk`). The owner
+asked whether an orphaned ratio can matter unless the cell above the undivided
+one is itself divided. It cannot, and that is exactly the case: e4r arm A s7
+has ground-floor `lr` cut into `O|O` at 0.683; the first floor's `lr` is cut
+into `C|O` and inherits that line, while storing 0.708 of its own from before.
+`merge_divided` fuses the two `O`s, the first-floor node no longer has a cut
+below to inherit, and it cuts at 0.708 -- 8.6 cm from where the file's
+geometry put it. Not ruled on, not changed.
+
+### 39.96 The merge hands the wall up: the last of §39.94's three (`homemaker-py-3tzk`)
+
+Owner, 2026-10-06, having confirmed the mechanism in §39.95: do the fix.
+`dom._undivide` -- used only by `merge_divided` -- now copies the cut it is
+about to remove into the divided node above it, which had been inheriting that
+cut and would otherwise fall back on a ratio of its own from earlier in the
+search. The merge fuses two outdoor cells; it was never meant to move a wall on
+the storey above. If the node being merged was itself inheriting, the ratio
+handed up is the one actually drawn.
+
+Predicted and found: of the 192 orthogonal artefacts exactly the three §39.94
+named change, by the amounts it gave (e4r arm A s7 x0.987, e4r-tiers arm A s2
+x0.968, arm B s16 x0.999), and no fail list moves. 180 files still CARRY stale
+ratios -- that is how v1 is written -- but none is scored through one.
+
+**With all three in, a v1 -> v2 -> memory round trip keeps the strict score on
+192 of 192.** The table in §39.94 read 95, 75, 3, 0 with two scorer behaviours
+patched out; it now reads 0 with nothing patched, which is what "format v2
+changes how cuts are written down, not which buildings exist" (§39.88) needed
+to be true of the SCORE and not only of the cells.
+
+**A worked example of §39.95's daylight bug**, since "rounding noise" explains
+the mechanism and not the picture. health-centre `1a24b6a+orth`, ground floor,
+room `pt1`, 3.20 x 5.83 m. An outdoor cell sits against 2.79 m of one long
+side. That is its only wall onto open air, so its daylit wall is 2.79 m. But
+the outdoor cell's OTHER side runs along the same straight line as one of
+`pt1`'s short sides -- the two edges are end to end, sharing just the corner
+point where three cells meet. Urb asked, of every line in the plan, "do these
+two cells overlap along it?" and added the 2.79 m each time the answer was
+more than zero. Along the wall they share, the overlap is 2.787 m. Along the
+line they merely both end on, it is 8.9e-16 m: zero, plus the rounding of
+adding two lengths and subtracting their span. More than zero. So `pt1` was
+scored with 5.57 m of daylit wall, crinkliness 0.90 against a target of 0.83,
+a comfortable pass; with 2.79 m it is 0.45. Whether a given pair came out a
+hair above zero or a hair below was arithmetic luck, which is why moving every
+cut by a nanometre re-scored half the corpus.
+
+### 39.97 Four more ways to re-describe a building, and crinkliness re-measured without the phantom walls
+
+Two container measurements made while `homemaker-py-qkp0` runs, both on branch
+`dom-v2`.
+
+**Does the scorer read anything else that is not the building?** §39.94 found
+three defects with one re-description. `experiments/diag_scorer_invariance.py`
+tries four more on the 192 orthogonal artefacts, checking first that each
+leaves every cell's storey, type and area alone:
+
+| re-description | trials | scores moved |
+|---|---|---|
+| plot translated 137.5 m, 62.25 m | 192 | 0 |
+| plot rotated 33 degrees | 192 | 0 |
+| plot's corner list started 1, 2, 3 corners later | 576 | 0 |
+| building mirrored (perimeter statuses carried) | 192 | **1** |
+
+Negative control: the mirror with its `private` side left on the wrong wall
+moves 6 of 6.
+
+The one is harbor-house `1a24b6a+orth` s1, whose mirror image gains
+`0 inaccessible usable space` twice: 31 fails to 33, x0.25. It is not the
+mirror. `graph.has_circulation` trims edges room by room in the order the cells
+are listed, and each trim changes the path lengths later rooms sort their
+neighbours by, so which edges survive depends on the listing order -- which
+follows the tree's left/right naming. Listing the same storey in a shuffled
+order reproduces it on that design in 1 of 20 shuffles, and breaking sort ties
+by position does not cure it, so it is the sequence and not the ties. Five
+shuffles each over all 192 move only that design. Urb's, rare, and a hard fail
+appearing by accident of naming: `homemaker-py-rwwv`, not fixed.
+
+So with §39.95/§39.96 in, the objective is clean under every re-description
+tried except that one.
+
+**Crinkliness without the phantom walls**
+(`experiments/diag_khgi_crinkliness.py`: every corpus under its own convention,
+today's code, with Urb's rule put back in the "old" columns so they differ by
+that rule alone). Leaves carrying a minimum-exposure requirement:
+
+| corpus | leaves | fail, old rule (buried) | fail, corrected (buried) | all fails | crinkliness share |
+|---|---|---|---|---|---|
+| `055d710` | 430 | 112 (77) | 129 (77) | 277 -> 294 | 40.4% -> 43.9% |
+| `99c85ec` | 437 | 109 (80) | 128 (80) | 244 -> 263 | 44.7% -> 48.7% |
+| `c836457+orth` | 423 | 97 (65) | 116 (65) | 257 -> 276 | 37.7% -> 42.0% |
+| `1138ff1+orth` | 423 | 111 (77) | 129 (77) | 267 -> 285 | 41.6% -> 45.3% |
+| `07b2058+orth` | 440 | 118 (98) | 126 (98) | 267 -> 275 | 44.2% -> 45.8% |
+| `1a24b6a+orth` | 443 | 115 (90) | 124 (90) | 248 -> 257 | 46.4% -> 48.2% |
+
+The `055d710` old-rule row is §39.13's own -- 430 leaves, 112 failing, 77 at
+exactly zero -- which is the check that the old rule is reconstructed
+faithfully.
+
+Three things follow.
+
+- **The family is two to four points larger than every section quoted**, and
+  approaching half of all fails.
+- **The buried population is untouched**, as it must be: a leaf with no daylit
+  wall had nothing to double. So §39.13 and §39.68's argument stands as
+  written -- the buried tail is worth nothing to a re-weighting, and the three
+  inert attempts stay inert.
+- **The 90 newly failing leaves are a population nobody has looked at.** None
+  is buried. Every one has a real wall onto open air and between a fifth and
+  three fifths of the exposure it needs (45 under 40%, 45 between 40 and 60%);
+  55 are on maple-court, 19 harbor-house, 16 health-centre, none
+  programme-house. They were passing on a wall counted twice. Unlike the
+  buried leaves these are within reach of the moves the search already has: a
+  longer shared wall, or a second outdoor neighbour. Whether the search finds
+  those once the objective stops paying it not to is a sweep question, and the
+  next re-baseline is the first that can answer it.
+
+### 39.98 The stale ratio in a live search: `undivide` moves a wall upstairs one time in six (`homemaker-py-3tzk`)
+
+§39.96 stopped the SCORER's merge from reviving an inherited node's stale
+ratio. `experiments/diag_3tzk_operator_walls.py` asks the same of the operators:
+each applied to the 48 `+orth` coldstart artefacts, 8 draws, counting upper
+nodes the operator did not touch whose cut end moves more than a millimetre
+because the cut beneath them was removed.
+
+| trees | `undivide`: applied, events, moved | `deslim` |
+|---|---|---|
+| after a genome round trip | 384, 61, **0** | 168, 6, 0 |
+| as loaded from the file (`--raw`) | 384, 61, **60**, median 36 cm | 168, 6, 6, median 147 cm |
+
+The difference is `genome.decode`, which has synchronised these fields since it
+was written -- its docstring counts "97 inherited-cut divisions and 187
+rotations" drifted across the corpus of the day and canonicalises them. But
+the live search never takes that round trip: `driver` calls only
+`genome.signature`, operators deep-copy `Node` trees, and the inner loop
+optimises the ratio of the cut that OWNS a wall while every node above that
+inherits it keeps the value it was created with. So the raw row is the search's
+row. One `undivide` in six (60 of 384) removes a ground-floor cut AND shifts
+the wall above it by a third of a metre, to wherever that node's ratio stood
+when it was last written.
+
+That is a locality defect: an operator documented as one move makes two. The
+inner loop then has 80 evaluations to pull the wall back, which it may or may
+not do. `reassociate`, `swap` and `ruin_recreate` show larger numbers in the
+full table for a different reason -- they restructure the storey below, so a
+path names a different piece of floor afterwards -- and are not this.
+
+Not fixed. The remedy is small (synchronise inherited ratios in the child
+before an operator removes a cut, as `dom._undivide` now does for the merge),
+but it changes what `undivide` does in every search, and whether that helps is
+a search question. It is search-side -- `operators.py` is not an objective
+source -- so it would move `search_commit` and not the stamp. Recorded on
+`homemaker-py-3tzk` for the owner.
+
+### 39.99 The native geometry core, and a calibration that held on one corpus (`homemaker-py-8b2u.4`)
+
+`cells.py` computes the cells of a v2 document from the document alone: inset
+the plot, take its bounding rectangle in the file's frame, split by each cut,
+crop each leaf rectangle to the plot. It is the core of stage 1b and not stage
+1b -- the scorer still reads `geometry`'s quads -- but it is where everything
+the v1 tree refuses (§39.94) is now drawn: a plot of any number of vertices,
+convex or L-shaped; a collinear vertex marking a change of street/party status,
+kept through the wall inset and carried by the cell cropped against it; a
+`frame.u` of the file's own; cells that crop to a wedge or to nothing. The
+shape score of §39.90 lives there too, with the owner's thresholds.
+
+**The gate passes on geometry.** Every one of the 192 orthogonal artefacts,
+drawn natively from its v2 document, has the same cells as `geometry` draws
+from its v1 tree: 3,879 of 3,879, corner for corner, none empty. The negative
+control (one cut moved by 1e-4) fails it.
+
+**It does not pass on the shape score, where §39.90 said it would.** That
+section calibrated full credit at 0.85 because "every committed cell scores
+>= 0.89", so the score would change no existing design. The measurement was of
+one corpus, `07b2058+orth`. Over all of them:
+
+| corpus | cells | lowest usable fraction | below 0.85 | below 0.70 (fail) |
+|---|---|---|---|---|
+| `c836457+orth` | 541 | 0.64 | 4 | 1 |
+| `1138ff1+orth` | 539 | 0.87 | 0 | 0 |
+| `07b2058+orth` | 552 | 0.89 | 0 | 0 |
+| `1a24b6a+orth` | 546 | 0.87 | 0 | 0 |
+| e4r (flat) | 843 | 0.52 | 1 | 1 |
+| e4r-tiers | 858 | 0.74 | 1 | 0 |
+
+Six cells of 3,879. The two that would fail are exactly what the score is for:
+a 0.16 m2 first-floor terrace sliver a few centimetres wide, and a maple-court
+toilet 0.4-0.8 m wide and 8.9 m long. The other four are wedges against a skew
+boundary, one of them a ground-floor garden, which the ruling exempts.
+So the ruling's thresholds are doing their job; what was wrong is the claim
+that they are free. When the shape score lands, `c836457+orth` and two e4r
+artefacts re-score, and the three newest coldstart corpora do not. Stage 1b's
+"bit-identical on the corpus" gate has to be stated per corpus, and
+`tests/test_cells.py` pins the six so the next change to either the score or
+the corpus has to account for them.
+
+**What is left of stage 1b**, in the order it should be done: the scorer's
+leaf measures (area, narrowest width, aspect, external edges and their
+statuses, shared walls) taken from a cell polygon rather than a quad; the
+adjacency graph from shared rectangle edges rather than boundary ids; empty
+cells dropped before either; then the shape factor, and only then the search
+writing positions rather than ratios. Each step has the same gate as this one.
+
+### 39.100 Three more rulings: the wall above stays, listing order decides nothing, and a boxed-in core is a straight flight (`homemaker-py-3tzk`, `rwwv`, `8b2u.7`)
+
+Owner, 2026-10-06, on §39.97-§39.99's three open questions. All on branch
+`dom-v2`.
+
+**"Undividing a cell shouldn't undivide cells above by default."** Nor move
+their walls. `dom.hand_cut_up(n)` is §39.96's hand-up made public, and
+`mutate_undivide` and `mutate_deslim` call it before removing a cut. The
+census on trees as the search holds them (`--raw`): the case still arises --
+61 events in 384 `undivide` applications -- and the wall above now moves in 0
+of them (was 60, median 36 cm). `core_undivide` removes a cut on every floor on
+purpose and `ruin_recreate` regrows a whole wing; neither is changed.
+Search-side: `search_commit` moves, the stamp does not.
+
+**The listing-order defect, tracked down and fixed** (`homemaker-py-rwwv`).
+`has_circulation` lets a classified room keep one circulation neighbour, and
+one outdoor neighbour per outdoor component, chosen by how central each is.
+Urb measured centrality inside the loop, on a graph the loop was cutting, so
+each room's choice depended on the rooms listed before it. Centrality is now
+measured once, before each of the two loops trims anything, and exact ties go
+to area and position (`graph._centrality`). The fix changes the score of **0
+of 192** artefacts as listed -- so it removes the dependence without moving
+the objective for any design the project holds -- and afterwards mirroring
+moves 0 of 192 (was 1) and shuffling each storey's listing five ways moves 0
+of 192 (was 1). On the one design that showed it, 20 shuffles give 31 fails 20
+times (was 19 times, and 33 once).
+
+**Stairs and doors** (`homemaker-py-8b2u.7`). The owner:
+
+> a stair core with doors on three or four sides is going to need a single
+> straight flight, unless the doors can be moved, for example doors are
+> typically in the corner of a room, but can be moved to any other position
+> along a shared wall if it frees up space to place stair flights
+
+Two changes follow, and one thing that turns out to be there already.
+
+- *Already there.* A wall has always been served by any one corner it
+  reaches, or by lying on an edge between two reserved corners -- that is a
+  door standing wherever along the wall suits. What §39.95 added was choosing
+  among the equally small answers, across storeys, to leave the stair the most
+  corners. So "doors on four sides" is not automatically four corners: four
+  neighbours each along a whole side of the core need three, because a door in
+  a corner serves the wall on either side of it.
+- *The cap goes.* When no three corners serve every wall wherever the doors
+  stand, the count is four and the stair is a straight flight. Urb said three
+  (§39.95) and that is no longer kept.
+- *The entrance door moves too.* Urb reserved BOTH corners of the entrance
+  edge. It is now one more wall needing a door somewhere along it.
+
+On the 192 artefacts, against §39.95's rule: 8 scores move, no fail moves.
+Two rise -- e4r-tiers arm B s24 by x7.6, the shaft §39.95 recorded as counting
+four only because of the pinned entrance, and maple-court `1138ff1+orth` s0.
+Six fall. Three by a third to a half (x0.49, x0.67, x0.70) are cores that are
+honestly boxed in; the other three fall by 1-12% and were not examined one by
+one. e4r arm B s21 is the plain case: on the ground floor two rooms along
+one long side, two along the other and one across the end, so four of the five
+walls reach a different corner each and no placing of doors frees one. Its
+shaft is 2.5 x 5.0 m, sized for the one-turn stair Urb's count allowed, and a
+straight flight needs it longer (fit 0.88).
+
+Turning a `C` leaf's corner numbering still moves 0 of 576 scores.
+
+**Where the objective now stands on "reads only the building".** Every
+re-description tried -- a v2 round trip, a turned corner numbering, a moved,
+rotated or re-listed plot, a mirror image, a shuffled listing -- leaves every
+score on all 192 artefacts unchanged. Six defects were found that way in one
+day (§39.94-§39.100), every one of them Urb's, and none had been found by
+reading.
+
+### 39.101 Width, proportion and adjacency for a cell that need not be a quad (`homemaker-py-8b2u.4`)
+
+The scorer reads a leaf through quad formulas: `area` (two Heron triangles),
+`length_narrowest` (the shortest of four EDGES), `aspect` (opposite edge pairs),
+and `leaf_graph` (pairs on one tree boundary whose edges overlap by a door
+width). `experiments/diag_8b2u4_measures.py` asks what each becomes for a
+native cell, on the 3,879 cells of the 192 orthogonal artefacts -- all quads,
+so today's formula is there to compare against.
+
+**Area and adjacency carry over exactly.** Shoelace area agrees to the last
+digit printed. `cells.adjacency` -- two cells are neighbours if their polygons
+share a door's width of boundary -- finds 6,517 walls, the same 6,517 pairs as
+`leaf_graph`, the same widths, none extra and none missing. That is the second
+half of stage 1b's gate (the cells themselves were the first, §39.99), and it
+is now a test. It also retires `_edge_overlap`'s "do NOT replace with
+intersection length" warning for orthogonal designs: on these, true shared
+length IS what it computes.
+
+**Width and proportion need a definition, and the shortest edge cannot be
+it**: a room with a 30 cm clipped corner has a 42 cm edge and is still three
+metres wide. Candidates, each against today's formula and with the corpus
+re-scored under it:
+
+| | same as today | median diff | p99 | scores moved (over 1%) | fails |
+|---|---|---|---|---|---|
+| width: **usable rectangle**, short side | 90% | 0.000% | 0.01% | 25 (0) | 1269 -> 1269 |
+| width: bounding box | 61% | 0.000% | 17.1% | 80 (5) | 1269 -> 1268 |
+| width: mean chord | 35% | 0.306% | 8.5% | 123 (26) | 1269 -> 1296 |
+| proportion: **usable rectangle**, long / short | 35% | 0.302% | 8.4% | 191 (38) | 1269 -> 1307 |
+| proportion: bounding box | 35% | 0.308% | 7.3% | 190 (22) | 1269 -> 1279 |
+| proportion: second moments | 35% | 0.003% | 0.8% | 189 (6) | 1269 -> 1276 |
+| proportion: mean chord / extent | 35% | 0.062% | 14.0% | 190 (36) | 1269 -> 1272 |
+
+*Width is settled by the measurement.* The usable rectangle's short side -- the
+rectangle the shape score is already built on -- is today's number on 90% of
+cells, within 0.01% on 99%, and moves no fail. Where it differs most it is
+right and the edge is wrong (a tapering cell whose narrow end is an edge).
+
+*Proportion is not, and cannot be.* No definition is the same as today's on
+more than 35% of cells, because 65% touch a skew boundary and "the mean of two
+opposite edges" has no meaning that survives a fifth vertex. And every one
+moves fails, for a reason that is the search's rather than the measure's: 179
+of the 3,790 leaves that pass proportion today pass within a hair of the line
+(quality 0.10-0.20), and of the 39 the usable rectangle newly fails, 17 score
+0.100-0.107 today. They were parked on the threshold. Any re-definition of a
+few tenths of a percent tips them, and a sweep at the new definition would
+park them again.
+
+So proportion is a choice about meaning, for the owner:
+
+- **the usable rectangle** (long side over short): one idea serving width,
+  proportion and shape -- "the rectangle of this room you can furnish". The
+  strictest: a wedge is judged on the part that is not wedge. +38 fails on
+  192 artefacts as they stand.
+- **second moments**: the ratio of the cell's spread along the two axes.
+  Closest to today (0.003% median), smooth, and blind to which part of the
+  cell is usable. +7 fails.
+
+Not landed; `cells.usable_rectangle` exists and nothing scores through it.
+
+### 39.102 Width and proportion are read from the biggest fitted rectangle (`homemaker-py-8b2u.4`)
+
+Owner, 2026-10-06, on §39.101's question:
+
+> Base the scoring on the biggest fitted rectangle for now as long as this is
+> cheap. We can always change it later if we need to
+
+`quality_width` now reads `geometry.usable_width` and `quality_proportion`
+reads `geometry.usable_aspect`: the short side, and the long side over the
+short, of `cells.usable_rectangle` -- the largest frame-aligned rectangle that
+fits in the cell, which the shape score is built on too. `cells.py` is
+therefore an objective source, and `OBJECTIVE_SOURCES` has six files. The quad
+formulas `geometry.length_narrowest` and `geometry.aspect` are untouched and
+still serve the search's own heuristics (`solver`, `operators`, `shapecurve`);
+that those now aim at a slightly different target than the scorer is recorded
+here and not yet measured.
+
+**Cheap.** Computed once per leaf and cached with the coordinates. Of the
+3,879 corpus cells 35% are frame-aligned rectangles and answer from their
+corners; 46% are a rectangle cropped by one skew line and have a closed form
+(`a x h`, unless the cell tapers to under half, when the best rectangle lies
+under the slope); 19% have two skew sides and take one vectorised pass over a
+48-point grid, about 0.4 ms. A full score of a maple-court artefact takes
+72.3 ms against 72.2 ms; programme-house, where more cells are corner cells,
+10.9 ms against 9.4 ms.
+
+**How exact.** The two fast paths are exact (the closed form agrees with a
+fine grid to 4e-16 on 2,000 random trapezoids). The grid path's median error
+is zero and 4% of the cells that take it are off by more than 0.1% in
+proportion, the worst 2% -- a 5 cm sliver. It is a continuous function of the
+cell, so it is not noise to the inner loop, but it is not exact either, and a
+cell with two skew sides can trade width for depth at nearly constant area.
+If proportion on corner cells ever needs to be trusted to the percent, that is
+the place to look.
+
+**What moved**, on the 192 artefacts, exactly as §39.101 predicted:
+
+| | scores moved (over 1%) | fails | new fails |
+|---|---|---|---|
+| harbor-house (12) | 12 (8) | 341 -> 348 | proportion 7 |
+| health-centre (12) | 12 (3) | 73 -> 76 | proportion 3 |
+| maple-court (12) | 12 (6) | 663 -> 674 | proportion 11 |
+| programme-house (12) | 12 (0) | 16 -> 16 | -- |
+| e4r + e4r-tiers (144) | 143 (21) | 176 -> 193 | proportion 17 |
+
+1269 -> 1307, every new fail a `proportion`, none removed, no `width` fail
+either way. Seventeen of the 38 are rooms that scored 0.100-0.107 before: the
+search had parked them on the line.
+
+**One thing this turned up about the tests.** `test_objective_sources.py`
+measures which modules a score loads by running one in a subprocess -- which
+imported whatever `pip install -e` points at, the MAIN checkout, not the
+worktree under test. It passed for the wrong tree until `cells.py` joined the
+scoring path. It now puts its own checkout's `src` first; and the full suite on
+a branch is to be run with `PYTHONPATH=<worktree>/src`, or every test that
+shells out to `homemaker-evolve` or `homemaker-fitness` is testing main (723
+passed that way).
+
+### 39.103 The native tree: a v2 file scored as itself (`homemaker-py-8b2u.4`)
+
+Stage 1b's substance. `dom.load(path, native=True)` no longer fits a v2
+document into Urb's quad tree. Each divided `Node` keeps the file's `cut` and
+`at`; the lowest root carries the `plot` polygon and `frame_u`; and
+`geometry` draws such a tree by splitting the frame rectangle and cropping
+each leaf to the plot (`geometry.polygon`, on `cells.clip`). Every function a
+scorer calls -- `coordinate`, `area`, `edge_length`, `angle`, `centroid`,
+`boundary_id`, `leaf_graph`, `usable_rectangle` -- dispatches on whether the
+tree is native. The quad recursion underneath is untouched.
+
+What the scorer needed, beyond §39.101/§39.102's measures:
+
+- **sides and plot edges by asking.** `n_edges`, and `is_external(bid)` in
+  place of `bid in "abcd"`: a native plot side is `#k`, the index of the plot
+  edge it lies on, so a plot may have any number of sides and a side whose
+  status changes part-way is two.
+- **the adjacency graph from shared walls**, which §39.101 showed is today's
+  graph on every orthogonal design.
+- **void cells.** A leaf whose rectangle misses the plot is marked `void` and
+  `Node.leaves()` passes over it, so it stays in the tree and the file and
+  enters no loop. This is the one change to a structural primitive.
+- **stairs on four-cornered cores only** (`quad_corners`); a core the plot has
+  cropped to a pentagon gets no stair.
+- **the shape factor** (owner's ruling, §39.90): `quality_shape`, the fitted
+  rectangle's share of the cell, full credit from 0.85, fail below 0.70, asked
+  of rooms, circulation and upper-storey terraces.
+
+**Where the shape factor sits is a decision made here.** It multiplies a
+leaf's quality AFTER the other factors are combined, and is not one of them.
+The combination is a geometric mean over the factors a leaf is asked; a
+seventh factor equal to 1.0 would change the root taken and so the score of
+every design, including those with no odd cell. As a multiplier it is exactly
+neutral at full credit. The cost is that a failing shape is not softened by a
+leaf's other good factors -- which reads as right for "this cell is not a
+room", but it is a choice.
+
+**The gate.** Each of the 192 orthogonal artefacts scored as the quad tree it
+is (orthogonal division on) and as the native tree of the same building (the
+switch off, since a native tree has no other geometry): the same score to
+9e-10 and the same fail count, 192 of 192. The control -- one cut of the native
+tree moved by 1% -- differs on more than 100. So there are now two independent
+implementations of the geometry agreeing on every design the project holds,
+which is a stronger statement about the old one than any test it had.
+
+**The shape factor on the corpus.** §39.99 counted six cells below full
+credit. Scored, 2 of 192 artefacts move and one gains a fail: maple-court
+`c836457+orth` s2, `2/lrrr shape`, the 8.9 m toilet. None of the
+outdoor cells among the six ends up losing credit -- the ground-floor garden is
+exempt by the ruling; why the upper-storey slivers are not asked (merged with
+a neighbour, void, or unsupported) was not traced cell by cell.
+
+**What only a native tree can hold now scores**
+(`tests/test_native_tree.py`): a room cropped to a triangle by a leaning plot
+side (drawn, three sides, fails on shape; the same cell as ground-level garden
+does not); an L-shaped plot of two storeys with a status vertex, its notch
+void on both floors and its areas summing to the plot's; a frame at 45 degrees
+to the plot's longest edge; a merge below that leaves the native wall above
+where it was.
+
+**Cost.** A native tree scores about 40% slower than the quad tree on
+maple-court (108 ms against 77 ms, on a loaded machine): a clip per leaf and
+an all-pairs wall test per storey. Nothing searches native trees yet, so it
+has not been optimised; the rectangles make a sweep-line graph easy when it
+is.
+
+**Not done, and it is the last stage:** the search. Operators edit `rotation`
+and ratios; `genome`, `innerloop`, `solver` and `shapecurve` assume the quad
+tree. Until they are ported `homemaker-evolve` works on quad trees and writes
+v1, and a native tree is something you can score, write and read.
+
+### 39.104 The search runs on native trees, with the genes it always had (`homemaker-py-8b2u`)
+
+The last stage was expected to be a port of twenty-two operators, the genome,
+the inner loop, the solver and the shape-curve DP from "rotation and ratio"
+to "axis and position". It was not, because of one observation: **Urb's quad
+recursion, when every quad is a rectangle, already IS the rectangle frame.**
+`rotation` says which side of the node's quad the cut starts from, and so its
+axis and which child is the near one; `division[0]` says how far along. On a
+rectangle that is a line across it and a fraction of it. So a native node
+keeps exactly those two genes, and `geometry` reads them on the node's
+rectangle (`_native_turn`: rotation accumulated down the tree as the quad
+recursion accumulates it, an upper storey taking the turn of the node below;
+`_native_cut`: axis, position, and whether the left child is the low one).
+
+§39.103's `Node.cut` / `Node.at`, one day old, are gone -- they would have
+been a second copy of the same information that no operator kept in step. A
+v2 file's `cut` / `at` / `low` / `high` are the genes restated in the frame's
+terms, converted on the way in and out (`dom_v2`, `geometry.native_cut`). The
+reader builds `low` on the left; a search turns half its cuts round, and the
+writer then says the right child is `low`.
+
+**What had to change for the search: almost nothing.**
+
+- `genome._BASE_META` carries `plot` and `frame_u`, or a decoded native
+  building came back as a quad tree with no plot.
+- The scorer re-marks void cells at the start of every evaluation: a ratio
+  that moves can push a cell off the plot or bring it back.
+- The quad helpers the search's heuristics call -- `aspect`,
+  `length_narrowest`, `coordinate`, `boundary_id` -- answer for a native cell
+  (from its fitted rectangle) and for a void one (from the rectangle it would
+  occupy), and a native cell's corners are listed from the corner its turn
+  names, so "edge 0" is the side a cut starts from in both geometries.
+- One operator helper counted `range(4)` sides against `"abcd"`.
+- `homemaker-evolve --native` converts the seed, and writes v2.
+
+**Tests** (`tests/test_native_tree.py`): every operator applied to a native
+design gives a native child that scores and survives the genome with the same
+score (at least twelve of the twenty-two fire on one artefact); a tree the
+search has turned round is written and read back with every cell; a native
+search from the v1 `init.dom` writes a v2 file; and a native search on an
+L-shaped plot -- which the quad tree cannot load at all -- returns storeys
+whose cells sum to the plot's area.
+
+**A defect the L-shaped plot found within the hour.** A cell wrapped round
+the plot's inner corner is itself an L. `cells.usable_rectangle` assumed a
+convex cell, read its top and bottom at each x, and handed an L its whole
+bounding box: full width, full shape credit. Non-convex cells now take a
+general path (`_usable_rectangle_any`: the stretches of y inside the cell,
+intersected across the strip), and an L of 18 m2 whose best rectangle is 12 m2
+scores 0.67 and fails on shape. Convex cells do not reach it.
+
+**What a native search is, and is not yet known to be.** On a quad plot it is
+NOT the default search with a different file format: a ratio is a fraction of
+the rectangle, not of a cropped edge, so the same genome draws slightly
+different cells wherever a cell touches a skew boundary, and the search's own
+heuristics (`solver`'s target ratios, the shape-curve DP) still reason about
+quad edges. Six paired seeds on programme-house at 6,000 evaluations:
+
+| seed | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|---|
+| quad tree, orthogonal: fails | 3 | 6 | 6 | 5 | 3 | 2 |
+| native: fails | 5 | 5 | 5 | 4 | 5 | 8 |
+
+Three seeds each way. That is not a result -- six pairs at a hundredth of the
+budget cannot resolve anything, and nothing here should be quoted as "native
+is as good" or "native is worse". It says the native search is a working
+search in the same range. Whether it matches the default at a real budget is
+an A/B on the box, and it is the measurement that decides whether `--native`
+becomes the default.
+
+**Still to do before that A/B is worth running:**
+
+- the sweep runner has no way to ask for a native search or to stamp one (the
+  objective stamp says `+orth` or nothing; a native corpus needs its own
+  mark);
+- native scoring is unoptimised, about 40% slower on a large programme
+  (§39.103), which at a real budget is hours;
+- `solver` and `shapecurve` were not checked for what they aim at on a
+  native tree, only that they run.
+
+### 39.105 A score at half the cost, and one saving declined (`homemaker-py-8b2u.9`, `.10`, `.11`)
+
+The owner's question on reading §39.103's "40% slower": the rectangle frame
+ought to be CHEAPER to process -- are we using what circuit-board layout
+already knows? We were using none of it. Three beads; two landed, one was
+measured and not built. All three touch objective sources, so the standard was
+§39.80's: every score and fail list captured before and after and compared.
+
+**The measure** (`experiments/diag_8b2u_score_cost.py`): `--snapshot` writes
+every orthogonal artefact's score and fail list, as the quad tree it is and as
+the native tree of the same building -- 384 entries -- and `--diff` compares two
+snapshots bit for bit (a score as a float's `repr`). Its `--self-test` moves
+one cut by 1% and requires the diff to fire.
+
+**A profile first, and it re-ordered the work.** One maple-court score, native:
+62% of it in `geometry.leaf_graph`. The quad tree: 48%. Neither bead had named
+the reason -- each storey's graph was built FOUR times a score (the bead said
+three): twice before `dom.merge_divided` and twice after. `build_graphs_with_circ`
+returned the plain graph and a circulation-filtered copy; the scorer kept only
+the filter's fail message, threw both graphs away, and called `build_graphs`
+for the plain one again. Then the same after the merge.
+
+**`8b2u.11`: one build per storey per state of the tree.** `graph.storey_graphs`
+returns the graph, its filtered copy and the filter's verdict together. After
+the merge, only the storeys the merge could have changed are built again:
+`merge_divided` now returns the lowest storey on which it merged anything, and
+everything under that storey is kept. That rests on an argument -- geometry,
+`is_usable` and `is_supported` read the storeys BELOW a cell and nothing
+above it -- so it has a test with a negative control
+(`tests/test_cheaper_scoring_changes_nothing.py`): on children every operator
+makes of two programmes' artefacts, both trees, the score with graphs kept is
+the score with every graph rebuilt; told that a merge touched nothing when it
+did, the scorer trips over a cell that is no longer there. The fail a
+disconnected storey earns is still reported twice, as it always was: that
+double count is in every score in the corpus and is not this bead's to change.
+A finished design rarely merges above the ground, so it builds each storey
+once or twice where it built it four times.
+
+**`8b2u.10`: walls from the cuts.** In a slicing tree two cells share a wall
+only across a cut: the stretch they share lies on both rectangles' boundaries,
+and the line between two rectangles is the cut where their paths part.
+`geometry._native_facing` walks the cuts; at each, the cells of the low side
+touching the line and the cells of the high side touching it come out already
+in order along it, and one pass down the two lists gives every pair whose
+rectangles overlap by a door's width. Those pairs are then measured by the
+same `cells.shared_wall` as before, and added in the order the all-pairs loop
+reached them -- so the graph is that loop's graph by construction, including
+the order a cell's neighbours are listed in, which `has_circulation` can be
+sensitive to. What the bead proposed -- reading the shared length straight off
+the 1-D overlap -- would have been a second implementation of a wall's length
+on cropped cells and not bit-exact. Candidate pairs get nearly all of the
+saving: on maple-court, 158 measurements a score against 3,748. Tested against
+the all-pairs graph on 150+ storeys and 5,000+ walls, including an L-shaped
+plot with void cells and an L-shaped cell, at the door's width and at 1 mm;
+the control hides one pair from the walk.
+
+**The result.** 0 of 384 entries moved, bit for bit, after each change. CPU
+milliseconds per score, fastest of nine, before and after both (wall-clock on
+the box swung 2x between identical runs while the A/B was using every core;
+process time repeated to 2%):
+
+| programme | cells | quad before | quad after | native before | native after | native / quad |
+|---|---|---|---|---|---|---|
+| programme-house | 10 | 8.5 | 6.6 | 9.7 | 7.7 | 1.13 -> 1.17 |
+| health-centre | 34 | 27.1 | 19.0 | 45.8 | 21.5 | 1.69 -> 1.13 |
+| harbor-house | 59 | 47.5 | 29.0 | 77.2 | 32.9 | 1.63 -> 1.13 |
+| maple-court | 77 | 63.2 | 40.8 | 96.1 | 46.8 | 1.52 -> 1.15 |
+
+The DEFAULT search's score is 22-39% cheaper -- `8b2u.11` is in both trees --
+and a native score costs half what it did. Native is still 13-17% dearer than
+the quad tree, spread thinly: a clip per cell, polygons of any length where
+the quad code indexes four corners.
+
+**`8b2u.9`, skip the crop for cells wholly inside the plot: measured, not
+built.** The bead expected most cells to qualify. `--inside` counts them: 990
+of 3,879, **25.5%** -- 0.5% on programme-house, whose ten cells nearly all
+touch the plot, to 66% on harbor-house. And the crop is small: `cells.clip` is
+about 6% of a native score after the two changes above. A quarter of 6% is
+under 2%. Against that, the shortcut is not bit-exact -- the clip computes a
+whole cell's corners by interpolating along the plot's edges, the shortcut
+would write the rectangle's own -- so it would be an objective change to be
+argued at a tolerance, for a saving inside the timing noise. Declined; the
+census and the profile are in the tool if the balance changes (it would with
+a much larger programme on a nearly rectangular plot).
+
+**What this does to `8b2u.8`'s list.** Its item (2), "optimise first", is done.
+Item (3) asked what `solver` and the shape-curve DP aim at on a native tree;
+the answer is that the default search calls neither. `solve_ratios` is called
+only by `compose`, and both shape-curve flags default off. What `operators` and
+`driver` do call from `geometry` is `area`, `aspect`, `boundary_id`,
+`leaf_graph` and `n_edges`, all of which §39.104 made answer for a native
+cell. Item (1), a runner that can ask for a native search and mark its rows,
+is `experiments/flag_ab.py native`: paired seeds, `quad` against `--native`,
+rows marked `<stamp>+orth` and `<stamp>+native`, `elapsed_s` among the paired
+metrics. Smoke-run at a toy budget; the real run needs the box. And one item
+the list did not have: `dom_v2.py` is now in `OBJECTIVE_SOURCES`, as its own
+comment said it must be "the day a scored file is v2" -- a native search
+writes v2, so the reader decides what its artefacts score -- and
+`tests/test_objective_sources.py` scores a v2 file as well as a v1 one.
+
+### 39.106 Two readings taken while the box was busy: `core_undivide`, and the shape-curve DP on a native tree (`homemaker-py-w4e`, `8b2u.14`)
+
+Neither changes `src/`. Both are the measurement a bead asked for before
+anyone chooses.
+
+**`core_undivide` has two defects, not one, and the one that was found is the
+smaller** (`experiments/diag_w4e_core_undivide.py`). §39.79 found the operator
+never fires: its precondition wants a path OWNED on two storeys, and
+below-inheritance lets a path be owned on one. The bead offered "delete it" or
+"repair the precondition" and asked for the second to be read carefully first.
+Read against its own docstring -- "reverse of `core_divide`: merge a C
+sub-core back into a single C leaf on all floors" -- the precondition is one
+difference and the RESULT is another: the merged cell takes the type of a room
+child when there is one, and `C` only when there is none. `core_divide` makes
+`C | <type>` on every storey, so the reverse as written puts a room where the
+staircase was, on every floor.
+
+Three variants (the operator copied into the diagnostic), 48 orthogonal
+coldstart artefacts, 8 draws each, in the two settings §39.75 taught us to
+separate:
+
+| variant | setting | fired | of those with a shaft, emptied | mean change in fails | parent restored |
+|---|---|---|---|---|---|
+| shipped | converged | 8 / 384 | 0 / 8 | +12.0 | -- |
+| precondition repaired | converged | 144 / 384 | 68 / 128 | +8.2 | -- |
+| ...and result typed `C` | converged | 144 / 384 | 10 / 128 | +8.5 | -- |
+| shipped | after `core_divide` | 33 / 256 | 0 / 14 | +6.9 | 3 |
+| precondition repaired | after `core_divide` | 256 / 256 | 140 / 208 | +4.8 | 6 |
+| ...and result typed `C` | after `core_divide` | 256 / 256 | 4 / 208 | **-8.4** | **213** |
+
+Three things to take from it.
+
+- **"Can never fire" is no longer true.** The shipped operator fired 8 times in
+  384 here (one artefact, every draw) and 33 in 256 after a `core_divide`.
+  §39.79 measured 0 of 960 on the twelve artefacts of an older corpus; the
+  sandwich it said existed nowhere now exists in one design, maple-court
+  `1a24b6a+orth` s0 (path `lrlrl`, two floors). Rare, not never.
+- **Repairing the precondition alone would be worse than leaving it.** It
+  empties the stair shaft in two firings of three, at x0.0225 each.
+- **With both repaired it is what the docstring says**: after a `core_divide`
+  it restores the parent's topology 213 times in 256 and removes 8.4 fails on
+  average. The 43 other firings chose a different stacked pair. On a converged
+  design it costs 8 fails and never helps -- as any undivide does there, and as
+  `core_divide` itself does; that row says nothing against it.
+
+So the bead's option (b) is a defect repair in two parts, and option (a),
+deletion, would remove the only exact inverse `core_divide` has. It is still
+a change to what a search does -- `core_divide` fires often, and a working
+inverse changes how its damage is undone -- so it is still an A/B on the box
+(`homemaker-py-w4e`, updated). What a container can say is which of the three
+to put in the B arm, and that arm now exists: `--core-undivide-repaired`
+(`operators.CORE_UNDIVIDE_REPAIRED`, default off, recorded in `search_config`),
+with `experiments/flag_ab.py w4e` to run it. Expectation, recorded before any
+run: no resolved difference in fails on programme-house -- the move needs a
+`core_divide` to undo and both are a small share of draws -- and `too few
+stairs` / `staircase volume` no more frequent with it than without.
+
+**The shape-curve DP's verdict does not care which tree it reads; its warm
+start does** (`experiments/diag_ekc_shapecurve.py --native`, new flag). `8b2u.14`
+asked how much of §39.78's inexactness was the rectangle approximation, now
+that a native tree's interior cells are rectangles exactly. All 48 artefacts,
+each as a quad tree and as the native tree of the same building:
+
+| | quad tree | native tree |
+|---|---|---|
+| feasible verdicts | 14 of 48 | 14 of 48, the same designs |
+| false negatives (a clean committed point called infeasible) | 1 | 1, the same design |
+| DP passes a width the scorer fails | 0 of 725 | 0 of 725 |
+| feasible, but a shape fail at the point `solve` writes | 2 of 14 | **11 of 14** |
+
+The verdicts are identical, so none of the DP's verdict error was the
+rectangle approximation -- §39.78's conclusion, now measured directly rather
+than argued. The width band is also empty on both; the diagnostic now compares
+the DP's width with the fitted rectangle's, which is what the scorer has read
+since §39.102 (it compared with the shortest of four edges before).
+
+The last row is the finding. The DP works its ratios out on a box measured
+from a cell's cropped edges and writes them as fractions; a native tree draws
+those fractions on the uncropped rectangle. Every cell against a skew plot
+side lands somewhere else, and the DP's point sits on its constraints, so one
+or two cells fail. One attempt at the obvious repair -- let the DP measure a
+native node by its rectangle -- was tried and reverted: the same 11 of 14,
+because a cropped cell is then smaller than the box the DP believes it has.
+The port `8b2u.14` describes has to model the crop, not just swap the
+measure. Until it does, `--shapecurve-warmstart` with `--native` starts the
+inner loop from a point that is not the feasible one it claims. Both flags
+default off, so `8b2u.8`'s A/B is not touched by this.
+
+### 39.107 How many trees draw one layout, and what that does and does not cost today (`homemaker-py-8b2u.15`)
+
+The bead's EVALUATE half. Two questions: what `9gp` left behind, and how
+redundant the encoding is on the corpus.
+
+**What `9gp` left.** No canonical encoding. §12.3 re-scoped it to two
+operators on the ordinary tree: `predicted_shape_fails` (a pre-filter) and
+`mutate_reassociate`, the Wong-Liu move `(a|b)|c <-> a|(b|c)`. Both default
+off; their A/B at 20,000 evaluations was negative. `genome.signature` says in
+its own comment that it is "the cheap stand-in for the canonical Polish
+encoding ... which would additionally collapse associativity".
+
+**The redundancy, counted** (`experiments/diag_8b2u15_redundancy.py`, 48
+orthogonal coldstart artefacts as native trees, where an axis is a fact and
+not a rotation to be decoded). Two structural sources: k parallel cuts in a
+row can be bracketed Catalan(k) ways, and any cut can be started from the
+opposite side with its children swapped.
+
+| programme | cuts per storey | cuts in a run of 2+ parallel | longest run | trees per layout: association | turn | both |
+|---|---|---|---|---|---|---|
+| programme-house | 4.7 | 18% | 3 | 2^1.0 | 2^5.8 | 2^6.8 |
+| health-centre | 32.8 | 33% | 4 | 2^6.0 | 2^32.8 | 2^38.8 |
+| harbor-house | 27.9 | 51% | 5 | 2^17.2 | 2^36.6 | 2^53.8 |
+| maple-court | 25.2 | 49% | 5 | 2^24.0 | 2^42.7 | 2^66.7 |
+
+On the two large programmes half of all cuts sit in a run of parallel cuts,
+and a layout has about 150 thousand (harbor-house) to 17 million
+(maple-court) bracketings before turns are counted. `genome.signature` tells none of them apart from a
+different building. The self-test holds the count to trees whose answer is
+known and checks that `mutate_reassociate` -- the one operator that
+re-brackets -- produces a new signature over the same rooms in the same
+strips.
+
+**What that costs the default search: less than the number suggests.**
+
+- Nothing is DEDUPLICATED by signature today. `niche_by_signature` is default
+  off (§11.5, rejected); the signature feeds one statistic,
+  `n_distinct_signatures`, which therefore over-counts distinct topologies by
+  an unknown and probably large factor. Any past sentence of the form "the
+  search explored N distinct topologies" is an upper bound.
+- For mutation the redundancy is not obviously a loss: many names for one
+  layout are many ways to reach it. What differs between two names is what
+  the NEXT move can do -- an undivide removes whichever cut the bracketing
+  put outermost -- and which ratios move together in the inner loop.
+- For crossover (20% of children) it is the cost §14 measured: a subtree is a
+  different set of cells under each bracketing, so a splice between two
+  independently evolved designs rarely lines up. That was the island model's
+  post-mortem, and this is the first count of how many alignments there are
+  to miss.
+
+**Not measured:** how often a crossover child is a real mix with and without
+a canonical form. That needs the canonical form, which is the IMPLEMENT half:
+a multi-way cut in the genome (a run stored as one node with k+1 children,
+which removes association by construction rather than by normalising after
+every move), turns normalised in `signature`, and then the Wong-Liu moves.
+On rectangles a run is exact; on skew quads, the bead notes, re-bracketing a
+run only approximately preserved its strips.
+Whether it improves a search is an A/B on the box. Recorded on the bead.
+
+### 39.108 Outdoor slivers, re-measured at three later corpora: not reproduced (`homemaker-py-jak`)
+
+§39.35 found the population of outdoor cells flat and its narrow tail growing
+(2 -> 9 below the width fail edge over twelve matched runs), with the paired
+delta exactly on the MDD -- unresolved -- and asked for a re-measurement "at
+the next corpus sweep". Three sweeps later, nobody had
+(`experiments/diag_jak_outdoor_slivers.py`).
+
+One ruler for all four orthogonal corpora: today's scorer, the fitted
+rectangle's short side as the width (§39.102), the cells counted after
+`preprocess_building` and `merge_divided` as the scorer sees them, and two
+thresholds that depend on no ruling. Outdoor cells the scorer asks about
+width (ground, covered or supported; a roof garden over nothing is waived):
+
+| corpus (oldest first) | cells | per design | fail on width | under 1.2 m | under 0.5 m | designs with one under 1.2 m | narrowest |
+|---|---|---|---|---|---|---|---|
+| `1138ff1+orth` | 60 | 5.0 | 4 | 2 | 1 | 2 of 12 | 0.18 m |
+| `c836457+orth` | 61 | 5.1 | 4 | 3 | 0 | 2 of 12 | 0.78 m |
+| `07b2058+orth` | 66 | 5.5 | 5 | 0 | 0 | 0 of 12 | 1.20 m |
+| `1a24b6a+orth` | 62 | 5.2 | 4 | 0 | 0 | 0 of 12 | 1.20 m |
+
+The population is as flat as §39.35 found it, and the tail has not grown: 4
+or 5 width fails in about sixty cells at every corpus, and in the two newest
+no outdoor cell narrower than a door. The narrowest cell in both is 1.201 m,
+a hair over the 1.2 m door width -- presumably because a cell narrower than
+that cannot share a door's width of wall across its end, though that was not
+traced. The degenerate slivers the bead worried about (0.075 m) are gone, not
+merely fewer.
+
+This is four populations searched against four objectives, not an A/B, and it
+is on orthogonal geometry where §39.35's count was not; it cannot say what
+removed the slivers. It does answer the bead: its step (1) was this
+re-measurement, and its step (2) -- ask the owner whether the per-level
+outdoor rule should demand a minimum USABLE cell -- was conditional on the
+effect holding. It does not hold. Closed; the tool reads any future corpus in
+seconds if it comes back.
+
+### 39.109 Sizing by arithmetic: most of the way on a cold topology, and a step backwards on a child (`homemaker-py-8b2u.12`, `.13`)
+
+The bead: in a slicing tree over a rectangle the ratio that gives each side of
+a cut the area it is owed is closed-form, so how much of the 80-evaluation
+inner loop does arithmetic already have? Two experiments, because the
+question as written and the question a search poses turned out to have
+opposite answers.
+
+**1. A frozen topology with its ratios thrown away**
+(`experiments/diag_8b2u12_closed_form.py`; all 48 orthogonal coldstart
+artefacts as native trees). Five starts, each then given N evaluations of
+`innerloop.optimise`. The number is how far the start gets from "every ratio
+0.5" (0%) to the committed design (100%, what 500k evaluations found),
+counted in fails:
+
+| start | cost | N=0 | N=20 | N=80 |
+|---|---|---|---|---|
+| `half`: every ratio 0.5 | -- | 0% | 3% | 7% |
+| `closed`: each side its owed area; spare area split equally among circulation and outdoor cells | 0.6 ms | 35% | 41% | 46% |
+| `closedO`: the same, the spare going to outdoor cells only | 0.7 ms | -8% | -3% | 5% |
+| `solver`: `solve_ratios`, least squares on area, width and proportion; no scorer | 0.4-11 s | **77%** | 82% | 85% |
+| `cf+sol`: the solver started from `closed` | 0.4-11 s | 75% | 80% | 83% |
+
+By programme, `closed` at N=0 / `solver` at N=0 / `half` at N=80:
+programme-house -1% / 61% / 57%; health-centre 54% / 74% / 14%; harbor-house
+29% / 88% / 4%; maple-court 39% / 71% / 2%.
+
+- **Eighty evaluations from a cold start buy almost nothing above thirty
+  cuts**: 2-14% on the three large programmes. §39.76 and §39.88 said so on
+  the quad tree; this is the reason. Nelder-Mead's first n evaluations build
+  its simplex by moving ONE ratio each. Counted on an 80-evaluation run:
+  programme-house (6 cuts) spends 6 on that and 72 on moves; health-centre
+  34 and 44; harbor-house 36 and 23; maple-court 41 and 37. On a large
+  programme half the budget is gone before the method takes a step.
+- **The closed form is a third of the way for nothing**, and its weak point is
+  exactly where the programme is silent: what a corridor or a garden is owed.
+  Two honest guesses differ by 43 points, and on programme-house -- every cell
+  on the plot boundary, a second storey with a lot of spare area -- the better
+  guess is worth nothing. The codebase already had this idea:
+  `operators._size_divisions_from_targets` (§12.2) sizes constructed seeds from
+  target areas, with its own guess for generic cells.
+- **The least-squares solver is three-quarters of the way with no scorer
+  call**, because it also knows width and proportion. Starting it from the
+  closed form does not help. It costs about one inner loop on programme-house
+  and harbor-house (0.4 s, 2.8 s CPU) and two to three on health-centre and
+  maple-court (3.3 s, 11 s).
+- **And it has no bound of its own.** The first run of this experiment used
+  the solver's default limit of 4,000 function evaluations; it stopped making
+  progress for over twenty minutes on its 42nd design (maple-court), and the
+  children experiment did the same on a harbor-house child, in the only step
+  of either loop that is not bounded. Both were re-run with the solver stopped
+  at 100 evaluations (it stops itself at a mean of 29; 4 of 48 reach the cap).
+  On the 41 designs the uncapped run finished, the capped `solver` arm has the
+  same fail count in all 205 cells of the table and `cf+sol` differs in 4. So
+  the cap costs nothing here -- but a step that takes seconds or half an hour
+  is not one a search can call per child, and where to stop it is a decision
+  someone has to make.
+
+**2. A child as the search makes one**
+(`experiments/diag_8b2u12_children.py`; 96 children drawn with the search's
+mutation mix from the twelve `1a24b6a+orth` designs, each sized five ways and
+scored by `driver._evaluate`). A child is not a cold topology: it inherits
+its parent's ratios and only the cuts the move made start at 0.5.
+
+| start | fails per child | paired against today | CPU s |
+|---|---|---|---|
+| today: inherited ratios, 80 evaluations | 29.15 | -- | 4.8 |
+| solver from the inherited ratios, 1 score | 35.58 | **+6.4**, 86 of 96 worse | 2.0 |
+| solver, then 20 evaluations | 33.76 | **+4.6**, 76 worse | 3.2 |
+| solver stopped at 10, then 20 | 33.93 | **+4.8**, 80 worse | 2.3 |
+| today, but a NEW cut starts at its closed-form ratio | 29.35 | +0.2 (+0.7 on the 28 children with a new cut) | 4.9 |
+
+The solver alone is worse than today by more than its MDD on every programme
+(+2.5, +3.8, +4.5, +15.0 fails; maple-court 24 children of 24). With 20
+evaluations after it, on three of four -- health-centre's +1.8 is under its
+MDD of 2.1. The closed form on new cuts is no better than 0.5: its margin
+(+0.21) sits on its MDD (0.20), which by §38.22 is unresolved, not small. The
+reason the solver hurts is not subtle once seen: an evolved parent's
+ratios are not a failed attempt at the programme's areas. They are where
+daylight, access and adjacency pulled the walls, and a model that knows area,
+width and proportion puts the walls back where those three would have them.
+What looked in experiment 1 like the solver's strength -- it knows what a room
+should measure -- is here what it erases.
+
+**A defect in the first version of experiment 2, kept on the record.** Its
+random stream was seeded from the low four bytes of the artefact's file name,
+which are `cold` for every one of them. All twelve artefacts drew the same
+operator sequence, so 72 children were five operators (`core_divide` 27 of
+them) and none was an `undivide`, a `level_retype` or a `support_outside`.
+Its table said the same thing as the one above (+6.8) and was thrown away;
+the tool now prints the operators it drew. `diag_8b2u_fixed_shaft.py` had the
+neighbouring fault -- Python's own `hash()`, salted per process, so §39.88's
+shaft table cannot be reproduced to the digit -- and is fixed the same way.
+
+**Against what the bead recorded first.** "Closed form recovers most of the
+score on interior-heavy designs and less where many cells touch the
+boundary": the direction holds (programme-house, all boundary, gets nothing)
+but "most" does not -- 29-54% on the others. "The polish cannot be dropped to
+zero": true, and beside the point, since eighty evaluations of polish add
+2 to 14 points to any start on a large programme.
+
+**What follows.**
+
+- `8b2u.12`'s IMPLEMENT -- a closed-form start and a short polish in the
+  search -- is not built. For children it is measured to be no better (closed
+  form) or worse (solver) than what the search does; for seeds the idea is
+  already there.
+- The one place a search holds a cold topology is its seeds and restarts. A
+  solver pass over those, with a cap, is the experiment this leaves: it is a
+  handful of calls per run, and whether better-sized seeds end as better
+  designs is population dynamics -- the box. Filed on the bead, not built.
+- `8b2u.13` (re-score only what a moved ratio touches). Its premise that the
+  inner loop moves a few ratios at a time is half right: the simplex-building
+  evaluations do, the rest move every ratio. After `8b2u.10`/`.11` a score
+  is about a quarter leaf-local, a quarter to a third storey graph, a quarter
+  other per-storey work and 7-19% building-level
+  (`diag_8b2u_score_cost.py --phases`), so the ceiling on a large programme is
+  roughly half the evaluations at well under half their cost, for a cache
+  whose failure mode is a silent change to the objective. The cheaper way to
+  the same end is to stop spending half the budget on the simplex: a
+  coordinate-wise inner loop, or fewer evaluations for a child that changed
+  one cut. Both are search changes and want the box.
+
+### 39.110 What a child's 80 evaluations buy: three or four wins in eleven (`homemaker-py-8b2u.20`)
+
+§39.109 ended on the observation that half a child's inner loop goes on
+building Nelder-Mead's simplex. The bead filed for it expected a loop that
+tunes only the cuts near the move to reach today's result in under half the
+evaluations on the large programmes. Its container half, done the same night
+(`experiments/diag_8b2u20_local_loop.py`): the same 96 children as §39.109
+(the search's mutation mix on the twelve `1a24b6a+orth` designs), each tuned
+six ways with the search's overrides. `local` tunes only the free cuts on,
+above or below a path the move changed -- 9 cuts of 30 on average, 11 of 43 on
+maple-court -- and holds the rest where the parent had them. The harness's
+`--self-test` requires "every cut, 80 evaluations" to reproduce
+`driver._evaluate` exactly, child for child, and "5 evaluations" not to.
+
+| inner loop | fails per child | against today (MDD) | beat their parent | wins per 1,000 evaluations | score, log2 vs today |
+|---|---|---|---|---|---|
+| today: every cut, 80 | 29.15 | -- | 11 of 96 | 1.4 | 0 |
+| every cut, 40 | 29.26 | +0.11 (0.08) | 8 | 2.1 | -0.14 |
+| every cut, 20 | 29.48 | +0.33 (0.15) | 7 | 3.6 | -0.37 |
+| local cuts, 80 | 29.09 | -0.05 (0.23), unresolved | 10 | 1.3 | +0.08 |
+| local cuts, 40 | 29.25 | +0.10 (0.18), unresolved | 8 | 2.1 | -0.13 |
+| local cuts, 20 | 29.42 | +0.27 (0.12) | 4 | 2.1 | -0.31 |
+
+- **The inner loop does little for a child, at any budget.** From 20
+  evaluations to 80 a child gains a third of a fail in 29, and 75 children in
+  96 have the same fail count at both. The wins are NESTED: every child that
+  beats its parent at 20 or 40 evaluations also does at 80, so the longer loop
+  adds wins and never changes which. Quartering the budget keeps 7 of 11.
+- **Per evaluation, the short loop finds more than twice as many.** 1.4 wins
+  per thousand evaluations today, 2.1 at 40, 3.6 at 20. Eleven is a small
+  number and this is one corpus of converged parents, so the ratio is rough;
+  the nesting is paired and is not.
+- **The local loop is not the lever.** At equal evaluations it is
+  indistinguishable from tuning everything (10 wins against 11; fails inside
+  the MDD), and it does not get there sooner: at 40 it matches "every cut, 40"
+  and at 20 it is worse (4 wins against 7), harbor-house resolvedly so. The
+  bead's expectation -- a local loop reaches today's fail count in under half
+  the evaluations on the large programmes -- is not what happened: plainly
+  halving the budget does as well, and the locality adds nothing. The simplex
+  was the wrong thing to blame; a child's ratios are mostly already where they
+  should be.
+- **What wins, on a converged parent, is a relabelling.** All eleven winners
+  are `retype`, `level_retype` or `swap` -- moves that change no wall -- and
+  eight of them win on score at equal fails. That is the late-run regime, and
+  it is the regime this corpus can show. Early in a run children restructure
+  and may need the evaluations; §39.75's lesson applies in reverse, and this
+  measurement says nothing about that regime.
+
+**So `child_budget`, which has been 80 in every run this project has made and
+has never been swept, is the knob.** It needs no code: `--child-budget` exists
+and `search_config` records it. `experiments/flag_ab.py child40` and `child20`
+are the paired runs, at the same total budget, so the flagged arm breeds two
+or four times the children. Expectation, recorded before any run: no more
+fails than the control on programme-house; fewer on the large programmes IF a
+live population behaves like these converged parents -- which is exactly what
+a container cannot say and the reason it is an A/B.

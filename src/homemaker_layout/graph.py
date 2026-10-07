@@ -22,6 +22,8 @@ PERL CLONE QUIRK — ``has_circulation`` (Base.pm:228-241):
 
 from __future__ import annotations
 
+import itertools
+
 import networkx as nx
 
 from . import dom, geometry
@@ -47,6 +49,42 @@ def build_graphs(root: Node, door_width: float = DOOR_WIDTH) -> list[nx.Graph]:
     return [geometry.leaf_graph(lvl, door_width) for lvl in levels(root)]
 
 
+def storey_graphs(
+    root: Node,
+    door_width: float,
+    usages: dict[str, str],
+    reuse: "tuple[list[nx.Graph], list[nx.Graph], list[bool]] | None" = None,
+    keep: int = 0,
+) -> tuple[list[nx.Graph], list[nx.Graph], list[bool]]:
+    """``(graph_base, graph_circ, connected)``, one entry per storey.
+
+    ``graph_base[i]`` is the unfiltered adjacency graph for level i,
+    ``graph_circ[i]`` a copy filtered by ``has_circulation``, and
+    ``connected[i]`` what that filter returned.
+
+    ``reuse`` and ``keep`` (`homemaker-py-8b2u.11`): the scorer wants these
+    before and after ``dom.merge_divided``, and the merge leaves every storey
+    below the lowest one it touched exactly as it was. Pass the earlier result
+    as ``reuse`` and that storey's index as ``keep``, and the first ``keep``
+    storeys are handed back rather than built again. The caller must be done
+    with the earlier result: these are the same objects, not copies.
+    """
+    graph_base: list[nx.Graph] = []
+    graph_circ: list[nx.Graph] = []
+    connected: list[bool] = []
+    for i, lvl in enumerate(levels(root)):
+        if reuse is not None and i < keep:
+            g, gc, ok = reuse[0][i], reuse[1][i], reuse[2][i]
+        else:
+            g = geometry.leaf_graph(lvl, door_width)
+            gc = g.copy()
+            ok = has_circulation(gc, usages)
+        graph_base.append(g)
+        graph_circ.append(gc)
+        connected.append(ok)
+    return graph_base, graph_circ, connected
+
+
 def build_graphs_with_circ(
     root: Node,
     door_width: float,
@@ -54,26 +92,16 @@ def build_graphs_with_circ(
     usages: dict[str, str],
 ) -> tuple[list[nx.Graph], list[nx.Graph]]:
     """Build ``(graph_base, graph_circ)`` pairs; mirrors ``setup_storey_graphs``
-    in ``Base.pm:217-241``.
-
-    ``graph_base[i]`` is the unfiltered adjacency graph for level i.
-    ``graph_circ[i]`` is a copy filtered by ``has_circulation``; emits
-    "N inaccessible usable space" via ``fail`` if a level is disconnected after
-    filtering.
+    in ``Base.pm:217-241``. Emits "N inaccessible usable space" via ``fail``
+    if a level is disconnected after filtering.
 
     Perl clone quirk: ``has_circulation`` removes isolated vertices first, so a
     level with no adjacency edges always fires the "inaccessible" failure.
     """
-    lvls = levels(root)
-    graph_base: list[nx.Graph] = []
-    graph_circ: list[nx.Graph] = []
-    for i, lvl in enumerate(lvls):
-        g = geometry.leaf_graph(lvl, door_width)
-        graph_base.append(g)
-        gc = g.copy()
-        if not has_circulation(gc, usages):
+    graph_base, graph_circ, connected = storey_graphs(root, door_width, usages)
+    for i, ok in enumerate(connected):
+        if not ok:
             fail(f"{i} inaccessible usable space")
-        graph_circ.append(gc)
     return graph_base, graph_circ
 
 
@@ -93,6 +121,23 @@ def _avg_path_len_from(G: nx.Graph, node: Node) -> float:
         return sum(vals) / len(vals) if vals else 0.0
     except Exception:
         return 0.0
+
+
+def _centrality(G: nx.Graph):
+    """A sort key for the nodes of ``G`` as it is NOW: average path length to
+    everything reachable, then -- for nodes exactly as central as each other --
+    area and position, which are properties of the cell and not of where it
+    falls in a list."""
+    cache: dict = {}
+
+    def key(n: Node):
+        if n not in cache:
+            c = geometry.centroid(n)
+            cache[n] = (_avg_path_len_from(G, n), geometry.area(n),
+                        round(c[0], 6), round(c[1], 6))
+        return cache[n]
+
+    return key
 
 
 def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
@@ -141,13 +186,22 @@ def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
         G.remove_edges_from((v, nb) for nb in to_remove)
 
     # Any classified room keeps only one circulation neighbour.
+    #
+    # How central each neighbour is gets measured ONCE, on the graph as it
+    # stands before any of this trimming, and ties go to geometry. Urb measured
+    # inside the loop: every room's trim changed the path lengths the next room
+    # sorted by, so which edges survived depended on the order the rooms were
+    # listed in -- the tree's left/right naming. A harbor-house design and its
+    # mirror image differed by two hard fails that way, and re-listing the same
+    # storey in a shuffled order reproduced it (homemaker-py-rwwv, §39.100).
+    central = _centrality(G)
     for v in list(G.nodes()):
         if _usage(v) not in _pr.PRIVATE_USAGES + ("toilet",) + _pr.SOCIABLE_USAGES:
             continue
         circ_nbs = [nb for nb in list(G.neighbors(v)) if dom.is_circulation(nb)]
         if len(circ_nbs) <= 1:
             continue
-        circ_nbs.sort(key=lambda nb: _avg_path_len_from(G, nb))
+        circ_nbs.sort(key=central)
         # terminal rooms and toilets keep their LEAST central circulation
         # neighbour (privacy); sociable rooms keep their MOST central one.
         sociable = _usage(v) in _pr.SOCIABLE_USAGES
@@ -163,6 +217,8 @@ def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
     outside_components = list(nx.connected_components(outside_graph)) if len(outside_graph.nodes()) > 0 else []
 
     # blkc nodes: keep only one outdoor neighbour per outdoor component
+    # (centrality again fixed before the loop, for the same reason as above)
+    outdoor_central = _centrality(G)
     for v in list(G.nodes()):
         # terminal rooms, sociable rooms, and generic circulation
         if not (_usage(v) in _pr.PRIVATE_USAGES + _pr.SOCIABLE_USAGES
@@ -174,7 +230,7 @@ def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
         ]
         if len(out_nbs) <= 1:
             continue
-        out_nbs.sort(key=lambda nb: _avg_path_len_from(G, nb))
+        out_nbs.sort(key=outdoor_central)
 
         for component in outside_components:
             component_nbs = [nb for nb in out_nbs if nb in component]
@@ -245,98 +301,74 @@ def connected_circulation(G: nx.Graph) -> bool:
 # Stair-corner detection (Quad.pm:1490-1544, Dom.pm:648-668)
 # --------------------------------------------------------------------------- #
 
-def _corners_of(leaf: Node) -> list[list[float] | None]:
-    """4 corner coordinates of leaf (index 0-3), with None at index 4 to
-    replicate Perl's undef-array-element behaviour in ``Corners_In_Use``."""
-    return [geometry.coordinate(leaf, i) for i in range(4)] + [None]
+def _corner_runs(leaf: Node, G: nx.Graph, neighbors: list[Node],
+                 doors: "tuple | list" = ()) -> list[frozenset]:
+    """Every SMALLEST run of consecutive corners that contains all of the
+    leaf's shared walls -- the corners a stair must leave clear for doors.
 
+    ``Urb::Quad::Corners_In_Use`` (Quad.pm:1490) returned the first such run it
+    met, counting from corner 0 and never past corner 3, and the port copied
+    both habits. So a wall spanning corners 3 and 0 could not be a pair (Perl
+    read ``corners[4]``, which is undef) and came back as three corners, while
+    the same wall on a leaf whose corners were numbered one place round came
+    back as two. Which corner is "0" is the leaf's ``rotation``, a label that
+    moves no wall -- and turning it changed the score of a design in 236 of 576
+    trials (DESIGN.md §39.94).
 
-def corners_in_use(
-    leaf: Node, G: nx.Graph, neighbors: list[Node]
-) -> list[int]:
-    """Return the minimum set of consecutive corner indices needed to contain
-    all shared walls; mirrors ``Urb::Quad::Corners_In_Use`` (Quad.pm:1490).
+    Owner's ruling, 2026-10-06 (§39.95): "we want to fit stairs to cores
+    whichever way is best, so the flight can start at any corner and may run
+    clockwise or counter clockwise". So runs wrap, and ALL the smallest ones
+    are returned: the caller picks, and nothing here depends on the numbering.
 
-    Returns raw consecutive indices — may include values > 3 (e.g. [3,4] or
-    [3,4,5]); the caller (``stack_corners_in_use``) normalises with % 4 after
-    rotation remapping.
-
-    Perl's ``corners[4]`` is undef.  ``is_between_2d(point, undef, undef)``
-    always returns True in Perl (distance_2d(undef,x)=0 so abs(0-0-0)<1e-6).
-    This means the triple check at idx=3 always succeeds in Perl, so [3,4,5]
-    is always returned when no shorter span works — equivalent to [0,1,3] after
-    rotation-normalisation.  ``_ib`` replicates that: both-None → True,
-    one-None → False.
+    A DOOR MAY STAND ANYWHERE ALONG ITS WALL (owner, same day, §39.100: "doors
+    are typically in the corner of a room, but can be moved to any other
+    position along a shared wall if it frees up space to place stair flights").
+    That is what the test below already means: a wall is served by any one
+    corner it reaches, or by lying on an edge between two corners of the run,
+    and the caller is free to choose which. ``doors`` are further walls to
+    serve in the same way -- the entrance door's wall, which Urb pinned to
+    BOTH corners of its edge.
     """
-    walls: list[list] = []
+    walls = [list(w) for w in doors]
     for nb in neighbors:
         if G.has_edge(leaf, nb):
             coords = G[leaf][nb].get("coordinates")
             if coords is not None:
                 walls.append(coords)
+    corners = geometry.quad_corners(leaf)
+    ib = geometry.is_between_2d
 
-    corners = _corners_of(leaf)  # len==5, corners[4]=None
-
-    ib = geometry.is_between_2d  # (point, pa, pb) — handles point=None
-
-    def _ib(point, pa, pb):
-        if pa is None and pb is None:
-            return True  # Perl: is_between_2d(point,undef,undef) always True
-        if pa is None or pb is None:
+    def holds(run: list[int]) -> bool:
+        """Each wall touches a corner of the run or ends on an edge inside it."""
+        for w in walls:
+            if any(ib(corners[c], w[0], w[1]) for c in run):
+                continue
+            if any(ib(w[k], corners[a], corners[b])
+                   for a, b in zip(run, run[1:]) for k in (0, 1)):
+                continue
             return False
-        return ib(point, pa, pb)
+        return True
 
-    # Try single corner
-    for idx in range(4):
-        c = corners[idx]
-        if all(ib(c, w[0], w[1]) for w in walls):
-            return [idx]
+    for size in (1, 2, 3):
+        runs = [[(start + k) % 4 for k in range(size)] for start in range(4)]
+        found = [frozenset(r) for r in runs if holds(r)]
+        if found:
+            return found
+    # No three corners serve every wall, wherever the doors are put: all four
+    # are taken, and the stair is a single straight flight. Urb answered THREE
+    # here and never four -- its last test read corners[4] and [5], both undef,
+    # and `is_between_2d(point, undef, undef)` is true of anything. Owner's
+    # ruling (`homemaker-py-8b2u.7`, §39.100): "a stair core with doors on three
+    # or four sides is going to need a single straight flight, unless the doors
+    # can be moved" -- and they have been, above.
+    return [frozenset(range(4))]
 
-    # Try pair (idx, idx+1); corners[4]=None → _ib returns False
-    for idx in range(4):
-        c0, c1 = corners[idx], corners[idx + 1]
-        ok = True
-        for w in walls:
-            if ib(c0, w[0], w[1]):
-                continue
-            if ib(c1, w[0], w[1]):
-                continue
-            if _ib(w[0], c0, c1):
-                continue
-            if _ib(w[1], c0, c1):
-                continue
-            ok = False
-            break
-        if ok:
-            return [idx, idx + 1]  # raw; may be [3,4]
 
-    # Try triple (idx, idx+1, idx+2); corners[4] and corners[5]=None → _ib False
-    for idx in range(4):
-        c0 = corners[idx]
-        c1 = corners[idx + 1]
-        c2 = corners[idx + 2] if idx + 2 < len(corners) else None
-        ok = True
-        for w in walls:
-            if ib(c0, w[0], w[1]):
-                continue
-            if ib(c1, w[0], w[1]):
-                continue
-            if ib(c2, w[0], w[1]):
-                continue
-            if _ib(w[0], c0, c1):
-                continue
-            if _ib(w[1], c0, c1):
-                continue
-            if _ib(w[0], c1, c2):
-                continue
-            if _ib(w[1], c1, c2):
-                continue
-            ok = False
-            break
-        if ok:
-            return [idx, idx + 1, idx + 2]  # raw; may be [3,4,5]
-
-    return [0, 1, 2, 3]
+def corners_in_use(leaf: Node, G: nx.Graph, neighbors: list[Node]) -> list[int]:
+    """One smallest run of corners containing all shared walls (the lowest
+    numbered, for a stable answer). Its LENGTH is what means something; use
+    :func:`_corner_runs` where the choice between equal runs matters."""
+    return sorted(min(_corner_runs(leaf, G, neighbors), key=sorted))
 
 
 def _stack_levels_above(leaf: Node) -> list[Node]:
@@ -352,31 +384,32 @@ def _stack_levels_above(leaf: Node) -> list[Node]:
     return result
 
 
-def _ground_rotation(node: Node) -> int:
-    """Rotation of the lowest below node; mirrors Perl's ``Rotation()`` method.
-
-    Perl's ``Rotation`` returns ``$self->Below->Rotation`` when Below is
-    defined, so upper-storey nodes always report the ground-floor rotation.
-    Using the raw ``node.rotation`` (stored per-level) would give wrong
-    rotation corrections in ``stack_corners_in_use``.
-    """
-    while node.below is not None:
-        node = node.below
-    return node.rotation
-
-
 def stack_corners_in_use(
     leaf: Node,
     graph_circ_list: list[nx.Graph],
     all_levels: list[Node],
+    doors: "tuple | list" = (),
 ) -> list[int]:
-    """Minimum set of corners in use for the vertical stair stack; mirrors
-    ``Urb::Dom::Stack_Corners_In_Use``.
+    """The fewest corners a stair in this shaft must leave clear; mirrors
+    ``Urb::Dom::Stack_Corners_In_Use`` in what it means, not in how it counts.
 
     Returns [] if the stack does not span all levels above leaf, or if any
     level's node is not circulation type.
+
+    Each storey of the shaft has doors to keep clear, and so one or more
+    equally small runs of corners (:func:`_corner_runs`). Urb took the first
+    run on each storey and united them, so the total depended on how the
+    corners happened to be numbered. Here the runs are chosen TOGETHER, to
+    leave the stair as many corners as the doors allow. ``doors`` are extra
+    walls on ``leaf``'s own storey that need a door somewhere along them (the
+    entrance). Every node of the stack has the same corners -- an upper storey
+    inherits them -- so no index is remapped.
     """
     if leaf.type != "C":
+        return []
+    if geometry.quad_corners(leaf) is None:
+        # A core cropped to a wedge or a pentagon by the plot is not somewhere
+        # a stair is fitted (native trees only; every quad-tree cell has four).
         return []
 
     stack = [leaf] + _stack_levels_above(leaf)
@@ -391,22 +424,23 @@ def stack_corners_in_use(
     if not all(n.type == "C" for n in stack):
         return []
 
-    leaf_rot = _ground_rotation(leaf)
-    all_corners: set[int] = set()
+    options: list[list[frozenset]] = []
     for level_offset, node in enumerate(stack):
         level_idx = li + level_offset
         if level_idx >= len(graph_circ_list):
             break
         G = graph_circ_list[level_idx]
         nbs = list(G.neighbors(node)) if G.has_node(node) else []
-        in_use = corners_in_use(node, G, nbs)
-        # Map to ground-floor rotation frame using ground rotation (Perl
-        # Rotation() follows Below chain, so upper nodes use ground rotation)
-        node_rot = _ground_rotation(node)
-        for c in in_use:
-            all_corners.add((c - node_rot + leaf_rot) % 4)
+        options.append(_corner_runs(node, G, nbs,
+                                    doors if level_offset == 0 else ()))
 
-    return sorted(all_corners)
+    best = None
+    for choice in itertools.product(*options):
+        union = frozenset().union(*choice)
+        key = (len(union), sorted(union))
+        if best is None or key < best:
+            best = key
+    return best[1]
 
 
 def _level_index(n: Node, lvls: list[Node]) -> int:

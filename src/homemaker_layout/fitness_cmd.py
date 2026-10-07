@@ -63,7 +63,9 @@ def _should_score(dom_path: Path, config_mtime: float) -> bool:
 
 def score_file(dom_path: Path, fitness: Fitness) -> float:
     """Score one .dom file, write side-cars, return score."""
-    root = dom_mod.load(str(dom_path))
+    # a format-v2 file is scored as the NATIVE tree it describes (§39.103);
+    # a v1 file is unaffected by the flag
+    root = dom_mod.load(str(dom_path), native=True)
     geometry.clear_cache()
     score, failures = fitness.score_with_fails(root)
 
