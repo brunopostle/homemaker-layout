@@ -132,19 +132,35 @@ def rooms(root, programme_dir) -> list:
             usage = _usage(leaf, reqs, stair_ids)
             if usage is None:
                 continue
-            corners = [[x * u[0] + y * u[1], x * v[0] + y * v[1]]
-                       for x, y in (geometry.coordinate(leaf, i) for i in range(4))]
+            # A cell is whatever polygon it is: four corners in Urb's quad
+            # tree, three or more in a native rectangle-frame one, where the
+            # plot can crop a corner off or leave a status vertex part-way
+            # along a side (`geometry.polygon`, §39.103). A cell wholly off
+            # the plot is void and `leaves()` has already passed over it.
+            outline = geometry.polygon(leaf)
+            n = len(outline)
+            if n < 3:
+                continue
+            corners = [[x * u[0] + y * u[1], x * v[0] + y * v[1]] for x, y in outline]
             walls = ["blank" if perimeter.get(geometry.boundary_id(leaf, i)) == "private"
-                     else "default" for i in range(4)]
+                     else "default" for i in range(n)]
             poly, flipped = _ccw(corners)
             if flipped:
-                # reversing the vertices reverses the edges: edge i of the reversed
-                # polygon is edge (2 - i) mod 4 of the original
-                walls = [walls[(2 - i) % 4] for i in range(4)]
+                # reversing the vertices reverses the edges: edge i of the
+                # reversed polygon is edge (n - 2 - i) mod n of the original
+                walls = [walls[(n - 2 - i) % n] for i in range(n)]
             if not _convex(poly):
                 raise ExportError(f"cell {li}/{leaf.id} is not convex")
             out.append({
-                "vertices": [[round(x, 4), round(y, 4)] for x, y in poly],
+                # To a tenth of a micron, not a tenth of a millimetre: three
+                # rooms' corners along one skew plot side are collinear, and
+                # rounded to 1e-4 they are not. A roof face over that side has
+                # all of them on its eave, and homemaker-addon refuses a face
+                # whose corners are more than a micron off one plane; the
+                # alternative, a roof plane per kink, makes features smaller
+                # than the 0.1 mm the addon merges at, and its cell complex
+                # then fails to build (harbor-house did).
+                "vertices": [[round(x, 7), round(y, 7)] for x, y in poly],
                 "elevation": round(elev, 4),
                 "height": round(height, 4),
                 "stylename": "default",
@@ -152,17 +168,38 @@ def rooms(root, programme_dir) -> list:
                 "usage": usage,
                 "dom_id": f"{li}/{leaf.id}",
                 "code": leaf.type,
+                # nothing is built over the top storey: these are the rooms a
+                # pitched roof goes on (`roofs.for_rooms`). A room lower down
+                # with open air over it carries a terrace, which is flat.
+                "roofed": li == len(lvls) - 1,
             })
     return out
 
 
-def document(dom_path, programme_dir=None) -> dict:
-    """The rooms document for the `.dom` at `dom_path`."""
+def document(dom_path, programme_dir=None, roof_pitch: "float | None" = 35.0,
+             gables: bool = True) -> dict:
+    """The rooms document for the `.dom` at `dom_path`.
+
+    With a ``roof_pitch`` (degrees) the top storey gets pitched roofs: sloping
+    ``faces`` over each group of rooms, gabled where the group ends on a party
+    wall if ``gables``, and a ``void`` widget inside each so the roof space is
+    not taken for a room. ``roof_pitch=None`` leaves the roofs flat."""
     dom_path = Path(dom_path)
     programme_dir = Path(programme_dir) if programme_dir else dom_path.parent
-    root = dom.load(str(dom_path))
+    # A format-v2 file is read as the native tree it describes, which is what
+    # `homemaker-fitness` scores; for a v1 file `native` changes nothing.
+    root = dom.load(str(dom_path), native=True)
     u, _ = geometry._reference_axes(root)
-    return {
+    made = rooms(root, programme_dir)
+    extra: dict = {}
+    if roof_pitch is not None:
+        from . import roofs
+
+        faces, widgets, notes = roofs.for_rooms(made, roof_pitch, gables)
+        if faces:
+            extra = {"faces": faces, "widgets": widgets}
+        extra["roof"] = {"pitch_degrees": roof_pitch, "gables": gables, "notes": notes}
+    doc = {
         "format": FORMAT,
         "version": VERSION,
         "name": f"{programme_dir.name} {dom_path.stem}",
@@ -171,8 +208,12 @@ def document(dom_path, programme_dir=None) -> dict:
                  # rooms are in the frame: world = rotate(frame, angle) about the origin
                  "frame": {"u": [round(u[0], 9), round(u[1], 9)],
                            "angle_degrees": round(math.degrees(math.atan2(u[1], u[0])), 6)}},
-        "rooms": rooms(root, programme_dir),
+        "rooms": made,
     }
+    if "roof" in extra:
+        doc["meta"]["roof"] = extra.pop("roof")
+    doc.update(extra)
+    return doc
 
 
 def main(argv=None) -> int:
@@ -188,20 +229,34 @@ def main(argv=None) -> int:
                     help="read the .dom with orthogonal division; a v1 file does not "
                          "record it, so +orth artefacts need this (or "
                          "HOMEMAKER_ORTHOGONAL_DIVISION=1)")
+    ap.add_argument("--roof-pitch", type=float, default=35.0, metavar="DEGREES",
+                    help="pitch of the roofs over the top storey (default 35)")
+    ap.add_argument("--flat-roofs", action="store_true",
+                    help="write no roof geometry: homemaker-addon then roofs every "
+                         "top cell flat")
+    ap.add_argument("--no-gables", action="store_true",
+                    help="hip every roof all round; by default a roof ends in a "
+                         "gable where it meets a party wall, as Urb's did")
     args = ap.parse_args(argv)
     if args.orthogonal:
         geometry.ORTHOGONAL_DIVISION = True
     rc = 0
     for p in args.dom:
         try:
-            doc = document(p, args.programme)
+            doc = document(p, args.programme,
+                           None if args.flat_roofs else args.roof_pitch,
+                           not args.no_gables)
         except ExportError as e:
             print(f"{p}: NOT WRITTEN: {e}")
             rc = 1
             continue
         out = Path(p).with_suffix(Path(p).suffix + ".rooms.json")
         out.write_text(json.dumps(doc, indent=1) + "\n")
-        print(f"{p}: {len(doc['rooms'])} rooms -> {out}")
+        roof = doc["meta"].get("roof") or {}
+        print(f"{p}: {len(doc['rooms'])} rooms, {len(doc.get('faces', []))} roof faces "
+              f"-> {out}")
+        for note in roof.get("notes", []):
+            print(f"   roof: {note}")
     return rc
 
 

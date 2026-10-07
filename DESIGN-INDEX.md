@@ -57,6 +57,7 @@ index is how to get from a question to the section that answers it.
 | §39.76-§39.80 | The ratio solver's target, the shape-curve DP's exactness, the operator census with negative controls, what a missing room costs. |
 | §39.81-§39.93 | `support_outside` A/Bs (flat, then tiers), two sweeps, the omit-vs-circulation ruling, outdoor width 3.0 -> 2.3 m, the rectangle-frame pivot measured before commitment, export to IFC. |
 | §39.94-§39.104 | Format v2 and the native rectangle-frame tree; six scorer defects found on the way and fixed on rulings (daylight counted once, the wall above stays, listing order, stair fit, width from the fitted rectangle). |
+| §39.118-§39.119 | A solver pass over seeds (better seeds; the A/B is queued); pitched roofs for the IFC export. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -117,7 +118,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (223 of them, 15400 lines)
+## Every section of DESIGN.md (224 of them, 15506 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -391,4 +392,5 @@ below are the most recent work.
 - §39.115 · 15182-15248 · Rulings on outdoor value and on the briefs, and a kit for drawing a design by hand (`homemaker-py-ecx`, `5nw`, `2g7.1`)
 - §39.116 · 15249-15311 · A terrace is worth more than a garden; circulation is outside the rule; and the number is not yet settled (`homemaker-py-ecx`)
 - §39.117 · 15312-15341 · The terrace is worth 120, until daylight scores outdoor space (owner's ruling, `homemaker-py-ecx`)
-- §39.118 · 15342-15400 · A solver pass does make a better seed (`homemaker-py-8b2u.21`, container half)
+- §39.118 · 15342-15401 · A solver pass does make a better seed (`homemaker-py-8b2u.21`, container half)
+- §39.119 · 15402-15506 · Pitched roofs for the IFC export (`homemaker-py-6e5u`)

@@ -71,6 +71,7 @@ Field by field, with the web document's own meaning:
 | `usage` | homemaker-addon room type, after the mapping below |
 | `dom_id` | **extra:** storey and `.dom` id path of the cell that made this room |
 | `code` | **extra:** the programme room code, or `C` / `O` / `S` |
+| `roofed` | **extra:** true for a room of the top storey, which a pitched roof goes over |
 | `format`, `version`, `meta` | **extra:** header and provenance |
 
 The extra keys are ignored by both consumers -- the server's request models
@@ -106,9 +107,12 @@ Placing the building back at its true orientation is a site-placement step
 
 ## How a layout becomes rooms
 
-- **One room per cell that has a volume**, on every storey. Every cell the
-  slicing tree produces is convex -- a rectangle cropped by a convex plot, in
-  v1 and v2 alike -- so the convexity rule always holds.
+- **One room per cell that has a volume**, on every storey, with as many
+  corners as the cell has: four in a v1 design, three or more where a v2
+  design's plot crops a cell (a v2 file is read as the native tree it
+  describes). Every cell is a rectangle cropped by the plot, so on a convex
+  plot the convexity rule always holds; a cell wrapped round the inner corner
+  of an L-shaped plot is refused. A cell wholly off the plot is not written.
 - **Party walls** get style `blank`: a plot-boundary edge whose `perimeter`
   entry is `private`, which is Urb's `IsParty` (`lib/Urb/Dom.pm`) as used by
   `urb-dom2obj.pl`. (`blank` is a real style directory in `share/`; the web
@@ -136,6 +140,62 @@ Placing the building back at its true orientation is a site-placement step
 - Prior art: `urb-dom2obj.pl` (2022, homemaker-addon issue #39) did the same
   through OBJ -- materials as styles, object names as usages, y-up. This
   replaces it.
+
+## Pitched roofs: `faces` and `widgets`
+
+A room is a prism, so it cannot say that a roof slopes. homemaker-addon reads
+two more lists from the same document (`molior.rooms.document_to_faces_and_widgets`,
+its `web/README.md`): `faces`, each `{"vertices": [[x, y, z], ...], "stylename":
+...}` with three or more corners, and `widgets`, each `{"position": [x, y, z],
+"usage": ...}`. A roof is then a CELL: closed below by the ceilings of the
+rooms under it, which are already in the document, and above by sloping
+faces. `homemaker-rooms` writes those faces (`src/homemaker_layout/roofs.py`,
+DESIGN.md §39.119; bead `homemaker-py-6e5u`), replacing the pitched roofs
+Urb's `urb-dom2molior.pl` made as solids.
+
+- **What is roofed**: the rooms of the top storey, marked `"roofed": true`
+  (an extra key, like `dom_id`). Rooms that share a wall are under one roof;
+  separate groups get separate roofs. A room lower down with open air over it
+  carries a terrace, which stays flat.
+- **The shape**: the straight-skeleton roof of each group's outline -- every
+  outline edge is an eave at the top storey's ceiling, every slope at one
+  pitch (`--roof-pitch`, default 35 degrees), meeting in hips, valleys and
+  ridges. A courtyard in the top storey is a hole in the outline and gets
+  eaves of its own.
+- **Gables**: where a roof ENDS at a party wall (`blank`) -- its face there
+  would be a triangular hip end -- the ridge is carried on to the wall and
+  the end is closed by a vertical face, as Urb gabled party boundaries. A
+  party wall running ALONG a roof keeps its slope; `meta.roof.notes` says how
+  many did. `--no-gables` hips everything.
+- **A `void` widget** inside each roof, so the roof space is not allocated as
+  a room (`AllocateCells` would default it to `living`).
+- `--flat-roofs` writes none of this, and the addon roofs every top cell flat
+  as it did before.
+
+Three things the addon requires of this geometry, each found by building a
+real design and each now held by `tests/test_roofs.py`:
+
+- **A face must be flat to about a micron** (measured: 1e-6 builds, 1e-5 is
+  "the wire was not planar"). Each corner's height is therefore taken from
+  its own face's plane, not shared between the faces that meet there.
+- **Nothing may be smaller than the 0.1 mm it merges at.** Room corners are
+  written to 1e-7 m for this: at 1e-4, three rooms' corners along one skew
+  plot side are no longer in a line, the roof gets a plane per kink a
+  hundredth of a degree apart, and `CellComplex.ByFaces` fails.
+- **Neighbours must list the same corners along a shared edge**, so a corner
+  of one face that falls part-way along another's edge is inserted there.
+
+Verified through `rooms2ifc.py` (2026-10-07), flat against pitched:
+
+| design | rooms | spaces | IfcRoof | IfcWall | windows / doors |
+|---|---|---|---|---|---|
+| programme-house `1a24b6a+orth` s0, flat | 11 | 11 | 7 | 51 | 18 / 13 |
+| ...pitched | 11 | 12 (one `void`: the roof) | 10 | 39 | 18 / 13 |
+| harbor-house `1a24b6a+orth` s0, flat | 48 | 48 | 28 | 202 | 93 / 59 |
+| ...pitched | 48 | 49 | 23 | 165 | 93 / 59 |
+
+The walls that go are presumably the parapets of the flat roofs; that was
+counted, not inspected.
 
 ## Usage mapping
 

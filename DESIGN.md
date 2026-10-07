@@ -15398,3 +15398,109 @@ two seeds are worth.)
 twelve fewer fails at evaluation 200 survive to evaluation 500,000 is the
 box's question. The bead now holds the arm to build: a share-aware solver
 pass over seeds and restarts, capped, default off.
+
+### 39.119 Pitched roofs for the IFC export (`homemaker-py-6e5u`)
+
+Urb's Perl made pitched roofs as solids; the first IFC built from an evolved
+layout (§39.92) had only flat ones. homemaker-addon wants a roof as a CELL --
+the ceilings of the top rooms below, sloping faces above, a `void` marker
+inside -- and since its commit "Accept roof geometry alongside rooms" it reads
+those faces from the rooms document. So the geometry is this repository's to
+compute: `src/homemaker_layout/roofs.py`, written into the document by
+`homemaker-rooms` as `faces` and `widgets` (`docs/rooms-format.md`).
+
+**What is roofed.** The rooms of the top storey, grouped by shared walls into
+outlines; a courtyard in the top storey is a hole. A room lower down with
+open air over it carries a terrace, which stays flat.
+
+**The surface, without a skeleton algorithm.** With one eave height and one
+pitch the roof over an outline is its straight skeleton raised. Computing a
+straight skeleton by simulating the shrinking wavefront is notoriously
+delicate exactly where an orthogonal plan lives -- many events at one
+instant. Eppstein and Erickson's characterisation avoids it: the roof is the
+LOWER ENVELOPE of an *edge slab* per edge (its plane over the strip standing
+square on it) and a *reflex slab* per reflex corner per edge (the plane
+continued past the corner, out to the valley). So each edge's face is the
+part of its slabs where no other slab is lower: a few polygon clips, with
+shapely, on a fixed precision grid.
+
+**Checked against two independent measures, because the obvious one was
+wrong.**
+
+- A straight-skeleton library (`bpypolyskel`) was the planned oracle. On
+  random orthogonal outlines it disagreed with this module at 20 points in
+  about 800. A third measure settled it: on an outline whose sides are all
+  axial, the 45-degree roof's height at a point is half the side of the
+  largest axis-aligned square centred there that fits (the straight skeleton
+  of such a polygon is its L-infinity medial axis). The square agreed with
+  this module at all 20. The library is the one that fails on simultaneous
+  events.
+- On outlines in general position -- random star-shaped polygons, 260 reflex
+  corners at arbitrary angles -- where that library has no such trouble, the
+  two agree at 3,656 of 3,660 points, the other four within 3 cm.
+
+So the tests use the square on orthogonal outlines (with a control: a roof
+a tenth of a degree too steep is caught at over a hundred points) and the
+library, if installed, on general ones.
+
+**Gables, and an approach that looked simpler and was wrong.** Urb gabled an
+edge on a party boundary. The first version here left such an edge out of
+the envelope, so that its neighbours' planes would run on to the wall. That
+gives the right answer on a rectangle and a STEP in the roof on the first
+real design: without the edge's slab the envelope is not continuous, and
+beside a plot side four degrees off square two faces met the wall at
+different heights. Now a gable is made from the hipped roof: where a party
+edge's face is a hip END -- a triangle up to the point where its neighbours
+meet -- the ridge is carried on to the wall, each neighbour gains a triangle,
+and a vertical face closes the end. A party wall running ALONG a roof keeps
+its slope, and the export says how many did.
+
+**Three things homemaker-addon requires, each found by building a real
+design:**
+
+| requirement | how it was found | what holds it |
+|---|---|---|
+| a face flat to about a micron (1e-6 builds, 1e-5 does not) | "the wire was not planar" on programme-house | each corner's height comes from its own face's plane; nothing is clamped at the eave |
+| no feature smaller than the 0.1 mm it merges at | `CellComplex.ByFaces` failed on harbor-house | room corners are written to 1e-7 m, not 1e-4: at 1e-4 the corners along a skew plot side are no longer in a line and the roof grew a plane per kink |
+| neighbours listing the same corners along a shared edge | by construction, then by test | coincident corners are welded; a corner part-way along a neighbour's edge is inserted into it |
+
+Three numerical defects of my own were found by the tiling check
+(`roof faces cover X m2 of an outline of Y m2`) on the way: a comparison
+half-plane anchored tens of kilometres away for two all-but-parallel edges,
+"on the line" decided by the last bit where a 45-degree hip passes through
+the corner of the clipping box, and corners judged by angle instead of by
+distance from the line. The check is cheap and stays in the code: a roof
+whose faces do not tile its outline raises, and the export leaves that
+outline flat and says so.
+
+**End to end**, through homemaker-addon's `rooms2ifc.py`:
+
+| design (`1a24b6a+orth` s0) | spaces | IfcRoof | IfcWall | windows / doors |
+|---|---|---|---|---|
+| programme-house, flat | 11 | 7 | 51 | 18 / 13 |
+| programme-house, pitched | 12 (the roof is a `void` space) | 10 | 39 | 18 / 13 |
+| harbor-house, flat | 48 | 28 | 202 | 93 / 59 |
+| harbor-house, pitched | 49 | 23 | 165 | 93 / 59 |
+
+Windows and doors are unchanged; the walls that go are presumably the flat
+roofs' parapets, which was counted and not inspected. Both pitched builds
+were looked at as a rendering of the document, not in an IFC viewer -- the
+owner's eye on the IFC is still owed.
+
+**Native designs export too.** `rooms_export` wrote every cell from four
+corners, so a format-v2 design -- what `homemaker-evolve --native` writes, and
+what the second A/B in the queue will produce -- could be exported only if it
+happened to fit the quad tree. It now reads a v2 file as the native tree it
+describes and writes each cell as the polygon it is, with a wall style per
+side. Held two ways (`tests/test_rooms_export_native.py`): the nine newest
+artefacts of three programmes export the same rooms, walls and roof from
+either tree (a native design with one wall moved does not); and a plot that
+crops one room to a triangle and another to five corners exports both, with
+the party wall on the right sides, and builds through `rooms2ifc.py` to three
+rooms and a roof.
+
+**Not done.** Roofs at more than one height: a two-storey wing beside a
+three-storey block gets a pitched roof only on the top storey, because the
+wing's roof is a terrace in the model and stays flat. A NON-CONVEX cell (one
+wrapped round the inner corner of an L-shaped plot) is still refused: the
+addon's rooms are convex. Both are on the bead.
