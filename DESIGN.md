@@ -14911,3 +14911,60 @@ zero": true, and beside the point, since eighty evaluations of polish add
   the same end is to stop spending half the budget on the simplex: a
   coordinate-wise inner loop, or fewer evaluations for a child that changed
   one cut. Both are search changes and want the box.
+
+### 39.110 What a child's 80 evaluations buy: three or four wins in eleven (`homemaker-py-8b2u.20`)
+
+§39.109 ended on the observation that half a child's inner loop goes on
+building Nelder-Mead's simplex. The bead filed for it expected a loop that
+tunes only the cuts near the move to reach today's result in under half the
+evaluations on the large programmes. Its container half, done the same night
+(`experiments/diag_8b2u20_local_loop.py`): the same 96 children as §39.109
+(the search's mutation mix on the twelve `1a24b6a+orth` designs), each tuned
+six ways with the search's overrides. `local` tunes only the free cuts on,
+above or below a path the move changed -- 9 cuts of 30 on average, 11 of 43 on
+maple-court -- and holds the rest where the parent had them. The harness's
+`--self-test` requires "every cut, 80 evaluations" to reproduce
+`driver._evaluate` exactly, child for child, and "5 evaluations" not to.
+
+| inner loop | fails per child | against today (MDD) | beat their parent | wins per 1,000 evaluations | score, log2 vs today |
+|---|---|---|---|---|---|
+| today: every cut, 80 | 29.15 | -- | 11 of 96 | 1.4 | 0 |
+| every cut, 40 | 29.26 | +0.11 (0.08) | 8 | 2.1 | -0.14 |
+| every cut, 20 | 29.48 | +0.33 (0.15) | 7 | 3.6 | -0.37 |
+| local cuts, 80 | 29.09 | -0.05 (0.23), unresolved | 10 | 1.3 | +0.08 |
+| local cuts, 40 | 29.25 | +0.10 (0.18), unresolved | 8 | 2.1 | -0.13 |
+| local cuts, 20 | 29.42 | +0.27 (0.12) | 4 | 2.1 | -0.31 |
+
+- **The inner loop does little for a child, at any budget.** From 20
+  evaluations to 80 a child gains a third of a fail in 29, and 75 children in
+  96 have the same fail count at both. The wins are NESTED: every child that
+  beats its parent at 20 or 40 evaluations also does at 80, so the longer loop
+  adds wins and never changes which. Quartering the budget keeps 7 of 11.
+- **Per evaluation, the short loop finds more than twice as many.** 1.4 wins
+  per thousand evaluations today, 2.1 at 40, 3.6 at 20. Eleven is a small
+  number and this is one corpus of converged parents, so the ratio is rough;
+  the nesting is paired and is not.
+- **The local loop is not the lever.** At equal evaluations it is
+  indistinguishable from tuning everything (10 wins against 11; fails inside
+  the MDD), and it does not get there sooner: at 40 it matches "every cut, 40"
+  and at 20 it is worse (4 wins against 7), harbor-house resolvedly so. The
+  bead's expectation -- a local loop reaches today's fail count in under half
+  the evaluations on the large programmes -- is not what happened: plainly
+  halving the budget does as well, and the locality adds nothing. The simplex
+  was the wrong thing to blame; a child's ratios are mostly already where they
+  should be.
+- **What wins, on a converged parent, is a relabelling.** All eleven winners
+  are `retype`, `level_retype` or `swap` -- moves that change no wall -- and
+  eight of them win on score at equal fails. That is the late-run regime, and
+  it is the regime this corpus can show. Early in a run children restructure
+  and may need the evaluations; §39.75's lesson applies in reverse, and this
+  measurement says nothing about that regime.
+
+**So `child_budget`, which has been 80 in every run this project has made and
+has never been swept, is the knob.** It needs no code: `--child-budget` exists
+and `search_config` records it. `experiments/flag_ab.py child40` and `child20`
+are the paired runs, at the same total budget, so the flagged arm breeds two
+or four times the children. Expectation, recorded before any run: no more
+fails than the control on programme-house; fewer on the large programmes IF a
+live population behaves like these converged parents -- which is exactly what
+a container cannot say and the reason it is an A/B.

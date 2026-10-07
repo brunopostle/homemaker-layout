@@ -20,6 +20,16 @@ first:
   read is `too few stairs` / `staircase volume`, which the repaired move
   should not make more frequent.
 
+* **child40**, **child20** (`homemaker-py-8b2u.20`, DESIGN.md §39.110) --
+  `child80`, the per-child inner-loop budget every run has ever used, against
+  `--child-budget 40` or `20` at the SAME total budget, so the flagged arm
+  breeds two or four times the children. In a container, on converged
+  parents, a child tuned for 20 evaluations keeps 7 of the 11 wins that 80
+  evaluations find. Expectation on file: the flagged arm ends with no more
+  fails than the control on programme-house, and fewer on the large
+  programmes if the container result carries into a live population -- which
+  is the thing a container cannot say.
+
 **The two arms are scored by one objective.** For `native` that is a fact
 with a test behind it: every orthogonal design scores the same as a quad tree
 and as the native tree of the same building (192 of 192,
@@ -34,6 +44,7 @@ Usage::
     python experiments/flag_ab.py native --seeds 36 --slots $(nproc)
     python experiments/flag_ab.py native --programme maple-court --seeds 3 --slots 6
     python experiments/flag_ab.py w4e --seeds 36 --slots $(nproc)
+    python experiments/flag_ab.py child20 --seeds 36 --slots $(nproc)
     python experiments/flag_ab.py native --resume
     python experiments/flag_ab.py native --report-only
     python experiments/flag_ab.py w4e --scratch /some/dir --budget 300 --seeds 1   # smoke
@@ -64,6 +75,14 @@ EXPERIMENTS = {
                 env="HOMEMAKER_CORE_UNDIVIDE_REPAIRED",
                 bead="homemaker-py-w4e, DESIGN.md §39.106",
                 what="core_undivide repaired against the shipped operator"),
+    "child40": dict(arms=("child80", "child40"), flag="--child-budget 40",
+                    env="HOMEMAKER_CHILD_BUDGET",
+                    bead="homemaker-py-8b2u.20, DESIGN.md §39.110",
+                    what="a 40-evaluation inner loop per child against 80, equal total budget"),
+    "child20": dict(arms=("child80", "child20"), flag="--child-budget 20",
+                    env="HOMEMAKER_CHILD_BUDGET",
+                    bead="homemaker-py-8b2u.20, DESIGN.md §39.110",
+                    what="a 20-evaluation inner loop per child against 80, equal total budget"),
 }
 FIELDS = ["programme", "arm", "seed", "objective", "search_commit", "budget",
           "storeys", "fails", "hard", "soft", "score", "elapsed_s", "dom",
@@ -291,7 +310,7 @@ def main(argv=None) -> int:
                    "--budget", str(args.budget), "--seed", str(seed),
                    "--workers", "1", "--output", str(dom_out)]
             if arm == ARMS[1]:
-                cmd.append(exp["flag"])
+                cmd += exp["flag"].split()
             p = subprocess.Popen(cmd, cwd=d, stdout=subprocess.DEVNULL,
                                  stderr=fh, env=env)
             running[p.pid] = (p, arm, seed, dom_out, fh, time.monotonic())
