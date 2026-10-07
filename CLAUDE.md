@@ -641,8 +641,10 @@ prefer them over any sentence here.
 
 ```bash
 # IS A RUN IN PROGRESS? If this prints anything, do not edit src/ (see the last
-# section of this file); `~/homemaker-ab-queue.log` says what and how far
-pgrep -af 'homemaker_layout.evolve|homemaker-evolve|run_ab_queue|flag_ab|run_coldstart' | cut -c1-150
+# section of this file). Detached jobs log to ~/homemaker-*.log -- `tail` them
+# to see what is running and how far it has got
+pgrep -af 'homemaker_layout.evolve|homemaker-evolve|run_ab_queue|flag_ab|run_coldstart|record_moves' | cut -c1-150
+tail -n 3 ~/homemaker-*.log
 
 # the objective stamp (and whether the objective's own source is dirty)
 python -c "import importlib.util as u; s=u.spec_from_file_location('r','experiments/run_coldstart_baseline.py'); m=u.module_from_spec(s); s.loader.exec_module(m); print(m.objective_commit(), m.search_commit(), m.search_config()[0])"
@@ -913,6 +915,15 @@ cd ../hm-<name>
 PYTHONPATH=$PWD/src python -m pytest -q          # THIS tree's code, not the install's
 PYTHONPATH=$PWD/src python experiments/<tool>.py
 ```
+
+**Anything that must outlive the session is started detached**:
+`setsid nohup <script> > ~/homemaker-<name>.log 2>&1 < /dev/null &`. A job
+started as a session background task belongs to the session -- and when one
+link of such a chain is killed the next link starts, which is how a second
+recorder appeared while the first was being stopped. Stop jobs by PID, never
+with `pkill -f <pattern>` (the pattern is in your own shell's command line,
+and it killed the shell, three times in one night), and never clear a `/tmp`
+glob that a job you have just started might be writing under.
 
 `pip install -e .` points at the main checkout, so without `PYTHONPATH` every
 tool silently measures main. Merge when the run has finished, never before:

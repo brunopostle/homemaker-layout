@@ -15484,8 +15484,9 @@ outline flat and says so.
 
 Windows and doors are unchanged; the walls that go are presumably the flat
 roofs' parapets, which was counted and not inspected. Both pitched builds
-were looked at as a rendering of the document, not in an IFC viewer -- the
-owner's eye on the IFC is still owed.
+were first looked at only as a rendering of the document. The owner then
+built harbor-house and opened it in an IFC viewer (2026-10-07): "The roof
+looks good."
 
 **Native designs export too.** `rooms_export` wrote every cell from four
 corners, so a format-v2 design -- what `homemaker-evolve --native` writes, and
