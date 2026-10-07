@@ -339,6 +339,10 @@ Key modules:
   Export only: nothing scores or searches through it. It writes rooms in the
   layout's FRAME, not world coordinates, because the addon's 1 mm snapping breaks
   T-junctions on a skew plot
+- `roofs.py` — pitched roofs for that export (`homemaker-py-6e5u`, DESIGN.md
+  §39.119): the straight-skeleton roof of the top storey's outline as flat
+  faces, gabled where a roof ends on a party wall, written into the rooms
+  document as `faces` + a `void` widget. Export only, like `rooms_export.py`
 - `collapse_cmd.py` — `homemaker-collapse` CLI: finish-time global cell→room collapse (94g)
 - `graph.py` — leaf-adjacency graph for programme-driven fitness checks
 - `genome.py` — topology genome: base-floor tree + per-storey deltas
