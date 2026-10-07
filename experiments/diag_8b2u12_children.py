@@ -14,6 +14,9 @@ the search scores a child (`driver._evaluate`, the same overrides).
             area, width and proportion; it calls no scorer), then ONE score
   sol+20    the same, then 20 evaluations
   sol10+20  the solver stopped after 10 function evaluations, then 20
+  new-cf    as `today`, but a cut the move MADE starts at its closed-form
+            ratio (what its two sides are owed, `diag_8b2u12_closed_form.owed`)
+            where today it starts at 0.5; inherited ratios untouched
 
 The solver is stopped at 100 function evaluations in `sol` and `sol+20`: at
 its own limit of 4,000 a single call ran for more than ten minutes on a
@@ -35,7 +38,9 @@ search keeps them is population dynamics: the box.
 from __future__ import annotations
 
 import argparse
+import collections
 import copy
+import hashlib
 import importlib.util
 import sys
 import time
@@ -47,7 +52,7 @@ from homemaker_layout import dom, driver, geometry, innerloop, operators, progra
 
 REPO = Path(__file__).resolve().parents[1]
 PROGRAMMES = ("programme-house", "health-centre", "harbor-house", "maple-court")
-ARMS = ("today", "sol", "sol+20", "sol10+20")
+ARMS = ("today", "sol", "sol+20", "sol10+20", "new-cf")
 
 
 def _load(name):
@@ -64,7 +69,14 @@ def size(arm, child, prog, ratios, reqs, conf, search):
     geometry.clear_cache()
     x0 = innerloop.warm_x0(root, {**innerloop.ratio_map(root), **ratios})
     t0 = time.process_time()
-    if arm == "today":
+    if arm == "new-cf":
+        w = _load("diag_8b2u12_closed_form").owed(root, reqs, conf)
+        keyed = innerloop.free_with_keys(root)
+        for i, (key, b) in enumerate(keyed):
+            lo, hi = w[id(b.left)], w[id(b.right)]
+            if key not in ratios and lo + hi > 0:
+                x0[i] = min(1 - solver._EPS, max(solver._EPS, lo / (lo + hi)))
+    if arm in ("today", "new-cf"):
         ind, _ = driver._evaluate(root, str(prog), x0, 80, {}, "8b2u12", **search)
     else:
         for b, x in zip(solver.free_branches(root), x0):
@@ -81,11 +93,15 @@ def size(arm, child, prog, ratios, reqs, conf, search):
 
 
 def main(argv=None) -> int:
+    global ARMS
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--corpus", default="coldstart-1a24b6a+orth-500000-s*.dom")
     ap.add_argument("--programme", action="append", choices=PROGRAMMES)
     ap.add_argument("--draws", type=int, default=6, help="children per artefact")
+    ap.add_argument("--arms", default=",".join(ARMS),
+                    help="comma-separated subset; `today` is always run")
     a = ap.parse_args(argv)
+    ARMS = ("today", *(x for x in a.arms.split(",") if x != "today"))
     geometry.ORTHOGONAL_DIVISION = True
     shaft, ab = _load("diag_8b2u_fixed_shaft"), _load("ab_report")
     weights, search = shaft.search_weights(), shaft.SEARCH
@@ -101,7 +117,12 @@ def main(argv=None) -> int:
             dom.link(parent)
             geometry.clear_cache()
             ratios = innerloop.ratio_map(parent)
-            rng = np.random.default_rng(int.from_bytes(p.name.encode(), "little") % 2**32)
+            # Seeded from a HASH of the whole path. The first version took the
+            # low four bytes of the file name, which are "cold" for every
+            # artefact: all twelve drew one operator sequence, 72 children
+            # were five operators, and its table was thrown away.
+            rng = np.random.default_rng(int.from_bytes(
+                hashlib.blake2b(f"{name}/{p.name}".encode(), digest_size=8).digest(), "little"))
             got = 0
             while got < a.draws:
                 child, desc = operators.mutate(parent, rng, types, weights=weights, reqs=reqs)
@@ -117,13 +138,24 @@ def main(argv=None) -> int:
                       + "  ".join(f"{arm} {row[arm][0]}/{row[arm][2]:.1f}s" for arm in ARMS),
                       file=sys.stderr, flush=True)
 
-    print(f"\n{len(rows)} children ({a.draws} per artefact, {a.corpus}), fails and CPU seconds per child\n")
+    made = sum(r["new cuts"] > 0 for r in rows)
+    print(f"\n{len(rows)} children ({a.draws} per artefact, {a.corpus}), {made} of them "
+          f"with a cut their parent did not have; fails and CPU seconds per child\n")
+    ops = collections.Counter(r["op"] for r in rows)
+    print("operators drawn: " + ", ".join(f"{k} {v}" for k, v in ops.most_common()) + "\n")
     print(f"{'programme':<16} {'n':>3} " + "".join(f"{arm + ' fails':>15}{'s':>6}" for arm in ARMS))
     for g in [*dict.fromkeys(r["programme"] for r in rows), "ALL"]:
         sel = [r for r in rows if g == "ALL" or r["programme"] == g]
         print(f"{g:<16} {len(sel):3d} " + "".join(
             f"{sum(r[arm][0] for r in sel) / len(sel):15.2f}"
             f"{sum(r[arm][2] for r in sel) / len(sel):6.1f}" for arm in ARMS))
+    if "new-cf" in ARMS:
+        sel = [r for r in rows if r["new cuts"] > 0]
+        if len(sel) >= 2:
+            print(f"\n== the {len(sel)} children with a new cut: `new-cf` against `today`")
+            print(ab.format_report(ab.paired_report(
+                [float(r["today"][0]) for r in sel], [float(r["new-cf"][0]) for r in sel],
+                "today", "new-cf")))
     for g in ("ALL", *dict.fromkeys(r["programme"] for r in rows)):
         sel = [r for r in rows if g == "ALL" or r["programme"] == g]
         if len(sel) < 2:

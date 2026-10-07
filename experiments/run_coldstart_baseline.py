@@ -110,7 +110,7 @@ OBJECTIVE_SOURCES = ("src/homemaker_layout/cells.py",   # width/proportion, §39
                      "src/homemaker_layout/dom.py",
                      # the v2 reader decides a v2 file's rotations and ratios,
                      # so its geometry; `homemaker-evolve --native` writes v2
-                     # and `experiments/native_ab.py` scores what it writes
+                     # and `experiments/flag_ab.py native` scores what it writes
                      "src/homemaker_layout/dom_v2.py",
                      "src/homemaker_layout/fitness.py",
                      "src/homemaker_layout/geometry.py",

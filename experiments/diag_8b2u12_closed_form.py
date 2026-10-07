@@ -76,7 +76,8 @@ ARMS = ("half", "closed", "closedO", "solver", "cf+sol")
 def owed(root, reqs, conf, stack: str = "max", outside_absorbs: bool = False) -> dict:
     """``{id(node): area owed}`` for every node of every storey."""
     g0 = geometry._native(root)
-    plot_area = cells.area(geometry._native_frame(g0)[2])
+    plot_area = (cells.area(geometry._native_frame(g0)[2]) if g0 is not None
+                 else geometry.area(dom.levels(root)[0]))     # a quad tree's plot
     target: dict = {}
     for lvl in dom.levels(root):
         leaves = lvl.leaves()

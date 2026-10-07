@@ -14788,3 +14788,126 @@ re-measurement, and its step (2) -- ask the owner whether the per-level
 outdoor rule should demand a minimum USABLE cell -- was conditional on the
 effect holding. It does not hold. Closed; the tool reads any future corpus in
 seconds if it comes back.
+
+### 39.109 Sizing by arithmetic: most of the way on a cold topology, and a step backwards on a child (`homemaker-py-8b2u.12`, `.13`)
+
+The bead: in a slicing tree over a rectangle the ratio that gives each side of
+a cut the area it is owed is closed-form, so how much of the 80-evaluation
+inner loop does arithmetic already have? Two experiments, because the
+question as written and the question a search poses turned out to have
+opposite answers.
+
+**1. A frozen topology with its ratios thrown away**
+(`experiments/diag_8b2u12_closed_form.py`; all 48 orthogonal coldstart
+artefacts as native trees). Five starts, each then given N evaluations of
+`innerloop.optimise`. The number is how far the start gets from "every ratio
+0.5" (0%) to the committed design (100%, what 500k evaluations found),
+counted in fails:
+
+| start | cost | N=0 | N=20 | N=80 |
+|---|---|---|---|---|
+| `half`: every ratio 0.5 | -- | 0% | 3% | 7% |
+| `closed`: each side its owed area; spare area split equally among circulation and outdoor cells | 0.6 ms | 35% | 41% | 46% |
+| `closedO`: the same, the spare going to outdoor cells only | 0.7 ms | -8% | -3% | 5% |
+| `solver`: `solve_ratios`, least squares on area, width and proportion; no scorer | 0.4-11 s | **77%** | 82% | 85% |
+| `cf+sol`: the solver started from `closed` | 0.4-11 s | 75% | 80% | 83% |
+
+By programme, `closed` at N=0 / `solver` at N=0 / `half` at N=80:
+programme-house -1% / 61% / 57%; health-centre 54% / 74% / 14%; harbor-house
+29% / 88% / 4%; maple-court 39% / 71% / 2%.
+
+- **Eighty evaluations from a cold start buy almost nothing above thirty
+  cuts**: 2-14% on the three large programmes. §39.76 and §39.88 said so on
+  the quad tree; this is the reason. Nelder-Mead's first n evaluations build
+  its simplex by moving ONE ratio each. Counted on an 80-evaluation run:
+  programme-house (6 cuts) spends 6 on that and 72 on moves; health-centre
+  34 and 44; harbor-house 36 and 23; maple-court 41 and 37. On a large
+  programme half the budget is gone before the method takes a step.
+- **The closed form is a third of the way for nothing**, and its weak point is
+  exactly where the programme is silent: what a corridor or a garden is owed.
+  Two honest guesses differ by 43 points, and on programme-house -- every cell
+  on the plot boundary, a second storey with a lot of spare area -- the better
+  guess is worth nothing. The codebase already had this idea:
+  `operators._size_divisions_from_targets` (§12.2) sizes constructed seeds from
+  target areas, with its own guess for generic cells.
+- **The least-squares solver is three-quarters of the way with no scorer
+  call**, because it also knows width and proportion. Starting it from the
+  closed form does not help. It costs about one inner loop on programme-house
+  and harbor-house (0.4 s, 2.8 s CPU) and two to three on health-centre and
+  maple-court (3.3 s, 11 s).
+- **And it has no bound of its own.** The first run of this experiment used
+  the solver's default limit of 4,000 function evaluations; it stopped making
+  progress for over twenty minutes on its 42nd design (maple-court), and the
+  children experiment did the same on a harbor-house child, in the only step
+  of either loop that is not bounded. Both were re-run with the solver stopped
+  at 100 evaluations (it stops itself at a mean of 29; 4 of 48 reach the cap).
+  On the 41 designs the uncapped run finished, the capped `solver` arm has the
+  same fail count in all 205 cells of the table and `cf+sol` differs in 4. So
+  the cap costs nothing here -- but a step that takes seconds or half an hour
+  is not one a search can call per child, and where to stop it is a decision
+  someone has to make.
+
+**2. A child as the search makes one**
+(`experiments/diag_8b2u12_children.py`; 96 children drawn with the search's
+mutation mix from the twelve `1a24b6a+orth` designs, each sized five ways and
+scored by `driver._evaluate`). A child is not a cold topology: it inherits
+its parent's ratios and only the cuts the move made start at 0.5.
+
+| start | fails per child | paired against today | CPU s |
+|---|---|---|---|
+| today: inherited ratios, 80 evaluations | 29.15 | -- | 4.8 |
+| solver from the inherited ratios, 1 score | 35.58 | **+6.4**, 86 of 96 worse | 2.0 |
+| solver, then 20 evaluations | 33.76 | **+4.6**, 76 worse | 3.2 |
+| solver stopped at 10, then 20 | 33.93 | **+4.8**, 80 worse | 2.3 |
+| today, but a NEW cut starts at its closed-form ratio | 29.35 | +0.2 (+0.7 on the 28 children with a new cut) | 4.9 |
+
+The solver alone is worse than today by more than its MDD on every programme
+(+2.5, +3.8, +4.5, +15.0 fails; maple-court 24 children of 24). With 20
+evaluations after it, on three of four -- health-centre's +1.8 is under its
+MDD of 2.1. The closed form on new cuts is no better than 0.5: its margin
+(+0.21) sits on its MDD (0.20), which by §38.22 is unresolved, not small. The
+reason the solver hurts is not subtle once seen: an evolved parent's
+ratios are not a failed attempt at the programme's areas. They are where
+daylight, access and adjacency pulled the walls, and a model that knows area,
+width and proportion puts the walls back where those three would have them.
+What looked in experiment 1 like the solver's strength -- it knows what a room
+should measure -- is here what it erases.
+
+**A defect in the first version of experiment 2, kept on the record.** Its
+random stream was seeded from the low four bytes of the artefact's file name,
+which are `cold` for every one of them. All twelve artefacts drew the same
+operator sequence, so 72 children were five operators (`core_divide` 27 of
+them) and none was an `undivide`, a `level_retype` or a `support_outside`.
+Its table said the same thing as the one above (+6.8) and was thrown away;
+the tool now prints the operators it drew. `diag_8b2u_fixed_shaft.py` had the
+neighbouring fault -- Python's own `hash()`, salted per process, so §39.88's
+shaft table cannot be reproduced to the digit -- and is fixed the same way.
+
+**Against what the bead recorded first.** "Closed form recovers most of the
+score on interior-heavy designs and less where many cells touch the
+boundary": the direction holds (programme-house, all boundary, gets nothing)
+but "most" does not -- 29-54% on the others. "The polish cannot be dropped to
+zero": true, and beside the point, since eighty evaluations of polish add
+2 to 14 points to any start on a large programme.
+
+**What follows.**
+
+- `8b2u.12`'s IMPLEMENT -- a closed-form start and a short polish in the
+  search -- is not built. For children it is measured to be no better (closed
+  form) or worse (solver) than what the search does; for seeds the idea is
+  already there.
+- The one place a search holds a cold topology is its seeds and restarts. A
+  solver pass over those, with a cap, is the experiment this leaves: it is a
+  handful of calls per run, and whether better-sized seeds end as better
+  designs is population dynamics -- the box. Filed on the bead, not built.
+- `8b2u.13` (re-score only what a moved ratio touches). Its premise that the
+  inner loop moves a few ratios at a time is half right: the simplex-building
+  evaluations do, the rest move every ratio. After `8b2u.10`/`.11` a score
+  is about a quarter leaf-local, a quarter to a third storey graph, a quarter
+  other per-storey work and 7-19% building-level
+  (`diag_8b2u_score_cost.py --phases`), so the ceiling on a large programme is
+  roughly half the evaluations at well under half their cost, for a cache
+  whose failure mode is a silent change to the objective. The cheaper way to
+  the same end is to stop spending half the budget on the simplex: a
+  coordinate-wise inner loop, or fewer evaluations for a child that changed
+  one cut. Both are search changes and want the box.
