@@ -15178,3 +15178,70 @@ more evaluations. That is the other side of §39.110 (a child gains little
 from its own eighty): the tuning is real, but the search already gets it for
 free whenever an operator declines, which on a converged design is often.
 `child20`'s run will show whether the two cancel.
+
+### 39.115 Rulings on outdoor value and on the briefs, and a kit for drawing a design by hand (`homemaker-py-ecx`, `5nw`, `2g7.1`)
+
+**Usable space should be worth more than it costs** (owner, 2026-10-07, on
+`homemaker-py-ecx`): "Outside usable space should have more value than they
+cost, in general this should be true of any usable space." And on the bead's
+actual question, whether an outdoor cell's value should follow the daylight
+it delivers: the original Perl tool scored outside space by a direct-sunlight
+calculation, "but we don't want to implement this yet until we have the
+evolution engine singing". So `ecx`'s proposals wait with
+`homemaker-py-2g5` (the occlusion and sun subsystem), and nothing changes
+now.
+
+The ruling was checked against the rates as they stand, per square metre of
+floor, before walls and before quality:
+
+| space | value | cost | value / cost |
+|---|---|---|---|
+| a room | 300 | 200 | 1.5 |
+| a ground-floor garden or courtyard | 100 | 10 | 10 |
+| **an upper terrace (outdoor, over indoor space)** | 100 | 110 | **0.91** |
+| **circulation** | 50 | 200 | **0.25** |
+| a void (outdoor over outdoor, above ground) | 0 | 0 | -- (§39.59) |
+
+Two rows do not satisfy it. The terrace has been under water since §39.19,
+which lowered `value_supported` from 300 to 100 on the ruling that a terrace
+must not be worth more per square metre than a room -- and 100 is below the
+110 it costs to build one. Both rulings hold together anywhere between 110
+and 300. Circulation at a quarter of its cost is §39.24's deliberate pressure
+against corridor, and whether "any usable space" was meant to include it is
+the owner's to say. Neither was changed: each is an objective change, the A/B
+queue is running, and the number is a ruling. Put to the owner.
+
+**The briefs are to be fixed "whenever it is a good time to do it"**
+(`homemaker-py-5nw`: health-centre's treatment room has no dedicated WC;
+maple-court's level 1 has four neighbourhoods and no toilet). A good time is
+immediately before a full re-baseline and not otherwise: a room added to a
+brief makes every existing artefact of that programme a design with a missing
+room, so the corpus and the change must land together. Recorded on the bead.
+
+**A kit for drawing a harbor-house design by hand.** The owner offered to try
+one; the repository has exactly one human design (§39.70), on the smallest
+programme.
+
+- `examples/harbor-house/HAND-BRIEF.md`: how to draw, the site, the schedule
+  of rooms with the area range the scorer accepts for each (read off
+  `shapecurve.leaf_constraints`, so it is the scorer's and not a transcription),
+  and the six rules that cost most.
+- `examples/harbor-house/hand.svg`: a starter that composes -- the plot on a
+  locked reference layer, and on both storeys a 2.6 m band with a stair core
+  at each end and a corridor between. The first-floor corridor is cut in two,
+  because a `C` cell identical on both floors is a staircase and the starter's
+  first draft had three.
+- `experiments/hand_design.py`: composes the drawing, scores it, prints each
+  cell against what was wanted and what is still to place; `--tune N` then
+  slides the walls, as §39.70 did, so the comparison is of layouts and not of
+  centimetres.
+
+Building it found that **the composer could not read a line drawn in
+Inkscape.** `compose._parse_path_line` took `M x,y L x,y` and nothing else;
+Inkscape writes a vertical wall as `M x,y V y2`, a fresh line as a relative
+`m`, and leaves the `L` implicit. §39.70's trace never met this because a
+script drafted it. The parser now takes every straight form, a path round a
+corner as one wall per segment, and `<polyline>`
+(`tests/test_hand_design_kit.py`). `compose.py` is in `NEITHER_SOURCES` and
+nothing a search imports it, so the change touched neither stamp nor the
+queue.
