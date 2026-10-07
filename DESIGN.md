@@ -14968,3 +14968,87 @@ or four times the children. Expectation, recorded before any run: no more
 fails than the control on programme-house; fewer on the large programmes IF a
 live population behaves like these converged parents -- which is exactly what
 a container cannot say and the reason it is an A/B.
+
+### 39.111 The 2x2 at one objective: the terrace fail is rare now, and nothing separates the comparators (`homemaker-py-qkp0`)
+
+§39.91 left a question it could not answer. `support_outside` cleared `no
+outside space` 7 times in 7 under the flat comparator at `07b2058+orth`
+(§39.81) and did nothing under tiers at `59d8aa1+orth`, but two things had
+moved between the two A/Bs: the comparator and the objective (§39.84's
+sibling checks, §39.87's outdoor width 3.0 -> 2.3 m). `qkp0` re-ran the flat
+A/B at `59d8aa1+orth`: 72 runs, programme-house, 500k, the same 36 seeds, on
+the owner's desktop, 2026-10-06 07:59 to 2026-10-07 03:14 -- 151 run-hours
+(the tiers A/B: 145), 19 h 15 m of makespan, the last five hours shared
+with container work on the same box, which stretched the final runs to 2.6 h.
+The count of evaluations is the budget, so that cost time and nothing else.
+
+That completes a square at ONE objective
+(`experiments/diag_qkp0_two_by_two.py`, written and committed before the
+last 15 runs were in; it refuses a square whose tables disagree about the
+stamp):
+
+| cell | fails | hard | soft | carry `no outside space` | zero-fail runs | score, mean |
+|---|---|---|---|---|---|---|
+| flat, operator off | 1.28 | 0.17 | 1.11 | 3 of 36 | 8 | 0.179 |
+| flat, operator on | 1.08 | 0.11 | 0.97 | 1 of 36 | 7 | 0.194 |
+| tiers, operator off | 1.39 | 0.22 | 1.17 | 3 of 36 | 3 | 0.151 |
+| tiers, operator on | 1.31 | 0.19 | 1.11 | 4 of 36 | 6 | 0.180 |
+
+**(a) Does the operator still clear the fail under the default search? There
+is almost no fail left to clear.** Flat: 3 of 36 without it, 1 of 36 with; 4
+discordant pairs, 3 cleared and 1 broken, and four pairs cannot reach
+p < 0.05 however they fall (floor 0.125). Fails, hard fails and score are all
+inside their MDDs (fails +0.19 for the operator against 0.41). So it was not
+the tiered comparator that hid the operator's effect in §39.91. The control
+changed: the flat search without the operator carried the fail in 8 of 36
+runs at `07b2058+orth` and carries it in 3 of 36 here.
+
+**(c) ...which is the objective's doing, as far as 36 runs can say.** 8 of 36
+against 3 of 36 is Fisher p = 0.19: the direction §39.91 guessed, not a
+resolved difference. §39.93 had shown the old artefacts still carry the fail
+in the same 8 when re-scored today, so the objective changes did not clear it
+from any existing layout; what changed is what a SEARCH ends at. A 2.3 m
+terrace is easier to support than a 3.0 m one is the obvious reading and it
+was not tested.
+
+**(b) Flat against tiers, same arm, same seed, same objective: nothing.**
+
+| | fails | hard | soft | score |
+|---|---|---|---|---|
+| operator off: tiers minus flat (MDD) | +0.11 (0.50) | +0.06 (0.20) | +0.06 (0.46) | -0.028 (0.064) |
+| operator on: tiers minus flat (MDD) | +0.22 (0.46) | +0.08 (0.17) | +0.14 (0.41) | -0.014 (0.053) |
+
+Every sign leans the same way -- tiers a little worse on everything, fewer
+zero-fail runs (3 and 6 against 8 and 7) -- and every margin is well inside
+its MDD. §39.91's confounded comparison had tiers with MORE soft fails in arm
+A, 0.78 -> 1.17, p = 0.03. At one objective that is 1.11 -> 1.17. The 0.78 was
+the old objective, not the flat comparator.
+
+**Against what `qkp0` recorded before the run:**
+
+| expectation | result |
+|---|---|
+| (1) flat-off carries `no outside space` in fewer runs than §39.81's 8 of 36 | **holds in direction** (3 of 36), not resolved (p = 0.19) |
+| (2) the operator's discordant pairs lean "cleared", fewer than 6 of them, to be reported as unresolvable and not as a margin | **holds exactly**: 3 cleared, 1 broken, 4 pairs |
+| (3) flat has fewer soft fails than tiers in arm A at the same seed | **direction only**: 1.11 against 1.17, a margin of 0.06 with an MDD of 0.46 |
+
+**What it settles, and what it hands back.**
+
+- The disagreement between §39.81 and §39.91 was the objective, not the
+  comparator. Nothing here argues for `--use-tiers` on programme-house, and
+  nothing argues against it harder than "no resolved difference in 36 pairs".
+- `support_outside` is default-on by the owner's ruling (§39.65), which was
+  vindicated on ground that has since moved: at this objective the fail it
+  repairs appears in 3 runs in 36 without it. It costs nothing measurable
+  (fails, hard fails and score all inside their MDDs, each leaning its way),
+  so nothing here says to turn it off. Whether a repair for a fail this rare
+  is worth a share of the draw is the owner's question, not a measurement's.
+- `homemaker-py-ek07` (support the terrace without shrinking a room) was to
+  close "if the flat search at the live objective no longer produces the fail
+  either". It produces it rarely, not never, and the trade the bead set out
+  to improve can now be observed in at most three or four runs in 36. The
+  bead is left open with that recorded, for the owner to close or keep.
+- These four cells are at `59d8aa1+orth`. `dom-v2` merged the same morning
+  (§39.94-§39.110) and the stamp is now `64512f1+orth`: daylight is counted
+  once, width is the fitted rectangle's. No corpus exists at the live
+  objective, and none of these numbers should be compared to one that does.

@@ -20,6 +20,11 @@ first:
   read is `too few stairs` / `staircase volume`, which the repaired move
   should not make more frequent.
 
+* **t7q** (`homemaker-py-t7q`, DESIGN.md §39.75) -- `repair`, the default,
+  against `--no-repair-shaft`. NOTE the flag REMOVES the operator: here the
+  control is the arm that has it. The bead holds the expectation.
+* **v2k** (`homemaker-py-v2k`, DESIGN.md §39.71) -- the default against
+  `--level-add-migrate`. The bead holds the expectation.
 * **child40**, **child20** (`homemaker-py-8b2u.20`, DESIGN.md §39.110) --
   `child80`, the per-child inner-loop budget every run has ever used, against
   `--child-budget 40` or `20` at the SAME total budget, so the flagged arm
@@ -75,6 +80,14 @@ EXPERIMENTS = {
                 env="HOMEMAKER_CORE_UNDIVIDE_REPAIRED",
                 bead="homemaker-py-w4e, DESIGN.md §39.106",
                 what="core_undivide repaired against the shipped operator"),
+    "t7q": dict(arms=("repair", "norepair"), flag="--no-repair-shaft",
+                env="HOMEMAKER_REPAIR_SHAFT",
+                bead="homemaker-py-t7q, DESIGN.md §39.75",
+                what="the search without mutate_repair_shaft against the default, which has it"),
+    "v2k": dict(arms=("shipped", "migrate"), flag="--level-add-migrate",
+                env="HOMEMAKER_LEVEL_ADD_MIGRATE",
+                bead="homemaker-py-v2k, DESIGN.md §39.71",
+                what="level_add_migrate switched on against the default, which has it off"),
     "child40": dict(arms=("child80", "child40"), flag="--child-budget 40",
                     env="HOMEMAKER_CHILD_BUDGET",
                     bead="homemaker-py-8b2u.20, DESIGN.md §39.110",
