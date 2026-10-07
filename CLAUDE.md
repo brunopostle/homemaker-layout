@@ -432,6 +432,21 @@ Three consequences that bite:
   (`--core-undivide-repaired`). Add an entry to its `EXPERIMENTS` table rather
   than copying `e4r_support_outside_ab.py` a third time. Needs the box; `--scratch`
   is the smoke run.
+- `experiments/diag_8b2u12_children.py` and `diag_8b2u20_local_loop.py` — the
+  harness for "what should a CHILD's inner loop do": children drawn with the
+  search's own mutation mix, each sized several ways, scored with the search's
+  overrides, paired through `ab_report`. A new arm is a dozen lines; the second
+  one's `--self-test` requires its own loop to reproduce `driver._evaluate`
+  child for child. Two lessons it paid for (§39.109): **seed a per-artefact
+  random stream from a hash of the whole path** -- the low bytes of every
+  `coldstart-...` name are identical, and Python's `hash()` is salted per
+  process -- and **print the operators you drew**, which is how 72 children
+  turned out to be five operators.
+- **`solver.solve_ratios` has no time bound of its own.** It usually converges
+  in seconds; one call at its default `max_nfev=4000` ran past twenty minutes.
+  Pass `max_nfev` (100 loses nothing measurable) in any loop. And do not point
+  it at a child: it is good on a cold topology and makes a child that inherits
+  its parent's ratios worse (§39.109).
 - `experiments/diag_8b2u_score_cost.py` — for a change that must make a score
   CHEAPER and no different: `--snapshot` every artefact's score and fail list
   (quad and native) before and after, `--diff` them bit for bit, `--time` in
@@ -612,10 +627,14 @@ needed fixing and which was fixed (§39.24/§39.25; closed).
 
 ## Current state — derive it, do not trust this file
 
-This file rots. Two commands and one directory listing give you today's truth;
+This file rots. Three commands and one directory listing give you today's truth;
 prefer them over any sentence here.
 
 ```bash
+# IS A RUN IN PROGRESS? If this prints anything, do not edit src/ (see the last
+# section of this file); `~/homemaker-ab-queue.log` says what and how far
+pgrep -af 'homemaker_layout.evolve|homemaker-evolve|run_ab_queue|flag_ab|run_coldstart' | cut -c1-150
+
 # the objective stamp (and whether the objective's own source is dirty)
 python -c "import importlib.util as u; s=u.spec_from_file_location('r','experiments/run_coldstart_baseline.py'); m=u.module_from_spec(s); s.loader.exec_module(m); print(m.objective_commit(), m.search_commit(), m.search_config()[0])"
 
@@ -658,7 +677,8 @@ prose. (§39.69 pruned exactly that.)
 
 **Can**, so none of this is ever blocked:
 
-- the full test suite — `pytest`, six to seven minutes; the count is whatever
+- the full test suite — `pytest`, eight to nine minutes on the idle desktop and
+  about twenty-four while a sweep has every core; the count is whatever
   `pytest -q` prints on the last line, and it grows every week;
 - scoring committed artefacts — `homemaker-fitness`, or `Fitness.score_with_fails`
   in a loop over the twelve `.dom` files, seconds per file. Most measurements in
@@ -778,8 +798,8 @@ stamp reads it from the environment.)
 
 `--resume` picks up only what is missing if it is interrupted, and **do not edit
 `src/` while it runs** (see below). A dirty objective source no longer needs
-watching for: the runner refuses to start over uncommitted `fitness.py` or
-`geometry.py`, before the stamp is taken, with no override (§39.51). A dirty
+watching for: the runner refuses to start over an uncommitted file in
+`OBJECTIVE_SOURCES`, before the stamp is taken, with no override (§39.51). A dirty
 `src/` file that is *not* the objective warns and continues.
 
 **Compare the shape, not the fail count**, whenever the fail SET has moved
@@ -840,8 +860,10 @@ This corrects two older claims, both still in `homemaker-py-ao9` and
 (ao9's 3.3 deg edges were exterior walls), and that Urb's lost `Straighten()`
 "moved corners rather than cuts" (it re-aimed each cut at its parent's, which
 orthogonal division already does). Changing the corners needs the building to
-stop following the plot exactly -- the rectangle-frame pivot,
-`homemaker-py-8b2u`. Retiring `quality_perpendicular` means nothing measures the
+stop following the plot exactly. The rectangle-frame tree (`--native`,
+§39.103-§39.104) is the representation that could -- its cells are rectangles
+cropped to the plot -- but as merged it still crops to the same boundary, so
+the corners are where they were (`homemaker-py-8b2u`). Retiring `quality_perpendicular` means nothing measures the
 boundary corners -- an accepted trade, recorded so it stays a decision.
 
 ### The standing principle, in the owner's words
@@ -864,3 +886,20 @@ Worker runs are separate `homemaker-evolve` processes reading the editable
 install, and the objective stamp is read once at start-up. A mid-sweep commit to
 `src/` silently splits the sweep in two. `experiments/` and `tests/` are safe to
 change while one runs; `src/` is not.
+
+**Code work while a run has the box goes in a git worktree**, which is how
+§39.94-§39.110 were built during `qkp0`'s nineteen hours:
+
+```bash
+git worktree add ../hm-<name> -b <name>          # a second checkout, its own src/
+cd ../hm-<name>
+PYTHONPATH=$PWD/src python -m pytest -q          # THIS tree's code, not the install's
+PYTHONPATH=$PWD/src python experiments/<tool>.py
+```
+
+`pip install -e .` points at the main checkout, so without `PYTHONPATH` every
+tool silently measures main. Merge when the run has finished, never before:
+merging IS editing `src/`. Container measurements cost the run wall-clock and
+nothing else -- its budget is counted in evaluations -- but they stretched
+`qkp0`'s last runs from 2.0 h to 2.6 h, so time CPU with `time.process_time()`
+and not the wall clock while one is going (§39.105).
