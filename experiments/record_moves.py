@@ -1,5 +1,5 @@
 """Run searches with the move recorder on, and keep the logs
-(`homemaker-py-urzf`, DESIGN.md §39.115).
+(`homemaker-py-urzf`, DESIGN.md §39.119).
 
 Each run is `homemaker-evolve` as shipped, single worker, orthogonal division
 on, with `HOMEMAKER_MOVE_LOG` naming a file: one JSON line per child (the

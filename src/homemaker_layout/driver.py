@@ -145,7 +145,7 @@ def _move_logger():
     ``HOMEMAKER_MOVE_LOG``, or None when the variable is unset (the default:
     nothing is recorded and nothing changes).
 
-    homemaker-py-urzf, DESIGN.md §39.115. A run's log names the move behind
+    homemaker-py-urzf, DESIGN.md §39.119. A run's log names the move behind
     each NEW BEST and nothing else: no move that failed, no pattern of fails
     it was played on. So there is no rate of success for any move in any
     state, which is what choosing moves by state would need. One record per

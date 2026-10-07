@@ -1,5 +1,5 @@
 """`HOMEMAKER_MOVE_LOG` records every child of a search and changes nothing
-(`homemaker-py-urzf`, DESIGN.md §39.115).
+(`homemaker-py-urzf`, DESIGN.md §39.119).
 
 A book of moves needs to know what was tried, on what, and what came of it.
 The recorder is a file named by an environment variable; the first thing held

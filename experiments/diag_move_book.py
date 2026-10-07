@@ -1,5 +1,5 @@
 """A book of moves: which operator succeeds on which failure pattern?
-(`homemaker-py-urzf`, DESIGN.md §39.115)
+(`homemaker-py-urzf`, DESIGN.md §39.119)
 
 The owner's idea: operators are like chess moves, and by tracking which tend
 to succeed we can choose them by the state of the design and its particular
