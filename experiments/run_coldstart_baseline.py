@@ -108,6 +108,10 @@ ORTH_SUFFIX = "+orth"
 # warns about those instead.
 OBJECTIVE_SOURCES = ("src/homemaker_layout/cells.py",   # width/proportion, §39.102
                      "src/homemaker_layout/dom.py",
+                     # the v2 reader decides a v2 file's rotations and ratios,
+                     # so its geometry; `homemaker-evolve --native` writes v2
+                     # and `experiments/native_ab.py` scores what it writes
+                     "src/homemaker_layout/dom_v2.py",
                      "src/homemaker_layout/fitness.py",
                      "src/homemaker_layout/geometry.py",
                      "src/homemaker_layout/graph.py",
@@ -142,14 +146,6 @@ NEITHER_SOURCES = ("src/homemaker_layout/__init__.py",
                    "src/homemaker_layout/collapse_cmd.py",
                    "src/homemaker_layout/compose.py",
                    "src/homemaker_layout/compose_cmd.py",
-                   # format v2 reader/writer. `dom.load` reaches it only for a
-                   # file with a `format` key, and nothing scored is one yet:
-                   # every committed artefact is v1 and `homemaker-evolve`
-                   # still writes v1. THE DAY A SCORED FILE IS V2 THIS MOVES TO
-                   # OBJECTIVE_SOURCES -- it decides that file's rotation and
-                   # ratios, so its geometry -- and test_objective_sources.py
-                   # must then measure a v2 artefact as well as a v1 one.
-                   "src/homemaker_layout/dom_v2.py",
                    # `homemaker-dom-upgrade`: converts a file, scores nothing
                    "src/homemaker_layout/dom_upgrade_cmd.py",
                    "src/homemaker_layout/fitness_cmd.py",
@@ -162,6 +158,7 @@ NEITHER_SOURCES = ("src/homemaker_layout/__init__.py",
 # namespace is per-run (budget, seed, workers, output paths) and already in the
 # row or irrelevant to it.
 SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
+                "core_undivide_repaired",
                 "collapse_insearch", "collapse_local_search", "conn_grade",
                 "leaf_share_factor", "leaf_sharing", "level_add_migrate",
                 "multi_use", "pop", "repair_shaft", "ruin_recreate",

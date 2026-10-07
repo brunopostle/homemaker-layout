@@ -14597,9 +14597,13 @@ only by `compose`, and both shape-curve flags default off. What `operators` and
 `driver` do call from `geometry` is `area`, `aspect`, `boundary_id`,
 `leaf_graph` and `n_edges`, all of which §39.104 made answer for a native
 cell. Item (1), a runner that can ask for a native search and mark its rows,
-is `experiments/native_ab.py`: paired seeds, `quad` against `--native`, rows
-marked `<stamp>+orth` and `<stamp>+native`, `elapsed_s` among the paired
-metrics. Smoke-run at a toy budget; the real run needs the box.
+is `experiments/flag_ab.py native`: paired seeds, `quad` against `--native`,
+rows marked `<stamp>+orth` and `<stamp>+native`, `elapsed_s` among the paired
+metrics. Smoke-run at a toy budget; the real run needs the box. And one item
+the list did not have: `dom_v2.py` is now in `OBJECTIVE_SOURCES`, as its own
+comment said it must be "the day a scored file is v2" -- a native search
+writes v2, so the reader decides what its artefacts score -- and
+`tests/test_objective_sources.py` scores a v2 file as well as a v1 one.
 
 ### 39.106 Two readings taken while the box was busy: `core_undivide`, and the shape-curve DP on a native tree (`homemaker-py-w4e`, `8b2u.14`)
 
@@ -14651,7 +14655,12 @@ deletion, would remove the only exact inverse `core_divide` has. It is still
 a change to what a search does -- `core_divide` fires often, and a working
 inverse changes how its damage is undone -- so it is still an A/B on the box
 (`homemaker-py-w4e`, updated). What a container can say is which of the three
-to put in the B arm.
+to put in the B arm, and that arm now exists: `--core-undivide-repaired`
+(`operators.CORE_UNDIVIDE_REPAIRED`, default off, recorded in `search_config`),
+with `experiments/flag_ab.py w4e` to run it. Expectation, recorded before any
+run: no resolved difference in fails on programme-house -- the move needs a
+`core_divide` to undo and both are a small share of draws -- and `too few
+stairs` / `staircase volume` no more frequent with it than without.
 
 **The shape-curve DP's verdict does not care which tree it reads; its warm
 start does** (`experiments/diag_ekc_shapecurve.py --native`, new flag). `8b2u.14`

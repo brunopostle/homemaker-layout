@@ -190,6 +190,15 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "wing), applying the one construction technique with a "
                         "track record repeatedly during search instead of only "
                         "at seeding (default: off)")
+    p.add_argument("--core-undivide-repaired", dest="core_undivide_repaired",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", False),
+                   help="homemaker-py-w4e (DESIGN.md §39.106): run core_undivide "
+                        "as its docstring describes it -- the inverse of "
+                        "core_divide -- instead of as shipped, where it almost "
+                        "never fires and would replace the staircase with a room "
+                        "if it did. Changes what a search does; the A/B that "
+                        "decides it has not been run (default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
@@ -369,6 +378,12 @@ def _dumps(root) -> str:
 def main(argv=None) -> int:
     args = _parse_args(argv)
 
+    # The repaired core_undivide is a switch in `operators`, read from the
+    # environment so that it reaches worker processes; the flag sets both.
+    from . import operators
+    os.environ["HOMEMAKER_CORE_UNDIVIDE_REPAIRED"] = "1" if args.core_undivide_repaired else "0"
+    operators.CORE_UNDIVIDE_REPAIRED = bool(args.core_undivide_repaired)
+
     seed_file = args.seed_dom.resolve()
     if not seed_file.exists():
         print(f"ERROR: seed not found: {seed_file}", file=sys.stderr)
@@ -444,6 +459,7 @@ def main(argv=None) -> int:
     print(f"support outside    : {args.support_outside}", file=sys.stderr)
     print(f"level add+migrate  : {args.level_add_migrate}", file=sys.stderr)
     print(f"repair shaft       : {args.repair_shaft}", file=sys.stderr)
+    print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)

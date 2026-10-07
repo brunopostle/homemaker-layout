@@ -1,39 +1,42 @@
-"""Is `homemaker-evolve --native` as good a search as the default?
-(`homemaker-py-8b2u.8`, DESIGN.md §39.104)
+"""A paired A/B of one `homemaker-evolve` flag: the same seeds with and without.
 
-Matched pairs, one variable, the flag:
+The shape `e4r_support_outside_ab.py` established, for the flags that have
+come since. Each experiment is two arms differing in ONE flag, the control
+first:
 
-* **quad**   -- `homemaker-evolve` as shipped, orthogonal division on: Urb's
-  quad tree, written as format v1.
-* **native** -- `homemaker-evolve --native`: the same operators and genes on a
-  rectangle-frame tree, written as format v2.
+* **native** (`homemaker-py-8b2u.8`, DESIGN.md §39.104) -- `quad`, the search
+  as shipped on Urb's quad tree with orthogonal division, against `native`,
+  `--native`: the same operators and genes on a rectangle-frame tree, written
+  as format v2. Not the same search with another file format: a ratio is a
+  fraction of the node's rectangle, not of a cropped edge. Expectation on
+  file: no resolved difference on programme-house; if anything differs it
+  will be on the large programmes, where more cells touch the skew boundary.
+  `elapsed_s` is part of the answer (a native score costs 13-17% more).
+* **w4e** (`homemaker-py-w4e`, DESIGN.md §39.106) -- `shipped` against
+  `repaired`, `--core-undivide-repaired`: `core_undivide` as its docstring
+  describes it, the inverse of `core_divide`. Expectation on file: no
+  resolved difference in fails on programme-house (the move needs a
+  `core_divide` to undo, and both are a small share of draws); the thing to
+  read is `too few stairs` / `staircase volume`, which the repaired move
+  should not make more frequent.
 
-It is not the same search with another file format. A ratio is a fraction of
-the node's rectangle, not of a cropped edge, so the same genome draws slightly
-different cells wherever a cell touches a skew plot boundary.
-
-**The two arms are scored by one objective.** Every orthogonal design scores
-the same as a quad tree and as the native tree of the same building (192 of
-192, `tests/test_native_tree.py`), so each arm's own `homemaker-fitness` score
-is the comparable number. The two rows still carry different marks --
-`<stamp>+orth` and `<stamp>+native` -- because they name different searches
-and a later reader must be able to tell which geometry drew the artefact.
-
-**Record what you expect before running it.** On file in the bead: no resolved
-difference on programme-house (small skew, few cells); if anything differs it
-will be on the large programmes, where more cells touch the skew boundary.
-`elapsed_s` is part of the answer: a native score cost 40% more before
-`8b2u.10`/`.11` and 6-15% more after, and at 500k that is wall-clock.
+**The two arms are scored by one objective.** For `native` that is a fact
+with a test behind it: every orthogonal design scores the same as a quad tree
+and as the native tree of the same building (192 of 192,
+`tests/test_native_tree.py`). The rows still carry different marks --
+`<stamp>+orth` and `<stamp>+native` -- because a later reader must be able to
+tell which geometry drew an artefact.
 
 Results are committed and pushed per run, as the cold-start runner does it.
 
 Usage::
 
-    python experiments/native_ab.py --seeds 36 --slots $(nproc)
-    python experiments/native_ab.py --programme maple-court --seeds 3 --slots 6
-    python experiments/native_ab.py --resume
-    python experiments/native_ab.py --report-only
-    python experiments/native_ab.py --scratch /some/dir --budget 300 --seeds 1   # smoke
+    python experiments/flag_ab.py native --seeds 36 --slots $(nproc)
+    python experiments/flag_ab.py native --programme maple-court --seeds 3 --slots 6
+    python experiments/flag_ab.py w4e --seeds 36 --slots $(nproc)
+    python experiments/flag_ab.py native --resume
+    python experiments/flag_ab.py native --report-only
+    python experiments/flag_ab.py w4e --scratch /some/dir --budget 300 --seeds 1   # smoke
 """
 
 from __future__ import annotations
@@ -51,8 +54,17 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 PROGRAMMES = ("programme-house", "health-centre", "harbor-house", "maple-court")
-ARMS = ("quad", "native")
 NATIVE_SUFFIX = "+native"
+# name -> (control arm, flagged arm), the flag, the bead and what it is
+EXPERIMENTS = {
+    "native": dict(arms=("quad", "native"), flag="--native", env="HOMEMAKER_NATIVE",
+                   bead="homemaker-py-8b2u.8, DESIGN.md §39.104",
+                   what="homemaker-evolve --native against the default search"),
+    "w4e": dict(arms=("shipped", "repaired"), flag="--core-undivide-repaired",
+                env="HOMEMAKER_CORE_UNDIVIDE_REPAIRED",
+                bead="homemaker-py-w4e, DESIGN.md §39.106",
+                what="core_undivide repaired against the shipped operator"),
+}
 FIELDS = ["programme", "arm", "seed", "objective", "search_commit", "budget",
           "storeys", "fails", "hard", "soft", "score", "elapsed_s", "dom",
           "fail_list"]
@@ -126,8 +138,12 @@ def storeys(path: Path) -> int:
 
 
 class Table:
-    def __init__(self, results: Path, artefacts: Path, commit: bool):
-        self.results, self.artefacts, self.commit = results, artefacts, commit
+    def __init__(self, name: str, out: Path, commit: bool):
+        self.name, self.exp = name, EXPERIMENTS[name]
+        self.arms = self.exp["arms"]
+        self.results = out / f"{name}_ab.tsv"
+        self.artefacts = out / f"{name}-ab"
+        self.commit = commit
 
     def rows(self) -> "list[dict]":
         if not self.results.exists():
@@ -148,10 +164,9 @@ class Table:
         if self.commit:
             mod.commit_and_push(
                 [str(self.results.relative_to(REPO)), str(kept.relative_to(REPO))],
-                f"native A/B {row['programme']} {row['arm']} seed {row['seed']}: "
+                f"{self.name} A/B {row['programme']} {row['arm']} seed {row['seed']}: "
                 f"{row['fails']} fails, score {row['score']}",
-                "homemaker-evolve --native against the default search "
-                "(homemaker-py-8b2u.8, DESIGN.md §39.104).")
+                f"{self.exp['what']} ({self.exp['bead']}).")
 
 
 def report(table: Table) -> int:
@@ -161,7 +176,7 @@ def report(table: Table) -> int:
     done = False
     for prog in dict.fromkeys(r["programme"] for r in rows):
         by = {(r["arm"], r["seed"]): r for r in rows if r["programme"] == prog}
-        seeds = sorted({s for _, s in by if all((a, s) in by for a in ARMS)}, key=int)
+        seeds = sorted({s for _, s in by if all((a, s) in by for a in table.arms)}, key=int)
         marks = sorted({r["objective"] for r in by.values()})
         print(f"=== {prog}: {len(seeds)} paired seeds; objective {', '.join(marks)}\n")
         if len(seeds) < 2:
@@ -169,21 +184,34 @@ def report(table: Table) -> int:
             continue
         done = True
         for metric in ("fails", "hard", "score", "elapsed_s"):
-            a = [float(by[("quad", s)][metric]) for s in seeds]
-            b = [float(by[("native", s)][metric]) for s in seeds]
-            note = {"score": "   (mean_diff is quad-minus-native, so NEGATIVE = "
-                             "native scored higher = better; W/L is inverted "
+            off, on = table.arms
+            a = [float(by[(off, s)][metric]) for s in seeds]
+            b = [float(by[(on, s)][metric]) for s in seeds]
+            note = {"score": f"   (mean_diff is {off}-minus-{on}, so NEGATIVE = "
+                             f"{on} scored higher = better; W/L is inverted "
                              "for this metric)",
-                    "elapsed_s": "   (seconds; positive mean_diff = native faster)"}
+                    "elapsed_s": f"   (seconds; positive mean_diff = {on} faster)"}
             print(f"{metric}:{note.get(metric, '')}")
-            print(ab.format_report(ab.paired_report(a, b, "quad", "native")))
+            print(ab.format_report(ab.paired_report(a, b, off, on)))
             print()
+        # stairs are what an operator on the core can cost a building
+        for needle in ("too few stairs", "staircase volume", "no outside space"):
+            a = [int(needle in by[(off, s)]["fail_list"]) for s in seeds]
+            b = [int(needle in by[(on, s)]["fail_list"]) for s in seeds]
+            cleared = sum(1 for x, y in zip(a, b) if x and not y)
+            broken = sum(1 for x, y in zip(a, b) if y and not x)
+            print(f"`{needle}`: {off} {sum(a)}/{len(seeds)}, {on} {sum(b)}/{len(seeds)}; "
+                  f"discordant {cleared + broken} ({cleared} cleared, {broken} broken)"
+                  + ("  ** fewer than 6 discordant pairs cannot reach p < 0.05 **"
+                     if cleared + broken < 6 else ""))
+        print()
     return 0 if done else 1
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("experiment", choices=sorted(EXPERIMENTS))
     ap.add_argument("--programme", choices=PROGRAMMES, default="programme-house")
     ap.add_argument("--budget", type=int, default=500000)
     ap.add_argument("--seeds", type=int, default=36,
@@ -199,7 +227,8 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     out = Path(args.scratch) if args.scratch else REPO / "experiments" / "results"
-    table = Table(out / "native_ab.tsv", out / "native-ab", commit=not args.scratch)
+    table = Table(args.experiment, out, commit=not args.scratch)
+    exp, ARMS = table.exp, table.arms
     if args.report_only:
         return report(table)
 
@@ -211,21 +240,27 @@ def main(argv=None) -> int:
         return 2
     env = dict(os.environ, HOMEMAKER_ORTHOGONAL_DIVISION="1",
                OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
-    env.pop("HOMEMAKER_NATIVE", None)       # the flag is the variable; an
-    # inherited override would silently set BOTH arms
+    for e in EXPERIMENTS.values():          # the flag is the variable; an
+        env.pop(e["env"], None)             # inherited override would silently
+        os.environ.pop(e["env"], None)      # set BOTH arms
     os.environ.update(env)
     marks = {arm: stamp(mod, arm) for arm in ARMS}
+    if len(set(marks.values())) == 1:       # one geometry: say so once
+        marks_text = marks[ARMS[0]]
+    else:
+        marks_text = " / ".join(marks[a] for a in ARMS)
     search = mod.search_commit()
     # One table, one objective per arm. Rows at another stamp are another
     # experiment; mixing them makes pairs that are not comparable (qkp0).
     stale = sorted({r["objective"] for r in table.rows()} - set(marks.values()))
     if stale:
         print(f"{table.results} holds rows at {', '.join(stale)}; the live "
-              f"objective is {marks['quad']} / {marks['native']}.\nMove the old "
+              f"objective is {marks_text}.\nMove the old "
               "table aside rather than mixing the two.")
         return 2
 
-    work = Path(tempfile.gettempdir()) / ("native_ab_scratch" if args.scratch else "native_ab")
+    work = Path(tempfile.gettempdir()) / (
+        f"{args.experiment}_ab" + ("_scratch" if args.scratch else ""))
     arms = {arm: build_arm(work, args.programme, arm) for arm in ARMS}
     queue = [(arm, s) for s in range(args.seeds) for arm in ARMS]
     if args.resume:
@@ -242,21 +277,21 @@ def main(argv=None) -> int:
         print("nothing to do")
         return report(table)
 
-    print(f"{len(queue)} runs on {args.programme}, objective {marks['quad']} / "
-          f"{marks['native']}, search {search}, budget {args.budget}, "
+    print(f"{args.experiment}: {len(queue)} runs on {args.programme}, objective "
+          f"{marks_text}, search {search}, budget {args.budget}, "
           f"{args.slots} slots", flush=True)
     running: dict = {}
     while queue or running:
         while queue and len(running) < args.slots:
             arm, seed = queue.pop(0)
             d = arms[arm]
-            dom_out = d / f"native-ab-{args.programme}-{arm}-s{seed}.dom"
+            dom_out = d / f"{args.experiment}-ab-{args.programme}-{arm}-s{seed}.dom"
             fh = dom_out.with_suffix(".log").open("w")
             cmd = [sys.executable, "-m", "homemaker_layout.evolve", "init.dom",
                    "--budget", str(args.budget), "--seed", str(seed),
                    "--workers", "1", "--output", str(dom_out)]
-            if arm == "native":
-                cmd.append("--native")
+            if arm == ARMS[1]:
+                cmd.append(exp["flag"])
             p = subprocess.Popen(cmd, cwd=d, stdout=subprocess.DEVNULL,
                                  stderr=fh, env=env)
             running[p.pid] = (p, arm, seed, dom_out, fh, time.monotonic())
@@ -272,7 +307,7 @@ def main(argv=None) -> int:
                 print(f"    FAILED {arm} s{seed} rc={p.returncode} ({el}s): see "
                       f"{dom_out.with_suffix('.log')}", flush=True)
                 continue
-            sc, fails, hard = score(dom_out, arms["quad"], env)
+            sc, fails, hard = score(dom_out, arms[ARMS[0]], env)
             print(f"    done {arm} s{seed}: {len(fails)} fails, score {sc:.4g}, "
                   f"{el}s", flush=True)
             table.record(dict(programme=args.programme, arm=arm, seed=seed,

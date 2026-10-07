@@ -425,6 +425,11 @@ Three consequences that bite:
   omission must outscore "no circulation". Run it after any objective change;
   `--self-test` is its negative control, and `tests/test_ruling_omit_vs_circulation.py`
   pins it. The pattern to copy when a ruling is about an ORDERING.
+- `experiments/flag_ab.py` — the paired A/B of ONE `homemaker-evolve` flag, same
+  seeds with and without: `native` (default search against `--native`) and `w4e`
+  (`--core-undivide-repaired`). Add an entry to its `EXPERIMENTS` table rather
+  than copying `e4r_support_outside_ab.py` a third time. Needs the box; `--scratch`
+  is the smoke run.
 - `experiments/diag_8b2u_score_cost.py` — for a change that must make a score
   CHEAPER and no different: `--snapshot` every artefact's score and fail list
   (quad and native) before and after, `--diff` them bit for bit, `--time` in
@@ -695,8 +700,9 @@ A single sweep measures the NET effect of everything landed since the last one,
 and nothing can be attributed to any individual change (§39.12 clause 3). So:
 
 - **Prefer search-side work.** "Search-side" means the file is **not in
-  `OBJECTIVE_SOURCES`** — six modules, `cells` / `dom` / `fitness` / `geometry` /
-  `graph` / `programme`, because those are the six a score actually executes. It is NOT
+  `OBJECTIVE_SOURCES`** — seven modules, `cells` / `dom` / `dom_v2` / `fitness` /
+  `geometry` / `graph` / `programme`, because those are the seven a score actually
+  executes (`dom_v2` only for a format-v2 file, which is what a native search writes). It is NOT
   "anything outside `fitness.py` and `geometry.py`": that reading held until
   §39.63 and was wrong. `tests/test_objective_sources.py` measures the set rather
   than trusting anyone's memory of it, and `tests/test_search_config.py` holds a

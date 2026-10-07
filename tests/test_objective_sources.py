@@ -61,11 +61,13 @@ def _runner():
 
 
 def _modules_loaded_by_a_score() -> set[str]:
-    """Run one real score in a clean interpreter; return the `homemaker_layout`
-    submodules it loaded. A subprocess because this process has long since
-    imported the whole package."""
+    """Run two real scores in a clean interpreter -- the artefact as the v1
+    file it is, and the same building as a format-v2 file loaded natively,
+    which is what `homemaker-evolve --native` writes (`homemaker-py-8b2u.8`) --
+    and return the `homemaker_layout` submodules they loaded. A subprocess
+    because this process has long since imported the whole package."""
     code = (
-        "import sys, copy, json\n"
+        "import sys, copy, json, tempfile, os\n"
         # THIS checkout's source, not whichever one `pip install -e` points at:
         # in a git worktree those differ, and the test would measure the wrong
         # tree's imports (it did, the day cells.py joined the scoring path).
@@ -75,6 +77,14 @@ def _modules_loaded_by_a_score() -> set[str]:
         "fit = fitness.Fitness(conf, cost)\n"
         f"root = dom.load({str(PROGRAMME / ARTEFACT)!r})\n"
         "fit.score_with_fails(copy.deepcopy(root))\n"
+        "from homemaker_layout import geometry\n"
+        "with tempfile.TemporaryDirectory() as td:\n"
+        "    v2 = os.path.join(td, 'as-v2.dom')\n"
+        # a v1 file is written as v2 the way orthogonal division draws it
+        "    geometry.ORTHOGONAL_DIVISION = True\n"
+        "    open(v2, 'w').write(dom.dumps(root, version=2))\n"
+        "    geometry.ORTHOGONAL_DIVISION = False\n"
+        "    fit.score_with_fails(dom.load(v2, native=True))\n"
         "print(json.dumps(sorted(m.split('.')[-1] for m in sys.modules\n"
         "                        if m.startswith('homemaker_layout.'))))\n"
     )

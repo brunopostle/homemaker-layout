@@ -19,11 +19,27 @@ criterion), so operators never edit dead fields.
 from __future__ import annotations
 
 import copy
+import os
 
 import numpy as np
 
 from . import dom
 from . import graph as graph_mod
+
+# homemaker-py-w4e (DESIGN.md §39.106): `mutate_core_undivide` as its docstring
+# describes it, behind a switch. As shipped it differs from that docstring
+# twice -- it looks for a path OWNED on two storeys, which below-inheritance
+# all but forbids, and it gives the merged cell a ROOM's type where there is
+# one, so that what it removes is the staircase. Measured on 48 artefacts: the
+# shipped move fires 8 times in 384; with only the first repaired it empties
+# the stair shaft in two firings of three; with both it is the inverse of
+# `core_divide` (213 of 256 restore the parent). Default OFF: it changes what a
+# search does, and whether that is better is an A/B on the box.
+#
+# Read from the environment for the reason `geometry.ORTHOGONAL_DIVISION` is:
+# evaluations run in worker processes, and a module attribute set in the
+# parent would not reach them.
+CORE_UNDIVIDE_REPAIRED = os.environ.get("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", "") == "1"
 
 
 def _finalise(root: dom.Node) -> dom.Node:
@@ -2219,12 +2235,17 @@ def mutate_core_undivide(root: dom.Node, rng: np.random.Generator,
     """
     child = copy.deepcopy(root)
     lvls = dom.levels(child)
+    repaired = CORE_UNDIVIDE_REPAIRED
 
     # Find divided nodes whose left child is C (candidate for core_undivide):
-    # the parent path must have C.left on 2+ floors.
+    # the parent path must have C.left on 2+ floors. `core_divide` leaves such
+    # a path DIVIDED on each of them and owned only on the lowest, so the
+    # repaired move reads every divided node (w4e).
     parent_paths: dict[str, list[int]] = {}
     for li, lvl in enumerate(lvls):
-        for n in [n for li2, n in _owned_branches(child) if li2 == li]:
+        nodes = ([n for n in _level_nodes(lvl) if n.divided] if repaired
+                 else [n for li2, n in _owned_branches(child) if li2 == li])
+        for n in nodes:
             if (n.left.type and n.left.type.upper() == "C"
                     and not n.left.divided and not n.right.divided):
                 parent_paths.setdefault(n.id or "", []).append(li)
@@ -2237,9 +2258,14 @@ def mutate_core_undivide(root: dom.Node, rng: np.random.Generator,
         node = lvls[li].by_id(path)
         if node is None or not node.divided:
             continue
-        keep = [t for t in (node.left.type, node.right.type)
-                if t and not dom.is_generic(t)]
-        node.type = keep[0] if keep else (node.left.type or str(_pick(rng, types)))
+        if repaired:
+            # "back into a single C leaf", and the wall above stays (§39.100)
+            node.type = "C"
+            dom.hand_cut_up(node)
+        else:
+            keep = [t for t in (node.left.type, node.right.type)
+                    if t and not dom.is_generic(t)]
+            node.type = keep[0] if keep else (node.left.type or str(_pick(rng, types)))
         node.division = None
         node.left = node.right = None
 
