@@ -2,6 +2,11 @@
 
 This file provides instructions and context for AI coding agents working on this project.
 
+**Two files to read, one not to.** This file is how to work here.
+`DESIGN-INDEX.md` is the map of what was found and decided. `DESIGN.md` is the
+full history behind it -- too long for a session's context; read it by section,
+through the index.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
 
@@ -645,9 +650,17 @@ bd ready 2>/dev/null || python -c "import json;[print(r['id'],'P%s'%r['priority'
 ls examples/*/coldstart-*.dom | sed 's/.*coldstart-//;s/-500000.*//' | sort -u
 ```
 
-**DESIGN.md is the history; this file is how to work here.** For what changed
-and why, read DESIGN.md from §39.44 forward — it is in commit order and every
-number in it carries the objective stamp it was measured at. Do not reconstruct
+**DESIGN.md is the history; this file is how to work here.** DESIGN.md is over
+15,000 lines and must NOT be loaded whole: **read `DESIGN-INDEX.md`** (about 400
+lines) -- how to read the history, its arcs, the owner's rulings, the measured
+nulls, and every section's title with the line range to read it at -- and then
+open only the sections a task touches. The history is in commit order and every
+number in it carries the objective stamp it was measured at.
+
+**After adding a section to DESIGN.md, run
+`python experiments/build_design_index.py`** and commit the index with it;
+`tests/test_design_index.py` fails until you do. The index's preamble is
+hand-written: a new owner ruling or a new measured null gets a row there too. Do not reconstruct
 that narrative here: a dated "where things stand" section in a file nobody prunes
 becomes a second, competing history, which is §39.63's two-copies failure in
 prose. (§39.69 pruned exactly that.)

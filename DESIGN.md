@@ -15098,3 +15098,83 @@ on." §39.111 measured none: with the operator fails 1.08 against 1.28, hard
 fails 0.11 against 0.17, score 0.194 against 0.179, every margin inside its
 MDD and each leaning the operator's way. The default is unchanged; the
 question is closed until a measurement shows a cost.
+
+### 39.113 The stair shaft is a cell made by division, like every other cell (owner's ruling, `homemaker-py-8b2u.16`)
+
+Owner, 2026-10-07: "I think the stair shaft needs to be a cell defined by
+division just like every other cell." With §39.112's first ruling -- its
+position is found by the search -- this closes the pre-placed block. §39.112
+read that first ruling as "a gene outside the slicing tree"; that was this
+file's inference, and it is wrong. There is no block, no rectangle held apart
+from the tree, and `docs/dom-format-v2.md`'s reserved `blocks:` key stays
+reserved and unread.
+
+What stands is what there was: a staircase exists where a cell typed `C` is
+the same cell on every storey (§39.72), the search finds that column by
+dividing, and what keeps it are the things already built for the purpose --
+`operators._shaft_paths` / `_shaft_cells` as the shared predicates, the guards
+on the moves that must not cost a building its stair (§39.74), and
+`mutate_repair_shaft` to cut one back (§39.75). What is still owed is
+`homemaker-py-t7q`'s A/B and its unbuilt half, guards on the six exploratory
+operators that break shafts -- which is where "make shaft breakage rarer"
+lives now. `homemaker-py-8b2u.16` is closed as ruled out.
+
+### 39.114 Would a canonical genome help? What the run logs say (`homemaker-py-8b2u.15`)
+
+The owner's question on §39.107: would it help, or would reducing entropy
+cause problems with evolution? Two facts from the code and one from the 72
+finished `qkp0` runs, none of which needed a new experiment.
+
+**The search is not using the redundancy as neutral drift, so removing it
+would not take that away.** `driver.admit` discards a child whose fitness
+equals a population member's to one part in 10^9 ("legacy fitness-scalar
+dedup"), and otherwise admits a child only if it beats the worst member. Two
+trees that draw the same cells score the same, so a re-encoding of something
+already in the population is thrown away on arrival. Nor does any default
+operator produce one: the only move that re-brackets a run of parallel cuts,
+`mutate_reassociate`, is default off. The many names a layout has are names
+the search never visits on purpose and cannot keep when it does.
+
+**Crossover is the thing a canonical form would serve, and inside one
+population it already works.** Every new best design of the 72 runs,
+classified by the move that made it (4,549 events, from the run logs):
+
+| made by | new bests | share |
+|---|---|---|
+| a mutation that changed the tree | 1,364 | 30% |
+| crossover | 790 | 17% |
+| an operator that declined, so only the ratios were re-tuned | 2,069 | 45% |
+| seeding and construction | 326 | 7% |
+
+Crossover is 20% of children and makes 17% of the new bests -- 14% in the
+first 50k evaluations, 20% to 250k, 25% after. It earns its share, and more
+of it late. §14's island null, the evidence that crossover "almost never
+synthesises", was about crossing INDEPENDENTLY evolved populations; within
+one, parents are relatives and inherited the same bracketing, so their
+subtrees already line up. The misalignment a canonical form removes is
+between populations, and the default search has one.
+
+**So: little to gain for the search as it runs, and a real cost.** A
+multi-way cut node is a new tree type under twenty-two operators, the genome,
+the inner loop and both file formats, to fix an alignment the default search
+does not suffer from; and it would change every operator's neighbourhood (in
+a run, which strips can merge or swap is set by the bracketing today), which
+is `mutate_reassociate`'s territory and measured negative at 20k (§12.3).
+The entropy worry is sound in general -- neutral networks are how an
+evolutionary search crosses plateaus -- but it does not bite here in either
+direction, because this search forbids neutral steps already.
+
+It is set aside with incremental re-scoring, and comes back with one thing:
+recombining separate runs (islands, best-of-N with migration,
+`homemaker-py-2g7.9`), where §14 measured the misalignment directly. A
+canonical SIGNATURE alone -- association and turns normalised in
+`genome.signature`, no change to any tree -- is a day's work and would make
+`n_distinct_signatures` mean what it says; worth doing only if something
+starts to depend on that count.
+
+A by-product worth more than the question: **45% of new bests come from a
+child whose operator did nothing**, i.e. from giving a parent's ratios eighty
+more evaluations. That is the other side of §39.110 (a child gains little
+from its own eighty): the tuning is real, but the search already gets it for
+free whenever an operator declines, which on a converged design is often.
+`child20`'s run will show whether the two cancel.
