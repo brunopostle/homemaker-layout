@@ -15338,3 +15338,39 @@ that nobody later looks for its effect.
 On branch `terrace-value`, to merge when the A/B queue has finished: it is an
 objective change, and the queue's five experiments should end at the
 objective they began at.
+
+### 39.118 A solver pass does make a better seed (`homemaker-py-8b2u.21`, container half)
+
+§39.109 left one place where sizing by arithmetic might pay: the seeds, the
+only cold topologies a search holds. Measured
+(`experiments/diag_8b2u21_seed_sizing.py`): 24 constructed seeds, six per
+programme, each as built, after the 200 evaluations a seed gets today, after
+`solve_ratios` stopped at 50 function evaluations, and after both.
+
+| programme | built | built + 200 (today) | solved | solved + 200 |
+|---|---|---|---|---|
+| programme-house | 21.8 | 18.0 | 16.7 | 13.5 |
+| health-centre | 41.5 | 38.0 | 39.2 | 33.7 |
+| harbor-house | 92.0 | 86.7 | 76.2 | 71.7 |
+| maple-court | 145.8 | 138.3 | 138.0 | 126.5 |
+| all (fails per seed) | 75.3 | 70.2 | 67.5 | 61.3 |
+| CPU seconds per seed | 0.1 | 14.7 | 1.5 | 16.3 |
+
+- **Solved and tuned beats today's seed by 8.9 fails**, 19 seeds of 24, against
+  an MDD of 4.1. By programme it is resolved on programme-house (+4.5, MDD
+  4.2) and harbor-house (+15.0, MDD 7.1) and not on health-centre (+4.3, MDD
+  5.8) or maple-court (+11.8, MDD 16.1), with six seeds each.
+- **The solver alone is as good as today's 200 evaluations at a tenth of the
+  cost**: 67.5 against 70.2 fails (unresolved, MDD 3.9), 1.5 s against 14.7 s.
+- The expectation on the bead -- seed fail counts fall substantially on the
+  three large programmes -- holds for harbor-house, and in direction only for
+  the other two.
+
+**Two things this does not cover.** These seeds have no shared leaves; the
+default search's seeds do (one cell standing for several rooms), and the
+solver aims every cell at one room's area, so a pass in the search must scale
+its targets by the share first. And a better seed is not a better result:
+§12.2 found seeding an accelerator and not a new asymptote, and whether
+twelve fewer fails at evaluation 200 survive to evaluation 500,000 is the
+box's question. The bead now holds the arm to build: a share-aware solver
+pass over seeds and restarts, capped, default off.
