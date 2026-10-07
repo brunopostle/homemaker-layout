@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A hand-drawn design for harbor-house: see HAND-BRIEF.md beside this file.
+     Coordinates are PLOT METRES. Draw only on the storey-N layers: straight
+     lines for walls, a text label for each cell. SVG y points down, so the
+     drawing is the plan mirrored top to bottom; that changes no score. -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+     width="870" height="1050" viewBox="-2.00 -2.00 29.00 35.00">
+  <g inkscape:groupmode="layer" inkscape:label="plot (reference, not read)" sodipodi:insensitive="true">
+    <polygon points="0.000,0.000 25.000,2.000 23.000,31.000 0.000,31.000" fill="#f4f1e8" stroke="#888" stroke-width="0.08"/>
+    <text x="12.50" y="1.00" font-size="0.7" fill="#888" text-anchor="middle">side a: private, 25.1 m</text>
+    <text x="24.00" y="16.50" font-size="0.7" fill="#888" text-anchor="middle">side b: private, 29.1 m</text>
+    <text x="11.50" y="31.00" font-size="0.7" fill="#888" text-anchor="middle">side c: street / open, 23.0 m</text>
+    <text x="0.00" y="15.50" font-size="0.7" fill="#888" text-anchor="middle">side d: street / open, 31.0 m</text>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="storey-0">
+    <line x1="10.600" y1="0.848" x2="10.600" y2="31.000" stroke="black" stroke-width="0.08"/>
+    <line x1="13.200" y1="1.056" x2="13.200" y2="31.000" stroke="black" stroke-width="0.08"/>
+    <line x1="10.600" y1="5.600" x2="13.200" y2="5.600" stroke="black" stroke-width="0.08"/>
+    <line x1="10.600" y1="26.400" x2="13.200" y2="26.400" stroke="black" stroke-width="0.08"/>
+    <text x="5.300" y="15.712" font-size="0.8" text-anchor="middle">O</text>
+    <text x="11.900" y="3.276" font-size="0.8" text-anchor="middle">C</text>
+    <text x="11.900" y="16.000" font-size="0.8" text-anchor="middle">C</text>
+    <text x="11.900" y="28.700" font-size="0.8" text-anchor="middle">C</text>
+    <text x="18.600" y="16.264" font-size="0.8" text-anchor="middle">O</text>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="storey-1" style="display:none">
+    <line x1="10.600" y1="0.848" x2="10.600" y2="31.000" stroke="black" stroke-width="0.08"/>
+    <line x1="13.200" y1="1.056" x2="13.200" y2="31.000" stroke="black" stroke-width="0.08"/>
+    <line x1="10.600" y1="5.600" x2="13.200" y2="5.600" stroke="black" stroke-width="0.08"/>
+    <line x1="10.600" y1="26.400" x2="13.200" y2="26.400" stroke="black" stroke-width="0.08"/>
+    <line x1="10.600" y1="16.000" x2="13.200" y2="16.000" stroke="black" stroke-width="0.08"/>
+    <text x="5.300" y="15.712" font-size="0.8" text-anchor="middle">O</text>
+    <text x="11.900" y="3.276" font-size="0.8" text-anchor="middle">C</text>
+    <text x="11.900" y="10.800" font-size="0.8" text-anchor="middle">C</text>
+    <text x="11.900" y="21.200" font-size="0.8" text-anchor="middle">C</text>
+    <text x="11.900" y="28.700" font-size="0.8" text-anchor="middle">C</text>
+    <text x="18.600" y="16.264" font-size="0.8" text-anchor="middle">O</text>
+  </g>
+</svg>

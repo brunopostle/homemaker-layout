@@ -17,7 +17,8 @@ Trace format (see ``DESIGN.md`` §37.3 for the full write-up):
   below), so there is exactly one outline, not one per storey.
 * An SVG file supplies the topology: one Inkscape layer per storey, named
   ``storey-0``, ``storey-1``, ... Each layer holds only straight open cut
-  lines (``<line>`` or a 2-point ``<path d="M.. L..">``) and text labels
+  lines (``<line>``, ``<polyline>``, or a ``<path>`` of straight segments in
+  any of the forms a drawing program writes) and text labels
   (room type codes). No closed room shapes are ever drawn — a room's outline
   is *derived*, not traced, which is what makes this robust to a rough
   sketch (lines that overlap slightly, undershoot a corner, or don't quite
@@ -200,23 +201,62 @@ def _parse_transform(s: str | None) -> Matrix:
     return m
 
 
-_PATH_CMD_RE = re.compile(r"([MLZmlz])\s*([^MLZmlz]*)")
+_PATH_CMD_RE = re.compile(r"([MLHVZmlhvz])\s*([^MLHVZmlhvzCcSsQqTtAa]*)")
+_PATH_CURVE_RE = re.compile(r"[CcSsQqTtAa]")
+
+
+def _parse_path_points(d: str) -> "list[Point] | None":
+    """The vertices of a path made only of straight segments, or None if it
+    has a curve in it.
+
+    Everything a drawing program writes for straight lines: absolute and
+    relative moves and lines (``M``/``m``, ``L``/``l``), horizontal and
+    vertical ones (``H``/``h``, ``V``/``v`` -- what Inkscape emits for exactly
+    the axis-aligned walls an orthogonal plan is made of), and coordinates
+    that follow a command without repeating it. A second ``M`` starts a new
+    line elsewhere and is refused: one path, one run of wall."""
+    if _PATH_CURVE_RE.search(d):
+        return None
+    pts: list[Point] = []
+    x = y = 0.0
+    for k, (cmd, args) in enumerate(_PATH_CMD_RE.findall(d)):
+        nums = [float(v) for v in re.split(r"[,\s]+", args.strip()) if v]
+        if cmd in "Zz":
+            if pts and pts[-1] != pts[0]:
+                pts.append(pts[0])
+            continue
+        if cmd in "Mm":
+            if k:
+                return None
+            if len(nums) < 2 or len(nums) % 2:
+                return None
+        rel = cmd.islower()
+        if cmd in "Hh":
+            for v in nums:
+                x = x + v if rel else v
+                pts.append((x, y))
+        elif cmd in "Vv":
+            for v in nums:
+                y = y + v if rel else v
+                pts.append((x, y))
+        else:
+            if len(nums) % 2:
+                return None
+            for i in range(0, len(nums), 2):
+                # the first pair of a relative `m` is absolute; the rest of
+                # its pairs are relative lines
+                if rel and pts:
+                    x, y = x + nums[i], y + nums[i + 1]
+                else:
+                    x, y = nums[i], nums[i + 1]
+                pts.append((x, y))
+    return pts if len(pts) >= 2 else None
 
 
 def _parse_path_line(d: str) -> tuple[Point, Point] | None:
-    """A straight 2-point path ``M x,y L x,y`` (absolute only); None if this
-    isn't a simple straight segment (curves, more than 2 points, ...)."""
-    pts: list[Point] = []
-    for cmd, args in _PATH_CMD_RE.findall(d):
-        if cmd.upper() == "Z":
-            continue
-        if cmd not in ("M", "L"):
-            return None
-        nums = [float(x) for x in re.split(r"[,\s]+", args.strip()) if x]
-        if len(nums) != 2:
-            return None
-        pts.append((nums[0], nums[1]))
-    if len(pts) != 2:
+    """A straight 2-point path; None if this is not one segment."""
+    pts = _parse_path_points(d)
+    if pts is None or len(pts) != 2:
         return None
     return pts[0], pts[1]
 
@@ -230,10 +270,19 @@ def _walk(el: ET.Element, xf: Matrix, storey: StoreyTrace) -> None:
         storey.lines.append((p1, p2))
     elif tag == "path":
         d = el.get("d") or ""
-        pts = _parse_path_line(d)
+        pts = _parse_path_points(d)
         if pts is None:
-            raise ValueError(f"unsupported non-straight-2-point cut path: {d!r}")
-        storey.lines.append((_apply(xf, pts[0]), _apply(xf, pts[1])))
+            raise ValueError(
+                f"a wall must be a path of straight segments; this one has a curve "
+                f"or more than one start: {d!r}")
+        # a path drawn round a corner is one wall per segment
+        for p, q in zip(pts, pts[1:]):
+            storey.lines.append((_apply(xf, p), _apply(xf, q)))
+    elif tag == "polyline":
+        nums = [float(v) for v in re.split(r"[,\s]+", (el.get("points") or "").strip()) if v]
+        pts = [(nums[i], nums[i + 1]) for i in range(0, len(nums) - 1, 2)]
+        for p, q in zip(pts, pts[1:]):
+            storey.lines.append((_apply(xf, p), _apply(xf, q)))
     elif tag == "text":
         x, y = el.get("x"), el.get("y")
         tspan = el.find(_qn(_SVG_NS, "tspan"))
