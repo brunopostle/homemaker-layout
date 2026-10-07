@@ -8,7 +8,7 @@ recorder changes nothing about the search (`tests/test_move_log.py`).
 
 Logs land in `experiments/results/moves/<programme>-b<budget>-s<seed>.jsonl.gz`
 with the stamp they were searched at in `MANIFEST.tsv`. Runs already there
-are skipped. They are run at low priority (`nice 19`): this is container work
+are skipped. They are run at low priority (`nice 10`): this is container work
 and is usually sharing the box with a sweep, whose budget is counted in
 evaluations and so loses time, not results.
 
@@ -33,6 +33,11 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "experiments" / "results" / "moves"
 PROGRAMMES = ("programme-house", "health-centre", "harbor-house", "maple-court")
+# Low priority, but not the lowest. At 19 beside a sweep on every core a run
+# got about 1.5% of one: the first four 100k runs took nine and a half hours
+# each. At 10 a run shares a core roughly 1:10 with a search, a couple of
+# hours a run, and costs the sweep about 5% of its speed while they last.
+NICE = 10
 
 
 def _runner():
@@ -84,7 +89,7 @@ def main(argv=None) -> int:
                 junk.unlink()
             log = d / "moves.jsonl"
             p = subprocess.Popen(
-                ["nice", "-n", "19", sys.executable, "-m", "homemaker_layout.evolve",
+                ["nice", "-n", str(NICE), sys.executable, "-m", "homemaker_layout.evolve",
                  "init.dom", "--budget", str(a.budget), "--seed", str(seed),
                  "--workers", "1", "--output", str(d / "out.dom")],
                 cwd=d, stdout=subprocess.DEVNULL, stderr=(d / "run.log").open("w"),
