@@ -59,8 +59,8 @@ OUT = REPO / "experiments" / "results" / "move_pairs"
 OPS = ("divide", "undivide", "retype", "swap", "rotate", "core_divide", "level_fix",
        "level_compound_fix", "place_missing", "level_retype", "level_add",
        "level_delete", "support_outside", "repair_shaft")
-REQS_OPS = ("level_fix", "level_compound_fix", "place_missing", "support_outside",
-            "repair_shaft")
+# the three `operators.mutate` hands the programme to, and no others
+REQS_OPS = ("level_fix", "level_compound_fix", "place_missing")
 TRIES = 6          # a move that declines is drawn again, this many times
 
 
