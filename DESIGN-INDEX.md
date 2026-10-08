@@ -62,6 +62,7 @@ index is how to get from a question to the section that answers it.
 | §39.121 | The first of the five queued A/Bs: `--child-budget 20` is worse, by losing the staircase in six runs of 36. (§39.120 is reserved for the move book.) |
 | §39.122 | Two ideas set aside on the owner's word, with the condition that reopens each. |
 | §39.123 | The book of moves widened (owner): a move AIMED at a failing cell removes a fail about five times as often on programme-house; `undivide` carries it. |
+| §39.125 | The owner's hand-drawn harbor-house design (31 fails, inside the evolved range) and what it shows: the ruling that a stair is a cell type `E`, and three open questions on connectivity, entrances and daylight depth. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -88,6 +89,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A terrace is worth more than a garden: 120 per m², to be revised when daylight scores outdoor space; circulation is deliberately NOT worth its cost, "a building without any circulation has an efficient plan" | §39.116, §39.117 |
 | The briefs' gaps are fixed at a good time, which is just before a full re-baseline | §39.115 |
 | The stair shaft's position is found by the search, and it is a cell made by division like any other -- no pre-placed block | §39.112, §39.113 |
+| A stair is a cell labelled `E` (escalier), a fourth generic type beside `C`/`O`/`S` -- no longer inferred from a `C` cell stacked on every storey. Three details still to rule before it is built | §39.125 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -125,7 +127,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (228 of them, 15827 lines)
+## Every section of DESIGN.md (229 of them, 15910 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -404,4 +406,5 @@ below are the most recent work.
 - §39.121 · 15509-15588 · `child20`: a shorter inner loop loses the staircase one run in six (`homemaker-py-8b2u.20`)
 - §39.122 · 15589-15625 · Two ideas set aside, and what would bring each back (owner's ruling, 2026-10-08; `homemaker-py-8b2u.20`, `homemaker-py-ek07`)
 - §39.120 · 15626-15756 · The book of moves, read: specialists do what they say, a book adds little on programme-house, and `place_missing` plays where nothing is missing (`homemaker-py-urzf`)
-- §39.123 · 15757-15827 · Where a move is played: aimed at a failing cell it removes a fail five times as often, and `undivide` carries most of it (`homemaker-py-urzf`)
+- §39.123 · 15757-15828 · Where a move is played: aimed at a failing cell it removes a fail five times as often, and `undivide` carries most of it (`homemaker-py-urzf`)
+- §39.125 · 15829-15910 · A stair gets a cell type of its own, `E` (owner's ruling, 2026-10-08; `homemaker-py-y4p4`)

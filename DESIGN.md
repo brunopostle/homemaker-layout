@@ -15825,3 +15825,86 @@ that aims keeps finding new designs; an aimed move explores less.
 
 Still to come on the bead: the pair census (two moves with no judging
 between, on purpose), then ancestry ids in the recorder.
+
+### 39.125 A stair gets a cell type of its own, `E` (owner's ruling, 2026-10-08; `homemaker-py-y4p4`)
+
+(§39.124 is reserved for the pair census, `homemaker-py-urzf`, still running.)
+
+The owner drew a harbor-house design by hand (`examples/harbor-house/hand2a.*`,
+`homemaker-py-2g7.1`): three storeys, tuned to 31 fails where the twelve
+evolved designs carry 24 to 37. It is the first design here nobody evolved,
+and drawing it showed four places where the objective and a designer part
+company. The fourth has a ruling; the other three are open questions.
+
+**The ruling.** In the owner's words: "Mixing circulation with stairs makes
+sense for small buildings like programme house because the stairs are the
+entirety of the circulation. But for bigger buildings we will have these
+corridors that exist in the same place on each level, I think we need a new
+cell usage, maybe e (escalier), s is taken by sahn." So: a fourth generic
+type, **`E`**, beside `C` / `O` / `S`. A stair is a cell labelled one.
+
+**What it replaces.** Since §39.72 a staircase has been INFERRED: a `C` leaf
+whose exact path is a `C` leaf on every storey. On `hand2a` that reads two of
+seven ground-floor `C` cells as stairs (the two that are `C` on all three
+storeys) and the other five -- the owner's third core, and corridors that sit
+in the same place on the two lower floors under a terrace -- as nothing. Two
+things follow from inferring, and neither was intended by §39.72:
+
+- a stair that serves only the lower floors of a taller building cannot exist;
+- a corridor repeated floor over floor IS a stair, and fails `too many
+  stairs`. `HAND-BRIEF.md` has to tell the draughtsman to cut the first-floor
+  corridor in two. And the search has learnt the same lesson: `too many
+  stairs` appears in 0 of 24 cold-start designs (`07b2058+orth`,
+  `1a24b6a+orth`) and 0 of 72 `child20` A/B designs. The plan an architect
+  draws first, one corridor over another, is a plan the search may not make.
+
+§39.72's substance stands: a stair still needs the SAME cell on each storey
+it serves, because no flight-fitter exists for a part-cell. What changes is
+how the scorer knows a cell is one.
+
+**Not yet ruled, and the build waits on them** (asked 2026-10-08):
+
+1. Is an `E` cell circulation -- may rooms open off it, does it join
+   corridors? (On programme-house the stair IS the circulation, so the
+   working assumption is yes: `E` is circulation that holds a stair.)
+2. Does a stacked `C` stop being a stair EVERYWHERE, programme-house
+   included, with every existing design relabelled `C` -> `E` on its
+   full-height columns? (Working assumption yes: one rule for every size of
+   building, and a relabelling under which no committed score moves.)
+3. May an `E` shaft stop below the top storey? (Working assumption yes, from
+   the ground up through consecutive storeys; that is the first bullet above.)
+
+**The other three, open** (all on `homemaker-py-y4p4`):
+
+- **A storey joined only by its stairs fails `level N not connected`.** The
+  test is one storey at a time. `experiments/diag_2g71_stairs_connect.py`
+  (exact count, with a no-stairs negative control): letting a shaft join the
+  pieces clears `hand2a`'s fail and 0 of the corpora's 20 -- the evolved
+  designs' breaks are real orphans. With `E` the natural rule is that an `E`
+  shaft joins the circulation of the storeys it serves.
+- **An entrance foyer is not a way in.** `no outside public access` wants a
+  ground-floor `C` on a street edge, or an outdoor cell on one with
+  circulation, a living room or a kitchen beside it. `ef1` is `usage: none`.
+- **A room lit from one wall may be 4.86 m deep and no deeper.**
+  Crinkliness is lit wall x storey height / floor area and fails below 0.617.
+  On `hand2a` seven cells have no lit wall at all, which is the drawing's;
+  but `k1`, `da1`, a neighbourhood and two landings have a full street wall
+  and fail for being 5.5-5.8 m deep. CLAUDE.md names this calibration as one
+  of the two levers left on the largest fail family; this is the first
+  evidence for it from outside the search.
+
+**What an alley does** (the owner's suggestion for the seven): a 2-3 m strip
+along the party wall, on a trial copy, takes daylight fails from 12 to 4 and
+gives the workshop its outdoor neighbour; cut out of the existing row it
+leaves the rooms 1.6 m deep and the design ends at 34, not 31. The corridor
+has to move into the courtyard as well; that redraw is the owner's.
+
+**When.** `E` is an objective change through `fitness`, `graph`, `dom`,
+`dom_v2`, `programme` (the reserved names), the operators that keep a shaft
+(`_shaft_paths`, `core_divide`, `repair_shaft`), the composer and the corpus.
+`src/` on main is frozen until the A/B queues finish, so it is built in a
+worktree and lands after them, before the next full re-baseline -- which it
+will be measured by. **Expectation, recorded now:** relabelling alone moves
+no committed score; what the next sweep should show is designs with stacked
+corridors, which today's cannot have, and on the two-stair programmes fewer
+`not connected` fails if the shaft rule above is adopted with it.
