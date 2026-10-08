@@ -59,6 +59,7 @@ index is how to get from a question to the section that answers it.
 | §39.94-§39.104 | Format v2 and the native rectangle-frame tree; six scorer defects found on the way and fixed on rulings (daylight counted once, the wall above stays, listing order, stair fit, width from the fitted rectangle). |
 | §39.118-§39.119 | A solver pass over seeds (better seeds; the A/B is queued); pitched roofs for the IFC export. |
 | §39.121 | The first of the five queued A/Bs: `--child-budget 20` is worse, by losing the staircase in six runs of 36. (§39.120 is reserved for the move book.) |
+| §39.122 | Two ideas set aside on the owner's word, with the condition that reopens each. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -110,6 +111,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A local inner loop | §39.110 | no better than halving the budget |
 | `--child-budget 20` at equal total budget | §39.121 | negative on programme-house: six runs of 36 end with no staircase, none in the control; large programmes untested |
 | Pre-placed stair block; incremental re-scoring; canonical genome | §39.113, §39.112, §39.114 | ruled out; set aside; set aside |
+| A child budget that depends on the move; supporting a terrace without shrinking a room | §39.122 | both SET ASIDE unbuilt, not measured negative; the section says what would bring each back |
 
 ## Where the current state is
 
@@ -120,7 +122,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (225 of them, 15587 lines)
+## Every section of DESIGN.md (226 of them, 15624 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -396,4 +398,5 @@ below are the most recent work.
 - §39.117 · 15312-15341 · The terrace is worth 120, until daylight scores outdoor space (owner's ruling, `homemaker-py-ecx`)
 - §39.118 · 15342-15401 · A solver pass does make a better seed (`homemaker-py-8b2u.21`, container half)
 - §39.119 · 15402-15508 · Pitched roofs for the IFC export (`homemaker-py-6e5u`)
-- §39.121 · 15509-15587 · `child20`: a shorter inner loop loses the staircase one run in six (`homemaker-py-8b2u.20`)
+- §39.121 · 15509-15588 · `child20`: a shorter inner loop loses the staircase one run in six (`homemaker-py-8b2u.20`)
+- §39.122 · 15589-15624 · Two ideas set aside, and what would bring each back (owner's ruling, 2026-10-08; `homemaker-py-8b2u.20`, `homemaker-py-ek07`)

@@ -15585,3 +15585,40 @@ to the same place, and the last pair alone moved it across the line -- so the
 fails row is a marginal result however it is quoted; the staircase count, the
 score and the time are what carry the conclusion. `--report-only` on an
 unfinished A/B is a progress check and not a verdict.
+
+### 39.122 Two ideas set aside, and what would bring each back (owner's ruling, 2026-10-08; `homemaker-py-8b2u.20`, `homemaker-py-ek07`)
+
+The owner closed both beads on the condition that each is recorded here as an
+idea that may need re-examining. Neither was shown to be wrong; each was shown
+not to be worth its next measurement today.
+
+**A child budget that depends on the move** (`homemaker-py-8b2u.20`,
+§39.110, §39.121). A flat cut from 80 evaluations per child to 20 is measured
+and negative on programme-house: six runs in 36 lose the staircase. What was
+never built is the budget that varies: few evaluations for a move that changes
+no wall (`retype`, `level_retype`, `swap` -- §39.110's eleven winners), the
+full eighty for a move that cuts or removes one (`repair_shaft`, `divide`,
+`undivide`, `support_outside`). It needs code in `driver` and an A/B on the
+box. Also unmeasured: any child budget on the large programmes, and `child40`.
+*Bring it back if* evaluations per child become the bottleneck on a large
+programme, or if a recorded run (the move recorder, §39.120) shows that
+relabelling children are kept just as often at 20 evaluations in a LIVE
+population -- which is the thing §39.110 could not say and §39.121 did not
+isolate.
+
+**Supporting the outside space without shrinking a room**
+(`homemaker-py-ek07`, §39.81, §39.86, §39.91, §39.93, §39.111).
+`support_outside` clears `no outside space` by taking a strip from one room,
+which then fails on size or width. Two moves were named in §39.86 and not
+built: (1) slice the terrace from a BRANCH, so several rooms each give up a
+little; (2) choose the host by whether it can yield the strip and stay whole.
+They were set aside because the fail became rare on programme-house as the
+objective moved: 3 runs in 36 without the operator and 1 in 36 with it at
+`59d8aa1+orth` (§39.111), against 8 in 36 at `07b2058+orth`. Three or four
+cases in 36 cannot justify a move or measure one. The operator itself stays
+default ON (§39.112). **Never measured on the large programmes.** *Bring it
+back if* the next full re-baseline shows `no outside space`, or a size/width
+fail on a room beside a terrace, as a common fail on harbor-house,
+maple-court or health-centre -- `decompose_coldstart.py`'s family census is
+where to read it. `experiments/diag_ek07_support_outside_trade.py
+--exhaustive` is the container tool that prices the trade.
