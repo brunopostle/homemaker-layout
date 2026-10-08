@@ -15622,3 +15622,134 @@ fail on a room beside a terrace, as a common fail on harbor-house,
 maple-court or health-centre -- `decompose_coldstart.py`'s family census is
 where to read it. `experiments/diag_ek07_support_outside_trade.py
 --exhaustive` is the container tool that prices the trade.
+
+### 39.120 The book of moves, read: specialists do what they say, a book adds little on programme-house, and `place_missing` plays where nothing is missing (`homemaker-py-urzf`)
+
+(Numbered before §39.121-§39.122 and written after them: the number was
+reserved in the recorder's docstring while the recordings ran.)
+
+The owner's idea (2026-10-07): operators are like chess moves, and a record of
+which succeed on which failure pattern could choose them by the state of the
+design. Step 1 was the recorder (`HOMEMAKER_MOVE_LOG`, branch `move-book`, one
+record per child: the move, the parent's fail lines, the child's, what
+admission did). This is what it recorded, read by
+`experiments/diag_move_book.py` (`--self-test`: a planted move is found,
+14.6% -> 50.6%, and a shuffled control is not, 11.9%).
+
+| | runs | budget | children | every parent has |
+|---|---|---|---|---|
+| programme-house | 12 (seeds 100-111) | 100k | 22,284 | 0 to 6+ fails |
+| harbor-house | 4 (seeds 100-103) | 60k | 4,428 | 6+ fails: the early run only |
+
+All at `64512f1+orth`, search config `feb8949eae` (two search commits,
+`7820ae1` and `3838f91`, which differ by one docstring line). Recordings in
+`experiments/results/moves/` with a `MANIFEST.tsv`. **Credit here goes to the
+move that finishes**: a move that sets up a later repair earns nothing in any
+table below.
+
+**1. Removing a fail is rare, and rarer as a design improves.** Of applied
+moves on programme-house 1.4% leave the child with fewer fails than its
+parent: 7.1% when the parent has 6+ fails, 2.0% at 3-5, 0.3% at 1-2. On
+harbor-house's early runs, 6.3%. Most children are worse: 52% (`level_retype`)
+to 99.9% (`core_divide`) carry more fails than their parent.
+
+**2. The repair moves do what they say and are paid for elsewhere.** On
+programme-house `repair_shaft` clears `too few stairs` 161 times in 161 and
+`support_outside` clears `no outside space` 388 in 388 -- and the child has
+fewer fails in all 3.1% and 6.4% of the time. That is §39.81's trade, seen
+per child. On harbor-house `repair_shaft` is the best move there is: it
+clears `staircase volume` 72 times in 95 and leaves fewer fails 18.9% of the
+time, three times the base rate.
+
+**3. `undivide` is the generalist.** It is first or second among real moves
+for crinkliness, width, proportion, size and adjacency on programme-house
+(26-40% on the family it is tried on) and for crinkliness, size and adjacency
+on harbor-house. `level_delete` tops almost every family and is a mirage: it
+removes the fails by removing the storey, and its child has fewer fails in
+all 0-2% of the time. A book keyed on "reduces this family" alone would play
+it constantly, which is why the tool prints the second column.
+
+**4. A quarter of programme-house's draws decline, and those are the draws
+that most often beat their parent.** 25.1% of draws (and of evaluations) go
+to a move that finds nothing to do -- `core_undivide` 100% of the time on
+both programmes, `repair_shaft` 87%, `level_compound_fix` 79%, `level_fix`
+78%, `support_outside` 59% -- and the child is then its parent, re-tuned for
+80 evaluations. Those children beat their parent on score 77% of the time;
+applied moves do 15%. On harbor-house 13.1% decline and 99.7% of them beat
+the parent. This is §39.114's 45% of new bests from the other side: the
+search has an unnamed "tune the parent again" move with a quarter of the
+draws, and it is the most reliably useful one. Two consequences:
+  - **"Do not draw a move that cannot apply" (the bead's step 2) would
+    remove it** unless re-tuning is first made a move with its own share.
+  - **It confounds the queued `w4e` A/B.** `core_undivide` as shipped never
+    applies, so its 5.6% of draws are all re-tunes. The repaired operator
+    will apply sometimes, so the flagged arm has fewer re-tunes as well as a
+    working move. Read `w4e` with that in mind.
+
+**5. What a book would buy.** Choosing, for each state (how bad the parent
+is, and its leading structural fail), the move a book built on half the runs
+ranks first, judged on the other half:
+
+| | share of draws that remove a fail, as drawn | with the book's first choice | |
+|---|---|---|---|
+| programme-house | 1.46% | 1.82% | 1.2x |
+| harbor-house | 7.18% | 18.21% | 2.5x |
+
+It is greedy and optimistic -- an upper bound on what weighting by state
+could add, not an estimate. On programme-house the bound is small.
+Harbor-house's is larger and thin: two runs build it, two judge it, and it
+has two states with an opinion, whose first choices are `place_missing` when
+a room is missing and `repair_shaft` when there is no stair. That is not
+learning; it is applicability, which the operators already check for
+themselves when drawn.
+
+**6. A finding the tables were not looking for: `place_missing` applies
+where the scorer sees nothing missing.** It has 10.9% of draws (weight 2.0,
+on the comment that it "noops cheaply once the required set is complete").
+It does not noop. On programme-house it applied 2,095 times, and on 2,089 of
+those the parent's fail list names no missing room. The cause is two counts
+of the same thing: the search scores with `collapse_insearch`, which
+relabels cells to rooms before counting (`fitness.py`, the `collapse_global`
+call ahead of `check_space_counts`), while `mutate_place_missing` counts the
+labels on the tree as stored. A room the collapse supplies is, to the
+operator, absent, and it cuts a cell for it.
+
+| `place_missing` applied, parent's fail list | programme-house | harbor-house |
+|---|---|---|
+| names a missing room | 6 draws: 3 new bests, 1 kept | 178: 8 new bests, 52 kept |
+| names none | 2,089: 44 kept (2%), 2,038 rejected | 322: 63 kept (20%) |
+
+On programme-house that is a tenth of every run's children spent on a cut
+nobody asked for, 99.7% of them worse than their parent. On harbor-house's
+early runs the same misfire is kept one time in five: an extra cell is
+useful there, so it is acting as a second `divide`. Reproduced on trees: in ten
+`child80` designs of §39.121, relabel one required room as another, so the
+stored tree lacks it -- 130 trees. The search's scorer reports no missing
+room on 130 of 130 (the collapse puts it back), and `mutate_place_missing`
+applies on 130 of 130. It is
+search-side (`operators.py`) and `src/` is frozen, so it is filed
+(`homemaker-py-urzf.1`) and not fixed. The fix changes what a tenth of draws
+do, so it is an A/B and not a patch -- and note that §39.121's `child20` and
+every A/B in the current queue ran with it in both arms.
+
+**What this decides about the bead's steps 2 and 3.**
+
+- **Step 3, a learned state-weighted draw: not on this evidence.** The
+  bound on programme-house is 1.2x of a 1.5% rate, and harbor-house's 2.5x
+  reduces to two applicability rules. It would also inherit the finishing-
+  move credit problem. Revisit with late-run recordings of a large programme
+  (500k harbor-house, about 15 h a run recorded) if those ever exist.
+- **Step 2, applicability, is where the gain is, and it is three specific
+  things, not a framework:** make `place_missing` count what the scorer
+  counts; give re-tuning a share of its own before removing any declining
+  draw; and decide `core_undivide` on `w4e`'s result. Each needs the box.
+- **The recorder earns its keep regardless**: finding 6 came from it in an
+  hour, and a recorded `child20` run would test §39.121's hypothesis.
+
+**Expectation, recorded now for the `place_missing` A/B** (control: as
+shipped; flagged: the operator counts rooms after the same collapse the
+scorer applies): on programme-house, no more fails than the control and a
+resolved difference in neither direction is the likeliest outcome -- the
+draws it frees become re-tunes and other moves, and §39.121 says more
+children is not by itself a gain. On harbor-house the flagged arm may do
+WORSE early, because the misfire is a useful `divide` there.
