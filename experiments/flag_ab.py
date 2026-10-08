@@ -160,7 +160,14 @@ def storeys(path: Path) -> int:
     from homemaker_layout import dom as dm, geometry as g
     was, g.ORTHOGONAL_DIVISION = g.ORTHOGONAL_DIVISION, True
     try:
-        n, k = dm.load(str(path)), 0
+        try:
+            n, k = dm.load(str(path)), 0
+        except Exception:
+            # A native design need not fit Urb's quad tree at all (a cut that
+            # misses its cell once cropped to the plot). Loading it that way
+            # to count storeys killed the `native` A/B after six pairs, on
+            # 2026-10-08, and the queue went on without it.
+            n, k = dm.load(str(path), native=True), 0
     finally:
         g.ORTHOGONAL_DIVISION = was
         g.clear_cache()
