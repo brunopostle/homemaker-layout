@@ -31,13 +31,20 @@ HARBOR = REPO / "examples" / "harbor-house"
     ("M 1,2 3,4", [(1, 2), (3, 4)]),                   # the lineto left implicit
     ("m 1,1 h 3 v 2", [(1, 1), (4, 1), (4, 3)]),       # one path round a corner
     ("m 5,5 l 2,0 l 0,3", [(5, 5), (7, 5), (7, 8)]),
+    # Inkscape, a straight line whose nodes were once smooth: a cubic with its
+    # control points on the chord (the owner's hand2.svg had three)
+    ("m 23.5,23.6 c -7.8,0 -15.7,0 -23.5,0", [(23.5, 23.6), (0, 23.6)]),
+    ("M 0,0 C 1,1 2,2 3,3", [(0, 0), (3, 3)]),
 ])
 def test_the_composer_reads_straight_paths_however_they_are_written(d, want):
-    assert compose._parse_path_points(d) == [(float(x), float(y)) for x, y in want]
+    got = compose._parse_path_points(d)
+    assert got == [pytest.approx((float(x), float(y))) for x, y in want]
 
 
 @pytest.mark.parametrize("d", [
-    "M 0,0 C 1,1 2,2 3,3",              # a curve is not a wall
+    "M 0,0 C 1,2 2,-1 3,3",             # a curve that bends is not a wall
+    "M 0,0 C 1,0.001 2,0 3,0",          # ...however slightly
+    "M 0,0 Q 1,1 2,0",                  # nor is any other kind of curve
     "M 0,0 L 1,0 M 2,2 L 3,3",          # two separate lines in one path
     "M 0,0",                            # a point
 ])
