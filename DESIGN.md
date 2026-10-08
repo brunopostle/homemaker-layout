@@ -15505,3 +15505,83 @@ three-storey block gets a pitched roof only on the top storey, because the
 wing's roof is a terrace in the model and stays flat. A NON-CONVEX cell (one
 wrapped round the inner corner of an L-shaped plot) is still refused: the
 addon's rooms are convex. Both are on the bead.
+
+### 39.121 `child20`: a shorter inner loop loses the staircase one run in six (`homemaker-py-8b2u.20`)
+
+(§39.120 is reserved for the move book, `homemaker-py-urzf`, whose recordings
+were still running when this A/B finished. Sections are in commit order.)
+
+§39.110's container half found that a child tuned for 20 evaluations keeps 7 of
+the 11 wins that 80 find, and proposed the existing flag: `--child-budget 20`
+at the same total budget, so four times the children. The expectation recorded
+before the run (`flag_ab.py`'s docstring): **no more fails than the control on
+programme-house.** The run: `experiments/flag_ab.py child20`, 36 paired seeds,
+500k evaluations each, programme-house, objective `64512f1+orth`, search
+`7b611b4`, on the owner's desktop at 8 slots. Table
+`experiments/results/child20_ab.tsv`, artefacts in
+`experiments/results/child20-ab/`.
+
+| | `child80` (control) | `child20` | paired difference | MDD at N=36 | |
+|---|---|---|---|---|---|
+| fails per design | 0.67 | 1.06 | 0.389 more, CI [0.016, 0.762], p=0.042 (Wilcoxon 0.052) | 0.373 | resolved, only just |
+| hard fails | 0.08 | 0.22 | 0.139 more, p=0.17 | 0.201 | underpowered |
+| score | 0.30 | 0.22 | 0.081 lower, CI [0.009, 0.152], p=0.028 | 0.071 | resolved |
+| elapsed, s | 9,166 | 9,532 | 367 slower, p=0.006 | 251 | resolved |
+| designs with no fail | 15 | 11 | | | |
+
+**The expectation failed.** `child20` ends with more fails, a lower score, and
+takes 4% longer for the same evaluations (four times the children is four
+times the per-child overhead: construction, the pre-filter, admission).
+
+**Almost all of it is one thing: six `child20` runs ended with no staircase,
+and no control run did.** `staircase volume` 6 of 36 against 0 (six discordant
+pairs, all one way: sign test p=0.031); `too few stairs` 5 against 0. Those
+eleven lines are 11 of the 14 fails by which the arms differ (38 against 24);
+on every other family together `child20` has 27 fails to the control's 24,
+which is nothing. The six stairless designs score 0.004-0.017 (§39.72's
+x0.0225), and without them the `child20` mean is 0.26 against 0.30. So this is
+not "every design a little worse": 30 runs in 36 are indistinguishable from
+the control, and six fell into the hole that §39.72-§39.75 describe and did
+not climb out.
+
+**Why, as far as this run can say.** It cannot say; it has end states only.
+The reading that fits what is already measured: §39.110's eleven winners were
+all relabellings (`retype`, `level_retype`, `swap`) on converged parents, the
+regime where a child's ratios are already right and 20 evaluations suffice --
+and that section said in as many words that it "says nothing" about children
+that restructure. Cutting a shaft back in is a restructuring: `repair_shaft`
+makes a ~2.6 m column through cells that were sized for something else, and
+the move recordings (§39.120) have its child carrying MORE fails than its
+parent 91% of the time it applies. Such a child is kept only if its tuning
+recovers the difference, and a quarter of the tuning recovers less. §39.114's
+by-product points the same way: 45% of new bests are a parent re-tuned for
+eighty more evaluations because its operator declined, and `child20` quarters
+that too. Neither is demonstrated here. The move recorder, once merged, could
+show it directly: record a `child20` run and read what happens to
+`repair_shaft`'s children.
+
+**What it settles, and what it does not.**
+
+- `child_budget` stays 80 on programme-house. Nothing favours 20 on any
+  measure, and one measure (the staircase) is a hard fail.
+- `child40` was not run. §39.110's ladder was monotone (11 / 8 / 7 wins), and
+  this result gives no reason to expect a gain in the middle; it is not worth
+  19 box-hours on programme-house without a new argument.
+- **The large programmes are untested**, and they were the half of the
+  expectation that hoped for a gain ("fewer on the large programmes IF a live
+  population behaves like these converged parents"). programme-house's live
+  population did not behave like them, which lowers that hope; it does not
+  measure it. A harbor-house pair is ~15 h a run.
+- A budget that depends on the MOVE -- few evaluations for a relabelling, the
+  full eighty for a move that cuts or removes a wall -- is what §39.110 and
+  this section together point at (candidate 2 on the bead). It needs code in
+  `driver`, and an A/B of its own.
+
+**A peeking lesson, for the next four A/Bs in this queue.** At 20 pairs the
+same report read fails -0.600, p=0.004, "margin exceeds the MDD", and it was
+passed to the owner as a result. At 35 pairs it read -0.314, p=0.078,
+"underpowered". At 36, -0.389, p=0.042. The verdict changed twice on the way
+to the same place, and the last pair alone moved it across the line -- so the
+fails row is a marginal result however it is quoted; the staircase count, the
+score and the time are what carry the conclusion. `--report-only` on an
+unfinished A/B is a progress check and not a verdict.
