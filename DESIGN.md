@@ -15753,3 +15753,75 @@ resolved difference in neither direction is the likeliest outcome -- the
 draws it frees become re-tunes and other moves, and §39.121 says more
 children is not by itself a gain. On harbor-house the flagged arm may do
 WORSE early, because the misfire is a useful `divide` there.
+
+### 39.123 Where a move is played: aimed at a failing cell it removes a fail five times as often, and `undivide` carries most of it (`homemaker-py-urzf`)
+
+The owner's reading of the book of moves (2026-10-08) is wider than §39.120's:
+a book that holds moves nobody has written yet, including multi-step ones
+mined from success. Agreed, with one caution recorded on the bead: mining KEPT
+lineages finds only sequences in which every step survived admission, which
+the search can already make; a compound worth storing crosses a valley, is
+rejected at its first step, and so has to be tried on purpose (§39.75's
+`--from-broken` pattern). Three steps follow from that. This is the first,
+and it needed no new run.
+
+**The cheapest new move is an old one with an aim.** `divide`, `undivide`,
+`retype`, `rotate` and `swap` choose their cell at random. The recordings
+name the cell each was played on and the parent's failing cells, so each
+child is a HIT (played on a failing cell, or on a branch that contains one),
+NEAR (the sibling branch) or MISS. `experiments/diag_move_where.py`, on the
+`move-book` branch; verdicts are paired over runs through `ab_report`, one
+rate per run and not one per child; `--self-test` finds a planted aim.
+
+**programme-house, 12 runs, 4,481 such children.** The search aims by
+accident 36% of the time.
+
+| all five moves | HIT | NEAR | MISS | HIT minus MISS, paired (MDD) |
+|---|---|---|---|---|
+| child has fewer fails | 4.3% | 1.5% | 0.7% | +4.1 points (1.8), p=0.0003 |
+| child is kept | 19.1% | 11.0% | 11.6% | +8.8 points (5.2), p=0.003 |
+| child beats parent | 11.9% | 12.0% | 14.0% | -3.6 (4.8), unresolved |
+
+- **It is not the size of the move.** A branch near the root contains a
+  failing cell more often and is also a bigger move. Among cells at depth 2
+  or more the gap is wider: fewer fails +5.0 points (2.3), kept +12.2 (6.6).
+- **It is partly how bad the parent is, and survives that.** A parent with
+  many failing cells is hit more often and sheds fails more easily. Among
+  equally bad parents HIT still leads MISS at every level -- 1.3% against
+  0.2% at 1-2 fails, 4.1% against 0.7% at 3-5, 10.4% against 4.2% at 6+ --
+  but with the runs split three ways no single level resolves on fewer
+  fails (+1.2 against an MDD of 1.3 at 1-2 fails); "kept" does at 1-2 fails
+  (+8.0, MDD 7.7). So: the direction is consistent, the pooled size is
+  flattered, and five times is the upper end.
+- **`undivide` carries it.** Fewer fails 8.5% on a HIT against 0.9% on a
+  MISS (+8.0 points, MDD 4.3, p=0.003); kept 29% against 13%. Removing the
+  wall beside a cell that is failing is the single most productive thing
+  recorded outside the repair moves, and the search does it on purpose
+  never. `rotate` and `swap` lean the same way and do not resolve.
+- **`divide` gains nothing from an aim** (0.8% against 1.0%), which is as it
+  should be: a failing cell is usually too small or too narrow already.
+  `retype` removes fails at the same rate wherever it is played, but an
+  aimed one is kept more often (20% against 12%).
+- **"Beats its parent" does not move.** That measure is mostly a higher
+  score at the same fails, which is §39.110's relabelling win and has
+  nothing to do with where the failing cells are.
+
+**harbor-house says nothing either way.** In its early runs every parent has
+dozens of failing cells, 79% of moves are a HIT by accident and only 7% a
+MISS, and three runs qualify for the paired test (MDD 18 points). The aim
+carries no information when everything is failing. Late-run recordings of a
+large programme are what would say.
+
+**What it suggests.** A targeted `undivide` -- choose the cell from the
+parent's failing cells, with a floor on the untargeted draw -- is a new move
+in effect and a small one to write: `Individual` already carries its fail
+lines (the recorder added them). It is search-side and needs the box.
+**Expectation, recorded now:** on programme-house fewer `size` / `width` /
+`crinkliness` fails at the end and no more staircase fails than the control;
+the risk is the usual one, that merging cells trades a soft fail for
+`missing room`, which `undivide` as drawn today already does and the
+comparator already polices. What these tables cannot say is whether a search
+that aims keeps finding new designs; an aimed move explores less.
+
+Still to come on the bead: the pair census (two moves with no judging
+between, on purpose), then ancestry ids in the recorder.

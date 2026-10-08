@@ -61,6 +61,7 @@ index is how to get from a question to the section that answers it.
 | §39.120 | The move book read (written after §39.121-§39.122): a learned draw has little to offer on programme-house; a quarter of draws are unnamed re-tunes; `place_missing` applies where the scorer sees nothing missing. |
 | §39.121 | The first of the five queued A/Bs: `--child-budget 20` is worse, by losing the staircase in six runs of 36. (§39.120 is reserved for the move book.) |
 | §39.122 | Two ideas set aside on the owner's word, with the condition that reopens each. |
+| §39.123 | The book of moves widened (owner): a move AIMED at a failing cell removes a fail about five times as often on programme-house; `undivide` carries it. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -124,7 +125,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (227 of them, 15755 lines)
+## Every section of DESIGN.md (228 of them, 15827 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -402,4 +403,5 @@ below are the most recent work.
 - §39.119 · 15402-15508 · Pitched roofs for the IFC export (`homemaker-py-6e5u`)
 - §39.121 · 15509-15588 · `child20`: a shorter inner loop loses the staircase one run in six (`homemaker-py-8b2u.20`)
 - §39.122 · 15589-15625 · Two ideas set aside, and what would bring each back (owner's ruling, 2026-10-08; `homemaker-py-8b2u.20`, `homemaker-py-ek07`)
-- §39.120 · 15626-15755 · The book of moves, read: specialists do what they say, a book adds little on programme-house, and `place_missing` plays where nothing is missing (`homemaker-py-urzf`)
+- §39.120 · 15626-15756 · The book of moves, read: specialists do what they say, a book adds little on programme-house, and `place_missing` plays where nothing is missing (`homemaker-py-urzf`)
+- §39.123 · 15757-15827 · Where a move is played: aimed at a failing cell it removes a fail five times as often, and `undivide` carries most of it (`homemaker-py-urzf`)
