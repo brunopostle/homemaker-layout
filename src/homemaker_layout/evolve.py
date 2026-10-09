@@ -200,6 +200,15 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "never fired and would have replaced the staircase with "
                         "a room if it had. The A/B resolved nothing either way; "
                         "adopted on correctness (default: on)")
+    p.add_argument("--label-writeback", dest="label_writeback",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_LABEL_WRITEBACK", False),
+                   help="homemaker-py-urzf.1 (DESIGN.md §39.130): after each "
+                        "child is tuned, write the scorer's room labels back "
+                        "to it, so operators read the rooms that were scored "
+                        "and not the ones the child was bred with. The score "
+                        "does not move. Changes what a search does; the A/B "
+                        "has not been run (default: off)")
     p.add_argument("--seed-solver", dest="seed_solver",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_SEED_SOLVER", False),
@@ -404,6 +413,8 @@ def main(argv=None) -> int:
     operators.CORE_UNDIVIDE_REPAIRED = bool(args.core_undivide_repaired)
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
     driver.SEED_SOLVER = bool(args.seed_solver)
+    os.environ["HOMEMAKER_LABEL_WRITEBACK"] = "1" if args.label_writeback else "0"
+    driver.LABEL_WRITEBACK = bool(args.label_writeback)
 
     seed_file = args.seed_dom.resolve()
     if not seed_file.exists():
@@ -483,6 +494,7 @@ def main(argv=None) -> int:
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"seed solver        : {args.seed_solver}", file=sys.stderr)
+    print(f"label write-back   : {args.label_writeback}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)

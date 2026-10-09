@@ -194,6 +194,38 @@ _MOVE_LOG_UID = __import__("itertools").count(1)
 # whether a better seed ends as a better design is an A/B on the box -- and
 # read from the environment like `operators.CORE_UNDIVIDE_REPAIRED`.
 SEED_SOLVER = __import__("os").environ.get("HOMEMAKER_SEED_SOLVER", "") == "1"
+
+# homemaker-py-urzf.1 (DESIGN.md §39.120 finding 6, §39.130): write the
+# SCORER'S room labels back to the design it scored. The search scores with
+# `collapse_insearch`, which relabels cells to the rooms they fit best on the
+# scorer's own copy; the tree an individual carried kept the labels it was bred
+# with. Measured in a live search: a third of all cells differ, and nearly
+# half of all individuals are "missing a room" to an operator that reads the
+# stored labels while the scorer sees it present -- so `place_missing` cut a
+# cell nobody asked for on a tenth of programme-house's draws. With this on,
+# the labels are written back after the inner loop, as the ratios already are
+# (Lamarckian), and every operator reads what was scored. The score does not
+# move: the collapse of a collapsed tree is the same tree. Default OFF: it
+# changes what a search does and the A/B has not been run.
+LABEL_WRITEBACK = __import__("os").environ.get("HOMEMAKER_LABEL_WRITEBACK", "") == "1"
+
+
+def write_labels_back(root: dom.Node, fit) -> int:
+    """Relabel ``root`` in place as ``fit`` would before scoring it; returns
+    how many cells changed. A no-op for a scorer that does not collapse."""
+    from . import geometry
+
+    if not getattr(fit, "_collapse_insearch", False):
+        return 0
+    before = [lf.type for lvl in dom.levels(root) for lf in lvl.leaves()]
+    geometry.clear_cache()
+    fit.collapse_global(root, adjacency=fit._collapse_insearch_adjacency,
+                        objective="threshold", preserve_public_access=True,
+                        iters=fit._collapse_insearch_iters)
+    dom.link(root)
+    geometry.clear_cache()
+    after = [lf.type for lvl in dom.levels(root) for lf in lvl.leaves()]
+    return sum(a != b for a, b in zip(before, after))
 # The solver has no time bound of its own (§39.109: one call ran past twenty
 # minutes at its default limit). Fifty function evaluations is where the seed
 # measurement was made.
@@ -326,6 +358,10 @@ def _evaluate(root: dom.Node, programme_dir, x0, budget, inner_kw,
             return ind, 1
     r = innerloop.optimise(root, programme_dir, x0=x0, budget=budget,
                            conf_overrides=overrides, **inner_kw)
+    if LABEL_WRITEBACK:
+        write_labels_back(root, _fitness_for(
+            str(programme_dir), leaf_sharing, superpose, max_share,
+            conn_grade, collapse_insearch, multi_use))
     # §11.4: read the graded proximity scalar off the optimised tree. The inner
     # loop left ``root`` at the optimum (Lamarckian write-back), so re-scoring a
     # copy reproduces r.fitness/r.n_fails exactly and adds the grade. One extra
