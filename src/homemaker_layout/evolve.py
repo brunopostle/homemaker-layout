@@ -192,13 +192,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "at seeding (default: off)")
     p.add_argument("--core-undivide-repaired", dest="core_undivide_repaired",
                    action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", False),
-                   help="homemaker-py-w4e (DESIGN.md §39.106): run core_undivide "
-                        "as its docstring describes it -- the inverse of "
-                        "core_divide -- instead of as shipped, where it almost "
-                        "never fires and would replace the staircase with a room "
-                        "if it did. Changes what a search does; the A/B that "
-                        "decides it has not been run (default: off)")
+                   default=_env_bool("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", True),
+                   help="homemaker-py-w4e (DESIGN.md §39.106, §39.129): run "
+                        "core_undivide as its docstring describes it -- the "
+                        "inverse of core_divide. --no-core-undivide-repaired is "
+                        "the operator as shipped until 2026-10, which almost "
+                        "never fired and would have replaced the staircase with "
+                        "a room if it had. The A/B resolved nothing either way; "
+                        "adopted on correctness (default: on)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
