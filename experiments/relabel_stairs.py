@@ -39,6 +39,9 @@ PROGRAMMES = ("programme-house2", "programme-house", "health-centre", "harbor-ho
               "y51-sweep-18", "y51-sweep-22")
 
 
+ALREADY = __import__("re").compile(r"^\s*(type|cell): E\s*$", __import__("re").M)
+
+
 def designs() -> "list[Path]":
     out = subprocess.run(["git", "ls-files", "*.dom"], cwd=REPO, capture_output=True,
                          text=True, check=True).stdout.split()
@@ -106,11 +109,18 @@ def _orth(on: bool) -> None:
 
 def survey(out: Path) -> int:
     rows, skipped = {}, []
+    done = 0
     for p in designs():
         prog = programme_of(p)
         rel = str(p.relative_to(REPO))
         if prog is None:
             skipped.append(rel)
+            continue
+        if ALREADY.search(p.read_text()):
+            # Upgraded before: the old code does not know `E`, and would score
+            # this as a building with no stair. Leaving it out is what lets
+            # the survey be run again later, over the designs written since.
+            done += 1
             continue
         row = {}
         for on in (False, True):
@@ -125,7 +135,8 @@ def survey(out: Path) -> int:
         rows[rel] = row
     out.write_text(json.dumps({"designs": rows, "skipped": skipped}, indent=0))
     n = sum(1 for r in rows.values() for v in r.values() if "error" not in v)
-    print(f"surveyed {len(rows)} designs ({n} scores); skipped {len(skipped)} with no programme")
+    print(f"surveyed {len(rows)} designs ({n} scores); skipped {len(skipped)} with no programme"
+          f" and {done} that already have an `E` cell")
     return 0
 
 
