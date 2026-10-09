@@ -382,3 +382,42 @@ def test_ambiguous_upper_span_resolves_onto_the_inherited_wall(tmp_path):
                         ((2, 7), "m"), ((7, 4), "r")):
         leaf = _leaf_at(top, point)
         assert leaf is not None and leaf.type == code
+
+
+def test_ambiguous_lower_span_takes_the_wall_the_storey_above_keeps(tmp_path):
+    """Three rooms in a row under two: cut first where the floor above cuts.
+
+    The ground floor's strip has walls at x=4 and x=7; the first floor keeps
+    only x=4. Whichever the ground floor cuts FIRST is the only one the floor
+    above may have, so it must be x=4 -- though x=7 is traced more exactly and
+    ranking by snapping error alone takes it, which then refuses a drawing
+    that is perfectly representable (the owner's first harbor-house design).
+    """
+    svg = textwrap.dedent(
+        """\
+        <svg xmlns="http://www.w3.org/2000/svg"
+             xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+          <g inkscape:groupmode="layer" inkscape:label="storey-0">
+            <path d="M 4.03,0.04 L 3.97,7.96"/>
+            <path d="M 7,0 L 7,8"/>
+            <text x="2" y="4">cr1</text>
+            <text x="5.5" y="4">da1</text>
+            <text x="8.5" y="4">k1</text>
+          </g>
+          <g inkscape:groupmode="layer" inkscape:label="storey-1">
+            <path d="M 4.03,0.04 L 3.97,7.96"/>
+            <text x="2" y="4">n</text>
+            <text x="7" y="4">n</text>
+          </g>
+        </svg>
+        """
+    )
+    boundary_path = _write(tmp_path, "boundary.dom", TWO_LEVEL_BOUNDARY_YAML)
+    svg_path = _write(tmp_path, "plan.svg", svg)
+    root = compose(dom.load(str(boundary_path)), parse_svg(str(svg_path)))
+
+    ground, first = dom.levels(root)
+    assert [leaf.type for leaf in first.leaves()] == ["n", "n"]
+    assert sorted(leaf.type for leaf in ground.leaves()) == ["cr1", "da1", "k1"]
+    # the ground floor's FIRST cut is the shared wall, with cr1 alone beside it
+    assert {ground.left.type, ground.right.type} & {"cr1"}
