@@ -135,7 +135,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (234 of them, 16260 lines)
+## Every section of DESIGN.md (234 of them, 16273 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -420,4 +420,4 @@ below are the most recent work.
 - §39.126 · 16026-16046 · The recorder names a child's parents; and why the recordings stay text files (`homemaker-py-urzf`)
 - §39.127 · 16047-16135 · `E` built: no committed score moves, and the first census caught the new move (`homemaker-py-y4p4.1`)
 - §39.128 · 16136-16211 · Storey height as something the search tunes: the variable alone does nothing, the jump does (`homemaker-py-y4p4.2`)
-- §39.129 · 16212-16260 · `w4e`: the repaired `core_undivide` changes nothing a search can show -- and every A/B in the queue has been re-running the same control (`homemaker-py-w4e`)
+- §39.129 · 16212-16273 · `w4e`: the repaired `core_undivide` changes nothing a search can show -- and every A/B in the queue has been re-running the same control (`homemaker-py-w4e`)
