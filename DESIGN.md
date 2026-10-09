@@ -16366,3 +16366,70 @@ and mid-run designs have more buried rooms and fewer merged storeys.
 programme-house no difference at all (the move never applies; the draws are
 re-tunes). On maple-court and harbor-house fewer `crinkliness` fails, by one
 or two a design, and no more `inaccessible usable space` than the control.
+
+### 39.130 The scorer's labels, written back: `place_missing` stops cutting cells nobody asked for (`homemaker-py-urzf.1`)
+
+(Numbered before §39.131 and written after it.) The second of the five.
+
+§39.120 found `place_missing` applying on parents whose fail list named no
+missing room -- 2,089 of 2,095 applied draws on programme-house, a tenth of
+all children, 99.7% of them worse than their parent -- and traced it to two
+counts of one thing: the scorer relabels cells to rooms before it counts
+(`collapse_insearch`), on its own copy, and the operator counts the labels
+the tree was bred with.
+
+**How wide the gap is** (`experiments/diag_urzf1_labels.py`, branch
+`scorer-labels`: a real 14,000-evaluation programme-house search, every
+individual compared with what its scorer scored; 175 individuals):
+
+| | |
+|---|---|
+| cells the scorer relabels | 600 of 1,952 (31%) |
+| individuals with at least one relabelled cell | 175 of 175 |
+| a room MISSING by the stored labels | 135 of 175 (77%) |
+| ...and present to the scorer | 127 of 175 (73%) |
+| the relabelled tree scores exactly what the individual scored | 175 of 175 |
+
+So the stored labels are not a slightly stale copy of the scored ones; a
+third of them are different, on every individual, and three individuals in
+four look to `place_missing` like a design with a room to add. The last row
+is what makes the repair simple: the collapse of a collapsed tree is the
+same tree, so the labels can be written back without moving a score.
+
+**The repair.** `driver.LABEL_WRITEBACK` (`--label-writeback`,
+`HOMEMAKER_LABEL_WRITEBACK`, default OFF, in `search_config`): after the
+inner loop, the scorer's labels are written to the tree it tuned, as the
+ratios already are. Not a patch to `place_missing`: every operator that
+reads a label then reads what was scored. `flag_ab.py labels` is the paired
+run.
+
+**Whether it works** -- two recorded command-line runs, programme-house,
+30,000 evaluations, seed 104, 544 children each:
+
+| `place_missing` draws | as bred | labels written back |
+|---|---|---|
+| applied, parent's fail list names a missing room | 7 | 2 |
+| applied, nothing missing | 48 | 0 |
+| declined, nothing missing | 3 | 56 |
+
+It does: 48 misfires to none, and the move declines when the required set
+is complete, which is what its weight of 2.0 was justified by ("it noops
+cheaply once the required set is complete"). Both runs ended at 2 fails;
+one seed, and nothing is claimed from that.
+
+**One thing a quick check got wrong on the way.** A 12,000-evaluation
+search called through `driver.search` directly showed the move applying
+once in 14 draws WITHOUT the repair, as if there were nothing to fix. The
+command-line run is a different search in its seeding and phases and
+reproduces §39.120's figure (48 of 58). The measurement that found a defect
+is the one to re-run to see it gone.
+
+**What it changes besides.** The freed draws become declined draws, which
+is to say re-tunes (§39.120: the search's most reliably useful draw, and a
+quarter of them already). And every other label-reading operator --
+`retype`, `level_retype`, `level_fix`, `swap`'s effect on adjacency -- now
+starts from the scored rooms. That is the reason it is an A/B and not a
+patch. **Expectation, recorded now:** on programme-house no resolved
+difference in fails (§39.120's expectation, unchanged); on harbor-house the
+misfire was a useful `divide` early on (kept one time in five), so the
+flagged arm may be slower to start there.
