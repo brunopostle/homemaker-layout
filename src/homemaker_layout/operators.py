@@ -110,13 +110,57 @@ def mutate_divide(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"divide {li}/{leaf.id or 'root'}"
 
 
+_FAILING_CELL = __import__("re").compile(r"^\s*(\d+)/([lr]+)\s")
+
+# How often an undivide that CAN be aimed is aimed. The rest of the time it
+# picks as it always did: an aimed move explores less, and a search that only
+# ever merges where something is failing never finds out what merging
+# elsewhere would have done (DESIGN.md §39.123).
+AIM_SHARE = 0.5
+
+
+def failing_cells(fails) -> "set[tuple[int, str]]":
+    """``{(storey, path)}`` of the cells a design's fail lines name. The paths
+    are the SCORED tree's, where a pair of like cells has been merged into
+    their parent's address -- so a failing cell may be a node of the stored
+    tree, or an ancestor of several."""
+    out = set()
+    for line in fails or ():
+        m = _FAILING_CELL.match(line)
+        if m:
+            out.add((int(m.group(1)), m.group(2)))
+    return out
+
+
 def mutate_undivide(root: dom.Node, rng: np.random.Generator,
-                    types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
+                    types: list[str], base_p: float = 1.0,
+                    fails=None) -> tuple[dom.Node, str]:
+    """Remove one cut: two cells become one.
+
+    ``fails`` (`homemaker-py-iplo`, DESIGN.md §39.123) is the parent's fail
+    lines. Given them, half the draws choose among the cuts BESIDE A FAILING
+    CELL -- a cut one of whose two cells is failing, or lies inside a failing
+    (merged) cell. In twelve recorded programme-house runs an undivide that
+    happened to land there left fewer fails 8.5% of the time against 0.9%
+    elsewhere, and was kept twice as often; the search landed there by
+    accident one time in three. Without ``fails`` the move is as it was, and
+    draws nothing more from ``rng``.
+    """
     child = copy.deepcopy(root)
     cands = [(li, n) for li, n in _owned_branches(child)
              if not n.left.divided and not n.right.divided]
     if not cands:
         return _finalise(child), "undivide noop"
+    aimed = ""
+    cells = failing_cells(fails)
+    if cells:
+        def beside(li: int, n: dom.Node) -> bool:
+            kids = ((n.left.id or ""), (n.right.id or ""))
+            return any(lv == li and (p in kids or any(k.startswith(p) for k in kids))
+                       for lv, p in cells)
+        hits = [(li, n) for li, n in cands if beside(li, n)]
+        if hits and rng.random() < AIM_SHARE:
+            cands, aimed = hits, " aimed"
     li, n = _pick_weighted_by_storey(rng, cands, base_p)
     # prefer a PROGRAMME room type over a generic (circulation/outside/sahn)
     # one when collapsing two children into one leaf (§39.4)
@@ -125,7 +169,7 @@ def mutate_undivide(root: dom.Node, rng: np.random.Generator,
     dom.hand_cut_up(n)      # one cut goes; the wall above it stays (§39.100)
     n.division = None
     n.left = n.right = None
-    return _finalise(child), f"undivide {li}/{n.id or 'root'}"
+    return _finalise(child), f"undivide {li}/{n.id or 'root'}{aimed}"
 
 
 def mutate_retype(root: dom.Node, rng: np.random.Generator,
@@ -3053,7 +3097,8 @@ _BASE_P_OPS = ("divide", "undivide", "retype", "swap", "rotate")
 
 def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
            weights: dict[str, float] | None = None,
-           reqs=None, base_p: float = 1.0, fit=None) -> tuple[dom.Node, str]:
+           reqs=None, base_p: float = 1.0, fit=None,
+           fails=None) -> tuple[dom.Node, str]:
     """Apply one random mutation drawn from MUTATIONS."""
     names = sorted(MUTATIONS)
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
@@ -3078,6 +3123,9 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
         return MUTATIONS[name](root, rng, types, reqs=reqs)
     if name in fit_ops:
         return MUTATIONS[name](root, rng, types, fit=fit)
+    if name == "undivide" and fails:
+        # the parent's fail lines, for the half of draws that are aimed
+        return MUTATIONS[name](root, rng, types, base_p=base_p, fails=fails)
     if name in _BASE_P_OPS:
         return MUTATIONS[name](root, rng, types, base_p=base_p)
     return MUTATIONS[name](root, rng, types)

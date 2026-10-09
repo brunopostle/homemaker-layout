@@ -200,6 +200,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "never fired and would have replaced the staircase with "
                         "a room if it had. The A/B resolved nothing either way; "
                         "adopted on correctness (default: on)")
+    p.add_argument("--aim-undivide", dest="aim_undivide",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_AIM_UNDIVIDE", False),
+                   help="homemaker-py-iplo (DESIGN.md §39.123): half of "
+                        "undivide's draws remove a wall beside a cell that is "
+                        "FAILING, chosen from the parent's fail lines; the "
+                        "other half pick as before. Changes what a search "
+                        "does; the A/B has not been run (default: off)")
     p.add_argument("--seed-solver", dest="seed_solver",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_SEED_SOLVER", False),
@@ -404,6 +412,8 @@ def main(argv=None) -> int:
     operators.CORE_UNDIVIDE_REPAIRED = bool(args.core_undivide_repaired)
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
     driver.SEED_SOLVER = bool(args.seed_solver)
+    os.environ["HOMEMAKER_AIM_UNDIVIDE"] = "1" if args.aim_undivide else "0"
+    driver.AIM_UNDIVIDE = bool(args.aim_undivide)
 
     seed_file = args.seed_dom.resolve()
     if not seed_file.exists():
@@ -483,6 +493,7 @@ def main(argv=None) -> int:
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"seed solver        : {args.seed_solver}", file=sys.stderr)
+    print(f"aim undivide       : {args.aim_undivide}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)
