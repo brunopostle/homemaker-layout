@@ -2707,10 +2707,13 @@ def mutate_stair(root: dom.Node, rng: np.random.Generator,
       long as it is a ``C`` leaf there. Exactly the columns the old rule would
       have read as stairs, and no wall moves;
     * **unmake** -- a shaft becomes ``C`` again from top to bottom: circulation
-      it still is, a stair it no longer is.
+      it still is, a stair it no longer is. Only where another staircase is
+      left standing: no programme wants a building without one, and taking
+      the last costs x0.0225 (§39.72). Unguarded, this move emptied the shaft
+      in 71% of its draws on the corpus (`diag_t7q_shaft_breakage.py`).
 
     Which one is drawn at random when both are possible. A building with
-    nothing to make and nothing to unmake declines.
+    nothing to make and nothing it may unmake declines.
     """
     from . import graph
 
@@ -2728,6 +2731,8 @@ def mutate_stair(root: dom.Node, rng: np.random.Generator,
     make = [col for lf in lvls[0].leaves() if lf.type == "C"
             and len(col := column(lf)) >= 2]
     unmake = [graph.stair_shaft(lvls[0].by_id(p)) for p in _shaft_paths(lvls)]
+    if len(unmake) < 2:
+        unmake = []                   # never the last staircase
     if not make and not unmake:
         return child, "stair noop"
     if make and (not unmake or rng.random() < 0.5):

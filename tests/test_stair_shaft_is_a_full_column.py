@@ -374,3 +374,49 @@ def test_repair_shaft_will_not_undivide_a_finer_storey_to_reach_an_address():
         assert "noop" in desc, desc
         types = [lf.type for lvl in dom.levels(child) for lf in lvl.leaves()]
         assert types.count("b2") == 1, types
+
+
+# --------------------------------------------------------------------------- #
+# `mutate_stair`: the move that writes the label (§39.125)
+# --------------------------------------------------------------------------- #
+def test_stair_makes_a_staircase_of_a_stacked_corridor():
+    """What the old rule inferred, as a move: `C` over `C` becomes `E` over `E`."""
+    root = _two_storey("C", "b1", ground="C")
+    assert not operators._shaft_paths(dom.levels(root))
+    child, desc = operators.mutate_stair(root, np.random.default_rng(0), ["C", "O"])
+    assert desc.startswith("stair make"), desc
+    assert operators._shaft_paths(dom.levels(child)) == ["l"]
+    # ...and the parent is not touched
+    assert not operators._shaft_paths(dom.levels(root))
+
+
+def test_stair_never_unmakes_the_last_staircase():
+    root = _two_storey("E", "b1")
+    for seed in range(8):
+        child, desc = operators.mutate_stair(root, np.random.default_rng(seed), ["C", "O"])
+        assert "noop" in desc, desc
+        assert operators._shaft_paths(dom.levels(child)) == ["l"]
+
+
+def test_stair_unmakes_one_of_two_and_the_guard_is_what_keeps_the_last(monkeypatch):
+    def storey():
+        n = dom.Node(rotation=0, height=3.0, division=[0.3, 0.3])
+        n.left = dom.Node(type="E")
+        n.right = dom.Node(rotation=0, division=[0.6, 0.6])
+        n.right.left = dom.Node(type="k1")
+        n.right.right = dom.Node(type="E")
+        return n
+    root = storey()
+    root.node = [list(p) for p in PLOT]
+    root.elevation, root.wall_inner, root.wall_outer = 0.0, 0.08, 0.25
+    root.above = storey()
+    root.above.right.left.type = "b1"
+    dom.link(root)
+    geometry.clear_cache()
+    assert len(operators._shaft_paths(dom.levels(root))) == 2
+    child, desc = operators.mutate_stair(root, np.random.default_rng(0), ["C", "O"])
+    assert desc.startswith("stair unmake"), desc
+    assert len(operators._shaft_paths(dom.levels(child))) == 1
+    # a second draw on the child may not take the one that is left
+    again, desc = operators.mutate_stair(child, np.random.default_rng(1), ["C", "O"])
+    assert len(operators._shaft_paths(dom.levels(again))) >= 1, desc
