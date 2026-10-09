@@ -85,6 +85,37 @@ def test_every_child_is_recorded_with_what_it_was_played_on(runs):
         assert mine[-1]["evals"] == sum(r["used"] for r in mine)
 
 
+def test_a_chain_of_moves_can_be_rebuilt(runs):
+    """Every record has an id of its own, and a bred child names a parent
+    that was recorded before it -- so the moves that led to any design can be
+    walked back to a seed (DESIGN.md §39.126)."""
+    _, _, records = runs
+    ids = [r["id"] for r in records]
+    assert len(set(ids)) == len(ids) and min(ids) >= 1
+    seen, bred, crossed = set(), 0, 0
+    for r in records:
+        if r["parent_fails"] is None:
+            assert r["parent"] is None and r["parent2"] is None
+        else:
+            bred += 1
+            assert r["parent"] in seen, r
+            if r["move"].startswith("crossover"):
+                crossed += 1
+                assert r["parent2"] in seen
+            else:
+                assert r["parent2"] is None
+        seen.add(r["id"])
+    assert bred >= 5
+    # the chain behind the last best design ends at an individual with no parent
+    by_id = {r["id"]: r for r in records}
+    r = [x for x in records if x["status"] == "best"][-1]
+    steps = 0
+    while r["parent"] is not None:
+        r, steps = by_id[r["parent"]], steps + 1
+        assert steps <= len(records)
+    assert r["parent_fails"] is None
+
+
 def test_the_log_agrees_with_the_run_about_its_best(runs):
     """The check that the statuses mean something: the last record marked
     `best` carries the fail lines of the design the run wrote."""

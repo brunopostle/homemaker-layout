@@ -138,6 +138,10 @@ class Individual:
     # against the failure pattern it was played on. Nothing in the search reads
     # it; it is carried for `HOMEMAKER_MOVE_LOG`.
     fails: tuple = ()
+    # ...and a serial number, given when the individual is RECORDED (0 = never
+    # recorded), so the log can name a child's parents and a chain of moves can
+    # be rebuilt (DESIGN.md §39.126). Nothing in the search reads it either.
+    uid: int = 0
 
 
 def _move_logger():
@@ -176,6 +180,8 @@ def _move_logger():
 
 
 _MOVE_LOG_PHASE = __import__("itertools").count()
+# one series for the whole run, so an id means one individual across phases
+_MOVE_LOG_UID = __import__("itertools").count(1)
 
 
 @dataclass
@@ -716,7 +722,10 @@ def search(
 
     def _record(ind: Individual, used: int, status: str, parents) -> None:
         a, b = parents if parents is not None else (None, None)
-        move_log(evals=n_evals, move=ind.lineage, status=status, used=used,
+        ind.uid = next(_MOVE_LOG_UID)
+        move_log(id=ind.uid, parent=None if a is None else a.uid,
+                 parent2=None if b is None else b.uid,
+                 evals=n_evals, move=ind.lineage, status=status, used=used,
                  fitness=ind.fitness, fails=list(ind.fails),
                  parent_fitness=None if a is None else a.fitness,
                  parent_fails=None if a is None else list(a.fails),
