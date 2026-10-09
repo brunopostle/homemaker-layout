@@ -248,7 +248,20 @@ CONF_DEFAULTS: dict = {
     # what it takes to BUILD -- which `cost` already says, `outside` 10.0
     # against `outside_supported` 110.0. Value describes worth, cost describes
     # structure; the level belongs in the second.
-    "value_supported": 100.0,
+    #
+    # Owner's ruling 2026-10-07 (DESIGN.md §39.115/§39.116), which overrules
+    # the paragraph above on one point: usable space should be worth more than
+    # it costs, and "a terrace should be more valuable than garden". At 100.0
+    # a terrace was worth LESS than the 110.0 it costs to build -- under water
+    # ever since this was lowered from 300.0. 120.0 keeps all three rulings:
+    # above its cost, above `value_outside`, and -- the binding one -- a
+    # terrace still not worth more per m2 than a room AS REALISED on the
+    # corpus, where a terrace keeps 96% of its rate and a room 40% (§39.116:
+    # that holds up to about 123). "We will revise when daylight is used to
+    # score down the value of outside space" (`homemaker-py-2g5`). Circulation
+    # is deliberately outside the rule (50.0 against 200.0): "a building
+    # without any circulation has an efficient plan".
+    "value_supported": 120.0,
     "storey_limit": 4,
     "storey_minimum": 2,
     # Unread today, and kept deliberately: it is for the daylight/occlusion
