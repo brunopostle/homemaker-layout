@@ -164,7 +164,7 @@ def write_template(prog: Path, name: str, storeys: int, force: bool) -> int:
 # --------------------------------------------------------------------------- #
 # compose, score, explain
 # --------------------------------------------------------------------------- #
-def check(prog: Path, name: str, tune: int, tol: float) -> int:
+def check(prog: Path, name: str, tune: int, tol: float, heights: bool = False) -> int:
     boundary, svg, out = paths(prog, name)
     if not svg.exists():
         print(f"no {svg.relative_to(REPO)}: run with --template first")
@@ -186,12 +186,20 @@ def check(prog: Path, name: str, tune: int, tol: float) -> int:
     dom.link(root)
     geometry.clear_cache()
     if tune:
-        res = innerloop.optimise(root, str(prog), budget=tune, method="nm")
+        # --heights: the storeys' heights are tuned with the walls, after a
+        # coarse look up and down each one (§39.128) -- a ceiling raised to
+        # 3.6 m is what lets a room 5.5 m deep keep its daylight
+        res = innerloop.optimise(root, str(prog), budget=tune, method="nm",
+                                 heights=heights, height_probe=heights)
         dom.dump(root, str(out))
         root = dom.load(str(out))
         dom.link(root)
         print(f"(walls tuned for {res.n_evals} evaluations: score {res.x0_fitness:.4g} -> "
-              f"{res.fitness:.4g}, fails {res.x0_n_fails} -> {res.n_fails})\n")
+              f"{res.fitness:.4g}, fails {res.x0_n_fails} -> {res.n_fails})")
+        if heights:
+            print("(storey heights: " + ", ".join(
+                f"{lvl.height:.2f} m" for lvl in dom.levels(root)) + ")")
+        print()
     report(root, prog, out)
     return 0
 
@@ -265,13 +273,15 @@ def main(argv=None) -> int:
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--tune", type=int, default=0, metavar="N",
                     help="then tune the wall positions for N evaluations")
+    ap.add_argument("--heights", action="store_true",
+                    help="with --tune: tune each storey's height too (2.7 m or more)")
     ap.add_argument("--tol", type=float, default=0.15,
                     help="how far short of its region's edge a line may stop, metres")
     a = ap.parse_args(argv)
     prog = REPO / "examples" / a.programme
     if a.template:
         return write_template(prog, a.name, a.storeys, a.force)
-    return check(prog, a.name, a.tune, a.tol)
+    return check(prog, a.name, a.tune, a.tol, a.heights)
 
 
 if __name__ == "__main__":
