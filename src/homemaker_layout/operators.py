@@ -2884,6 +2884,39 @@ def mutate_level_add_migrate(root: dom.Node, rng: np.random.Generator,
             f"{'+'.join(sorted(up)) if up_codes else 'nothing'} up)")
 
 
+def mutate_storey_height(root: dom.Node, rng: np.random.Generator,
+                         types: list[str]) -> tuple[dom.Node, str]:
+    """Raise or lower a storey, or all of them, by a step a person would draw.
+
+    Owner's ruling (DESIGN.md §39.125, §39.128): a room's depth limit is "only
+    a limit for low ceilings", and the search may raise a storey to earn
+    daylight for a deeper room. The inner loop tunes heights to the centimetre
+    (`innerloop.optimise(heights=True)`) but cannot cross the valley between
+    paying for more wall and a fail clearing; that jump is this move, and the
+    comparator judges it. Never below `innerloop.HEIGHT_MIN`; no ceiling.
+
+    Drawn only when the search tunes heights (`--tune-heights`): its weight is
+    zero otherwise, so a default search never plays it.
+    """
+    from . import innerloop
+
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+    step = (-0.6, -0.3, 0.3, 0.6, 0.9)[int(rng.integers(5))]
+    li = None if rng.random() < 1 / 3 else int(rng.integers(len(lvls)))
+    changed = False
+    for lvl in (lvls if li is None else [lvls[li]]):
+        h = lvl.height if lvl.height else 3.0
+        new = max(innerloop.HEIGHT_MIN, h + step)
+        if abs(new - h) > 1e-9:
+            lvl.height = new
+            changed = True
+    if not changed:
+        return _finalise(child), "storey_height noop"
+    return (_finalise(child),
+            f"storey_height {'all' if li is None else li} {step:+.1f}")
+
+
 def mutate_level_delete(root: dom.Node, rng: np.random.Generator,
                         types: list[str]) -> tuple[dom.Node, str]:
     child = copy.deepcopy(root)
@@ -2917,6 +2950,7 @@ MUTATIONS = {
     "reassign": mutate_reassign,
     "support_outside": mutate_support_outside,
     "repair_shaft": mutate_repair_shaft,
+    "storey_height": mutate_storey_height,
 }
 
 

@@ -199,6 +199,17 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "never fires and would replace the staircase with a room "
                         "if it did. Changes what a search does; the A/B that "
                         "decides it has not been run (default: off)")
+    p.add_argument("--tune-heights", dest="tune_heights",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_TUNE_HEIGHTS", False),
+                   help="homemaker-py-y4p4.2 (DESIGN.md §39.128), owner's "
+                        "ruling: let the inner loop tune each storey's "
+                        "floor-to-floor height with the walls, so a deep room "
+                        "can earn its daylight by a higher ceiling. Never "
+                        "below 2.7 m; no ceiling, the cost of the walls is "
+                        "what holds it down. Changes what a search does; the "
+                        "A/B that decides the default has not been run "
+                        "(default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
@@ -459,12 +470,15 @@ def main(argv=None) -> int:
     print(f"support outside    : {args.support_outside}", file=sys.stderr)
     print(f"level add+migrate  : {args.level_add_migrate}", file=sys.stderr)
     print(f"repair shaft       : {args.repair_shaft}", file=sys.stderr)
+    print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
+    # what every child's inner loop is told, phase after phase
+    _inner_kw = {"heights": True} if args.tune_heights else None
     anneal_ladder = None
     if args.anneal_grain:
         anneal_ladder = tuple(int(g) for g in args.anneal_grain.split(",")
@@ -503,6 +517,7 @@ def main(argv=None) -> int:
             checkpoint=_ckpt,
             checkpoint_every=args.checkpoint_every,
             log=lambda m: print(m, file=sys.stderr, flush=True),
+            inner_kw=_inner_kw,
         )
         _finish_sharing = False
     else:
@@ -532,6 +547,7 @@ def main(argv=None) -> int:
             checkpoint=_ckpt,
             checkpoint_every=args.checkpoint_every,
             log=lambda m: print(m, file=sys.stderr, flush=True),
+            inner_kw=_inner_kw,
         )
         _finish_sharing = args.leaf_sharing
 
@@ -563,6 +579,7 @@ def main(argv=None) -> int:
             multi_use=args.multi_use,
             collapse_insearch=args.collapse_insearch,
             log=lambda m: print(m, file=sys.stderr, flush=True),
+            inner_kw=_inner_kw,
         )
 
     # homemaker-py-94g: finish-time global cell→room collapse. Relabels the best
