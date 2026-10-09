@@ -50,7 +50,7 @@ def search_weights() -> dict:
     """`driver.search`'s mutation weights under search config 4549a418fc."""
     w = dict(driver._MUTATION_WEIGHTS)
     for off in ("reassociate", "bridge_circulation", "ruin_recreate", "reassign",
-                "level_add_migrate", "storey_height"):
+                "level_add_migrate", "storey_height", "light_well"):
         w[off] = 0.0
     return w
 

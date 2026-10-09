@@ -29,6 +29,7 @@ prevent stale id-keyed entries inherited from the parent process.
 from __future__ import annotations
 
 import copy
+import os
 import functools
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -595,6 +596,11 @@ def search(
         mutation_weights["support_outside"] = 0.0
     if not enable_level_add_migrate:
         mutation_weights["level_add_migrate"] = 0.0
+    # homemaker-py-evxm: the light-well move, default OFF until its A/B. Read
+    # from the environment like `operators.CORE_UNDIVIDE_REPAIRED`, so that it
+    # reaches every phase of a run without a parameter through each of them.
+    if os.environ.get("HOMEMAKER_LIGHT_WELL", "") != "1":
+        mutation_weights["light_well"] = 0.0
     # the height move belongs to a search that tunes heights, and to no other
     if not (inner_kw or {}).get("heights"):
         mutation_weights["storey_height"] = 0.0
