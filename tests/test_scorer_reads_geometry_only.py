@@ -254,4 +254,9 @@ def test_control_urbs_trim_does_depend_on_listing_order(rt, monkeypatch):
 
     monkeypatch.setattr(graph, "_centrality",
                         lambda G: lambda n: graph._avg_path_len_from(G, n))
+    # ...with the stairs not joining storeys, which is how it was when Urb's
+    # trim was measured: on this design the storey the wobble disconnects is
+    # reached by its stair, so §39.125's rule hides the 32-or-34 this control
+    # exists to show (measured both ways, 2026-10-09).
+    monkeypatch.setattr(graph, "STAIRS_JOIN_STOREYS", False)
     assert len(_fail_counts_over_relistings(rt)) > 1

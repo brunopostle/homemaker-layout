@@ -86,7 +86,8 @@ def _usage(leaf, reqs: dict, stair_ids: set) -> "str | None":
         # homemaker-addon (molior/floor.py, shell.py, topologist/graph.py) tests
         # usage == "stair"; `circulation_stair` only appears in its widget-name
         # list. Exported as `circulation_stair`, a shaft built no staircase.
-        return "stair" if leaf.id in stair_ids else "circulation"
+        return ("stair" if t == dom.GENERIC_STAIR and leaf.id in stair_ids
+                else "circulation")
     if t in ("O", "S"):
         if not dom.is_covered(leaf):
             return None          # a terrace or yard: the roof of what is below, not a room

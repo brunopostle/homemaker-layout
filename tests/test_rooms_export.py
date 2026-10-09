@@ -78,7 +78,7 @@ def test_blank_walls_are_exactly_the_walls_on_a_private_plot_edge(doc, monkeypat
 def test_usage_mapping(doc):
     usages = {(r["code"], r["usage"]) for r in doc["rooms"]}
     assert ("b1", "bedroom") in usages and ("t1", "toilet") in usages
-    assert ("C", "stair") in usages      # programme-house has a shaft; the addon's stair usage is "stair"
+    assert ("E", "stair") in usages      # programme-house has a shaft; the addon's stair usage is "stair"
     assert all(u == "outside" for c, u in usages if c == "O")
     assert set(rooms_export.USAGE_MAP) >= {"bedroom", "kitchen", "living", "toilet",
                                            "none", "utility"}
