@@ -114,3 +114,36 @@ def test_repaired_it_undoes_a_core_divide(repaired, monkeypatch):
     assert fired >= 6
     assert restored >= 0.6 * fired
     assert emptied == 0
+
+
+def test_repaired_it_never_costs_the_building_a_staircase(repaired):
+    """The stacked pair on the ground and top storeys, and a finer tree on the
+    one between: merging the two would leave the stair's foot with nothing
+    over it, which is no staircase. (A pair on the LOWER storeys of a taller
+    shaft is a different thing since §39.125 -- a shaft may stop below the
+    top -- and is allowed.)"""
+    def pair():
+        return dom.Node(division=[0.5, 0.5], left=dom.Node(type="l1"),
+                        right=dom.Node(division=[0.3, 0.3], left=dom.Node(type="E"),
+                                       right=dom.Node(type="b1")))
+    root = pair()
+    root.above = dom.Node(division=[0.5, 0.5], left=dom.Node(type="l1"),
+                          right=dom.Node(division=[0.3, 0.3], left=dom.Node(type="E"),
+                                         right=dom.Node(division=[0.5, 0.5],
+                                                        left=dom.Node(type="b2"),
+                                                        right=dom.Node(type="b3"))))
+    root.above.above = pair()
+    dom.link(root)
+    assert len(operators._shaft_feet(dom.levels(root))) == 1
+    for seed in range(6):
+        child, desc = operators.mutate_core_undivide(root, np.random.default_rng(seed), TYPES)
+        assert len(operators._shaft_feet(dom.levels(child))) == 1, desc
+        assert "would cost a staircase" in desc, desc
+    # the control: with the guard blind, the same draw does take the staircase
+    count = operators._shaft_feet
+    operators._shaft_feet = lambda lvls: []
+    try:
+        child, desc = operators.mutate_core_undivide(root, np.random.default_rng(0), TYPES)
+    finally:
+        operators._shaft_feet = count
+    assert "noop" not in desc and len(count(dom.levels(child))) == 0
