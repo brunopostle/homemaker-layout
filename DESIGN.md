@@ -16132,3 +16132,79 @@ the mutation mix, so `search_config` moves with the objective.
 a trial merge with `move-book`, `seed-solver` and `hand-curves`, which touch
 `driver.py`, `operators.py` and `compose.py` between them; the starter
 drawing `hand.svg` regenerated; the stair labels in `hand2a.svg`.
+
+### 39.128 Storey height as something the search tunes: the variable alone does nothing, the jump does (`homemaker-py-y4p4.2`)
+
+The owner's ruling on daylight depth (§39.125): "4.86 m depth is only a limit
+for low ceilings, the solver should be able to raise the ceiling height of a
+storey and allow deeper rooms"; and on the bounds: "The per-storey height was
+always a parameter in the Dom format. 2.7 can be a minimum height, but we
+should leave the maximum open as we may want to design very big buildings
+someday." Built on branch `storey-height`, default OFF, not merged.
+
+**What was already there.** The scorer reads a storey's height wherever it
+matters (lit wall in `area_outside`, wall cost, the risers `_stair_fit`
+needs); the genome and both file formats carry it. `operators.py`'s first
+paragraph says floor heights belong to the inner loop, and the inner loop
+never had them. So no objective source changes: this is search-side.
+
+**What is built.**
+
+- `innerloop.optimise(heights=True)`: one variable per storey after the
+  ratios. It lives on a ratio's interval and maps to metres through a curve
+  with a floor at 2.7 m and no practical ceiling (3.0 m at 0.25, 3.66 m at
+  0.5, about fifty at the top). `x0` is still the ratios; heights start where
+  the tree has them, so a child inherits its parent's.
+- `operators.mutate_storey_height`: one storey, or all, up or down by 0.3 to
+  0.9 m. Weight zero unless the search tunes heights.
+- `innerloop.probe_heights`: the same jumps for tuning ONE design -- each
+  storey, then all together, a few steps away, before the fine search.
+- `homemaker-evolve --tune-heights` (`HOMEMAKER_TUNE_HEIGHTS`), recorded in
+  `search_config`; `flag_ab.py heights` is the paired run. A search without
+  the flag writes the same file as main's, byte for byte.
+- A floor the SEARCH keeps, not the scorer: a hand design drawn at 2.4 m is
+  scored as drawn.
+
+**The measurement that shaped it.** `experiments/diag_y4p42_heights.py`, the
+owner's hand-drawn design (`hand2a.dom`, already tuned), 4,000 more
+evaluations per arm:
+
+| arm | fails | score | storey heights, m |
+|---|---|---|---|
+| walls only, as today | 31 | 2.36e-10 | 3.0, 3.0, 3.0 |
+| walls + heights | 31 | 2.35e-10 | 2.99, 3.0, 3.0 |
+| probe, then walls + heights | 26 | 7.46e-09 | 3.6, 3.59, 2.7 |
+
+**The variable alone does nothing.** Raising a ceiling is charged for at
+once, in wall, and pays only when a room's daylight passes -- on this design
+half a metre away. §39.125 measured the same valley with the walls fixed
+(3.3 m scores a shade below 3.0 m; 3.6 m scores twenty times higher), and
+Nelder-Mead, whose first step is five per cent of a coordinate, does not
+cross it in four thousand evaluations. With the jump made first, the fine
+search then does something a person would: the two lower storeys go to
+3.6 m, where the deep rooms are, and the top storey, which has none, drops
+to the 2.7 m floor to save its walls. All five fails cleared are the
+single-aspect rooms 5.5 to 5.8 m deep; the seven cells with no lit wall are
+untouched, as they must be.
+
+**What a child's eighty evaluations do with it**
+(`experiments/diag_y4p42_children.py`, the §39.110 harness, 48 children of
+the twelve `1a24b6a+orth` designs, each tuned twice by `driver._evaluate`):
+nothing either way. Fails are equal on 47 of 48 (one worse; inside the MDD),
+the score is higher on 11 and lower on 10, and 9 children moved a height at
+all, none past 3.04 m. So the extra two or three variables cost a child
+nothing measurable and gain it nothing by themselves -- which is why the
+jump is a MOVE, judged by the comparator and inherited, and not more inner
+loop.
+
+**Expectation for the A/B, recorded before any run** (also in `flag_ab.py`):
+on programme-house no resolved difference in fails -- its rooms are shallow
+and its daylight fails few. The thing to read is `crinkliness` on the large
+programmes, where it is 45% of all fails; there the flagged arm should carry
+fewer. `elapsed_s` should not move. What a container cannot say is whether
+a population finds and keeps the taller storey; one hand design says the
+taller storey is worth finding.
+
+**To do:** the box A/B; `hand_design.py --tune` should use the probe (it is
+on `hand-curves`' side of a merge); and at the merge this branch and
+`escalier` each add a move at the same line of `operators.MUTATIONS`.
