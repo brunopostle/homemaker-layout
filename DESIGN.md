@@ -16271,3 +16271,98 @@ the answer. And on the order of the merge: "land all six first" --
 `storey-height`; full suite green on it), relabels the staircases of the
 designs the queue has written since, and only then runs the seed-solver A/B,
 at the objective with `E` in it.
+
+### 39.131 A light well: every one the move is willing to cut leaves fewer fails, and it is willing to cut few (`homemaker-py-evxm`)
+
+(§39.130 is reserved for the label write-back, `homemaker-py-urzf.1`, whose
+measurement was still running.)
+
+The first of five pieces of work the owner asked for while the A/B queues
+run ("create beads for all of these and try them in order", 2026-10-09).
+
+**Why this one first.** Crinkliness is about 45% of all fails. A taller
+storey was the previous idea for it (§39.128), and the day it was built the
+twelve `1a24b6a+orth` designs were re-scored with every storey at a fixed
+height, walls untouched:
+
+| daylight fails, three designs each | 3.0 m | 3.3 m | 3.6 m | 4.0 m |
+|---|---|---|---|---|
+| programme-house | 0 | 0 | 0 | 0 |
+| health-centre | 4 | 4 | 4 | 4 |
+| harbor-house | 37 | 34 | 32 | 32 |
+| maple-court | 83 | 83 | 83 | 81 |
+
+In evolved designs the cells that fail daylight are BURIED -- no wall of
+theirs sees a street or open sky -- and no ceiling repairs that. The owner's
+hand design gained five of twelve from height because a person puts rooms on
+the street; and the owner's own suggestion for the rest was an alley
+(§39.125). This is the alley as a move.
+
+**The move.** `operators.mutate_light_well`, branch `light-well` (off
+`trial-merge`), default OFF, `--light-well`, `flag_ab.py well`. A strip
+2.7 m wide is sliced off a room that has no lit wall, and off the cell at
+the same address on every storey above -- a well is open to the sky or it is
+a loggia. `repair_shaft`'s machinery, with `O` where that puts `E`.
+
+**Five rules, each from looking at what the first version broke.** The first
+version made designs much worse (health-centre 4 fails -> 10), and the fail
+lists said why:
+
+1. *Rooms only.* A buried corridor is what a corridor is; a strip out of one
+   parts it: two `inaccessible usable space` and an `access` per room beyond.
+2. *The room keeps its door, and the well has a way in.* Of the two ways to
+   slice and two sides to put the well, only those that leave the room a wall
+   onto circulation; and the well must touch circulation, or be cut from a
+   living room or kitchen. Four of eight wells on maple-court had no way in.
+3. *Nobody else loses theirs.* The scorer's connectivity test
+   (`graph.storey_graphs`) is run before and after; a well that parts any
+   storey is not cut. (A room upstairs reached only through the cell that was
+   cut.)
+4. *No storey is divided to reach the address.* `_open_address` would do it,
+   and the cells it makes are narrow and buried themselves: on harbor-house,
+   twenty new daylight fails for twenty-seven cleared. §39.75's lesson again.
+5. *The axis is written at the foot of the below-stack*, where the engine
+   reads an upper storey's (§39.70), and the strip's width is measured off a
+   trial cut. Computed from the node's own edges it was the wrong way round
+   and 2.0 m wide on any storey above the ground.
+
+**What it does** (`experiments/diag_evxm_light_well.py`: the six large
+`1a24b6a+orth` designs, the move, then tuned as a child by
+`driver._evaluate`, against the parent re-tuned for as long):
+
+| design | cell | storeys cut | fails, re-tuned parent -> with the well | daylight |
+|---|---|---|---|---|
+| harbor-house s1 | 0/llrl | 1 | 32 -> 31 | 15 -> 14 |
+| maple-court s1 | 1/rllrr | 1 | 53 -> 52 | 28 -> 28 |
+| maple-court s1 | 1/rlrrr | 2 | 53 -> 52 | 28 -> 27 |
+| maple-court s2 | 1/lrlrlr | 1 | 47 -> 46 | 27 -> 26 |
+| maple-court s2 | 0/lrlrr | 3 | 47 -> 44 | 27 -> 25 |
+
+- **Five distinct wells, all five better, none worse**, at 80 evaluations
+  and unchanged at 400. The tool's paired report says 12 of 12, p=0.0001;
+  that is the same five drawn more than once (four draws per design, and one
+  design offers a single cell), so the honest count is five, on three
+  designs. A sign test on five is p=0.06.
+- **The expectation recorded before the run was half wrong.** It said
+  daylight fails would fall and TOTAL fails would not, the well costing its
+  room a size fail as the alley on the owner's drawing did. Total fails fell
+  on all five: with rule 2 choosing the slice, `size` does not move (5.67 ->
+  5.50 a design). One well clears a fail without clearing a daylight fail
+  at all -- it gives a storey the outdoor space it lacked.
+- **It is narrow.** health-centre: no buried ROOM at all (its buried cells
+  are corridors). programme-house: nothing buried. harbor-house: one design
+  in three offers a cell; most of its buried rooms sit under a merged storey
+  (rule 4). The three designs that offer anything carry seventy daylight
+  fails between them, and the move reaches five cells.
+
+**What that means.** As guarded, the move is safe to play -- it has yet to
+make a design worse -- and small: a fail or two on the designs it applies
+to. The room to grow is rule 4. A well under a merged storey needs that
+storey opened WITHOUT minting buried slivers, which is a better
+`_open_address`, not a looser guard. And a search is not the corpus: early
+and mid-run designs have more buried rooms and fewer merged storeys.
+
+**Needs the box:** `flag_ab.py well`. Expectation, recorded now: on
+programme-house no difference at all (the move never applies; the draws are
+re-tunes). On maple-court and harbor-house fewer `crinkliness` fails, by one
+or two a design, and no more `inaccessible usable space` than the control.
