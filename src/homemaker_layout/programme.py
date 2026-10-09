@@ -110,7 +110,7 @@ def _optional_pair(d: dict, key: str) -> tuple[float | None, float | None]:
 # code may now start with ANY letter. The only remaining collision is a code
 # spelled EXACTLY like a generic type, which is a genuine ambiguity no matching
 # rule can resolve.
-RESERVED_CODES = ("C", "O", "S")
+RESERVED_CODES = ("C", "O", "S", "E")
 
 # homemaker-py-sel (DESIGN.md §39.7) — the ACCESS-REQUIREMENT class of a room.
 #
@@ -159,7 +159,7 @@ def validate_codes(codes) -> None:
         return
     raise ValueError(
         f"programme code(s) {bad} are Urb's generic structural types "
-        f"{RESERVED_CODES} (C=circulation, O=outside, S=sahn). These name the "
+        f"{RESERVED_CODES} (C=circulation, O=outside, S=sahn, E=stair). These name the "
         "leaves the search itself creates, so a programme room cannot also be "
         "called one. Rename the room code (the name: field is free text and "
         "need not change). See DESIGN.md §39.4 / homemaker-py-ju3."

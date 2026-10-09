@@ -66,7 +66,7 @@ def core_undivide(root, rng, types, *, restore_c: bool):
     parent_paths: dict = {}
     for li, lvl in enumerate(lvls):
         for n in operators._level_nodes(lvl):
-            if (n.divided and n.left.type and n.left.type.upper() == "C"
+            if (n.divided and n.left.type == dom.GENERIC_STAIR
                     and not n.left.divided and not n.right.divided):
                 parent_paths.setdefault(n.id or "", []).append(li)
     core_parents = [(p, lis) for p, lis in parent_paths.items() if len(lis) >= 2]
@@ -78,7 +78,7 @@ def core_undivide(root, rng, types, *, restore_c: bool):
         if node is None or not node.divided:
             continue
         if restore_c:
-            node.type = "C"
+            node.type = dom.GENERIC_STAIR
         else:
             keep = [t for t in (node.left.type, node.right.type)
                     if t and not dom.is_generic(t)]
@@ -183,7 +183,7 @@ def self_test() -> int:
         def storey():
             return dom.Node(division=[0.5, 0.5],
                             left=dom.Node(type="l1"),
-                            right=dom.Node(division=[0.5, 0.5], left=dom.Node(type="C"),
+                            right=dom.Node(division=[0.5, 0.5], left=dom.Node(type="E"),
                                            right=dom.Node(type="b1")))
         root = storey()
         root.above = storey()
@@ -195,7 +195,7 @@ def self_test() -> int:
         child, desc = apply(v, building(), np.random.default_rng(0), ["b1", "C", "O"])
         got[v] = ("noop" in desc, [lvl.by_id("r").type for lvl in dom.levels(child)])
     want = {"shipped": (True, [None, None]), "divided": (False, ["b1", "b1"]),
-            "restore": (False, ["C", "C"])}
+            "restore": (False, ["E", "E"])}
     ok = got == want
     print("self-test", "PASSED" if ok else f"FAILED: {got}")
     return 0 if ok else 1

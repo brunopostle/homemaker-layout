@@ -76,7 +76,7 @@ def test_the_stair_still_reaches_the_top():
         assert path is not None, desc
         for lvl in lvls:
             node = lvl.by_id(path)
-            assert node is not None and node.type == "C", f"{desc}: {path}"
+            assert node is not None and node.type == "E", f"{desc}: {path}"
 
 
 def test_no_indoor_leaf_is_left_over_a_terrace():

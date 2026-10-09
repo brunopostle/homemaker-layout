@@ -24,10 +24,10 @@ TYPES = ["b1", "l1", "C", "O"]
 
 
 def _two_storeys_with_a_divided_core() -> dom.Node:
-    """What `core_divide` leaves: `C | b1` at one path on both storeys."""
+    """What `core_divide` leaves: `E | b1` at one path on both storeys."""
     def storey():
         return dom.Node(division=[0.5, 0.5], left=dom.Node(type="l1"),
-                        right=dom.Node(division=[0.3, 0.3], left=dom.Node(type="C"),
+                        right=dom.Node(division=[0.3, 0.3], left=dom.Node(type="E"),
                                        right=dom.Node(type="b1")))
     root = storey()
     root.above = storey()
@@ -64,7 +64,7 @@ def test_repaired_it_gives_the_stair_its_cell_back_on_every_storey(repaired):
     child, desc = operators.mutate_core_undivide(
         _two_storeys_with_a_divided_core(), np.random.default_rng(0), TYPES)
     assert "noop" not in desc
-    assert _stair_cells(child) == [(False, "C"), (False, "C")]     # not the room beside it
+    assert _stair_cells(child) == [(False, "E"), (False, "E")]     # not the room beside it
 
 
 def test_control_the_precondition_repaired_alone_leaves_a_room_there():

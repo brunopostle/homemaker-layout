@@ -498,11 +498,13 @@ catches it on any version.
 
 Leaf types share a first character across three namespaces:
 
-- **`C` / `O` / `S`** — generic structural types (circulation / outside / sahn),
-  uppercase, reserved. A programme code spelled exactly one of these is rejected
-  at load.
+- **`C` / `O` / `S` / `E`** — generic structural types (circulation / outside /
+  sahn / stair), uppercase, reserved. A programme code spelled exactly one of
+  these is rejected at load. `E` (escalier) is ours, not Urb's: see the stair
+  section below.
 - **programme room codes** — lowercase, may start with *any* letter. The generic
-  tests match `C`/`O`/`S` exactly, so `cr1` is a room, not circulation.
+  tests match `C`/`O`/`S`/`E` exactly, so `cr1` is a room, not circulation, and
+  `ef1` is not a stair.
 - **`usage:`** — every space declares its access-requirement class
   (`living`/`kitchen`/`bedroom`/`toilet`/`utility`/`none`), mandatory, no
   fallback (DESIGN.md §39.7). A code's spelling decides nothing to the SCORER:
@@ -574,9 +576,37 @@ rectangle cropped to the plot. Three habits follow for anything that scores:
 `tests/test_native_tree.py` holds the two geometries to the same score on every
 orthogonal artefact. A change to one side that the other does not get fails it.
 
-### The stair shaft is a full-height column (owner's ruling, DESIGN.md §39.72)
+### A stair is a cell labelled `E`, the same cell on each storey it climbs (owner's rulings, DESIGN.md §39.72, §39.125)
 
-**A staircase exists only where the cell is identical on every floor.** The owner's
+**§39.125 changed how the scorer KNOWS a cell is a stair; §39.72's substance
+stands.** Until 2026-10 a stair was inferred from a `C` cell stacked on every
+storey. That read a corridor repeated floor over floor as a staircase (`too
+many stairs` -- the search learnt never to stack a corridor) and could not see
+a stair that stopped below the top. Now:
+
+- **`E` is circulation that holds a stair** (`dom.GENERIC_CIRCULATION`): rooms
+  open off it, corridors join it, it takes every circulation parameter. Test
+  "is this circulation" with `dom.is_circulation` or
+  `dom.GENERIC_INDOOR_CIRCULATION`, never `type == "C"`;
+- **a shaft is `graph.stair_shaft(leaf)`**: the ground `E` leaf and the `E`
+  leaf at the SAME path on each storey above, for as long as there is one. It
+  must reach the storey above; it may stop below the top;
+- **a stacked `C` is a corridor**, everywhere, programme-house included;
+- **a shaft joins the circulation of the storeys it serves**
+  (`graph.STAIRS_JOIN_STOREYS`): two wings upstairs, each on its own stair,
+  are one building for `level N not connected` and `inaccessible usable space`;
+- **the search writes the label**: the constructor's core, `repair_shaft`,
+  `core_divide`, `level_add` and `level_add_migrate` make or continue `E`
+  columns, and `mutate_stair` turns a stacked `C` column into a stair or back.
+  `retype` never draws `E`;
+- **a design written before the change** has its stairs spelt `C`:
+  `experiments/relabel_stairs.py` is the upgrade (survey under the old code,
+  verify and write under the new). All 426 committed designs with a stair were
+  relabelled by it, with every score unmoved.
+
+What follows is §39.72, written when the label was `C`; read `E` for the stair.
+
+**A staircase exists only where the cell is identical on every floor it serves.** The owner's
 reasoning, and it is not a port artefact: a mid-landing needs flights going both up
 and down where a ground-floor landing needs only one going up, so a split cell
 *could* in principle hold a stair — but fitting flights into one automatically is
@@ -584,7 +614,7 @@ hard, and Alexander's pattern allocates the whole vertical shaft to stairs. So t
 simplification is the model, for now.
 
 The scorer reads it that way: `graph.stack_corners_in_use` walks `dom._above_node`
-— the EXACT id path — and wants a leaf typed exactly `"C"` on every storey. Every
+— the EXACT id path — and wants a leaf typed exactly `"E"` on each storey of the shaft. Every
 *other* vertical predicate in `dom` walks the forgiving `_above_more`, so this is
 easy to mistake for a bug; §39.72 measured what relaxing it would do (two artefacts
 much worse, via `staircase_max`, the entrance corners fed to `_stair_fit`, and

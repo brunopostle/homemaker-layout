@@ -35,7 +35,8 @@ def _leaves(root):
 def _klass(leaf):
     if leaf.type in dom_mod.GENERIC_OUTSIDE:
         return "outside"
-    return "circulation" if leaf.type == "C" else "room"
+    return ("circulation" if leaf.type in dom_mod.GENERIC_INDOOR_CIRCULATION
+            else "room")
 
 
 def test_the_default_is_no_room_width_requirement():

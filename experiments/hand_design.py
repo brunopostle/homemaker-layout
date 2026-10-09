@@ -45,21 +45,21 @@ REPO = Path(__file__).resolve().parents[1]
 # The starter, in metres on the plot-aligned frame (X across, Y along the
 # plot's longest side, origin at its first corner). ('X', v, low, high) is a
 # cut at X = v. Two storeys with the same skeleton, so the stair cores are the
-# same cell on both -- which is the one thing a stair needs (§39.72).
+# same cell on both -- which, with the label `E`, is what a stair needs
+# (§39.72, §39.125).
 SPINE_W, SPINE_E = 10.6, 13.2          # a 2.6 m band: stairs and corridor
 STAIR_S, STAIR_N = 5.6, 26.4           # stair cores at each end of it
-LANDING = 16.0                         # upstairs the corridor is two cells
 
 
 def _skeleton(corridor):
     return ("X", SPINE_W, "O",
-            ("X", SPINE_E, ("Y", STAIR_S, "C", ("Y", STAIR_N, corridor, "C")), "O"))
+            ("X", SPINE_E, ("Y", STAIR_S, "E", ("Y", STAIR_N, corridor, "E")), "O"))
 
 
-# A circulation cell that is the SAME cell on every storey is a staircase, so
-# a corridor drawn identically on both floors is a third stair ("too many
-# stairs"). Upstairs it is cut in two, which makes it a corridor again.
-STARTER = {"harbor-house": (_skeleton("C"), _skeleton(("Y", LANDING, "C", "C")))}
+# A stair is a cell labelled `E`, the same cell on each storey it climbs. The
+# corridor between them is `C` on both floors and in the same place, which
+# until §39.125 made it a third staircase and had to be cut in two upstairs.
+STARTER = {"harbor-house": (_skeleton("C"), _skeleton("C"))}
 
 
 def _hand3():
