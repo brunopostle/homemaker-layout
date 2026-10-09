@@ -129,7 +129,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (229 of them, 15956 lines)
+## Every section of DESIGN.md (229 of them, 15955 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -409,4 +409,4 @@ below are the most recent work.
 - §39.122 · 15589-15625 · Two ideas set aside, and what would bring each back (owner's ruling, 2026-10-08; `homemaker-py-8b2u.20`, `homemaker-py-ek07`)
 - §39.120 · 15626-15756 · The book of moves, read: specialists do what they say, a book adds little on programme-house, and `place_missing` plays where nothing is missing (`homemaker-py-urzf`)
 - §39.123 · 15757-15828 · Where a move is played: aimed at a failing cell it removes a fail five times as often, and `undivide` carries most of it (`homemaker-py-urzf`)
-- §39.125 · 15829-15956 · A stair gets a cell type of its own, `E` (owner's ruling, 2026-10-08; `homemaker-py-y4p4`)
+- §39.125 · 15829-15955 · A stair gets a cell type of its own, `E` (owner's ruling, 2026-10-08; `homemaker-py-y4p4`)
