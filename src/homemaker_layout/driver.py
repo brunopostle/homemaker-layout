@@ -184,6 +184,40 @@ _MOVE_LOG_PHASE = __import__("itertools").count()
 _MOVE_LOG_UID = __import__("itertools").count(1)
 
 
+# homemaker-py-8b2u.21 (DESIGN.md §39.118): size each constructed seed with
+# `solver.solve_ratios` before its first evaluation. A seed is the one cold
+# topology a search holds, and on cold topologies the solver gets most of the
+# way to an evolved design with no scorer call; on 24 constructed seeds it left
+# 8.9 fewer fails after tuning than tuning alone. NEVER a child: a child
+# inherits ratios that encode daylight and access, and the solver, which knows
+# only area, width and proportion, makes it worse (§39.109). Default OFF --
+# whether a better seed ends as a better design is an A/B on the box -- and
+# read from the environment like `operators.CORE_UNDIVIDE_REPAIRED`.
+SEED_SOLVER = __import__("os").environ.get("HOMEMAKER_SEED_SOLVER", "") == "1"
+# The solver has no time bound of its own (§39.109: one call ran past twenty
+# minutes at its default limit). Fifty function evaluations is where the seed
+# measurement was made.
+SEED_SOLVER_NFEV = 50
+
+
+def solve_seed(root: dom.Node, reqs, conf) -> dom.Node:
+    """``root`` with its ratios set by the sizing solver, in place. A seed the
+    solver refuses is returned as it was built."""
+    from . import geometry, solver
+
+    dom.link(root)
+    geometry.clear_cache()
+    before = innerloop.ratio_map(root)
+    try:
+        solver.solve_ratios(root, reqs, strip=False, conf=conf,
+                            max_nfev=SEED_SOLVER_NFEV)
+    except Exception:                               # noqa: BLE001
+        for key, b in innerloop.free_with_keys(root):
+            b.division = [before[key], before[key]]
+    geometry.clear_cache()
+    return root
+
+
 @dataclass
 class SearchResult:
     best: Individual
@@ -803,6 +837,10 @@ def search(
                 construction_beam_width=construction_beam_width,
                 multi_use=multi_use, assign_solver=assign_solver,
                 preserve_circulation=preserve_circulation)
+            if SEED_SOLVER:
+                solve_seed(topo, reqs, _fitness_for(
+                    str(programme_dir), leaf_sharing, superpose, max_share,
+                    conn_grade, collapse_insearch, multi_use)._conf)
             return (topo, None, child_budget, {}, f"construct/{tag}")
         n = int(rng.integers(max(1, n_target - 1), n_target + 2))
         return (random_topology(seed_root, n, rng, types), None, child_budget,

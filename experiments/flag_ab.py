@@ -25,6 +25,14 @@ first:
   control is the arm that has it. The bead holds the expectation.
 * **v2k** (`homemaker-py-v2k`, DESIGN.md §39.71) -- the default against
   `--level-add-migrate`. The bead holds the expectation.
+* **seedsolve** (`homemaker-py-8b2u.21`, DESIGN.md §39.118) -- seeds as the
+  constructor leaves them against `--seed-solver`, which sizes each seed with
+  the ratio solver first. In a container that left 8.9 fewer fails per seed
+  after tuning. Expectation on file: on programme-house NO resolved difference
+  at 500k -- a seed's head start is a few thousand evaluations of a run a
+  hundred times longer, and §12.2 found seeding an accelerator, not a new
+  asymptote. If anything shows, it is on harbor-house, where the seed gain
+  was largest (15 fails), and in the EARLY history of a run, not its end.
 * **child40**, **child20** (`homemaker-py-8b2u.20`, DESIGN.md §39.110) --
   `child80`, the per-child inner-loop budget every run has ever used, against
   `--child-budget 40` or `20` at the SAME total budget, so the flagged arm
@@ -88,6 +96,10 @@ EXPERIMENTS = {
                 env="HOMEMAKER_LEVEL_ADD_MIGRATE",
                 bead="homemaker-py-v2k, DESIGN.md §39.71",
                 what="level_add_migrate switched on against the default, which has it off"),
+    "seedsolve": dict(arms=("built", "solved"), flag="--seed-solver",
+                      env="HOMEMAKER_SEED_SOLVER",
+                      bead="homemaker-py-8b2u.21, DESIGN.md §39.118",
+                      what="seeds sized by the ratio solver against seeds as constructed"),
     "child40": dict(arms=("child80", "child40"), flag="--child-budget 40",
                     env="HOMEMAKER_CHILD_BUDGET",
                     bead="homemaker-py-8b2u.20, DESIGN.md §39.110",

@@ -163,7 +163,7 @@ SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
                 "core_undivide_repaired",
                 "collapse_insearch", "collapse_local_search", "conn_grade",
                 "leaf_share_factor", "leaf_sharing", "level_add_migrate",
-                "multi_use", "pop", "repair_shaft", "ruin_recreate",
+                "multi_use", "pop", "repair_shaft", "ruin_recreate", "seed_solver",
                 "shapecurve_prune", "shapecurve_warmstart", "superpose",
                 "support_outside", "use_tiers", "anneal_grain", "polish_budget")
 
