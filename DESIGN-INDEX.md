@@ -89,7 +89,9 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A terrace is worth more than a garden: 120 per m², to be revised when daylight scores outdoor space; circulation is deliberately NOT worth its cost, "a building without any circulation has an efficient plan" | §39.116, §39.117 |
 | The briefs' gaps are fixed at a good time, which is just before a full re-baseline | §39.115 |
 | The stair shaft's position is found by the search, and it is a cell made by division like any other -- no pre-placed block | §39.112, §39.113 |
-| A stair is a cell labelled `E` (escalier), a fourth generic type beside `C`/`O`/`S` -- no longer inferred from a `C` cell stacked on every storey. Three details still to rule before it is built | §39.125 |
+| A stair is a cell labelled `E` (escalier), a fourth generic type beside `C`/`O`/`S` -- no longer inferred from a `C` cell stacked on every storey. `E` is circulation; a stacked `C` is no longer a stair anywhere; a shaft may stop below the top; an `E` shaft joins the storeys it serves | §39.125 |
+| An entrance foyer is "simply a circulation space that has street access": the brief changes, not the rule | §39.125 |
+| A room's depth limit is "only a limit for low ceilings": the daylight threshold stands and the search may raise a storey's height (3.3 m is not unusual for a ground floor) | §39.125 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -127,7 +129,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (229 of them, 15910 lines)
+## Every section of DESIGN.md (229 of them, 15956 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -407,4 +409,4 @@ below are the most recent work.
 - §39.122 · 15589-15625 · Two ideas set aside, and what would bring each back (owner's ruling, 2026-10-08; `homemaker-py-8b2u.20`, `homemaker-py-ek07`)
 - §39.120 · 15626-15756 · The book of moves, read: specialists do what they say, a book adds little on programme-house, and `place_missing` plays where nothing is missing (`homemaker-py-urzf`)
 - §39.123 · 15757-15828 · Where a move is played: aimed at a failing cell it removes a fail five times as often, and `undivide` carries most of it (`homemaker-py-urzf`)
-- §39.125 · 15829-15910 · A stair gets a cell type of its own, `E` (owner's ruling, 2026-10-08; `homemaker-py-y4p4`)
+- §39.125 · 15829-15956 · A stair gets a cell type of its own, `E` (owner's ruling, 2026-10-08; `homemaker-py-y4p4`)

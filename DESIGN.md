@@ -15862,7 +15862,8 @@ things follow from inferring, and neither was intended by §39.72:
 it serves, because no flight-fitter exists for a part-cell. What changes is
 how the scorer knows a cell is one.
 
-**Not yet ruled, and the build waits on them** (asked 2026-10-08):
+**The three details, as first asked; all three RULED YES the same day (see the
+end of this section):**
 
 1. Is an `E` cell circulation -- may rooms open off it, does it join
    corridors? (On programme-house the stair IS the circulation, so the
@@ -15908,3 +15909,48 @@ will be measured by. **Expectation, recorded now:** relabelling alone moves
 no committed score; what the next sweep should show is designs with stacked
 corridors, which today's cannot have, and on the two-stair programmes fewer
 `not connected` fails if the shaft rule above is adopted with it.
+
+**Rulings that followed, 2026-10-08, the owner's answers to the above.**
+
+- **`E`: yes to all three**, and to the shaft joining storeys. An `E` cell is
+  circulation that holds a stair; a stacked `C` is no longer a stair anywhere,
+  programme-house included, and existing designs are relabelled; a shaft
+  starts at the ground, is the same cell on each storey it passes, and may
+  stop below the top; and an `E` shaft joins the circulation of the storeys
+  it serves, which settles `level N not connected` for a floor reached by two
+  stairs. Bead `homemaker-py-y4p4.1`.
+- **The foyer: "maybe the foyer is simply a circulation space that has
+  street access."** So it is the BRIEF that changes, not the rule: `ef1`
+  leaves harbor-house's schedule and the entrance is a `C` cell on a street
+  side, which `no outside public access` already accepts. Tried on `hand2a`
+  with a scratch copy of the programme: 31 fails -> 30, that fail cleared and
+  nothing new. A brief fix, so it goes in just before the next full
+  re-baseline with the others (§39.115, `homemaker-py-5nw`).
+- **Daylight depth: "4.86 m depth is only a limit for low ceilings, the
+  solver should be able to raise the ceiling height of a storey and allow
+  deeper rooms ... it wouldn't be unusual for the ground floor of a
+  traditional building to be 3.3 m floor to floor."** So the 0.617 threshold
+  stands and the STOREY HEIGHT becomes something the search tunes. The scorer
+  already reads height per storey everywhere it matters -- lit wall area,
+  wall cost, and the number of risers a stair needs -- and the genome already
+  carries it. What is missing is only that nothing ever changes it:
+  `operators.py`'s opening lines say floor heights are left to the inner
+  loop, and the inner loop has never had them. `hand2a` re-scored with every
+  storey at a fixed height, walls untouched:
+
+  | storey height | fails | daylight fails | score |
+  |---|---|---|---|
+  | 3.0 m (as drawn) | 31 | 12 | 2.2e-10 |
+  | 3.3 m | 31 | 12 | 2.2e-10 |
+  | 3.6 m | 26 | 7 | 5.2e-09 |
+  | 4.0 m | 26 | 7 | 2.6e-09 |
+
+  At 3.6 m the five cells that have a street wall and are too deep all pass,
+  leaving the seven with no lit wall; at 4.0 m nothing more clears and the
+  score falls, which is the cost model charging for wall. 3.3 m alone clears
+  nothing here (it allows 5.35 m and these rooms are 5.5-5.8 m deep), which
+  is the argument for letting the search choose the height and the depth
+  together. No stair fails at any height: the flight is refitted. Bead
+  `homemaker-py-y4p4.2`; it is SEARCH-side apart from the bounds on a
+  storey's height, which need the owner's numbers.
+
