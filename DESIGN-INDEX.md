@@ -62,6 +62,7 @@ index is how to get from a question to the section that answers it.
 | §39.121 | The first of the five queued A/Bs: `--child-budget 20` is worse, by losing the staircase in six runs of 36. (§39.120 is reserved for the move book.) |
 | §39.122 | Two ideas set aside on the owner's word, with the condition that reopens each. |
 | §39.123 | The book of moves widened (owner): a move AIMED at a failing cell removes a fail about five times as often on programme-house; `undivide` carries it. |
+| §39.124 | The pair census (written after §39.125): no single move and no pair of moves removes a fail from a design the search has finished with. |
 | §39.125 | The owner's hand-drawn harbor-house design (31 fails, inside the evolved range) and what it shows: the ruling that a stair is a cell type `E`, and three open questions on connectivity, entrances and daylight depth. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
@@ -118,6 +119,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | `--child-budget 20` at equal total budget | §39.121 | negative on programme-house: six runs of 36 end with no staircase, none in the control; large programmes untested |
 | Pre-placed stair block; incremental re-scoring; canonical genome | §39.113, §39.112, §39.114 | ruled out; set aside; set aside |
 | A learned, state-weighted choice of operator ("book of moves", step 3) | §39.120 | not built: the greedy upper bound is 1.2x of a 1.5% rate on programme-house; harbor-house's 2.5x is two applicability rules on 4 early runs |
+| Two randomly aimed moves compiled into one, tuned as one child | §39.124 | null on 46 stuck programme-house designs: 2 of 16,330 pairs remove a fail and neither repeats; aimed pairs, a longer tune and mid-run parents are untested |
 | A child budget that depends on the move; supporting a terrace without shrinking a room | §39.122 | both SET ASIDE unbuilt, not measured negative; the section says what would bring each back |
 
 ## Where the current state is
@@ -129,7 +131,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (229 of them, 15955 lines)
+## Every section of DESIGN.md (230 of them, 16024 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -409,4 +411,5 @@ below are the most recent work.
 - §39.122 · 15589-15625 · Two ideas set aside, and what would bring each back (owner's ruling, 2026-10-08; `homemaker-py-8b2u.20`, `homemaker-py-ek07`)
 - §39.120 · 15626-15756 · The book of moves, read: specialists do what they say, a book adds little on programme-house, and `place_missing` plays where nothing is missing (`homemaker-py-urzf`)
 - §39.123 · 15757-15828 · Where a move is played: aimed at a failing cell it removes a fail five times as often, and `undivide` carries most of it (`homemaker-py-urzf`)
-- §39.125 · 15829-15955 · A stair gets a cell type of its own, `E` (owner's ruling, 2026-10-08; `homemaker-py-y4p4`)
+- §39.125 · 15829-15956 · A stair gets a cell type of its own, `E` (owner's ruling, 2026-10-08; `homemaker-py-y4p4`)
+- §39.124 · 15957-16024 · The pair census: on a design the search has finished with, no move and no pair of moves removes a fail (`homemaker-py-urzf`)

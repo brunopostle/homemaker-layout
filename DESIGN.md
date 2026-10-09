@@ -15953,3 +15953,72 @@ corridors, which today's cannot have, and on the two-stair programmes fewer
   together. No stair fails at any height: the flight is refitted. Bead
   `homemaker-py-y4p4.2`; it is SEARCH-side apart from the bounds on a
   storey's height, which need the owner's numbers.
+
+### 39.124 The pair census: on a design the search has finished with, no move and no pair of moves removes a fail (`homemaker-py-urzf`)
+
+(Numbered before §39.125 and written after it: the number was reserved in the
+tool while the census ran.)
+
+Step 2 of the widened book of moves (§39.123). A compound worth storing is one
+the search cannot reach by itself: its first move makes the design worse, the
+child is rejected, and the second move is never played on it. So play the two
+on purpose with no judging between, and tune the result as one child (80
+evaluations, `driver._evaluate`). `experiments/diag_move_pairs.py`, branch
+`move-book`; results in `experiments/results/move_pairs/`.
+
+**Parents:** the 46 programme-house designs of the `child20` A/B (§39.121)
+that ended 500k evaluations still carrying a fail -- stuck designs, at
+`64512f1+orth`. **Screen** on 23: every ordered pair of 14 moves, 6 draws
+each, and each move alone and `retune` (the parent given 80 more
+evaluations), 12 draws. **Confirm** on the OTHER 23: the screen's twelve best
+pairs and their singles, 24 draws. 43,884 children, 4.2 CPU-hours for the
+screen.
+
+**Expectation, recorded before any result:** most pairs do worse than their
+better single; if any confirm it is a restructuring followed by a repair or a
+relabelling, and at most two or three do.
+
+| | children applied | removed a fail |
+|---|---|---|
+| `retune` (screen + confirm) | 828 | 0 |
+| one move, screen | 2,556 | 0 |
+| one move, confirm | 4,056 | 0 |
+| a pair, screen | 12,027 | 2 (`undivide, divide` and `undivide, retype`, 1 of 138 each) |
+| a pair, confirm (the screen's best twelve) | 4,303 | 0 |
+
+**It is a null, and a clean one.** The measure can fire -- it did, twice --
+and `retune` returns the table's own fail count on 828 of 828 parents, so
+"fewer fails than the parent" is counting the same fails the A/B counted. The
+two hits in the screen did not repeat on other parents (0 of 552 each), which
+is what the second half is for.
+
+- **These designs are local optima two moves deep.** Not one of 6,612
+  single moves and two of 16,330 pairs removes a fail. §39.120 had 0.3% for
+  parents with 1-2 fails in a live run; at the END of a run it is zero.
+- **A pair is far more destructive than it is useful at this budget.** 71%
+  of screened pairs end six or more fails worse than the parent (singles:
+  44%), and after the first move alone the design is typically 3 to 15 fails
+  down. Eighty evaluations do not climb back out of that. This is §39.121
+  from another side: a restructured child needs its tuning.
+- **Where anything moves, it is `undivide`.** At equal fails, 16 single
+  moves beat the parent's own re-tuned score -- 11 of them `undivide` -- and
+  28 pairs, 20 of them with `undivide` first or second (`undivide, retype`
+  10 of 552 on the confirm half). Small, and the same finger §39.123 points.
+- **A by-product that supports `homemaker-py-urzf.1`:** `place_missing`
+  declined on 276 of 276 finished designs here, where in a live search it
+  applies on almost every draw. A finished design is written after the
+  collapse, so its stored labels are the scorer's; a live individual's are
+  not. That is the mismatch §39.120 found, seen from the side where it is
+  absent.
+
+**What it does and does not say about stored compounds.** The expectation
+held, in its null half: no pair confirmed. What was tested is the cheapest
+form of the idea -- two RANDOMLY AIMED moves, tuned for the price of one
+child, on end-of-run designs. It does not test a pair aimed at the failing
+cell (§39.123: aim is worth about five times on a single move), a pair given
+the tuning two children would get, or parents from the middle of a run, where
+most of a search's fails are actually removed. Those are the three ways
+left to make a compound pay, in the order I would try them, and each is a
+few CPU-hours with this tool. Step 3 (ancestry in the recorder) is what
+would show which chains a live search really follows, and still waits on the
+owner's word.
