@@ -1,4 +1,21 @@
-"""A staircase needs the same cell on every storey — the owner's ruling, pinned.
+"""A staircase is a cell labelled `E`, the same cell on every storey it climbs
+— the owner's two rulings, pinned.
+
+THE SECOND RULING (2026-10-08, DESIGN.md §39.125) changed how the scorer KNOWS a
+cell is a stair, and left the first one's substance alone:
+
+    "Mixing circulation with stairs makes sense for small buildings like
+    programme house because the stairs are the entirety of the circulation. But
+    for bigger buildings we will have these corridors that exist in the same
+    place on each level, I think we need a new cell usage, maybe e (escalier)."
+
+Until then a stair was INFERRED from a `C` cell stacked on every storey, which
+read a corridor repeated floor over floor as a staircase and could not see a
+stair that stopped below the top. Now: `E` is circulation that holds a stair; a
+stacked `C` is a corridor; a shaft starts at the ground and may stop below the
+top; and a shaft joins the circulation of the storeys it serves. Everything
+below about the SAME CELL on each storey is the first ruling and still holds.
+
 
 `graph.stack_corners_in_use` walks `dom._above_node` (Urb's `Above`, the EXACT id
 path), so a storey that MERGES the cell over the stair breaks the stack and the
@@ -39,8 +56,8 @@ from homemaker_layout import dom, geometry, graph
 PLOT = [[0.0, 0.0], [10.0, 0.0], [10.0, 8.0], [0.0, 8.0]]
 
 
-def _two_storey(upper_left: str, upper_right: str | None):
-    """Ground floor `C | k1`; upstairs either the same split or ONE leaf.
+def _two_storey(upper_left: str, upper_right: str | None, ground: str = "E"):
+    """Ground floor `E | k1`; upstairs either the same split or ONE leaf.
 
     ``upper_right=None`` merges the upper storey into a single leaf covering both
     ground cells — the shape this test is about.
@@ -48,7 +65,7 @@ def _two_storey(upper_left: str, upper_right: str | None):
     root = dom.Node(node=[list(p) for p in PLOT], height=3.0, elevation=0.0,
                     wall_inner=0.08, wall_outer=0.25, rotation=0,
                     division=[0.5, 0.5])
-    root.left = dom.Node(type="C")       # the stair cell
+    root.left = dom.Node(type=ground)    # the stair cell
     root.right = dom.Node(type="k1")
     upper = dom.Node(rotation=0, height=3.0)
     if upper_right is None:
@@ -68,14 +85,71 @@ def _stair_corners(root):
     fails: list[str] = []
     _base, circ = graph.build_graphs_with_circ(root, 1.2, fails.append,
                                                {"k1": "kitchen", "b1": "bedroom"})
-    ground_c = next(lf for lf in lvls[0].leaves() if lf.type == "C")
-    return ground_c, graph.stack_corners_in_use(ground_c, circ, lvls)
+    foot = lvls[0].leaves()[0]
+    return foot, graph.stack_corners_in_use(foot, circ, lvls)
 
 
-def test_a_column_of_identical_circulation_cells_is_a_staircase():
-    root = _two_storey("C", "b1")            # upstairs keeps the same split
+def test_a_column_of_identical_stair_cells_is_a_staircase():
+    root = _two_storey("E", "b1")            # upstairs keeps the same split
     _leaf, corners = _stair_corners(root)
-    assert corners, "an exact-path C column must be counted as a staircase"
+    assert corners, "an exact-path E column must be counted as a staircase"
+
+
+def test_a_corridor_over_a_corridor_is_not_a_staircase():
+    """§39.125, the reason for the label: a `C` cell repeated on the next floor
+    is a corridor in the same place, which is what corridors do. The test above
+    is this one's control -- the same tree with the other letter."""
+    root = _two_storey("C", "b1", ground="C")
+    _leaf, corners = _stair_corners(root)
+    assert corners == []
+
+
+def _three_storey(types: "tuple[str, str, str]"):
+    """`<type> | k1` on each of three storeys, the left column typed as given."""
+    root = _two_storey(types[1], "b1", ground=types[0])
+    top = dom.Node(rotation=0, height=3.0, division=[0.5, 0.5])
+    top.left = dom.Node(type=types[2])
+    top.right = dom.Node(type="b2")
+    root.above.above = top
+    dom.link(root)
+    geometry.clear_cache()
+    return root
+
+
+@pytest.mark.parametrize("column, is_stair", [
+    (("E", "E", "E"), True),      # the full height
+    (("E", "E", "O"), True),      # stops under a terrace: serves two floors
+    (("E", "E", "C"), True),      # ...or under a corridor
+    (("E", "O", "E"), False),     # reaches nothing: the cell above is not a stair
+    (("C", "E", "E"), False),     # does not start at the ground
+])
+def test_a_shaft_may_stop_below_the_top_but_starts_at_the_ground(column, is_stair):
+    _leaf, corners = _stair_corners(_three_storey(column))
+    assert bool(corners) == is_stair
+
+
+def test_a_stair_joins_the_storeys_it_serves(monkeypatch):
+    """Two wings upstairs, each on its own stair, joined on the floor below:
+    one building, and `level 1 not connected` must not fire (§39.125)."""
+    def storey():
+        n = dom.Node(rotation=0, height=3.0, division=[0.3, 0.3])
+        n.left = dom.Node(type="E")
+        n.right = dom.Node(rotation=0, division=[0.6, 0.6])
+        n.right.right = dom.Node(type="E")
+        return n
+    root = storey()
+    root.node = [list(p) for p in PLOT]
+    root.elevation, root.wall_inner, root.wall_outer = 0.0, 0.08, 0.25
+    root.right.left = dom.Node(type="C")          # the ground floor joins them
+    root.above = storey()
+    root.above.right.left = dom.Node(type="b1")   # upstairs a room stands between
+    dom.link(root)
+    geometry.clear_cache()
+    _base, circ = graph.build_graphs_with_circ(root, 1.2, [].append, {"b1": "bedroom"})
+    assert graph.circulation_joined(circ, 0)
+    assert graph.circulation_joined(circ, 1)
+    monkeypatch.setattr(graph, "STAIRS_JOIN_STOREYS", False)      # the control
+    assert not graph.circulation_joined(circ, 1)
 
 
 def test_a_merged_landing_over_the_stair_is_not_a_staircase():
@@ -86,12 +160,12 @@ def test_a_merged_landing_over_the_stair_is_not_a_staircase():
     staircase to this objective, because a part-cell cannot be shown to hold a
     mid-landing's flights and Alexander's pattern asks for the whole shaft.
     """
-    root = _two_storey("C", None)            # upstairs merges both cells into one C
+    root = _two_storey("E", None)            # upstairs merges both cells into one E
     leaf, corners = _stair_corners(root)
 
     # the merged state really does hold: what is above is a single circulation LEAF
     above = dom._above_more(leaf)
-    assert above is not None and not above.divided and above.type == "C"
+    assert above is not None and not above.divided and above.type == "E"
     # ... and it is still not a staircase
     assert corners == [], (
         "a merged cell over the stair must NOT count as a staircase -- owner's "
@@ -104,17 +178,14 @@ def test_a_non_circulation_cell_above_is_not_a_staircase():
     assert corners == []
 
 
-@pytest.mark.parametrize("upper", ["C", "S"])
+@pytest.mark.parametrize("upper", ["E", "C", "S"])
 def test_the_rule_reads_the_type_exactly(upper):
-    """`S` (sahn) is not `C`: the stack test is an exact type match, not a class.
-
-    Not a separate decision — `preprocess_building` converts `S` to `O` before
-    scoring unless `allow_sahn_circulation` is set (§39.66) — but the stack walk
-    itself is exact, and this records which it is.
-    """
+    """Circulation over a stair does not continue it: the stack test is an
+    exact match on the stair's own label, not on the circulation class that
+    `E`, `C` and `S` all belong to."""
     root = _two_storey(upper, "b1")
     _leaf, corners = _stair_corners(root)
-    assert bool(corners) == (upper == "C")
+    assert bool(corners) == (upper == "E")
 
 
 # --------------------------------------------------------------------------- #
@@ -146,12 +217,12 @@ def _shafted_with_a_stranded_terrace():
     root = dom.Node(node=[list(p) for p in PLOT], height=3.0, elevation=0.0,
                     wall_inner=0.08, wall_outer=0.25, rotation=0,
                     division=[0.34, 0.34])
-    root.left = dom.Node(type="C")                       # the shaft
+    root.left = dom.Node(type="E")                       # the shaft
     root.right = dom.Node(rotation=0, division=[0.5, 0.5])
     root.right.left = dom.Node(type="k1")
     root.right.right = dom.Node(type="O")                # ground garden
     upper = dom.Node(rotation=0, height=3.0, division=[0.34, 0.34])
-    upper.left = dom.Node(type="C")                      # shaft continues
+    upper.left = dom.Node(type="E")                      # shaft continues
     upper.right = dom.Node(rotation=0, division=[0.5, 0.5])
     upper.right.left = dom.Node(type="b1")
     upper.right.right = dom.Node(type="O")               # over the garden: stranded
@@ -214,7 +285,7 @@ def test_repair_shaft_cuts_a_column_where_there_is_none():
 
 
 def test_repair_shaft_is_silent_where_a_shaft_is_intact():
-    root = _two_storey("C", "b1")          # an exact C column: nothing to repair
+    root = _two_storey("E", "b1")          # an exact E column: nothing to repair
     assert operators._shaft_paths(dom.levels(root))
     for seed in range(4):
         _child, desc = operators.mutate_repair_shaft(

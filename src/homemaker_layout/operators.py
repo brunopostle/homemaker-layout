@@ -283,8 +283,8 @@ def mutate_level_compound_fix(root: dom.Node, rng: np.random.Generator,
         for li2, n in _owned_branches(child):
             if li2 != insert_level:
                 continue
-            l_is_c = n.left.type and n.left.type.upper() == "C" and not n.left.divided
-            r_is_c = n.right.type and n.right.type.upper() == "C" and not n.right.divided
+            l_is_c = n.left.type in dom.GENERIC_INDOOR_CIRCULATION and not n.left.divided
+            r_is_c = n.right.type in dom.GENERIC_INDOOR_CIRCULATION and not n.right.divided
             if l_is_c and not n.right.divided and n.right.id:
                 sibling_cands.append(n.right)
             if r_is_c and not n.left.divided and n.left.id:
@@ -358,7 +358,7 @@ def mutate_place_missing(root: dom.Node, rng: np.random.Generator,
                 continue
             if leaf.type == "O":
                 pref = 0
-            elif leaf.type in ("C", "S"):
+            elif leaf.type in ("C", "S", "E"):
                 pref = 2
             elif leaf.type in reqs:
                 continue
@@ -595,17 +595,18 @@ def _area_closest(pool: list[dom.Node], leaf: dom.Node) -> list[dom.Node]:
 def _shaft_cells(lvls: "list[dom.Node]") -> "list[dom.Node]":
     """Every node of every intact shaft column, on every storey.
 
-    A shaft breaks the moment ANY of its cells stops being a leaf typed ``"C"`` at
-    that address, so a move that must not cost the building its staircase has to
-    leave all of these alone -- not just the ground one. See `_shaft_paths` for the
-    rule and the owner's ruling behind it (DESIGN.md §39.72).
+    A shaft breaks the moment its foot, or the cell over it, stops being a leaf
+    typed ``"E"`` at that address, so a move that must not cost the building its
+    staircase has to leave all of these alone -- not just the ground one. See
+    `_shaft_paths` for the rule and the owner's rulings behind it (DESIGN.md
+    §39.72, §39.125). A shaft may stop below the top storey; what is over it
+    there is not part of it.
     """
+    from . import graph
+
     cells: list[dom.Node] = []
     for path in _shaft_paths(lvls):
-        for lvl in lvls:
-            node = lvl.by_id(path)
-            if node is not None:
-                cells.append(node)
+        cells.extend(graph.stair_shaft(lvls[0].by_id(path)))
     return cells
 
 
@@ -1875,9 +1876,14 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
     base = dom.levels(child)[0]
     base.above = None  # start from the single-storey base only
 
-    base_cs = [lf for lf in base.leaves()
-               if lf.type == "C"]
+    # The core: the ground floor's stair if it has one, otherwise its largest
+    # circulation cell, which BECOMES the stair (§39.125: a stair is a cell
+    # labelled `E`, and every storey built below keeps the label at this path).
+    base_es = [lf for lf in base.leaves() if lf.type == dom.GENERIC_STAIR]
+    base_cs = base_es or [lf for lf in base.leaves() if lf.type == "C"]
     core_path = max(base_cs, key=_geo.area).id if base_cs else None
+    if base_cs and upper_buckets:
+        max(base_cs, key=_geo.area).type = dom.GENERIC_STAIR
     colocate_pairs = _prog.derive_colocate_pairs(reqs) if multi_use and reqs else []
 
     prev = base
@@ -1954,7 +1960,7 @@ def lift_base_to_storeys(base_root: dom.Node, upper_buckets: list[dict[str, int]
             for slot, leaf_idx in enumerate(order):
                 frees[int(leaf_idx)].type = assign[slot] if slot < len(assign) else "O"
             if core_node is not None:
-                core_node.type = "C"  # keep the inherited core as circulation
+                core_node.type = dom.GENERIC_STAIR  # the inherited core is the stair
             prev.above = dup
 
         if proportion_aware:
@@ -2025,7 +2031,7 @@ def mutate_ruin_recreate(root: dom.Node, rng: np.random.Generator,
     wing_leaves = set(wing.leaves())
     border_circ = sorted(
         {nb for lf in wing_leaves for nb in G.neighbors(lf)
-         if nb not in wing_leaves and nb.type == "C"},
+         if nb not in wing_leaves and nb.type in dom.GENERIC_INDOOR_CIRCULATION},
         key=lambda n: n.id or "")
 
     rooms = [lf.type for lf in wing.leaves() if lf.type in reqs]
@@ -2187,13 +2193,13 @@ _SHAPE_FAIL_SUFFIXES = (" size", " width", " proportion", " crinkliness")
 
 def mutate_core_divide(root: dom.Node, rng: np.random.Generator,
                        types: list[str]) -> tuple[dom.Node, str]:
-    """Divide a circulation leaf at the same path across ALL storeys at once.
+    """Divide a stair cell at the same path on every storey of its shaft.
 
-    Staircase cores (C leaves at the same path on 2+ consecutive floors) are
-    disrupted if a single-storey divide changes the C path on only one floor.
-    This operator applies the same rotation and division to every floor that
-    has a C leaf at the chosen path, maintaining staircase consistency as an
-    atomic invariant rather than a multi-step recovery task.
+    A staircase (`E` leaves at the same path on 2+ consecutive floors) is
+    disrupted if a single-storey divide changes the path on only one floor.
+    This operator applies the same rotation and division to every floor of the
+    shaft, maintaining staircase consistency as an atomic invariant rather
+    than a multi-step recovery task. The left part stays the stair.
     """
     child = copy.deepcopy(root)
     lvls = dom.levels(child)
@@ -2202,7 +2208,7 @@ def mutate_core_divide(root: dom.Node, rng: np.random.Generator,
     c_paths: dict[str, list[int]] = {}
     for li, lvl in enumerate(lvls):
         for lf in lvl.leaves():
-            if lf.type and lf.type.upper() == "C":
+            if lf.type == dom.GENERIC_STAIR:
                 c_paths.setdefault(lf.id, []).append(li)
     core_paths = [(path, lis) for path, lis in c_paths.items() if len(lis) >= 2]
     if not core_paths:
@@ -2218,7 +2224,7 @@ def mutate_core_divide(root: dom.Node, rng: np.random.Generator,
             continue
         node.division = list(division)
         node.rotation = rotation
-        node.left = dom.Node(type="C")
+        node.left = dom.Node(type=dom.GENERIC_STAIR)
         node.right = dom.Node(type=str(_pick(rng, types)))
         node.type = None
 
@@ -2246,7 +2252,7 @@ def mutate_core_undivide(root: dom.Node, rng: np.random.Generator,
         nodes = ([n for n in _level_nodes(lvl) if n.divided] if repaired
                  else [n for li2, n in _owned_branches(child) if li2 == li])
         for n in nodes:
-            if (n.left.type and n.left.type.upper() == "C"
+            if (n.left.type == dom.GENERIC_STAIR
                     and not n.left.divided and not n.right.divided):
                 parent_paths.setdefault(n.id or "", []).append(li)
     core_parents = [(p, lis) for p, lis in parent_paths.items() if len(lis) >= 2]
@@ -2259,8 +2265,8 @@ def mutate_core_undivide(root: dom.Node, rng: np.random.Generator,
         if node is None or not node.divided:
             continue
         if repaired:
-            # "back into a single C leaf", and the wall above stays (§39.100)
-            node.type = "C"
+            # back into a single stair leaf, and the wall above stays (§39.100)
+            node.type = dom.GENERIC_STAIR
             dom.hand_cut_up(node)
         else:
             keep = [t for t in (node.left.type, node.right.type)
@@ -2394,11 +2400,14 @@ def _migration_fits(top: dom.Node, vacating: "list[dom.Node]", reqs,
 def _shaft_paths(lvls: "list[dom.Node]") -> "list[str]":
     """EVERY vertical circulation shaft, largest first.
 
-    A shaft is a ground ``C`` leaf whose exact id path is a ``C`` LEAF on every
-    storey above -- the owner's ruling (DESIGN.md §39.72): a staircase exists only
-    where the cell is identical on every floor, because Alexander's pattern
-    allocates the whole shaft to stairs and no flight-fitter exists for a
-    part-cell. ``graph.stack_corners_in_use`` reads it that way, via
+    A shaft is a ground leaf labelled ``E`` whose exact id path is an ``E`` LEAF
+    on the storey above, and on as many more as it climbs (``graph.stair_shaft``).
+    The owner's rulings: a staircase needs the identical cell on every floor it
+    serves, because Alexander's pattern allocates the whole shaft to stairs and
+    no flight-fitter exists for a part-cell (DESIGN.md §39.72); and which cells
+    are stairs is LABELLED, no longer inferred from a stacked ``C``, so a
+    corridor may repeat floor over floor and a stair may stop below the top
+    (§39.125). ``graph.stack_corners_in_use`` reads it that way, via
     ``dom._above_node``, the EXACT path.
 
     Plural on purpose. `homemaker-py-t7q`'s census measured what the singular cost:
@@ -2409,9 +2418,11 @@ def _shaft_paths(lvls: "list[dom.Node]") -> "list[str]":
     """
     from . import geometry
 
-    shafts = [lf for lf in lvls[0].leaves() if lf.type == "C"
-              and all((nd := lvl.by_id(lf.id)) is not None and not nd.divided
-                      and nd.type == "C" for lvl in lvls[1:])]
+    from . import graph
+
+    need = min(2, len(lvls))          # a stair reaches the storey above
+    shafts = [lf for lf in lvls[0].leaves()
+              if len(graph.stair_shaft(lf)) >= need]
     return [lf.id for lf in sorted(shafts, key=geometry.area, reverse=True)]
 
 
@@ -2427,7 +2438,8 @@ def _stair_path(lvls: "list[dom.Node]") -> "str | None":
     paths = _shaft_paths(lvls)
     if paths:
         return paths[0]
-    ground = [lf for lf in lvls[0].leaves() if lf.type == "C"]
+    ground = ([lf for lf in lvls[0].leaves() if lf.type == dom.GENERIC_STAIR]
+              or [lf for lf in lvls[0].leaves() if lf.type == "C"])
     return max(ground, key=geometry.area).id if ground else None
 
 
@@ -2671,13 +2683,62 @@ def mutate_repair_shaft(root: dom.Node, rng: np.random.Generator,
         kept = node.type
         node.division = [ratio, ratio]
         node.rotation = rotation
-        node.left = dom.Node(type="C")       # the shaft, same address every storey
+        node.left = dom.Node(type=dom.GENERIC_STAIR)   # the shaft, same address every storey
         node.right = dom.Node(type=kept)
         node.type = None
     return (_finalise(child),
             f"repair_shaft {path or 'root'}l ({len(column)} storeys, "
             f"{'generic' if not rooms else f'{rooms} room(s) narrowed'}"
             f"{f', {opened} division(s) to align' if opened else ''})")
+
+
+def mutate_stair(root: dom.Node, rng: np.random.Generator,
+                 types: list[str]) -> tuple[dom.Node, str]:
+    """Say that a column of circulation is a staircase, or that it is not.
+
+    Until §39.125 this needed no move: any ``C`` cell over a ``C`` cell WAS a
+    stair, so a second staircase (harbor-house and maple-court ask for two)
+    appeared whenever two corridors happened to line up, and a corridor
+    repeated on the next floor was a stair too many. Now a stair is a cell
+    labelled ``E``, and this is the move that writes or rubs out the label:
+
+    * **make** -- a path that is a ``C`` leaf on the ground floor and on the
+      storey above becomes ``E`` on both, and on each further storey for as
+      long as it is a ``C`` leaf there. Exactly the columns the old rule would
+      have read as stairs, and no wall moves;
+    * **unmake** -- a shaft becomes ``C`` again from top to bottom: circulation
+      it still is, a stair it no longer is.
+
+    Which one is drawn at random when both are possible. A building with
+    nothing to make and nothing to unmake declines.
+    """
+    from . import graph
+
+    child = _finalise(copy.deepcopy(root))
+    lvls = dom.levels(child)
+
+    def column(leaf: dom.Node) -> "list[dom.Node]":
+        out = [leaf]
+        while True:
+            above = dom._above_node(out[-1])
+            if above is None or above.divided or above.type != "C":
+                return out
+            out.append(above)
+
+    make = [col for lf in lvls[0].leaves() if lf.type == "C"
+            and len(col := column(lf)) >= 2]
+    unmake = [graph.stair_shaft(lvls[0].by_id(p)) for p in _shaft_paths(lvls)]
+    if not make and not unmake:
+        return child, "stair noop"
+    if make and (not unmake or rng.random() < 0.5):
+        col = _pick(rng, make)
+        for n in col:
+            n.type = dom.GENERIC_STAIR
+        return _finalise(child), f"stair make {col[0].id or 'root'} ({len(col)} storeys)"
+    col = _pick(rng, unmake)
+    for n in col:
+        n.type = "C"
+    return _finalise(child), f"stair unmake {col[0].id or 'root'} ({len(col)} storeys)"
 
 
 def mutate_level_add(root: dom.Node, rng: np.random.Generator,
@@ -2694,7 +2755,8 @@ def mutate_level_add(root: dom.Node, rng: np.random.Generator,
     if not generic:
         generic = ["C"]
     for leaf in dup.leaves():
-        if leaf.type not in ("C", "O", None):
+        # ...but a stair that reached the old top storey carries on (`E` stays)
+        if leaf.type not in ("C", "O", dom.GENERIC_STAIR, None):
             leaf.type = str(rng.choice(generic))
     top.above = dup
     return _finalise(child), f"level_add ({len(dom.levels(child))} storeys)"
@@ -2765,6 +2827,10 @@ def mutate_level_add_migrate(root: dom.Node, rng: np.random.Generator,
     if not core_paths:
         fallback = _stair_path(lvls)      # no intact shaft yet: put one somewhere
         core_paths = [fallback] if fallback is not None else []
+        for lvl in lvls:                  # ...and say so on the storeys below
+            node = lvl.by_id(fallback) if fallback is not None else None
+            if node is not None and not node.divided and node.type == "C":
+                node.type = dom.GENERIC_STAIR
 
     # --- which rooms go up: whole adjacency groups, in random order, as many as
     #     the solid floor upstairs can hold, and (where there is more than one
@@ -2836,7 +2902,7 @@ def mutate_level_add_migrate(root: dom.Node, rng: np.random.Generator,
     for path in core_paths:
         leaf = dup.by_id(path)
         if leaf is not None and not leaf.divided:
-            leaf.type = "C"
+            leaf.type = dom.GENERIC_STAIR
             scope.discard(leaf)
             core_leaves.append(leaf)
 
@@ -2917,6 +2983,7 @@ MUTATIONS = {
     "reassign": mutate_reassign,
     "support_outside": mutate_support_outside,
     "repair_shaft": mutate_repair_shaft,
+    "stair": mutate_stair,
 }
 
 

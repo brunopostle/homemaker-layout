@@ -159,7 +159,7 @@ def validate_codes(codes) -> None:
         return
     raise ValueError(
         f"programme code(s) {bad} are Urb's generic structural types "
-        f"{RESERVED_CODES} (C=circulation, O=outside, S=sahn). These name the "
+        f"{RESERVED_CODES} (C=circulation, O=outside, S=sahn, E=stair). These name the "
         "leaves the search itself creates, so a programme room cannot also be "
         "called one. Rename the room code (the name: field is free text and "
         "need not change). See DESIGN.md §39.4 / homemaker-py-ju3."

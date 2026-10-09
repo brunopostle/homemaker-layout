@@ -79,7 +79,9 @@ def _storey_heights(root) -> list:
 def _usage(leaf, reqs: dict, stair_ids: set) -> "str | None":
     """The homemaker-addon usage for a leaf, or None for a cell that is not a room."""
     t = leaf.type
-    if t == "C":
+    if t in dom.GENERIC_INDOOR_CIRCULATION:
+        # A stair is an `E` cell that is the foot or a storey of a shaft; a
+        # lone `E` is circulation, as the scorer reads it (§39.125).
         # `stair`, not `circulation_stair`: every stair behaviour in
         # homemaker-addon (molior/floor.py, shell.py, topologist/graph.py) tests
         # usage == "stair"; `circulation_stair` only appears in its widget-name
