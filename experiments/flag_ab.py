@@ -19,6 +19,10 @@ first:
   `core_divide` to undo, and both are a small share of draws); the thing to
   read is `too few stairs` / `staircase volume`, which the repaired move
   should not make more frequent.
+  RUN AND JUDGED (§39.129: nothing resolved), and the repair is the default
+  since 2026-10-09 -- so this entry's `shipped` arm is no longer the shipped
+  operator. To run the comparison again its control needs
+  `--no-core-undivide-repaired`.
 
 * **t7q** (`homemaker-py-t7q`, DESIGN.md §39.75) -- `repair`, the default,
   against `--no-repair-shaft`. NOTE the flag REMOVES the operator: here the

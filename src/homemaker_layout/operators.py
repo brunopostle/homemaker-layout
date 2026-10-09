@@ -33,13 +33,17 @@ from . import graph as graph_mod
 # one, so that what it removes is the staircase. Measured on 48 artefacts: the
 # shipped move fires 8 times in 384; with only the first repaired it empties
 # the stair shaft in two firings of three; with both it is the inverse of
-# `core_divide` (213 of 256 restore the parent). Default OFF: it changes what a
-# search does, and whether that is better is an A/B on the box.
+# `core_divide` (213 of 256 restore the parent).
+#
+# Default ON since 2026-10-09, on the owner's word ("do the w4e repair"). The
+# A/B (36 pairs, programme-house, DESIGN.md §39.129) resolved nothing either
+# way, so the repair is adopted on correctness: the operator now does what its
+# docstring says. Set the variable to "0" for the operator as shipped.
 #
 # Read from the environment for the reason `geometry.ORTHOGONAL_DIVISION` is:
 # evaluations run in worker processes, and a module attribute set in the
 # parent would not reach them.
-CORE_UNDIVIDE_REPAIRED = os.environ.get("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", "") == "1"
+CORE_UNDIVIDE_REPAIRED = os.environ.get("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", "") != "0"
 
 
 def _finalise(root: dom.Node) -> dom.Node:

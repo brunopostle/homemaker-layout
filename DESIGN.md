@@ -16258,3 +16258,16 @@ already in its table, so a control arm can be supplied from an earlier
 experiment at the same stamps. What that gives up is `elapsed_s` as a paired
 measure, which matters for `native` (a native score costs more) and for
 little else. Left as the owner's call; nothing running was touched.
+
+**Ruled the same day.** The owner: "Yes pre-fill v2k's control." `v2k`'s 36
+`shipped` rows and designs were copied from `child20`'s control (checked
+seed by seed against `w4e`'s as well: same score, same fail list, same
+bytes) before `v2k` started, so it runs only its flagged arm, about nine and
+a half hours saved; its `elapsed_s` is therefore not paired and is not to be
+read. `native` keeps its own control, because for it the time is part of
+the answer. And on the order of the merge: "land all six first" --
+`experiments/run_ab_queue3.sh` replaces queue 2, merges the rehearsed
+`trial-merge` branch (the three queue-2 branches, `hand-curves`, `escalier`,
+`storey-height`; full suite green on it), relabels the staircases of the
+designs the queue has written since, and only then runs the seed-solver A/B,
+at the objective with `E` in it.

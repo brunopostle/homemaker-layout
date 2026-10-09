@@ -40,13 +40,15 @@ def repaired(monkeypatch):
     monkeypatch.setattr(operators, "CORE_UNDIVIDE_REPAIRED", True)
 
 
-def test_the_switch_is_off_unless_asked_for(monkeypatch):
+def test_the_repair_is_the_default_and_can_be_switched_off(monkeypatch):
+    """Default ON since 2026-10-09 (owner's word; DESIGN.md §39.129: the A/B
+    resolved nothing, so the operator is made to do what its docstring says)."""
     monkeypatch.delenv("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", raising=False)
-    assert evolve._parse_args(["init.dom"]).core_undivide_repaired is False
-    assert evolve._parse_args(
-        ["init.dom", "--core-undivide-repaired"]).core_undivide_repaired is True
-    monkeypatch.setenv("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", "1")
     assert evolve._parse_args(["init.dom"]).core_undivide_repaired is True
+    assert evolve._parse_args(
+        ["init.dom", "--no-core-undivide-repaired"]).core_undivide_repaired is False
+    monkeypatch.setenv("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", "0")
+    assert evolve._parse_args(["init.dom"]).core_undivide_repaired is False
 
 
 def test_as_shipped_it_declines_the_tree_core_divide_leaves(monkeypatch):
