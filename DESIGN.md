@@ -16022,3 +16022,113 @@ left to make a compound pay, in the order I would try them, and each is a
 few CPU-hours with this tool. Step 3 (ancestry in the recorder) is what
 would show which chains a live search really follows, and still waits on the
 owner's word.
+
+### 39.126 The recorder names a child's parents; and why the recordings stay text files (`homemaker-py-urzf`)
+
+Step 3 of the widened book of moves (§39.123), on the owner's word
+(2026-10-09). Each record written by `HOMEMAKER_MOVE_LOG` now carries `id`,
+`parent` and `parent2`: one serial per run (`driver._MOVE_LOG_UID`), given to
+an individual when it is recorded. So the chain of moves behind any design
+can be walked back to a seed, which the pair census (§39.124) could not do
+and had to play pairs blind. Branch `move-book`; `tests/test_move_log.py`
+walks the chain behind a run's last best design, and a recorded search is
+still byte for byte the search it would have been. Recordings made before
+this (all sixteen of §39.120's) have no ids.
+
+**Text or a database?** The owner asked. Gzipped JSONL, for now: the sixteen
+recordings are 26,712 records in 1.2 MB and are read whole in two seconds; a
+recorded 500k run is about 9,400 children and a quarter of a megabyte. A
+database earns its place when the records stop fitting in memory or have to
+be queried while runs are still writing -- some millions of records, hundreds
+of recorded full runs. The files would load into one in a single pass, so
+nothing is lost by waiting, and until then a recording is something `zcat`
+and a reviewer can read.
+
+### 39.127 `E` built: no committed score moves, and the first census caught the new move (`homemaker-py-y4p4.1`)
+
+§39.125's ruling, built on branch `escalier` (six commits; not merged: `src/`
+on main is frozen until the A/B queues finish). The owner's three details
+were all ruled yes, and the bounds on storey height came the next day: a
+floor of 2.7 m and no ceiling ("we may want to design very big buildings
+someday"); that is `homemaker-py-y4p4.2` and is not in this branch.
+
+**The scorer.** `dom.GENERIC_STAIR = "E"`, a member of
+`GENERIC_CIRCULATION`, `GENERIC_TYPES` and `programme.RESERVED_CODES`.
+`graph.stair_shaft(leaf)` is the ground `E` leaf and the `E` leaf at the same
+path on each storey above, for as long as there is one; it must reach the
+storey above and may stop below the top. A stacked `C` is a corridor. Every
+other test for "circulation" that named the letter `C` now asks
+`dom.GENERIC_INDOOR_CIRCULATION`, so an `E` cell takes the circulation
+parameters, satisfies `adjacency: c`, and can be the way in. A shaft joins
+the storeys it serves (`graph._joined`, switch `STAIRS_JOIN_STOREYS`), for
+`level N not connected` and for `N inaccessible usable space`.
+
+**The designs written before** have their stairs spelt `C`.
+`experiments/relabel_stairs.py` is the upgrade, in three steps run by two
+checkouts: survey under the OLD code (each design's score, fail list, and the
+cells the old rule fitted a stair to), relabel and verify under the new, then
+write.
+
+| | |
+|---|---|
+| designs surveyed, both geometries | 501, 1,002 scores |
+| scores or fail lists moved by relabelling (join rule off) | 0 |
+| ...with one stair left unrelabelled, the negative control | 852 |
+| designs with a stair, rewritten on disk | 426 |
+| what changed in those files | 935 `type: C` -> `type: E`, 8 `cell: C` -> `cell: E` (v2), no other byte |
+| on-disk scores under the new code that differ from the old | 2, both `hand2a.dom` |
+
+The two are the join rule doing what it was ruled to: `level 2 not connected`
+clears on the owner's drawing, 31 fails to 30. Nothing in any evolved corpus
+moves, as §39.125's diagnostic predicted (0 of 20).
+
+**The search.** The constructor's core, `repair_shaft`, `core_divide`,
+`core_undivide`, `level_add` and `level_add_migrate` write and continue `E`;
+`_shaft_paths` reads `graph.stair_shaft`. One move is new, `mutate_stair`:
+*make* turns a `C` leaf stacked on the storey above into an `E` column,
+*unmake* turns a shaft back into `C`. It is the old inference as a move --
+before, a second staircase appeared whenever two corridors lined up, and
+harbor-house and maple-court ask for two; with a label something has to
+write it. `retype` never draws `E`.
+
+**What the censuses said** (`diag_operator_invariants.py`,
+`diag_t7q_shaft_breakage.py`, on the branch, the day the move was written):
+
+- 23 operators x 288 applications: no structural invariant broken.
+- **`mutate_stair` emptied the shaft in 114 of 160 draws.** On a design with
+  one stair and no stacked corridor, unmaking the stair was the only thing it
+  could do. It now never unmakes the last one (0 of 160). Third time the
+  census pattern has found a defect in code landed the same week (§39.73,
+  §39.75).
+- Every other operator empties a shaft exactly as often as on main, in
+  absolute counts (`level_retype` 29, `swap` 27, `undivide` 20, `divide` 13,
+  `retype` 13, `crossover` 34).
+- The census now finds 40 designs with an intact shaft where main's
+  raw-column definition found 58. The 18 are `C` columns the SCORER never
+  read as stairs -- merged with a neighbouring corridor, or not covered. An
+  `E` cell does not merge with a `C` beside it, so what the operators protect
+  and what the scorer counts are now the same thing. That is half of
+  `homemaker-py-t7q`'s "the search merges the cell over the stair".
+
+**Tests.** `tests/test_stair_shaft_is_a_full_column.py` pinned the old rule
+with a negative control and is rewritten, not deleted: a corridor over a
+corridor is not a stair (its control: the same tree with the other letter),
+a shaft may stop below the top and must start at the ground, a stair joins
+two wings (control: the switch off), and the three behaviours of
+`mutate_stair`. Thirteen other tests failed on the first full run: eleven
+spelt a stair `C`; two were negative controls that had gone quiet -- one
+turned the corner numbering of `C` leaves only, the other (§39.100's
+listing-order wobble, 32 or 34 fails) is hidden on its design by the join
+rule and is now run with the rule off. Full suite on the branch: 811 passed.
+
+**Not measured, and the re-baseline's to say:** whether a full search finds
+its second staircase as readily by `mutate_stair` as it did by accident. Two
+6,000-evaluation searches (one seed, old code against new) end in the same
+stair state on programme-house (none yet) and harbor-house (one of two);
+that shows the branch is not broken and nothing more. `mutate_stair` changes
+the mutation mix, so `search_config` moves with the objective.
+
+**To do before it merges** (after `queue 2 complete`, before the re-baseline):
+a trial merge with `move-book`, `seed-solver` and `hand-curves`, which touch
+`driver.py`, `operators.py` and `compose.py` between them; the starter
+drawing `hand.svg` regenerated; the stair labels in `hand2a.svg`.
