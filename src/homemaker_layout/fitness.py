@@ -534,7 +534,7 @@ def _generic_class(n: Node) -> str:
     """
     if n.type in dom_mod.GENERIC_OUTSIDE:
         return "o"
-    if n.type == "C":
+    if n.type in dom_mod.GENERIC_INDOOR_CIRCULATION:
         return "c"
     return ""
 
@@ -1202,7 +1202,7 @@ class Fitness:
         for lvl in lvls:
             for lf in lvl.leaves():
                 if (
-                    lf.type == "C"
+                    lf.type in dom_mod.GENERIC_INDOOR_CIRCULATION
                     and self._public_access(lf, root) is not None
                 ):
                     return set()
@@ -1215,7 +1215,7 @@ class Fitness:
                 if not self._public_access_outside(lf, G, root):
                     continue
                 nbs = list(G.neighbors(lf))
-                if any(nb.type == "C" for nb in nbs):
+                if any(nb.type in dom_mod.GENERIC_INDOOR_CIRCULATION for nb in nbs):
                     continue  # circulation neighbour keeps access invariant
                 usages = self.usages()
                 for nb in nbs:
@@ -1312,7 +1312,7 @@ class Fitness:
         # them apart, so the tables are consulted directly; returning None here
         # rather than falling through is what stops a corridor silently
         # inheriting a habitable room's 16 m2 size target.
-        if code == "C":
+        if code in dom_mod.GENERIC_INDOOR_CIRCULATION:
             found, v = self._generic_param(f"{param}_circulation")
             if found:
                 return v
@@ -2091,7 +2091,7 @@ class Fitness:
         for other in level_root.leaves():
             if other is stair_leaf:
                 continue
-            if other.type != "C":
+            if other.type not in dom_mod.GENERIC_INDOOR_CIRCULATION:
                 continue
             other_corners = graph_mod.stack_corners_in_use(other, graph_circ, all_lvls)
             if dom_mod.is_covered(other) and other_corners:
@@ -2122,7 +2122,8 @@ class Fitness:
         for nb in G.neighbors(leaf):
             # C is a generic circulation leaf; living/kitchen are DECLARED
             # usages of programme rooms (§39.7). Two namespaces, two tests.
-            if nb.type == "C" or self.usage_of(nb) in _programme.SOCIABLE_USAGES:
+            if (nb.type in dom_mod.GENERIC_INDOOR_CIRCULATION
+                    or self.usage_of(nb) in _programme.SOCIABLE_USAGES):
                 return True
         return False
 
@@ -2183,7 +2184,8 @@ class Fitness:
             if graph_circ is not None and tracking is not None and lvls is not None and root is not None:
                 # Stair fit — ground floor circulation/covered only
                 stair_fit = 0.0
-                if level_id == 0 and leaf.type == "C" and dom_mod.is_covered(leaf):
+                if (level_id == 0 and leaf.type == dom_mod.GENERIC_STAIR
+                        and dom_mod.is_covered(leaf)):
                     all_lvls = lvls
                     corners = graph_mod.stack_corners_in_use(leaf, graph_circ, all_lvls)
                     n_corners = len(corners)
@@ -2210,7 +2212,7 @@ class Fitness:
                     if self._public_access_outside(leaf, G, root):
                         tracking["has_public_access_outside"] = True
                     if (not stair_fit
-                            and leaf.type == "C"
+                            and leaf.type in dom_mod.GENERIC_INDOOR_CIRCULATION
                             and self._public_access(leaf, root) is not None):
                         tracking["has_public_access_inside"] = True
 
@@ -2220,9 +2222,9 @@ class Fitness:
             cost += self.outside_edge_cost(leaf)
 
         if graph_circ is not None:
-            # Connected_Circulation check on a copy of the circ graph
-            gc_copy = graph_circ[level_id].copy() if level_id < len(graph_circ) else nx.Graph()
-            if not graph_mod.connected_circulation(gc_copy):
+            # One piece of circulation per storey -- a stair shaft counting
+            # as a link between the storeys it serves (§39.125).
+            if not graph_mod.circulation_joined(graph_circ, level_id):
                 fail(f"level {level_id} not connected")
 
             conf_fg = self.conf("force_roof_garden")

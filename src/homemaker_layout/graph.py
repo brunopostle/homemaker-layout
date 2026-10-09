@@ -82,6 +82,12 @@ def storey_graphs(
         graph_base.append(g)
         graph_circ.append(gc)
         connected.append(ok)
+    if not all(connected):
+        # ``ok`` is "the filtered graph is non-empty and one piece"; judge it
+        # again with the stairs as links (§39.125). Recomputed from the graphs
+        # every time, because a storey handed back by ``reuse`` can be joined
+        # or parted by a storey that was built afresh.
+        connected = _joined(graph_circ)
     return graph_base, graph_circ, connected
 
 
@@ -384,6 +390,81 @@ def _stack_levels_above(leaf: Node) -> list[Node]:
     return result
 
 
+def is_stair_cell(n: "Node | None") -> bool:
+    """An undivided cell labelled as a stair (``E``)."""
+    return n is not None and not n.divided and n.type == dom.GENERIC_STAIR
+
+
+def stair_shaft(leaf: Node) -> list[Node]:
+    """The staircase standing on ``leaf``: the leaf and the cell at the SAME
+    path on each storey above for as long as that cell is also a stair. Empty
+    if ``leaf`` is not a stair cell.
+
+    Owner's rulings. §39.72: a stair needs the identical cell on every storey
+    it climbs, because nothing fits flights into a part-cell. §39.125: which
+    cells are stairs is LABELLED (``E``), no longer inferred from a stacked
+    ``C``; and a shaft may stop below the top of the building -- a stair can
+    serve the two lower floors of a three-storey block. So the walk stops at
+    the first storey that is not the same ``E`` cell, and does not fail there.
+    """
+    if not is_stair_cell(leaf):
+        return []
+    shaft = [leaf]
+    while True:
+        above = dom._above_node(shaft[-1])
+        if not is_stair_cell(above):
+            return shaft
+        shaft.append(above)
+
+
+# §39.125, owner's ruling: a stair JOINS the circulation of the storeys it
+# serves, so a storey in two pieces, each on its own stair, is connected
+# through the floor below. A module switch only so that a migration can be
+# checked with it off (relabelling alone must move no score).
+STAIRS_JOIN_STOREYS = True
+
+
+def _joined(graphs: "list[nx.Graph]") -> "list[bool]":
+    """For each storey's graph: is it non-empty and one piece, counting a
+    stair shaft as a link between the storeys it passes through?"""
+    plain = [len(g) > 0 and nx.is_connected(g) for g in graphs]
+    if not STAIRS_JOIN_STOREYS or all(plain):
+        return plain
+    whole = nx.Graph()
+    for g in graphs:
+        whole.add_nodes_from(g.nodes())
+        whole.add_edges_from(g.edges())
+    for g in graphs:
+        for n in g.nodes():
+            if is_stair_cell(n):
+                above = dom._above_node(n)
+                if is_stair_cell(above) and whole.has_node(above):
+                    whole.add_edge(n, above)
+    out = []
+    for g, ok in zip(graphs, plain):
+        if ok or len(g) == 0:
+            out.append(ok)
+            continue
+        nodes = list(g.nodes())
+        piece = nx.node_connected_component(whole, nodes[0])
+        out.append(all(n in piece for n in nodes))
+    return out
+
+
+def circulation_joined(graph_circ: "list[nx.Graph]", level: int) -> bool:
+    """Is storey ``level``'s circulation one piece, stairs counted? What
+    ``level N not connected`` asks. An empty storey is not connected, as in
+    Urb (:func:`connected_circulation`)."""
+    only = []
+    for g in graph_circ:
+        c = g.copy()
+        c.remove_nodes_from([v for v in list(c.nodes()) if not dom.is_circulation(v)])
+        only.append(c)
+    if level >= len(only):
+        return False
+    return _joined(only)[level]
+
+
 def stack_corners_in_use(
     leaf: Node,
     graph_circ_list: list[nx.Graph],
@@ -393,8 +474,9 @@ def stack_corners_in_use(
     """The fewest corners a stair in this shaft must leave clear; mirrors
     ``Urb::Dom::Stack_Corners_In_Use`` in what it means, not in how it counts.
 
-    Returns [] if the stack does not span all levels above leaf, or if any
-    level's node is not circulation type.
+    Returns [] if ``leaf`` is not the foot of a staircase: a cell labelled
+    ``E`` with the same ``E`` cell on the storey above (:func:`stair_shaft`).
+    In a building of one storey the cell alone is the shaft.
 
     Each storey of the shaft has doors to keep clear, and so one or more
     equally small runs of corners (:func:`_corner_runs`). Urb took the first
@@ -405,23 +487,18 @@ def stack_corners_in_use(
     entrance). Every node of the stack has the same corners -- an upper storey
     inherits them -- so no index is remapped.
     """
-    if leaf.type != "C":
+    if not is_stair_cell(leaf):
         return []
     if geometry.quad_corners(leaf) is None:
         # A core cropped to a wedge or a pentagon by the plot is not somewhere
         # a stair is fitted (native trees only; every quad-tree cell has four).
         return []
 
-    stack = [leaf] + _stack_levels_above(leaf)
+    stack = stair_shaft(leaf)
 
-    # The stack must span ALL levels (leaf's level + all above)
+    # A stair goes somewhere: it reaches the storey above, if there is one.
     li = _level_index(leaf, all_levels)
-    levels_above_count = len(all_levels) - li - 1
-    if len(stack) <= levels_above_count:
-        return []
-
-    # All stack nodes must be circulation
-    if not all(n.type == "C" for n in stack):
+    if len(stack) < min(2, len(all_levels) - li):
         return []
 
     options: list[list[frozenset]] = []
@@ -890,7 +967,7 @@ def substrate_readiness(
 
     core_leaves = [
         lf for lf in base_leaves
-        if lf.type == "C" and geometry.area(lf) >= STAIR_MIN_AREA
+        if lf.type in dom.GENERIC_INDOOR_CIRCULATION and geometry.area(lf) >= STAIR_MIN_AREA
     ]
     core_factor = 1.0 if core_leaves else 0.25
     core_area = max((geometry.area(lf) for lf in core_leaves), default=0.0)

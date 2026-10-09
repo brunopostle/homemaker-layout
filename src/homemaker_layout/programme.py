@@ -110,7 +110,7 @@ def _optional_pair(d: dict, key: str) -> tuple[float | None, float | None]:
 # code may now start with ANY letter. The only remaining collision is a code
 # spelled EXACTLY like a generic type, which is a genuine ambiguity no matching
 # rule can resolve.
-RESERVED_CODES = ("C", "O", "S")
+RESERVED_CODES = ("C", "O", "S", "E")
 
 # homemaker-py-sel (DESIGN.md §39.7) — the ACCESS-REQUIREMENT class of a room.
 #
