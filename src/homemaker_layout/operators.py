@@ -2258,6 +2258,7 @@ def mutate_core_undivide(root: dom.Node, rng: np.random.Generator,
         return _finalise(child), "core_undivide noop"
 
     path, level_indices = _pick(rng, core_parents)
+    had = len(_shaft_feet(lvls))
     for li in level_indices:
         node = lvls[li].by_id(path)
         if node is None or not node.divided:
@@ -2273,7 +2274,15 @@ def mutate_core_undivide(root: dom.Node, rng: np.random.Generator,
         node.division = None
         node.left = node.right = None
 
-    return _finalise(child), f"core_undivide {path} ({len(level_indices)} floors)"
+    _finalise(child)
+    if repaired and len(_shaft_feet(dom.levels(child))) < had:
+        # The pair is stacked on these storeys and the staircase runs through
+        # more of them: merging here leaves the shaft at two addresses, which
+        # is no shaft (§39.72). Measured the day this became the default: 6 of
+        # 232 draws on the corpus (`diag_t7q_shaft_breakage.py`). A move that
+        # exists to give the stair its cell back does not get to take it away.
+        return _finalise(copy.deepcopy(root)), "core_undivide noop (would cost a staircase)"
+    return child, f"core_undivide {path} ({len(level_indices)} floors)"
 
 
 def mutate_level_retype(root: dom.Node, rng: np.random.Generator,
@@ -2413,10 +2422,15 @@ def _shaft_paths(lvls: "list[dom.Node]") -> "list[str]":
     """
     from . import geometry
 
-    shafts = [lf for lf in lvls[0].leaves() if lf.type == "C"
-              and all((nd := lvl.by_id(lf.id)) is not None and not nd.divided
-                      and nd.type == "C" for lvl in lvls[1:])]
-    return [lf.id for lf in sorted(shafts, key=geometry.area, reverse=True)]
+    return [lf.id for lf in sorted(_shaft_feet(lvls), key=geometry.area, reverse=True)]
+
+
+def _shaft_feet(lvls: "list[dom.Node]") -> "list[dom.Node]":
+    """The ground leaf of every shaft, in tree order: `_shaft_paths` without
+    the geometry, for a caller that only needs to know how many there are."""
+    return [lf for lf in lvls[0].leaves() if lf.type == "C"
+            and all((nd := lvl.by_id(lf.id)) is not None and not nd.divided
+                    and nd.type == "C" for lvl in lvls[1:])]
 
 
 def _stair_path(lvls: "list[dom.Node]") -> "str | None":
