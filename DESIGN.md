@@ -16208,3 +16208,53 @@ taller storey is worth finding.
 **To do:** the box A/B; `hand_design.py --tune` should use the probe (it is
 on `hand-curves`' side of a merge); and at the merge this branch and
 `escalier` each add a move at the same line of `operators.MUTATIONS`.
+
+### 39.129 `w4e`: the repaired `core_undivide` changes nothing a search can show -- and every A/B in the queue has been re-running the same control (`homemaker-py-w4e`)
+
+The third of the five queued A/Bs (the second, `native`, died after six
+pairs and is re-queued, `homemaker-py-8b2u.8`). `flag_ab.py w4e`: `shipped`
+against `--core-undivide-repaired`, 36 paired seeds, 500k, programme-house,
+`64512f1+orth`, search `7b611b4`. Expectation recorded before the run
+(`flag_ab.py`): no resolved difference in fails; the thing to read is
+`too few stairs` / `staircase volume`, which the repaired move should not
+make more frequent.
+
+| | `shipped` | `repaired` | paired difference | MDD at N=36 | |
+|---|---|---|---|---|---|
+| fails per design | 0.67 | 0.83 | 0.167 more, p=0.26 | 0.297 | unresolved |
+| hard fails | 0.08 | 0.11 | 0.028 more, p=0.74 | 0.171 | unresolved |
+| score | 0.30 | 0.26 | 0.038 lower, p=0.21 | 0.060 | unresolved |
+| elapsed, s | 9,600 | 9,661 | 61 slower, p=0.52 | 188 | unresolved |
+| designs with no fail | 15 | 13 | | | |
+| `staircase volume` | 0 of 36 | 1 of 36 | one discordant pair | | cannot resolve |
+| `too few stairs` | 0 of 36 | 0 of 36 | | | |
+
+**The expectation held: nothing resolves.** Every row leans against the
+repaired move and none is outside what 36 pairs cannot tell from zero; the
+stair fails it was feared to cause appear once. So the A/B gives no reason
+to change the default, and none to think the repair harmful. The case for
+the repair is the one it had before the run: it makes the operator do what
+its docstring says (§39.106).
+
+**Two cautions on reading it.** §39.120 found that `core_undivide` as
+shipped declines every draw, so its 5.6% of draws are all re-tunes of the
+parent -- the most reliably useful draw there is. The repaired arm trades
+some of those for a move that applies, and this A/B measures the sum; the
+slight lean against `repaired` is what that trade would look like, and is
+not resolved. And seeds 0-3 ran beside two orphaned `native` searches for
+their first three and a half hours (13,300 s a run against 9,150 s for the
+rest, in both arms), and the last third of the queue shared the box with
+test suites, so `elapsed_s` is paired but not clean.
+
+**A finding about the queue itself.** `w4e`'s `shipped` arm is `child20`'s
+`child80` arm: the same default search on the same 36 seeds. The 36 designs
+are BYTE-IDENTICAL, file for file, and so are the control rows `t7q` and
+`native` have written so far (5 of 5, 8 of 8). That is good news about
+determinism -- a default search at one objective, one search commit and one
+seed is one design, on this box, across days and loads -- and bad news
+about the queue: each A/B has spent half its nineteen hours re-deriving a
+table that already existed. `flag_ab.py --resume` skips any (arm, seed)
+already in its table, so a control arm can be supplied from an earlier
+experiment at the same stamps. What that gives up is `elapsed_s` as a paired
+measure, which matters for `native` (a native score costs more) and for
+little else. Left as the owner's call; nothing running was touched.

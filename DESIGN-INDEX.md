@@ -66,6 +66,7 @@ index is how to get from a question to the section that answers it.
 | §39.125 | The owner's hand-drawn harbor-house design (31 fails, inside the evolved range) and what it shows: the ruling that a stair is a cell type `E`, and three open questions on connectivity, entrances and daylight depth. |
 | §39.126-§39.127 | Ancestry in the move recorder (and why recordings stay text); `E` built on a branch -- 1,002 scores unmoved by relabelling, 426 designs rewritten, a new `mutate_stair` whose first census caught it removing the only staircase. |
 | §39.128 | Storey height tuned by the search (branch, default off): the variable alone moves nothing, a jump move does -- the hand design goes 31 -> 26 fails at 3.6 / 3.6 / 2.7 m. |
+| §39.129 | `w4e`: the repaired `core_undivide` resolves nothing either way. And the queue's control arms are byte-identical from one A/B to the next -- half of each run re-derives a table that exists. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -122,6 +123,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Pre-placed stair block; incremental re-scoring; canonical genome | §39.113, §39.112, §39.114 | ruled out; set aside; set aside |
 | A learned, state-weighted choice of operator ("book of moves", step 3) | §39.120 | not built: the greedy upper bound is 1.2x of a 1.5% rate on programme-house; harbor-house's 2.5x is two applicability rules on 4 early runs |
 | Two randomly aimed moves compiled into one, tuned as one child | §39.124 | null on 46 stuck programme-house designs: 2 of 16,330 pairs remove a fail and neither repeats; aimed pairs, a longer tune and mid-run parents are untested |
+| `--core-undivide-repaired` | §39.129 | null at 36 pairs on programme-house; default unchanged |
 | A child budget that depends on the move; supporting a terrace without shrinking a room | §39.122 | both SET ASIDE unbuilt, not measured negative; the section says what would bring each back |
 
 ## Where the current state is
@@ -133,7 +135,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (233 of them, 16210 lines)
+## Every section of DESIGN.md (234 of them, 16260 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -417,4 +419,5 @@ below are the most recent work.
 - §39.124 · 15957-16025 · The pair census: on a design the search has finished with, no move and no pair of moves removes a fail (`homemaker-py-urzf`)
 - §39.126 · 16026-16046 · The recorder names a child's parents; and why the recordings stay text files (`homemaker-py-urzf`)
 - §39.127 · 16047-16135 · `E` built: no committed score moves, and the first census caught the new move (`homemaker-py-y4p4.1`)
-- §39.128 · 16136-16210 · Storey height as something the search tunes: the variable alone does nothing, the jump does (`homemaker-py-y4p4.2`)
+- §39.128 · 16136-16211 · Storey height as something the search tunes: the variable alone does nothing, the jump does (`homemaker-py-y4p4.2`)
+- §39.129 · 16212-16260 · `w4e`: the repaired `core_undivide` changes nothing a search can show -- and every A/B in the queue has been re-running the same control (`homemaker-py-w4e`)
