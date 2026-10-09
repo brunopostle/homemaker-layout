@@ -43,6 +43,17 @@ first:
   programmes if the container result carries into a live population -- which
   is the thing a container cannot say.
 
+* **heights** (`homemaker-py-y4p4.2`, DESIGN.md §39.128) -- `fixed`, every
+  storey at the height its file gives it (3.0 m), against `heights`,
+  `--tune-heights`: each child's inner loop tunes one height per storey with
+  the walls, and `mutate_storey_height` steps a storey up or down. The
+  owner's ruling: a room's depth limit is "only a limit for low ceilings".
+  Expectation on file (2026-10-09): on programme-house no resolved difference
+  in fails -- its rooms are shallow and its daylight fails few; the thing to
+  read is `crinkliness` on the LARGE programmes, where it is 45% of all
+  fails, and there the flagged arm should carry fewer. `elapsed_s` should
+  not move: the extra variables are two or three in thirty.
+
 **The two arms are scored by one objective.** For `native` that is a fact
 with a test behind it: every orthogonal design scores the same as a quad tree
 and as the native tree of the same building (192 of 192,
@@ -88,6 +99,10 @@ EXPERIMENTS = {
                 env="HOMEMAKER_CORE_UNDIVIDE_REPAIRED",
                 bead="homemaker-py-w4e, DESIGN.md §39.106",
                 what="core_undivide repaired against the shipped operator"),
+    "heights": dict(arms=("fixed", "heights"), flag="--tune-heights",
+                    env="HOMEMAKER_TUNE_HEIGHTS",
+                    bead="homemaker-py-y4p4.2, DESIGN.md §39.128",
+                    what="storey heights tuned by the search against fixed at 3.0 m"),
     "t7q": dict(arms=("repair", "norepair"), flag="--no-repair-shaft",
                 env="HOMEMAKER_REPAIR_SHAFT",
                 bead="homemaker-py-t7q, DESIGN.md §39.75",

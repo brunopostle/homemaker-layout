@@ -595,6 +595,9 @@ def search(
         mutation_weights["support_outside"] = 0.0
     if not enable_level_add_migrate:
         mutation_weights["level_add_migrate"] = 0.0
+    # the height move belongs to a search that tunes heights, and to no other
+    if not (inner_kw or {}).get("heights"):
+        mutation_weights["storey_height"] = 0.0
     if not enable_repair_shaft:
         mutation_weights["repair_shaft"] = 0.0
     # homemaker-py-161: shape_rotate/deslim are gated by operators.mutate itself
@@ -979,6 +982,7 @@ def polish_finish(
     collapse_insearch: bool = True,
     rescore_budget: int = 200,
     log=None,
+    inner_kw: dict | None = None,
 ) -> SearchResult:
     """homemaker-py-3l6: convert a leaf-sharing run's dishonest best into a
     canonically-scored, materialised output.
@@ -1022,7 +1026,7 @@ def polish_finish(
             child_budget=child_budget, p_crossover=p_crossover, seed=seed,
             n_workers=n_workers, bootstrap=False, leaf_sharing=False,
             superpose=superpose, multi_use=multi_use,
-            collapse_insearch=collapse_insearch, log=log,
+            collapse_insearch=collapse_insearch, log=log, inner_kw=inner_kw,
         )
     else:
         # No polish: re-optimise the unfolded genome's ratios once and score it
