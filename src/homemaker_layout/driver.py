@@ -134,6 +134,54 @@ class Individual:
     sig: str = ""  # §11.5 structural topology signature; niching key
     n_hard: int = 0  # homemaker-py-2g7.3: hard-fail count (structural, tiered comparator)
     n_soft: int = 0  # homemaker-py-2g7.3: soft-fail count (shape/quality, tiered comparator)
+    # homemaker-py-urzf: the fail lines themselves, so a move can be recorded
+    # against the failure pattern it was played on. Nothing in the search reads
+    # it; it is carried for `HOMEMAKER_MOVE_LOG`.
+    fails: tuple = ()
+    # ...and a serial number, given when the individual is RECORDED (0 = never
+    # recorded), so the log can name a child's parents and a chain of moves can
+    # be rebuilt (DESIGN.md §39.126). Nothing in the search reads it either.
+    uid: int = 0
+
+
+def _move_logger():
+    """A function that appends one JSON line per child to the file named by
+    ``HOMEMAKER_MOVE_LOG``, or None when the variable is unset (the default:
+    nothing is recorded and nothing changes).
+
+    homemaker-py-urzf, DESIGN.md §39.120. A run's log names the move behind
+    each NEW BEST and nothing else: no move that failed, no pattern of fails
+    it was played on. So there is no rate of success for any move in any
+    state, which is what choosing moves by state would need. One record per
+    child: the move, the parent's fail lines and score, the child's, how many
+    evaluations it cost, and what `admit` did with it -- `best`, `kept`,
+    `duplicate`, `rejected` or `pruned`.
+
+    Read from the environment because that is how a setting reaches
+    `homemaker-evolve` without a parameter through four call sites, and
+    recording must be impossible to switch on by accident in a sweep: it is
+    not a search knob, and a run with it set searches exactly as one without.
+    """
+    import json
+    import os
+
+    path = os.environ.get("HOMEMAKER_MOVE_LOG", "")
+    if not path:
+        return None
+    fh = open(path, "a", buffering=1)
+    # One run of `homemaker-evolve` is several searches end to end (stages, a
+    # polish), each counting its evaluations from zero. `phase` says which.
+    phase = next(_MOVE_LOG_PHASE)
+
+    def log(**record) -> None:
+        fh.write(json.dumps({"phase": phase, **record}, separators=(",", ":")) + "\n")
+
+    return log
+
+
+_MOVE_LOG_PHASE = __import__("itertools").count()
+# one series for the whole run, so an id means one individual across phases
+_MOVE_LOG_UID = __import__("itertools").count(1)
 
 
 @dataclass
@@ -258,7 +306,7 @@ def _evaluate(root: dom.Node, programme_dir, x0, budget, inner_kw,
     ind = Individual(root=root, fitness=r.fitness, n_fails=r.n_fails,
                      ratios=innerloop.ratio_map(root), lineage=lineage,
                      grade=grade, sig=genome.signature(root),
-                     n_hard=n_hard, n_soft=n_soft)
+                     n_hard=n_hard, n_soft=n_soft, fails=tuple(r.fail_lines))
     return ind, r.n_evals
 
 
@@ -589,15 +637,19 @@ def search(
     seen_sigs: set[str] = set()  # §11.5 cumulative distinct topologies ever admitted
     result = SearchResult(best=None, population=[], n_evals=0, n_topologies=0)
 
-    def admit(ind: Individual, pop: list[Individual]) -> None:
+    def admit(ind: Individual, pop: list[Individual]) -> str:
+        """Returns what became of ``ind`` -- ``best``, ``kept``, ``duplicate``,
+        ``rejected`` or ``pruned`` -- for the move log; nothing else reads it."""
         nonlocal n_topologies, last_improve
         n_topologies += 1
         seen_sigs.add(ind.sig)
         # §12.3 pruned by the shape-feasibility filter: counted as an explored
         # topology (so the prune rate is visible) but never bred from or ranked.
         if ind.lineage.startswith("pruned/"):
-            return
+            return "pruned"
+        became_best = False
         if result.best is None or _key(ind) > _key(result.best):
+            became_best = True
             result.best = ind
             last_improve = n_evals
             result.history.append((n_evals, ind.fitness, ind.lineage))
@@ -631,19 +683,22 @@ def search(
                 if p.sig == ind.sig:
                     if _key(ind) > _key(p):
                         pop[i] = ind
-                    return
+                        return "best" if became_best else "kept"
+                    return "duplicate"
         else:
             # legacy fitness-scalar dedup (population collapse guard —
             # neutral mutations are common, homemaker-py-8cs)
             if any(abs(ind.fitness - p.fitness) <= 1e-9 * max(abs(p.fitness), 1e-300)
                    for p in pop):
-                return
+                return "best" if became_best else "duplicate"
         if len(pop) < pop_size:
             pop.append(ind)
-            return
+            return "best" if became_best else "kept"
         worst = min(range(len(pop)), key=lambda i: _key(pop[i]))
         if _key(ind) > _key(pop[worst]):
             pop[worst] = ind
+            return "best" if became_best else "kept"
+        return "best" if became_best else "rejected"
 
     pop: list[Individual] = []
 
@@ -663,9 +718,23 @@ def search(
         from concurrent.futures import ProcessPoolExecutor
         _pool = ProcessPoolExecutor(max_workers=n_workers, initializer=_worker_init)
 
+    move_log = _move_logger()
+
+    def _record(ind: Individual, used: int, status: str, parents) -> None:
+        a, b = parents if parents is not None else (None, None)
+        ind.uid = next(_MOVE_LOG_UID)
+        move_log(id=ind.uid, parent=None if a is None else a.uid,
+                 parent2=None if b is None else b.uid,
+                 evals=n_evals, move=ind.lineage, status=status, used=used,
+                 fitness=ind.fitness, fails=list(ind.fails),
+                 parent_fitness=None if a is None else a.fitness,
+                 parent_fails=None if a is None else list(a.fails),
+                 parent2_fails=None if b is None else list(b.fails))
+
     def _run_batch(
         tasks: list[tuple],  # (root, x0, budget_, inner_kw_, lineage)
         filter_on: bool = False,
+        parents: "list | None" = None,  # per task: (parent, second parent or None)
     ) -> None:
         """Evaluate a batch of tasks and admit results; parallel when _pool set.
 
@@ -692,19 +761,23 @@ def search(
             # turn while all still run concurrently, reproducing the serial
             # admission sequence exactly (verified byte-identical .dom).
             futs = [_pool.submit(_evaluate, *t) for t in full]
-            for f in futs:
+            for k, f in enumerate(futs):
                 ind, used = f.result()
                 n_evals += used
                 if child_probe is not None:
                     child_probe(ind)
-                admit(ind, pop)
+                status = admit(ind, pop)
+                if move_log is not None:
+                    _record(ind, used, status, parents[k] if parents else None)
         else:
-            for t in full:
+            for k, t in enumerate(full):
                 ind, used = _evaluate(*t)
                 n_evals += used
                 if child_probe is not None:
                     child_probe(ind)
-                admit(ind, pop)
+                status = admit(ind, pop)
+                if move_log is not None:
+                    _record(ind, used, status, parents[k] if parents else None)
 
     # A fresh seed individual (used for the initial bootstrap and for §11.5
     # restart injections). Mirrors the construction order: custom seed_factory >
@@ -769,7 +842,9 @@ def search(
                                        shapecurve_warmstart=shapecurve_warmstart,
                                        shapecurve_prune=shapecurve_prune)
             n_evals += used
-            admit(seed_ind, pop)
+            status = admit(seed_ind, pop)
+            if move_log is not None:
+                _record(seed_ind, used, status, None)
 
         while n_evals < budget:
             # §11.5 diversity restart: if the best has not improved for
@@ -802,16 +877,19 @@ def search(
                 if _pool is not None else 1
             )
             tasks = []
+            bred_from = []
             for _ in range(batch_n):
                 if len(pop) >= 2 and rng.random() < p_crossover:
                     a, b = (_tournament(pop, rng, _key, k=tournament_k),
                             _tournament(pop, rng, _key, k=tournament_k))
+                    bred_from.append((a, b))
                     child_root, _, desc = operators.crossover(a.root, b.root, rng)
                     if child_probe is not None:
                         desc = f"{desc}|pf={a.n_fails},{b.n_fails}"
                     ratios = {**b.ratios, **a.ratios}  # primary parent wins
                 else:
                     parent = _tournament(pop, rng, _key, k=tournament_k)
+                    bred_from.append((parent, None))
                     child_root, desc = operators.mutate(parent.root, rng, types,
                                                         weights=mutation_weights,
                                                         reqs=reqs, base_p=base_p,
@@ -832,7 +910,7 @@ def search(
                     ratios = {**new_splits, **parent.ratios}
                 x0 = innerloop.warm_x0(child_root, ratios)
                 tasks.append((child_root, x0, child_budget, inner_kw, desc))
-            _run_batch(tasks, filter_on=True)
+            _run_batch(tasks, filter_on=True, parents=bred_from)
     except KeyboardInterrupt:
         interrupted = True
         _log(f"[{n_evals:6d} evals] interrupted — returning best-so-far")
