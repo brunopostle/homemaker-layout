@@ -16543,3 +16543,52 @@ more, twice (`diag_y4p42_heights.py`).
   0.71 at 5.1 m -- measured on a corpus design, walls untouched. It lowers
   the stair factor and does not by itself fail until the core is far too
   small; whether that is charge enough is the "maybe later".
+
+### 39.133 The shaft repair earns its place: without it eight of 36 searches end with no staircase (`homemaker-py-t7q`)
+
+The A/B the bead has owed since §39.75: `flag_ab.py t7q`, programme-house,
+36 paired seeds at 500k, objective `64512f1+orth`. `repair` is the default
+search; `norepair` is the same search with `--no-repair-shaft`, which takes
+`mutate_repair_shaft` out of the mix. The `repair` arm is the fourth copy of
+the same 36 runs (§39.129): score and fail list match child20's control on
+36 of 36.
+
+| | repair (default) | norepair | paired difference | resolves? |
+|---|---|---|---|---|
+| fails | 0.67 | 1.17 | -0.50, CI [-0.90, -0.10], p 0.016 | yes (MDD 0.40) |
+| hard fails | 0.08 | 0.36 | -0.28, CI [-0.53, -0.03], p 0.031 | yes (MDD 0.25) |
+| score | 0.30 | 0.19 | +0.110, CI [+0.038, +0.182], p 0.004 | yes (MDD 0.072) |
+| time | 9134 s | 8910 s | +224 s | no (MDD 256 s) |
+| runs with no fails | 15 | 8 | | |
+| `staircase volume` | 0 | 8 | 8 discordant, all one way (sign test p 0.008) | yes |
+| `too few stairs` | 0 | 3 | 3 discordant, all one way | no, too few |
+
+**Against the expectation recorded on the bead before the run.**
+
+- *More runs end without a stair when the repair is off:* right, and by more
+  than expected. Eight of 36 against none.
+- *"There will be fewer than 6 discordant pairs, so it must be reported as
+  unresolvable":* wrong. Eight pairs, every one in the same direction.
+- *"Fails, hard fails and score: no resolved difference on programme-house":*
+  wrong. All three resolve.
+- *With the repair on, `staircase volume` in 2-5 runs of 36* (what the older
+  `59d8aa1` arms showed): it is 0 of 36 at today's search.
+
+**The whole margin is those eight runs.** They score 0.002-0.018 where their
+partners score 0.18-0.49 -- the x0.0225 of §39.72. Leave those eight seeds
+out and the other 28 pairs differ by -0.29 fails (sd 1.08) and +0.053 score
+(sd 0.20), neither of which 28 pairs can tell from zero. So the operator does
+one thing: it stops a search from finishing stairless. It does not otherwise
+change what the search finds, and it is not measurably slower.
+
+**What this settles.** `mutate_repair_shaft` stays on. §39.75 turned it on
+from a census of what it does to a damaged child; this is the missing half,
+that the search keeps what it produces. The bead's remaining question --
+guard the six exploratory operators that break shafts instead -- is not
+answered here and is no longer urgent, since with the repair on no run of 36
+ended stairless.
+
+**What it does not say.** One programme, which asks for one stair, at the
+search before `E` (§39.127). After queue 3 a stair is a labelled cell and the
+repair cuts an `E` column; the 36 seed-solver controls there are the check
+that the default still ends with a stair every time.

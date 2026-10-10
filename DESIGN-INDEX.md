@@ -70,6 +70,7 @@ index is how to get from a question to the section that answers it.
 | §39.130 | The scorer relabels a third of all cells on its own copy; written back (branch, default off), `place_missing` goes from 48 misfires in 58 draws to none, and no score moves. |
 | §39.131 | A light-well move (branch, default off): on evolved designs daylight fails are buried cells, which height does not reach; every well the guarded move cuts leaves fewer fails (5 of 5), and it finds few to cut. (§39.130 is reserved.) |
 | §39.132 | The other three of five: an aimed `undivide` removes no fail from a finished design (mid-run parents pending); brief fixes drafted; the owner's hand design is an ordinary member of the evolved corpus (25 fails against a mean of 26.2) and fails different things. |
+| §39.133 | `t7q`: with `mutate_repair_shaft` off, 8 of 36 searches end with no staircase against none with it on; fails, hard fails and score all resolve, and the whole margin is those eight runs. The repair stays on. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -140,7 +141,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (237 of them, 16545 lines)
+## Every section of DESIGN.md (238 of them, 16594 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -428,4 +429,5 @@ below are the most recent work.
 - §39.129 · 16212-16274 · `w4e`: the repaired `core_undivide` changes nothing a search can show -- and every A/B in the queue has been re-running the same control (`homemaker-py-w4e`)
 - §39.131 · 16275-16369 · A light well: every one the move is willing to cut leaves fewer fails, and it is willing to cut few (`homemaker-py-evxm`)
 - §39.130 · 16370-16436 · The scorer's labels, written back: `place_missing` stops cutting cells nobody asked for (`homemaker-py-urzf.1`)
-- §39.132 · 16437-16545 · The other three of the five: an aim that does nothing to a finished design, briefs drafted, and the hand design beside twelve evolved ones (`homemaker-py-iplo`, `5nw`, `2g7.1`)
+- §39.132 · 16437-16546 · The other three of the five: an aim that does nothing to a finished design, briefs drafted, and the hand design beside twelve evolved ones (`homemaker-py-iplo`, `5nw`, `2g7.1`)
+- §39.133 · 16547-16594 · The shaft repair earns its place: without it eight of 36 searches end with no staircase (`homemaker-py-t7q`)
