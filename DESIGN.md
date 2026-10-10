@@ -16433,3 +16433,93 @@ patch. **Expectation, recorded now:** on programme-house no resolved
 difference in fails (§39.120's expectation, unchanged); on harbor-house the
 misfire was a useful `divide` early on (kept one time in five), so the
 flagged arm may be slower to start there.
+
+### 39.132 The other three of the five: an aim that does nothing to a finished design, briefs drafted, and the hand design beside twelve evolved ones (`homemaker-py-iplo`, `5nw`, `2g7.1`)
+
+**Fourth: `undivide` aimed at a failing cell** (`homemaker-py-iplo`, branch
+`targeted-undivide`, default OFF, `--aim-undivide`, `flag_ab.py aim`). Given
+its parent's fail lines, half of `undivide`'s draws choose among the cuts
+beside a failing cell (`operators.AIM_SHARE`); without them it is the move it
+was and draws nothing more from the random stream. §39.123 was
+observational, so `experiments/diag_iplo_aim_undivide.py` draws both
+deliberately: the 41 finished programme-house designs of the `child20` A/B
+that carry a fail naming a cell, 8 draws an arm, each child tuned as the
+search tunes one and judged against its re-tuned parent.
+
+| arm | children | fewer fails | more fails | beat parent |
+|---|---|---|---|---|
+| random | 328 | 0 | 86.3% | 1.8% |
+| aimed | 328 (264 actually aimed) | 0 | 74.7% | 3.7% |
+
+Not one fail removed by either. That is §39.124 again -- a design the search
+has finished with is a local optimum, and one more `undivide` does not shift
+it wherever it lands -- and it is NOT a test of §39.123, whose effect was in
+live runs and mostly on parents with three fails or more (16% against 9% at
+6+; 2.4% against 0 at 1-2). What the aim does here is less harm: fewer
+children end with more fails. The check on mid-run parents (twelve short
+searches' designs) was running as this was written and belongs on the bead.
+
+**Third: the brief fixes** (`homemaker-py-5nw`, branch `brief-fixes`), to
+land with the re-baseline and not before:
+
+- harbor-house loses `ef1` (§39.125); `HAND-BRIEF.md` follows (820 m2 of
+  rooms, the cap about 985, rule 5 reworded), and the lobby in `hand2a.svg`
+  is labelled `C`;
+- maple-court has the same foyer room and loses it too -- the owner ruled on
+  harbor-house only, so this is put to the owner;
+- maple-court gains `tn`, four Neighborhood Bathrooms on level 1 (6 m2,
+  beside circulation and a neighbourhood), mirroring the four on level 2 --
+  the count is a draft;
+- health-centre gains `t11`, a Treatment Room WC (3 m2, declared beside
+  `tr1` alone: it is reached through the room it serves, §38.14).
+
+`audit_programme_config.py` is clean. Five tests fail on the branch and are
+meant to: the committed designs contain an `ef1` cell the programme no
+longer declares (`rooms_export`, `roofs`, four tests) and one ordering test
+reads the old corpus. A brief and its corpus land together (§39.115).
+
+**Fifth: the hand design beside the evolved ones** (`homemaker-py-2g7.1`).
+On the merged tree (`E` stairs, the terrace at 120, harbor-house's brief
+still with its foyer): the owner's `hand2a` drawing, composed and given the
+4,000 walls-only evaluations any design starts from, and the twelve
+harbor-house designs of the last four sweeps, each then given the SAME 4,000
+more, twice (`diag_y4p42_heights.py`).
+
+| after 4,000 more evaluations | hand | evolved, mean of 12 | evolved, range |
+|---|---|---|---|
+| walls only | 30 | 28.2 | 24-35 |
+| walls and storey heights (probe first) | 25 | 26.2 | 20-33 |
+
+- **The hand design is an ordinary member of the corpus.** Two fails
+  above the mean one way, one below it the other; five of the twelve
+  evolved designs match or beat it with heights tuned. A first drawing, by
+  the owner's account unfinished, stands where 500,000 evaluations stand.
+- **What each fails is not the same** (walls and heights arm, fails per
+  design):
+
+  | family | hand | evolved mean |
+  |---|---|---|
+  | crinkliness | 7 | 12.2 |
+  | size | 0 | 2.8 |
+  | proportion | 0 | 2.4 |
+  | circulation `not connected`, either storey | 0 | 1.3 |
+  | too few stairs | 0 | 0.7 |
+  | not adjacent to outdoor space | 3 | 0.2 |
+  | not adjacent to a neighbourhood (bathrooms) | 3 | 1.2 |
+  | width | 3 | 1.1 |
+  | no outdoor space on a storey | 1 | 0 |
+  | a room on the wrong storey | 1 | 0 |
+
+  The person gets right what the search finds hardest -- rooms the right
+  size and shape, daylight, a connected plan, two staircases -- and misses
+  what a checklist would catch: three rooms that want a garden door, three
+  bathrooms away from their neighbourhood, a terrace, one room upstairs.
+  The search is the other way round. That is an argument for the two
+  together: a drawn plan as a SEED (`homemaker-py-2g7`'s original purpose).
+- **Storey height helps the evolved designs more than §39.131's table
+  said.** That table held the walls still: 37 daylight fails to 32 over
+  three designs. Tuned together, eight of the twelve lose fails to height
+  (two a design on average, as many as five) -- and the heights they choose
+  are 3.5 to 5.1 m. So the tempered expectation for the `heights` A/B was
+  too tempered, and the owner should see the second number: nothing in the
+  objective minds a 5 m storey but the cost of its walls.
