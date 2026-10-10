@@ -99,6 +99,8 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A stair is a cell labelled `E` (escalier), a fourth generic type beside `C`/`O`/`S` -- no longer inferred from a `C` cell stacked on every storey. `E` is circulation; a stacked `C` is no longer a stair anywhere; a shaft may stop below the top; an `E` shaft joins the storeys it serves | §39.125 |
 | An entrance foyer is "simply a circulation space that has street access": the brief changes, not the rule | §39.125 |
 | A room's depth limit is "only a limit for low ceilings": the daylight threshold stands and the search may raise a storey's height (3.3 m is not unusual for a ground floor) | §39.125 |
+| A storey's height has a floor of 2.7 m and NO cap, "for now": 5 m is unrealistic for a house and normal for a public building; a taller storey already needs a longer stair | §39.125, §39.132 |
+| maple-court's brief is LLM-generated and may be changed freely; an entrance-foyer ROOM goes wherever the model does not need it | §39.132 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -138,7 +140,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (237 of them, 16525 lines)
+## Every section of DESIGN.md (237 of them, 16545 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -426,4 +428,4 @@ below are the most recent work.
 - §39.129 · 16212-16274 · `w4e`: the repaired `core_undivide` changes nothing a search can show -- and every A/B in the queue has been re-running the same control (`homemaker-py-w4e`)
 - §39.131 · 16275-16369 · A light well: every one the move is willing to cut leaves fewer fails, and it is willing to cut few (`homemaker-py-evxm`)
 - §39.130 · 16370-16436 · The scorer's labels, written back: `place_missing` stops cutting cells nobody asked for (`homemaker-py-urzf.1`)
-- §39.132 · 16437-16525 · The other three of the five: an aim that does nothing to a finished design, briefs drafted, and the hand design beside twelve evolved ones (`homemaker-py-iplo`, `5nw`, `2g7.1`)
+- §39.132 · 16437-16545 · The other three of the five: an aim that does nothing to a finished design, briefs drafted, and the hand design beside twelve evolved ones (`homemaker-py-iplo`, `5nw`, `2g7.1`)

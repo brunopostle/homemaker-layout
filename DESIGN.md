@@ -16523,3 +16523,23 @@ more, twice (`diag_y4p42_heights.py`).
   are 3.5 to 5.1 m. So the tempered expectation for the `heights` A/B was
   too tempered, and the owner should see the second number: nothing in the
   objective minds a 5 m storey but the cost of its walls.
+
+**Rulings on the above, the same day (owner, 2026-10-10).**
+
+- *The foyer:* "we should lose the foyer room if it isn't needed for the
+  model to work." It is not -- the way in is a ground-floor `C` on a street
+  side -- so maple-court loses `ef1` as harbor-house does.
+- *maple-court:* "entirely LLM generated so you are free to play with it as
+  you see fit." Four bathrooms on level 1 stand. Its brief is not evidence
+  of anything an architect wanted, which is worth remembering when its fail
+  counts are read.
+- *health-centre:* a WC reached through the treatment room is right.
+- *Storey height:* "5.1 m is unrealistic for domestic construction, but
+  normal for public buildings, in addition to wall cost it should require
+  much larger stair cores, let's leave it without a cap for now and maybe
+  introduce one later." No cap. And the stair is already charged for it:
+  `_stair_fit` counts risers from the storey's height, so a core that fits a
+  3.0 m storey exactly (1.03) is 0.91 of what 3.6 m needs, 0.85 at 4.2 m and
+  0.71 at 5.1 m -- measured on a corpus design, walls untouched. It lowers
+  the stair factor and does not by itself fail until the core is far too
+  small; whether that is charge enough is the "maybe later".
