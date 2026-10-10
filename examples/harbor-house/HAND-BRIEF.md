@@ -78,7 +78,7 @@ and so does a wall onto an open outdoor cell.
 
 ## The schedule of rooms
 
-Two storeys (a third is allowed). 835 m² of rooms in all: 347 m² that must be
+Two storeys (a third is allowed). 820 m² of rooms in all: 332 m² that must be
 on the ground floor, 152 m² that must be on the first, and 336 m² — the five
 neighbourhoods and six bathrooms — that may go on either.
 
@@ -91,7 +91,6 @@ on `size`. "Long : short" is the most elongated the room may be.
 | `da1` | Dining area | 1 | ground | 60 | 43–77 | 4.2 | circulation, `k1`, outdoor space | yes |
 | `k1` | Kitchen | 1 | ground | 30 | 19–41 | 2.6 | `da1`, circulation | yes |
 | `ws1` | Workshop | 1 | ground | 40 | 27–53 | 2.9 | circulation, outdoor space | yes |
-| `ef1` | Entrance foyer | 1 | ground | 15 | 9–21 | 2.6 | circulation | yes |
 | `m` | Meeting room | 3 | ground | 10 | 6–14 | 2.6 | circulation | yes |
 | `of` | Staff office | 2 | ground | 12.5 | 7–18 | 2.6 | circulation | yes |
 | `la1` | Laundry | 1 | ground | 20 | 11–29 | 2.6 | circulation | yes |
@@ -133,11 +132,13 @@ Each fail halves the score, so a handful of these outweigh every nicety.
    upstairs that is over a ground-floor `O` is air (a void over a courtyard):
    it lets light down, and counts as nothing else. Outdoor cells narrower than
    about 2.2 m fail; 2.3 m is the aim.
-5. **The way in.** The ground floor must be reachable from a street side:
-   either a `C` cell on side c or d, or an outdoor cell on a street side with
-   circulation, a living room or the kitchen opening onto it.
+5. **The way in.** There is no entrance-foyer room in the schedule: the
+   foyer is circulation with a door to the street. So the ground floor needs
+   a `C` cell on side c or d (label your lobby `C`) -- or an outdoor cell on
+   a street side with circulation, a living room or the kitchen opening onto
+   it. A stair (`E`) on the street is not by itself the way in.
 6. **Don't overbuild.** Indoor area, corridors included, starts to lose score
-   above 1.2 × the schedule (about 1,000 m²) and fails well beyond it. It is
+   above 1.2 × the schedule (about 985 m²) and fails well beyond it. It is
    the one rule that says generous circulation is waste. With two floors of
    720 m² there is 440 m² or more to give to courtyards, terraces and voids —
    and rule 3 wants it.
