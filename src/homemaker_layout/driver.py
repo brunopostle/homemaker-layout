@@ -227,6 +227,10 @@ def write_labels_back(root: dom.Node, fit) -> int:
     geometry.clear_cache()
     after = [lf.type for lvl in dom.levels(root) for lf in lvl.leaves()]
     return sum(a != b for a, b in zip(before, after))
+# homemaker-py-iplo (DESIGN.md §39.123, §39.132): hand `undivide` its parent's
+# fail lines, so that half its draws are aimed at a failing cell. Default OFF
+# until its A/B; read from the environment for the workers' sake.
+AIM_UNDIVIDE = __import__("os").environ.get("HOMEMAKER_AIM_UNDIVIDE", "") == "1"
 # The solver has no time bound of its own (§39.109: one call ran past twenty
 # minutes at its default limit). Fifty function evaluations is where the seed
 # measurement was made.
@@ -973,10 +977,10 @@ def search(
                 else:
                     parent = _tournament(pop, rng, _key, k=tournament_k)
                     bred_from.append((parent, None))
-                    child_root, desc = operators.mutate(parent.root, rng, types,
-                                                        weights=mutation_weights,
-                                                        reqs=reqs, base_p=base_p,
-                                                        fit=shape_repair_fit)
+                    child_root, desc = operators.mutate(
+                        parent.root, rng, types, weights=mutation_weights,
+                        reqs=reqs, base_p=base_p, fit=shape_repair_fit,
+                        fails=parent.fails if AIM_UNDIVIDE else None)
                     # Carry operator-specified ratios for nodes that are genuinely
                     # newly divided (existed as leaves in the parent, are now
                     # divided in the child).  Structural mutations (e.g. swap) can

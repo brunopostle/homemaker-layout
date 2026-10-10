@@ -209,6 +209,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "and not the ones the child was bred with. The score "
                         "does not move. Changes what a search does; the A/B "
                         "has not been run (default: off)")
+    p.add_argument("--aim-undivide", dest="aim_undivide",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_AIM_UNDIVIDE", False),
+                   help="homemaker-py-iplo (DESIGN.md §39.123): half of "
+                        "undivide's draws remove a wall beside a cell that is "
+                        "FAILING, chosen from the parent's fail lines; the "
+                        "other half pick as before. Changes what a search "
+                        "does; the A/B has not been run (default: off)")
     p.add_argument("--seed-solver", dest="seed_solver",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_SEED_SOLVER", False),
@@ -425,6 +433,8 @@ def main(argv=None) -> int:
     driver.SEED_SOLVER = bool(args.seed_solver)
     os.environ["HOMEMAKER_LABEL_WRITEBACK"] = "1" if args.label_writeback else "0"
     driver.LABEL_WRITEBACK = bool(args.label_writeback)
+    os.environ["HOMEMAKER_AIM_UNDIVIDE"] = "1" if args.aim_undivide else "0"
+    driver.AIM_UNDIVIDE = bool(args.aim_undivide)
 
     seed_file = args.seed_dom.resolve()
     if not seed_file.exists():
@@ -506,6 +516,7 @@ def main(argv=None) -> int:
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"seed solver        : {args.seed_solver}", file=sys.stderr)
     print(f"label write-back   : {args.label_writeback}", file=sys.stderr)
+    print(f"aim undivide       : {args.aim_undivide}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)
