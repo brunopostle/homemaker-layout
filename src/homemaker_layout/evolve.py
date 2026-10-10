@@ -218,6 +218,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "what holds it down. Changes what a search does; the "
                         "A/B that decides the default has not been run "
                         "(default: off)")
+    p.add_argument("--light-well", dest="light_well",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_LIGHT_WELL", False),
+                   help="homemaker-py-evxm: a move that cuts a well of outdoor "
+                        "space, open to the sky, beside a cell no daylight "
+                        "reaches -- the owner's alley (DESIGN.md §39.125). "
+                        "Changes what a search does; the A/B that decides it "
+                        "has not been run (default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
@@ -402,6 +410,8 @@ def main(argv=None) -> int:
     from . import operators
     os.environ["HOMEMAKER_CORE_UNDIVIDE_REPAIRED"] = "1" if args.core_undivide_repaired else "0"
     operators.CORE_UNDIVIDE_REPAIRED = bool(args.core_undivide_repaired)
+    # read by driver.search in every phase and by worker processes
+    os.environ["HOMEMAKER_LIGHT_WELL"] = "1" if args.light_well else "0"
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
     driver.SEED_SOLVER = bool(args.seed_solver)
 
@@ -480,6 +490,7 @@ def main(argv=None) -> int:
     print(f"support outside    : {args.support_outside}", file=sys.stderr)
     print(f"level add+migrate  : {args.level_add_migrate}", file=sys.stderr)
     print(f"repair shaft       : {args.repair_shaft}", file=sys.stderr)
+    print(f"light well         : {args.light_well}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"seed solver        : {args.seed_solver}", file=sys.stderr)

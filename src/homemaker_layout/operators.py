@@ -2710,6 +2710,221 @@ def mutate_repair_shaft(root: dom.Node, rng: np.random.Generator,
             f"{f', {opened} division(s) to align' if opened else ''})")
 
 
+# The width a light well is cut to. `width_outside` fails below about 2.2 m and
+# aims at 2.3, measured INSIDE the walls: a strip cut at 2.4 m failed `width`
+# in the first census, so 2.7.
+_WELL_STRIP_M = 2.7
+
+
+def _lit_wall(leaf: dom.Node, G) -> float:
+    """Metres of this cell's wall that daylight reaches: wall onto the street
+    (an external side that is not a party wall) and wall onto an outdoor cell
+    with nothing built over it. What `fitness.area_outside` measures, less the
+    storey height."""
+    from . import geometry
+
+    lit = 0.0
+    if G.has_node(leaf):
+        for nb in G.neighbors(leaf):
+            if dom.is_outside(nb) and not dom.is_covered(nb):
+                lit += G[leaf][nb]["width"]
+    lr = dom._level_root(leaf)
+    while lr.below is not None:
+        lr = lr.below
+    perimeter = lr.perimeter or {}
+    for e in range(geometry.n_edges(leaf)):
+        bid = geometry.boundary_id(leaf, e)
+        if geometry.is_external(bid) and (perimeter.get(bid) or "").lower() not in (
+                "private", "fortified"):
+            lit += geometry.edge_length(leaf, e)
+    return lit
+
+
+def mutate_light_well(root: dom.Node, rng: np.random.Generator,
+                      types: list[str], reqs=None) -> tuple[dom.Node, str]:
+    """Cut a well of outdoor space beside a room that has no daylight at all.
+
+    The owner's alley (DESIGN.md §39.125), as a move (`homemaker-py-evxm`).
+    Crinkliness is the largest family of fails, and in evolved designs the
+    cells that fail it are BURIED -- not a wall of theirs sees the street or
+    open sky -- which no ceiling height and no sliding of walls repairs. A
+    person lights the middle of a deep plan with a courtyard, an alley or a
+    light well; this cuts one.
+
+    It works as `mutate_repair_shaft` does, with outdoor space where that puts
+    a stair: a strip about 2.7 m wide is sliced off the buried room, and off
+    the cell at the same address on EVERY storey above, because a well has to
+    be open to the sky -- outdoor space under a room is a loggia and lights
+    nothing. A storey above that is already outdoors there is left alone.
+
+    What the first census taught (2026-10-09, the day it was written):
+
+    * a ROOM is cut, never circulation. A buried corridor is the normal state
+      of a corridor, and a strip out of one severs it -- two `inaccessible
+      usable space` and an `access` fail for every room beyond the cut;
+    * the strip goes where the room KEEPS its door: of the two ways to slice
+      and the two sides to put the well, only those that leave the room a
+      wall onto circulation (if it had one) are played, and among them the
+      ones where the well itself touches circulation come first -- the
+      corridor gets a window and the well a way in;
+    * every storey the well passes through is held to the same two rules: a
+      column with circulation in it upstairs is no column, and a room upstairs
+      keeps its door too;
+    * no storey may be left with a cell that cannot be reached: the scorer's
+      connectivity test is run before and after, and a well that parts a
+      storey is not cut;
+    * a column that needs a merged storey DIVIDED to reach the address is
+      refused (`_open_address` makes none here): the new cells are narrow and
+      buried themselves, `mutate_repair_shaft`'s lesson (§39.75) -- eight of
+      twelve wells on harbor-house, and twenty new daylight fails for the
+      twenty-seven they cleared.
+
+    Needs ``reqs`` to know which rooms ask for no window (`crinkliness: none`).
+    A staircase is never cut.
+    """
+    from . import geometry, graph, programme as _prog
+
+    child = _finalise(copy.deepcopy(root))
+    lvls = dom.levels(child)
+    shaft = {id(n) for n in _shaft_cells(lvls)}
+    usages = {code: getattr(r, "usage", "") for code, r in (reqs or {}).items()}
+
+    def reachable(tree: dom.Node) -> "list[bool]":
+        """Per storey: can every usable cell be reached? The scorer's own
+        test (`N inaccessible usable space`)."""
+        geometry.clear_cache()
+        return graph.storey_graphs(tree, 1.2, usages)[2]
+
+    was_reachable = reachable(child)
+
+    def wants_light(leaf: dom.Node) -> bool:
+        if (not leaf.type or dom.is_generic(leaf.type) or id(leaf) in shaft):
+            return False                         # rooms only
+        req = (reqs or {}).get(leaf.type)
+        return not (req is not None and req.has_crinkliness and req.crinkliness is None)
+
+    def circ_wall(leaf: dom.Node, G) -> bool:
+        return G.has_node(leaf) and any(dom.is_circulation(nb) for nb in G.neighbors(leaf))
+
+    buried: list[tuple[int, str, bool]] = []
+    for li, lvl in enumerate(lvls):
+        G = geometry.leaf_graph(lvl)
+        for leaf in lvl.leaves():
+            if (leaf.id and wants_light(leaf) and _lit_wall(leaf, G) < 0.5
+                    and (leaf.below is None or not leaf.below.divided)):
+                buried.append((li, leaf.id, circ_wall(leaf, G)))
+    if not buried:
+        return child, "light_well noop (no buried room)"
+
+    def cut(li: int, path: str, rotation: int, well_left: bool):
+        """The tree with that well cut, or None. Returns (tree, storeys cut,
+        divisions made to reach the address, the room's remainder, the well)."""
+        probe = _finalise(copy.deepcopy(child))
+        plvls = dom.levels(probe)
+        column, opened = [plvls[li].by_id(path)], 0
+        for lj in range(li + 1, len(plvls)):
+            got = _open_address(plvls[lj], path, plvls[lj - 1])
+            if got is None:
+                return None
+            column.append(got[0])
+            opened += got[1]
+        if opened:
+            return None                          # no dividing a storey to get there
+        _finalise(probe)
+        if {id(n) for n in column} & {id(n) for n in _shaft_cells(dom.levels(probe))}:
+            return None
+        doors = []                               # per storey: did the cell have one
+        for lj, node in enumerate(column, start=li):
+            if node.type == "O":
+                doors.append(None)
+                continue
+            if dom.is_circulation(node) or node.type in dom.GENERIC_CIRCULATION:
+                return None                      # never through a corridor
+            doors.append(circ_wall(node, geometry.leaf_graph(plvls[lj])))
+        base = column[0]
+        # WHICH WAY the slice runs is not the cut node's to say when there is a
+        # storey under it: an upper node's corners, and so the axis its
+        # `rotation` names, come from the bottom of its below-stack (§39.70).
+        # So the axis is written where the engine reads it -- turning a LEAF's
+        # corner numbering down there moves no wall (§39.94) -- and the strip's
+        # width is then MEASURED off a trial cut, not computed from an edge
+        # this function would have to guess the numbering of.
+        foot = base
+        while foot.below is not None:
+            foot = foot.below
+        if foot is not base and foot.divided:
+            return None
+        foot.rotation = rotation
+        n_cut, rest0, well0, rests, cells = 0, None, None, [], []
+        for node, door in zip(column, doors):
+            if node.type == "O":
+                continue                         # open already: the sky is there
+            kept = node.type
+            node.division = [0.5, 0.5]
+            node.rotation = rotation
+            well, rest = dom.Node(type="O"), dom.Node(type=kept)
+            node.left, node.right = (well, rest) if well_left else (rest, well)
+            node.type = None
+            n_cut += 1
+            cells.append(node)
+            rests.append((rest, door))
+            if node is base:
+                rest0, well0 = rest, well
+        _finalise(probe)
+        G0 = geometry.leaf_graph(plvls[li])
+        if not G0.has_edge(well0, rest0):
+            return None
+        shared = G0[well0][rest0]["width"]       # the length of the new wall
+        span = (geometry.area(well0) + geometry.area(rest0)) / shared if shared else 0.0
+        if span < _WELL_STRIP_M + 2.0:
+            return None                          # the room would be left a sliver
+        ratio = _WELL_STRIP_M / span
+        for node in cells:
+            node.division = [ratio, ratio] if well_left else [1 - ratio, 1 - ratio]
+        _finalise(probe)
+        for rest, door in rests:                 # every room keeps its door
+            if door and not circ_wall(rest, geometry.leaf_graph(dom._level_root(rest))):
+                return None
+        return probe, n_cut, opened, rest0, well0
+
+    for k in rng.permutation(len(buried)):
+        li, path, had_door = buried[int(k)]
+        options = []
+        for rotation in (0, 1):
+            for well_left in (True, False):
+                got = cut(li, path, rotation, well_left)
+                if got is None:
+                    continue
+                probe, n_cut, opened, rest, well = got
+                G = geometry.leaf_graph(dom.levels(probe)[li])
+                if had_door and not circ_wall(rest, G):
+                    continue                     # the room would lose its door
+                # ...and the well needs a way in: outdoor space nobody can
+                # reach is `inaccessible usable space`, one fail for the well
+                # and one for its storey (four of eight wells on maple-court).
+                # A corridor beside it is a way in; so is a living room or a
+                # kitchen, which open onto outdoor space as a matter of course.
+                req = (reqs or {}).get(rest.type)
+                sociable = getattr(req, "usage", None) in _prog.SOCIABLE_USAGES
+                if not (circ_wall(well, G) or sociable):
+                    continue
+                # ...and nobody else may lose theirs: a room upstairs whose
+                # only route ran through the cell that was cut. Asked of the
+                # scorer's own connectivity test, storey by storey.
+                if any(a and not b for a, b in zip(was_reachable, reachable(probe))):
+                    continue
+                options.append((opened, not circ_wall(well, G), float(rng.random()),
+                                probe, n_cut))
+        if not options:
+            continue
+        opened, no_door, _tie, probe, n_cut = min(options, key=lambda o: o[:3])
+        return (_finalise(probe),
+                f"light_well {li}/{path} ({n_cut} storey(s) cut"
+                f"{'' if not no_door else ', reached through the room'}"
+                f"{f', {opened} division(s) to align' if opened else ''})")
+    return child, "light_well noop (no buried room with a clear column over it)"
+
+
 def mutate_stair(root: dom.Node, rng: np.random.Generator,
                  types: list[str]) -> tuple[dom.Node, str]:
     """Say that a column of circulation is a staircase, or that it is not.
@@ -3040,6 +3255,7 @@ MUTATIONS = {
     "support_outside": mutate_support_outside,
     "repair_shaft": mutate_repair_shaft,
     "stair": mutate_stair,
+    "light_well": mutate_light_well,
     "storey_height": mutate_storey_height,
 }
 
@@ -3059,7 +3275,7 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     p = np.array([(weights or {}).get(n, 1.0) for n in names], dtype=float)
     # these operators need programme reqs; disable them when not available
     reqs_ops = ("level_fix", "level_compound_fix", "place_missing", "ruin_recreate",
-               "reassign", "level_add_migrate")
+               "reassign", "level_add_migrate", "light_well")
     # also takes reqs (to avoid displacing a required room) but works without
     # it — never zero-weighted, unlike reqs_ops above
     reqs_optional_ops = ("bridge_circulation",)
