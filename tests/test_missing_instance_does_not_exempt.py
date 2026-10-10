@@ -74,7 +74,10 @@ def test_omitting_a_room_never_beats_including_it_here(scored):
         [0.5, 0.5], dom.Node(type="C"), dom.Node(type="r"), None)
     dom.link(root)
     s_incl, fails = score(root)
-    assert not any(f.startswith("missing required space") for f in fails)
+    # (the room this is about: the brief has gained rooms since this design
+    # was evolved -- maple-court's level-1 bathrooms, §39.132 -- and those are
+    # missing on both sides of the comparison)
+    assert not any(f.startswith("missing required space: r") for f in fails)
     # Under the suppression the two tied at 62 fails (score x1.01): the
     # comparison must be decisive, not a rounding margin.
     assert len(fails) < len(f_omit)
