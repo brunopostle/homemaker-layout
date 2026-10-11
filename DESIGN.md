@@ -16592,3 +16592,46 @@ ended stairless.
 search before `E` (§39.127). After queue 3 a stair is a labelled cell and the
 repair cuts an `E` column; the 36 seed-solver controls there are the check
 that the default still ends with a stair every time.
+
+### 39.134 `--level-add-migrate` makes three-storey houses and worse ones; it stays off (`homemaker-py-v2k`)
+
+The A/B the bead owed: `v2k` in the flag A/B tool, programme-house, 36
+seeds at 500k, objective `64512f1+orth`. `shipped` is the default search;
+`migrate` adds `--level-add-migrate`. Only the `migrate` arm was run: the
+`shipped` rows are child20's control, copied (§39.129), so **elapsed time is
+not paired here and is not read**.
+
+| | shipped (default) | migrate | paired difference | resolves? |
+|---|---|---|---|---|
+| fails | 0.67 | 0.97 | -0.31, CI [-0.62, +0.01], p 0.054 | no (MDD 0.31) |
+| hard fails | 0.08 | 0.17 | -0.08 | no (MDD 0.19) |
+| score | 0.30 | 0.20 | +0.097, CI [+0.031, +0.164], p 0.006 | yes (MDD 0.067) |
+| runs with no fails | 15 | 7 | | |
+| runs ending at three storeys | 0 | 7 | | |
+| `staircase volume` | 0 | 3 | 3 discordant, all one way | no, too few |
+
+**Against the expectation recorded on the bead before the run.**
+
+- *More runs end at three storeys:* right, 7 of 36 against none.
+- *"Fails and score: no resolved difference":* half wrong. Fails do not
+  resolve, by a hair; score does, and against the flag.
+- *"A resolved RISE in the stair fails would be a defect in its shaft
+  guard":* not resolved -- three runs -- so this A/B does not show a defect.
+  But all three go one way, and two of them are among the seven three-storey
+  runs. That is worth a census (`diag_v2k_migrate.py --from-broken` on
+  three-storey children) before anyone turns the flag on anywhere.
+
+**It is not only the stairs.** Leave the three stairless seeds out and the
+other 33 pairs still differ by +0.081 score (sd 0.20, t 2.4). And it is not
+only the third storey: the 29 `migrate` runs that end at two storeys average
+0.21 against their partners' 0.31. So offering the move costs the search
+even where it does not keep the result -- draws spent on a storey this
+programme does not need, which is what the expectation said in other words
+("little left for a third storey to fix") without following it through.
+
+**What this settles.** `--level-add-migrate` stays off by default. It was
+built to reach a terrace fail that has since become rare (§39.111); on
+programme-house it has nothing to buy. Whether it earns a place on a
+programme that needs more storeys than its seed has is a different A/B, on a
+different programme, after `E` (§39.127) -- where the migration would have to
+carry an `E` column up, which is the same guard this run leaves in doubt.
