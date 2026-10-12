@@ -17075,7 +17075,7 @@ have a lobby (44 of them directly on the street), none fails its width
 two storeys. `tests/test_corridor_and_lobby.py`.
 
 Search-side code that reads `width_circulation` (`solver`, `shapecurve`,
-`operators._too_thin`) follows the corridor figure for every `C`, lobby
+`operators._shape_failing`) follows the corridor figure for every `C`, lobby
 included; `mutate_repair_shaft`'s 2.6 m strip is its own constant and is
 unchanged.
 
