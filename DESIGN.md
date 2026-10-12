@@ -17100,3 +17100,47 @@ rooms"), and how many there are.
 
 `homemaker-py-7kd` (the cross-level outdoor shaft) is closed on the same
 message.
+
+**Addendum, the same day: the bathrooms answered and built, and a fail that
+hid another.** The owner: "I meant sleeping rooms. I think two more bathrooms
+near the sleeping rooms." So harbor-house's brief (branch `access-rulings`)
+now asks for:
+
+- **`t` x5, a neighbourhood's bathroom**: beside circulation and a
+  neighbourhood, as before -- and each `n` now asks for a `t` in return, which
+  is what gives every neighbourhood its own;
+- **`wc` x2, on storey 1**: beside circulation and an individual room `r`.
+
+Seven bathrooms where there were six. The second code is `wc` and not `tr` or
+`t2` because an `adjacency:` entry still matches by prefix (§39.4): a
+neighbourhood asking for `t` must not be answered by the other kind.
+maple-court already has three bathroom codes (§39.115) and is left alone;
+`harbor-house-l0` has no bathrooms.
+
+Every committed harbor-house design was bred for the old brief and scores 13
+to 15 fails worse under this one (two rooms missing with their cascade, one
+`t` too many, neighbourhoods without a bathroom). That is §39.115's ruling at
+work -- a brief is fixed just before a re-baseline -- and those corpora were
+already not comparable with what queue 4 will produce. The hand drawing is the
+one design brought forward: its two upstairs bathrooms stand in the row of
+rooms `r`, which is exactly what the ruling describes, so they are relabelled
+`wc` in `hand2a.svg` and `hand2a.dom` (the drawing composes to the same
+labels). It then scores 23: one neighbourhood bathroom short. Without that,
+queue 4's three hand-seeded runs would have started fourteen fails down for a
+brief written after the drawing.
+
+**And a defect found on the way.** Reading which upstairs bathroom was which
+showed two cells failing the same adjacency and one of them reported.
+`check_adjacency` reports each (cell, code, neighbour) once, and the key was
+the cell's id -- its path, which is the same on every storey. A cell hid the
+same fail on the cell above or below it. Counted by running the check with
+the storey in the key: **5 fails hidden on 4 of 49 designs**, all
+harbor-house, none elsewhere. A plain under-count, fixed on the same branch
+(the storey joins the key), with the hand design's pair as its test.
+
+So the branch now carries, for queue 4's re-baseline: utility and workshop
+access, the storey fail once, corridor 1.6 m and the lobby, harbor-house's
+bathrooms, and this. Its expectation, added to §39.138's and the one above:
+harbor-house designs with seven bathrooms and a `t` on every neighbourhood;
+total fails on harbor-house NOT directly comparable with any earlier corpus,
+because the brief asks for two more rooms.

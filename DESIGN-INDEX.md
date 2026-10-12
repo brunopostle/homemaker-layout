@@ -76,7 +76,7 @@ index is how to get from a question to the section that answers it.
 | §39.136 | A native score brought to the quad tree's price, bit for bit (branch `native-fast`); two further savings tried and worth nothing -- `cProfile` ranks, it does not size. |
 | §39.137 | The hand design's 24 fails classified: eleven are the drawing (eight of them one row of rooms on a party wall), five a brief or constant, one a double count, seven wait on rulings; none is the daylight curve, but single-aspect rooms 5.7 m deep are bought back with 4.2 m storeys. Six questions for the owner. |
 | §39.138 | The owner's rulings on those questions. Built on branch `access-rulings`: utility rooms and workshops reached through a non-sleeping room or from outside (new usage `workshop`), and the storey fail reported once -- 19 of 192 designs move, all to fewer fails. Corridor and lobby widths wait on numbers. |
-| §39.139 | Second round: `width_circulation` [2.4, 0.2] -> [1.6, 0.2] and a `width_lobby` of 2.4 m for the one cell with the front door (built, same branch; 13 width fails go, none arrives); bathrooms are a brief change waiting on two details. |
+| §39.139 | Second round: `width_circulation` [2.4, 0.2] -> [1.6, 0.2] and a `width_lobby` of 2.4 m for the one cell with the front door (built, same branch; 13 width fails go, none arrives); harbor-house's bathrooms become five `t` and two `wc`; an adjacency fail no longer hides the same fail on another storey (5 hidden on 4 of 49 designs). |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -111,7 +111,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A utility room or a workshop may be reached from a room that is not a bedroom, or from outdoor space; it need not be on circulation | §39.138 |
 | One unreachable room is a single fail: the storey's `inaccessible usable space` is reported once | §39.138 |
 | A corridor under 1 m clear fails; an institution's is right at 1.6 m centres, and width grows with capacity. A lobby is "simply the circulation cell that meets the street with a front door", an assembly space, wider than a corridor | §39.138, §39.139 |
-| Each neighbourhood has its own bathroom, and there are others besides (a brief change, to land just before a re-baseline) | §39.139 |
+| Each neighbourhood has its own bathroom, and harbor-house has two more beside the individual sleeping rooms (a brief change, landing just before a re-baseline) | §39.139 |
 | A common room opens onto PRIVATE outdoor space: a street wall is not "next to outdoors" | §39.138 |
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
@@ -154,7 +154,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (244 of them, 17102 lines)
+## Every section of DESIGN.md (244 of them, 17146 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -449,4 +449,4 @@ below are the most recent work.
 - §39.136 · 16704-16857 · A native score at the quad tree's price, bit for bit; and a test that would have stopped queue 4 (`homemaker-py-8b2u.22`, `5nw`)
 - §39.137 · 16858-16939 · Every fail of the owner's hand design, classified: eight are one blind wall, and the rest are six questions about the rules (`homemaker-py-2g7.2`)
 - §39.138 · 16940-17035 · The owner's rulings on §39.137's questions; utility access and the single storey fail built (`homemaker-py-2g7.2`, branch `access-rulings`)
-- §39.139 · 17036-17102 · Corridor, lobby and bathrooms: the second round of rulings; the first two built (`homemaker-py-2g7.11`, branch `access-rulings`)
+- §39.139 · 17036-17146 · Corridor, lobby and bathrooms: the second round of rulings; the first two built (`homemaker-py-2g7.11`, branch `access-rulings`)
