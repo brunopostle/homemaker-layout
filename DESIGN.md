@@ -16686,3 +16686,17 @@ scripts rather than the runs: a script edited after it had started (bash
 reads a running script by offset; it died three days later, the moment its
 wait ended), and this failed test at 06:00 with nobody watching. A queue
 that stops safely still stops.
+
+**Ruling on the above (owner, 2026-10-12).** "We need to switch to native
+sooner or later, and in principle it should be faster because the orthogonal
+direction is constrained." So the question is not whether `--native` becomes
+the default but what stands in the way, and the 16% is the first thing. It is
+the implementation's and not the representation's: one programme-house
+design scored both ways (same score, 0.1820) costs 8.3 ms as a quad tree and
+9.6 ms native, and the native profile is led by `geometry._dist` under
+`boundary_id` -- about 145 distance calls per cell per score -- then
+`cells.clip` and `geometry.polygon`. That is the general-polygon route: it
+finds out which wall is which by measuring, for cells that are rectangles on
+one frame and could be told. Only a cell the plot boundary actually crops
+needs it. One design, one timing; `homemaker-py-8b2u.22` is the work, with
+`diag_8b2u_score_cost.py --snapshot/--diff` as the bit-for-bit check.
