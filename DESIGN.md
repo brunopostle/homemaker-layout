@@ -16814,3 +16814,43 @@ native's. What both trees pay now leads the profile: the graph copies inside
 search faster and leaves the two trees level, which is the honest reading of
 "in principle it should be faster": the constraint makes native no dearer,
 and nothing measured here says it makes it cheaper.
+
+**Second addendum, 2026-10-12: those two shares were the profiler's, not the
+score's.** The 8% and 6% above were read from `cProfile`, which on Python 3.14
+makes a harbor-house score cost ~975 ms where it costs ~28 ms without it. A
+tax of that size falls per CALL, so it inflates exactly the small functions
+called thousands of times -- `Node.leaves()`, dict lookups, a graph copy's
+inner loop -- and the ranking it prints is a ranking of call counts. Each
+candidate was then made cheaper on its own and the score timed with nothing
+attached (CPU ms, fastest of 25, both trees, fail lists and scores asserted
+identical):
+
+| change, alone | programme-house quad / native | harbor-house quad / native |
+|---|---|---|
+| as it stands (two readings) | 7.9, 7.6 / 8.2, 8.3 | 27.7, 27.9 / 27.0, 27.8 |
+| `Node.leaves()` as a loop, no list joins | 7.6 / 8.2 | 27.1 / 27.6 |
+| as it stands (second run) | 6.9, 7.3 / 7.8, 7.9 | 25.6, 26.8 / 27.0, 26.6 |
+| every `Graph.copy()` by hand, half the work | 7.4 / 7.9 | 25.8 / 26.7 |
+
+Neither is outside the spread of two readings of the same code (3-4%).
+**Nothing landed.** What a score is made of, timed by wrapping ten coarse
+functions (a few hundred calls a score, so the timer costs nothing),
+harbor-house, 30 ms:
+
+| | quad | native |
+|---|---|---|
+| `process_storey` (all leaf factors and costs) | 54% | 52% |
+| -- of which `evaluate_leaf` | 24% | 24% |
+| -- of which `leaf_cost` | 8% | 10% |
+| `storey_graphs` (both calls) | 34% | 27% |
+| -- of which `geometry.leaf_graph` | 23% | 15% |
+| -- of which `has_circulation`, copies and all | 9% | 9% |
+| `check_adjacency` | 5% | 5% |
+| `mark_voids` (native only) | 0% | 8% |
+
+No one line is worth a tenth; the cost is spread over the rules themselves. A
+score that is much cheaper would have to do LESS -- re-score only the storeys
+and cells a move touched -- which is a design question, not a tidy-up, and has
+no bead until someone wants it. Two standing lessons: **rank with `cProfile`,
+never size with it**, and before optimising a line it names, stub that line
+and time the whole.

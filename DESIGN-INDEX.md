@@ -125,6 +125,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Connectivity weighting | §39.8 | null, premise retracted |
 | `support_outside` paying for itself | §39.81, §39.86, §39.91, §39.111 | clears a fail that is now rare; a wash on fails and score |
 | Skipping the crop for whole cells | §39.105 | declined: under 2% of a score |
+| A faster `Node.leaves()`; cheaper graph copies in `has_circulation` | §39.136 (2nd addendum) | no measurable saving: the 6% and 8% were `cProfile`'s per-call tax, not the score's |
 | Closed-form or solver sizing of a child | §39.109 | worse than inherited ratios |
 | A local inner loop | §39.110 | no better than halving the budget |
 | `--child-budget 20` at equal total budget | §39.121 | negative on programme-house: six runs of 36 end with no staircase, none in the control; large programmes untested |
@@ -143,7 +144,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (241 of them, 16816 lines)
+## Every section of DESIGN.md (241 of them, 16856 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -435,4 +436,4 @@ below are the most recent work.
 - §39.133 · 16547-16595 · The shaft repair earns its place: without it eight of 36 searches end with no staircase (`homemaker-py-t7q`)
 - §39.134 · 16596-16638 · `--level-add-migrate` makes three-storey houses and worse ones; it stays off (`homemaker-py-v2k`)
 - §39.135 · 16639-16703 · `--native` finds the same houses and takes a sixth longer; and the ten branches land (`homemaker-py-8b2u.8`)
-- §39.136 · 16704-16816 · A native score at the quad tree's price, bit for bit; and a test that would have stopped queue 4 (`homemaker-py-8b2u.22`, `5nw`)
+- §39.136 · 16704-16856 · A native score at the quad tree's price, bit for bit; and a test that would have stopped queue 4 (`homemaker-py-8b2u.22`, `5nw`)
