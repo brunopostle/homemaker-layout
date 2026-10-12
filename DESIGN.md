@@ -17032,3 +17032,71 @@ sees, so it is priced before it is proposed, and is not in this branch.
    on a street side -- is the one the model can already name; a cell where
    several corridors meet is another reading.
 3. And how wide must a lobby be?
+
+### 39.139 Corridor, lobby and bathrooms: the second round of rulings; the first two built (`homemaker-py-2g7.11`, branch `access-rulings`)
+
+**The rulings** (owner, 2026-10-12, answering §39.138's questions):
+
+> Under most regulations, any corridor under 1m wide (clear not centres) would
+> be a fail, but the width increases by capacity, so an institution like this
+> would be ok at 1.6m centres. A lobby is simply the circulation cell that
+> meets the street with a front door, it is usually isolated from the rest of
+> the circulation system by doors (for both security and draught prevention).
+> Probably we don't have enough bathrooms in this spec, each neighbourhood
+> should have a bathroom and there should be others serving selling rooms.
+> Close 7kd I guess
+
+**Corridor width, built.** A cell is measured to the centres of its walls
+(`wall_inner` is recorded and never subtracted) and an internal wall is
+0.16 m, so "1 m clear" is 1.16 m as the scorer measures. `width_circulation`
+goes from Urb's [2.4, 0.2] to **[1.6, 0.2]**: full marks from 1.6 m, a fail
+under 1.17 m, and the 1.25 m the owner called "ok, but not ideal" keeps 0.22
+of its value. It stays one-sided -- wider is never worse. "Increases by
+capacity" is the config key doing its job: 1.6 m is the institution's figure
+and is the default because three of the four programmes are institutions; a
+house may state less.
+
+**The lobby, built.** `Fitness._lobby(G)`: of the ground storey's `C` cells
+that meet a street side, the widest; if none meets the street, the same among
+those reached across a front garden. One cell, because a building needs one
+front door and a corridor that also touches the street further along is a
+corridor. A stair is never the lobby (`E` on the street "is not by itself the
+way in", §39.125). That cell alone is held to `width_lobby`, **[2.4, 0.2]** --
+no figure was given for "wider", so the lobby keeps what every circulation
+cell was held to until today. That it is "usually isolated by doors" needs no
+rule: it is its own cell.
+
+**What it moves** (every committed design before and after, as §39.138):
+122 of 192 change score -- any corridor between 1.6 and 2.4 m gains credit --
+and **13 `width` fails go, none arrives**. Across the 48 evolved designs, 46
+have a lobby (44 of them directly on the street), none fails its width
+(narrowest 1.97 m, median 3.4 m): they were bred with every corridor held to
+2.4 m. The hand design goes 18 -> 16, its 1.25 m lobby-that-is-a-corridor on
+two storeys. `tests/test_corridor_and_lobby.py`.
+
+Search-side code that reads `width_circulation` (`solver`, `shapecurve`,
+`operators._too_thin`) follows the corridor figure for every `C`, lobby
+included; `mutate_repair_shaft`'s 2.6 m strip is its own constant and is
+unchanged.
+
+**Expectation for the re-baseline.** `width` fails on circulation were 13 in
+192; expect them near zero. Corridors should narrow toward 1.6 m, since
+circulation is worth 50 against 300 for a room, and indoor area should shift
+from `C` to rooms by a few square metres a design. If corridors land AT 1.17 m
+in number, the gaussian is being ridden to its edge and the sigma wants
+another look. A lobby under 2.4 m should be rare.
+
+**Bathrooms: a change to the brief, not yet made.** "Each neighbourhood
+should have a bathroom and there should be others": today harbor-house asks
+for six `t`, each to touch SOME neighbourhood, which neither gives each
+neighbourhood one nor allows a bathroom anywhere else. The shape of the fix is
+two codes -- one bathroom per neighbourhood, with the neighbourhood asking for
+it so that each has its own, and general bathrooms that ask only for
+circulation. It changes room counts, so every committed harbor-house design
+becomes a design with rooms missing, and the ruling of §39.115 applies: fix a
+brief just before a full re-baseline. Queue 4's is the next. Two things are
+needed first: which rooms the "others" serve (the message says "selling
+rooms"), and how many there are.
+
+`homemaker-py-7kd` (the cross-level outdoor shaft) is closed on the same
+message.
