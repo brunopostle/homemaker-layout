@@ -16936,3 +16936,99 @@ objective, so each is a ruling or it is nothing (§39.12).
 unfinished: this classifies a drawing, it does not calibrate a curve. Eight of
 the eleven "drawing" fails would go with one redrawn wing, and nothing here
 says what the design would fail next.
+
+### 39.138 The owner's rulings on §39.137's questions; utility access and the single storey fail built (`homemaker-py-2g7.2`, branch `access-rulings`)
+
+**The rulings** (owner, 2026-10-12, answering §39.137's six questions; the
+bathroom question was not answered and stays open):
+
+> A utility room can be reached from another non sleeping room or from an
+> outside space, as can a workshop. I guess one unreachable room is a single
+> fail. 1.25m is ok for a corridor, but not ideal, a lobby needs to be wider
+> because it is an assembly space. A common room needs to open onto private
+> outdoor space. A single aspect room 5.7m deep is fine as long as the ceiling
+> height allows it to pass the crinkliness check.
+
+| ruling | what it means for the objective | state |
+|---|---|---|
+| Utility rooms and workshops: reached from a non-sleeping room or from outside | a change to three rules, below | **built**, branch `access-rulings` |
+| One unreachable room is a single fail | the storey fail is reported once, not twice | **built**, same branch; see "what is left" |
+| A 1.25 m corridor passes, short of ideal; a lobby must be wider | `width_circulation` [2.4, 0.2] is wrong for a corridor, and a lobby is a different thing from a corridor | **not built**: needs two numbers and a definition, asked below |
+| A common room opens onto private outdoor space | `adjacency: o` means an `O` cell on the plot, as it does today; a street wall does not count | stands, nothing to do |
+| A single-aspect room 5.7 m deep is fine if its ceiling lets it pass | the daylight rule stands as it is, and storey height is the legitimate way to meet it | stands; makes `y4p4.2` (heights in the search) the lever, A/B in queue 4 |
+
+**Utility access, as built.** One predicate, `graph.serves_utility(nb, usages)`:
+a neighbour serves if it is circulation, outdoor space that can be stood in, or
+a programme room whose `usage` is not `bedroom`. It is asked for the usages in
+`programme.SERVICE_USAGES` -- `utility` and the new `workshop` -- in the three
+places that each decided "is this room reached" for themselves:
+
+- the brief's `adjacency: c` (`check_adjacency`): met by anything that serves;
+- the leaf's `access` factor (`Fitness.access`): likewise;
+- the storey's connectivity (`has_circulation`): a utility room or workshop
+  with neither circulation nor outdoor space beside it keeps ONE door to a
+  room that serves -- the most central, by `_centrality`'s geometric key, so
+  the listing order decides nothing (§39.100). One door, so a store does not
+  become a way through for having two neighbours.
+
+**`workshop` is a new usage, and the first attempt showed why.** Calling the
+workshop `utility` was the obvious spelling and it was wrong: a utility room
+is terminal, a workshop today is `living`, and making it a dead end cut the
+ground floor of two committed designs in two (`0 inaccessible usable space`
+new on harbor-house `1138ff1+orth` s0 and maple-court `c836457+orth` s0, where
+the workshop joins two corridors). The owner gave the workshop one more way
+IN, not one fewer way through. So `usage: workshop` is `living` everywhere
+`living` is named -- sociable, strips and all, exported as living -- plus the
+predicate above. The vocabulary's own rule holds: a value exists because the
+engine treats it differently in exactly one place.
+
+**The storey fail, once.** `N inaccessible usable space` was appended before
+the merge and again after it, "as it always has been". It is now reported on
+the merged tree only, the building as scored.
+
+**What it moves**, priced before landing (§39.72's method: every committed
+design scored before and after, quad and native, `diag_8b2u_score_cost.py
+--snapshot`): **19 of 192 designs move, every one to fewer fails** (1 to 4
+fewer, 28 in all), none gains one, and the native tree of each moves exactly
+when its quad tree does.
+
+| gone | count | which ruling |
+|---|---|---|
+| `N inaccessible usable space` | 24 | the double report |
+| `not adjacent to c` (a store `st2`, a staff WC lobby `zt1`) | 2 | utility access |
+| `access` | 2 | utility access |
+
+By programme: harbor-house 7 of 12, maple-court 10 of 12, health-centre 2 of
+12, programme-house none (and none of the 144 A/B results, which are
+programme-house). The hand design goes 24 -> 18 fails (29 -> 23 at 3.0 m):
+the six plant-room fails of §39.137, all of them. So in the corpus this is
+mostly the double count; the access rule itself is rare there, because a
+search that was charged four fails for a plant room off a store did not keep
+them.
+
+`tests/test_service_access.py` scores its own copy of the hand design and
+brief (§39.136's lesson), with the negative control: `SERVICE_USAGES` emptied,
+both rooms fail as they did and the storey fails once.
+
+**Expectation for the re-baseline, written before it runs.** Fails per design
+down by about one on harbor-house and maple-court from the double count alone,
+nothing on programme-house. `access` and `not adjacent to c` on utility rooms
+are already rare (4 in 48) and should stay so; if utility rooms start turning
+up off living rooms in number, that is the search using the ruling, not a
+defect. No change expected in crinkliness's share.
+
+**What is left of "a single fail".** A room that truly cannot be reached still
+pays three: the brief's `adjacency: c` (hard), its own `access` factor (soft),
+and the storey's fail (hard). Two of them are the same sentence said by the
+brief and by the engine. Collapsing them changes which tier the comparator
+sees, so it is priced before it is proposed, and is not in this branch.
+
+**Asked of the owner, to build the corridor ruling:**
+
+1. What width is ideal for a corridor, and below what does it fail? (Today:
+   full marks at 2.4 m, fail under 1.97 m. "1.25 m is ok but not ideal" fits
+   something like full marks from 1.8 m and a fail under 1.0 m.)
+2. What makes a `C` cell a lobby? The entrance cell -- the ground-floor `C`
+   on a street side -- is the one the model can already name; a cell where
+   several corridors meet is another reading.
+3. And how wide must a lobby be?

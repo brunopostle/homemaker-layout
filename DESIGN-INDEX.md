@@ -75,6 +75,7 @@ index is how to get from a question to the section that answers it.
 | §39.135 | `native`: no resolved difference in fails or score on programme-house, 16% slower (resolved). Not the default on this evidence; large programmes untested. And the ten held branches land: objective `9533b38+orth`. |
 | §39.136 | A native score brought to the quad tree's price, bit for bit (branch `native-fast`); two further savings tried and worth nothing -- `cProfile` ranks, it does not size. |
 | §39.137 | The hand design's 24 fails classified: eleven are the drawing (eight of them one row of rooms on a party wall), five a brief or constant, one a double count, seven wait on rulings; none is the daylight curve, but single-aspect rooms 5.7 m deep are bought back with 4.2 m storeys. Six questions for the owner. |
+| §39.138 | The owner's rulings on those questions. Built on branch `access-rulings`: utility rooms and workshops reached through a non-sleeping room or from outside (new usage `workshop`), and the storey fail reported once -- 19 of 192 designs move, all to fewer fails. Corridor and lobby widths wait on numbers. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -106,6 +107,11 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A room's depth limit is "only a limit for low ceilings": the daylight threshold stands and the search may raise a storey's height (3.3 m is not unusual for a ground floor) | §39.125 |
 | A storey's height has a floor of 2.7 m and NO cap, "for now": 5 m is unrealistic for a house and normal for a public building; a taller storey already needs a longer stair | §39.125, §39.132 |
 | maple-court's brief is LLM-generated and may be changed freely; an entrance-foyer ROOM goes wherever the model does not need it | §39.132 |
+| A utility room or a workshop may be reached from a room that is not a bedroom, or from outdoor space; it need not be on circulation | §39.138 |
+| One unreachable room is a single fail: the storey's `inaccessible usable space` is reported once | §39.138 |
+| A corridor 1.25 m wide passes, short of ideal; a lobby is an assembly space and must be wider (numbers and the definition of a lobby still to come) | §39.138 |
+| A common room opens onto PRIVATE outdoor space: a street wall is not "next to outdoors" | §39.138 |
+| A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -146,7 +152,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (242 of them, 16938 lines)
+## Every section of DESIGN.md (243 of them, 17034 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -439,4 +445,5 @@ below are the most recent work.
 - §39.134 · 16596-16638 · `--level-add-migrate` makes three-storey houses and worse ones; it stays off (`homemaker-py-v2k`)
 - §39.135 · 16639-16703 · `--native` finds the same houses and takes a sixth longer; and the ten branches land (`homemaker-py-8b2u.8`)
 - §39.136 · 16704-16857 · A native score at the quad tree's price, bit for bit; and a test that would have stopped queue 4 (`homemaker-py-8b2u.22`, `5nw`)
-- §39.137 · 16858-16938 · Every fail of the owner's hand design, classified: eight are one blind wall, and the rest are six questions about the rules (`homemaker-py-2g7.2`)
+- §39.137 · 16858-16939 · Every fail of the owner's hand design, classified: eight are one blind wall, and the rest are six questions about the rules (`homemaker-py-2g7.2`)
+- §39.138 · 16940-17034 · The owner's rulings on §39.137's questions; utility access and the single storey fail built (`homemaker-py-2g7.2`, branch `access-rulings`)
