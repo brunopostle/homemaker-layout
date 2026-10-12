@@ -149,7 +149,7 @@ def test_circulation_is_not_asked_size_or_proportion():
     assert fit.quality_proportion(circ) == 1.0
     # a room, by contrast, is asked both
     room = next(l for lvl in dom_mod.levels(root) for l in lvl.leaves()
-                if l.type not in ("C", "O", "S"))
+                if l.type not in dom_mod.GENERIC_TYPES)
     assert fit.factor_is_asked("size", room)
     assert fit.factor_is_asked("proportion", room)
 
