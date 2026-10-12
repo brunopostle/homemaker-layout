@@ -328,13 +328,26 @@ def dump(root: Node, path: str, version: int = 1) -> None:
 # NB this is deliberately NOT the same rule as the SEMANTIC prefixes (l/k/b/t):
 # those classify PROGRAMME CODES by first letter (``k1`` is a kitchen) and must
 # stay prefix-based. Only the generic-type tests are tightened.
-GENERIC_CIRCULATION = ("C", "S")
+#
+# ``E`` (escalier) is the fourth, and ours, not Urb's (owner's ruling,
+# 2026-10-08, DESIGN.md §39.125): a STAIR. Until then a stair was inferred --
+# a ``C`` leaf whose exact path was a ``C`` leaf on every storey -- which read
+# a corridor repeated floor over floor as a staircase, and could not see a
+# stair that stopped below the top of the building. An ``E`` cell is
+# circulation that holds a stair: rooms open off it and it joins corridors
+# (on a house the stair is all the circulation there is), so it belongs to
+# GENERIC_CIRCULATION and takes every circulation parameter. What makes it a
+# stair is the label, and :func:`graph.stack_corners_in_use` then asks for the
+# same cell, labelled ``E``, on each storey it climbs through.
+GENERIC_STAIR = "E"
+GENERIC_INDOOR_CIRCULATION = ("C", "E")
+GENERIC_CIRCULATION = ("C", "S", "E")
 GENERIC_OUTSIDE = ("O", "S")
-GENERIC_TYPES = ("C", "O", "S")
+GENERIC_TYPES = ("C", "O", "S", "E")
 
 
 def is_generic(type_: "str | None") -> bool:
-    """True for Urb's generic structural types (exactly ``C``/``O``/``S``)."""
+    """True for the generic structural types (exactly ``C``/``O``/``S``/``E``)."""
     return type_ in GENERIC_TYPES
 
 
@@ -432,7 +445,7 @@ def is_usable(n: Node) -> bool:
 
 
 def is_circulation(n: Node) -> bool:
-    """Usable and carrying a generic circulation type (``C``/``S``).
+    """Usable and carrying a generic circulation type (``C``/``S``/``E``).
 
     Mirrors ``Urb::Dom::Is_Circulation`` for the leaves it was written for; see
     the GENERIC_* note above for why this matches the generic set exactly rather

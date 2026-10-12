@@ -19,12 +19,24 @@ first:
   `core_divide` to undo, and both are a small share of draws); the thing to
   read is `too few stairs` / `staircase volume`, which the repaired move
   should not make more frequent.
+  RUN AND JUDGED (§39.129: nothing resolved), and the repair is the default
+  since 2026-10-09 -- so this entry's `shipped` arm is no longer the shipped
+  operator. To run the comparison again its control needs
+  `--no-core-undivide-repaired`.
 
 * **t7q** (`homemaker-py-t7q`, DESIGN.md §39.75) -- `repair`, the default,
   against `--no-repair-shaft`. NOTE the flag REMOVES the operator: here the
   control is the arm that has it. The bead holds the expectation.
 * **v2k** (`homemaker-py-v2k`, DESIGN.md §39.71) -- the default against
   `--level-add-migrate`. The bead holds the expectation.
+* **seedsolve** (`homemaker-py-8b2u.21`, DESIGN.md §39.118) -- seeds as the
+  constructor leaves them against `--seed-solver`, which sizes each seed with
+  the ratio solver first. In a container that left 8.9 fewer fails per seed
+  after tuning. Expectation on file: on programme-house NO resolved difference
+  at 500k -- a seed's head start is a few thousand evaluations of a run a
+  hundred times longer, and §12.2 found seeding an accelerator, not a new
+  asymptote. If anything shows, it is on harbor-house, where the seed gain
+  was largest (15 fails), and in the EARLY history of a run, not its end.
 * **child40**, **child20** (`homemaker-py-8b2u.20`, DESIGN.md §39.110) --
   `child80`, the per-child inner-loop budget every run has ever used, against
   `--child-budget 40` or `20` at the SAME total budget, so the flagged arm
@@ -34,6 +46,17 @@ first:
   fails than the control on programme-house, and fewer on the large
   programmes if the container result carries into a live population -- which
   is the thing a container cannot say.
+
+* **heights** (`homemaker-py-y4p4.2`, DESIGN.md §39.128) -- `fixed`, every
+  storey at the height its file gives it (3.0 m), against `heights`,
+  `--tune-heights`: each child's inner loop tunes one height per storey with
+  the walls, and `mutate_storey_height` steps a storey up or down. The
+  owner's ruling: a room's depth limit is "only a limit for low ceilings".
+  Expectation on file (2026-10-09): on programme-house no resolved difference
+  in fails -- its rooms are shallow and its daylight fails few; the thing to
+  read is `crinkliness` on the LARGE programmes, where it is 45% of all
+  fails, and there the flagged arm should carry fewer. `elapsed_s` should
+  not move: the extra variables are two or three in thirty.
 
 **The two arms are scored by one objective.** For `native` that is a fact
 with a test behind it: every orthogonal design scores the same as a quad tree
@@ -80,6 +103,22 @@ EXPERIMENTS = {
                 env="HOMEMAKER_CORE_UNDIVIDE_REPAIRED",
                 bead="homemaker-py-w4e, DESIGN.md §39.106",
                 what="core_undivide repaired against the shipped operator"),
+    "heights": dict(arms=("fixed", "heights"), flag="--tune-heights",
+                    env="HOMEMAKER_TUNE_HEIGHTS",
+                    bead="homemaker-py-y4p4.2, DESIGN.md §39.128",
+                    what="storey heights tuned by the search against fixed at 3.0 m"),
+    "well": dict(arms=("nowell", "well"), flag="--light-well",
+                 env="HOMEMAKER_LIGHT_WELL",
+                 bead="homemaker-py-evxm",
+                 what="the light-well move switched on against the default, which has it off"),
+    "labels": dict(arms=("bred", "scored"), flag="--label-writeback",
+                   env="HOMEMAKER_LABEL_WRITEBACK",
+                   bead="homemaker-py-urzf.1, DESIGN.md §39.130",
+                   what="the scorer's labels written back to each child against the default"),
+    "aim": dict(arms=("random", "aimed"), flag="--aim-undivide",
+                env="HOMEMAKER_AIM_UNDIVIDE",
+                bead="homemaker-py-iplo, DESIGN.md §39.123",
+                what="undivide aimed at a failing cell half the time against undivide as drawn"),
     "t7q": dict(arms=("repair", "norepair"), flag="--no-repair-shaft",
                 env="HOMEMAKER_REPAIR_SHAFT",
                 bead="homemaker-py-t7q, DESIGN.md §39.75",
@@ -88,6 +127,10 @@ EXPERIMENTS = {
                 env="HOMEMAKER_LEVEL_ADD_MIGRATE",
                 bead="homemaker-py-v2k, DESIGN.md §39.71",
                 what="level_add_migrate switched on against the default, which has it off"),
+    "seedsolve": dict(arms=("built", "solved"), flag="--seed-solver",
+                      env="HOMEMAKER_SEED_SOLVER",
+                      bead="homemaker-py-8b2u.21, DESIGN.md §39.118",
+                      what="seeds sized by the ratio solver against seeds as constructed"),
     "child40": dict(arms=("child80", "child40"), flag="--child-budget 40",
                     env="HOMEMAKER_CHILD_BUDGET",
                     bead="homemaker-py-8b2u.20, DESIGN.md §39.110",

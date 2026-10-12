@@ -208,8 +208,8 @@ def mode_scores() -> int:
 
 
 def turn_leaves(base, group: str, k: int):
-    """A copy of `base` with the corner numbering of its `C` leaves (group
-    "C") or of every other leaf ("other") turned `k` places. Only leaves whose
+    """A copy of `base` with the corner numbering of its `C` and `E` leaves
+    (group "C": circulation, stairs included) or of every other leaf ("other") turned `k` places. Only leaves whose
     rotation no geometry reads are turned -- nothing below them, and no storey
     above cutting across them -- so not one wall moves."""
     lvls = dom.levels(base)
@@ -230,7 +230,7 @@ def turn_leaves(base, group: str, k: int):
     dom.link(t)
     for li, lvl in enumerate(dom.levels(t)):
         for lf, ok in zip(lvl.leaves(), pick[li]):
-            if ok and ((lf.type == "C") == (group == "C")):
+            if ok and ((lf.type in dom.GENERIC_INDOOR_CIRCULATION) == (group == "C")):
                 lf.rotation = (lf.rotation + k) % 4
     g.clear_cache()
     return t

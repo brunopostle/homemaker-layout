@@ -24,10 +24,10 @@ TYPES = ["b1", "l1", "C", "O"]
 
 
 def _two_storeys_with_a_divided_core() -> dom.Node:
-    """What `core_divide` leaves: `C | b1` at one path on both storeys."""
+    """What `core_divide` leaves: `E | b1` at one path on both storeys."""
     def storey():
         return dom.Node(division=[0.5, 0.5], left=dom.Node(type="l1"),
-                        right=dom.Node(division=[0.3, 0.3], left=dom.Node(type="C"),
+                        right=dom.Node(division=[0.3, 0.3], left=dom.Node(type="E"),
                                        right=dom.Node(type="b1")))
     root = storey()
     root.above = storey()
@@ -40,13 +40,15 @@ def repaired(monkeypatch):
     monkeypatch.setattr(operators, "CORE_UNDIVIDE_REPAIRED", True)
 
 
-def test_the_switch_is_off_unless_asked_for(monkeypatch):
+def test_the_repair_is_the_default_and_can_be_switched_off(monkeypatch):
+    """Default ON since 2026-10-09 (owner's word; DESIGN.md §39.129: the A/B
+    resolved nothing, so the operator is made to do what its docstring says)."""
     monkeypatch.delenv("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", raising=False)
-    assert evolve._parse_args(["init.dom"]).core_undivide_repaired is False
-    assert evolve._parse_args(
-        ["init.dom", "--core-undivide-repaired"]).core_undivide_repaired is True
-    monkeypatch.setenv("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", "1")
     assert evolve._parse_args(["init.dom"]).core_undivide_repaired is True
+    assert evolve._parse_args(
+        ["init.dom", "--no-core-undivide-repaired"]).core_undivide_repaired is False
+    monkeypatch.setenv("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", "0")
+    assert evolve._parse_args(["init.dom"]).core_undivide_repaired is False
 
 
 def test_as_shipped_it_declines_the_tree_core_divide_leaves(monkeypatch):
@@ -64,7 +66,7 @@ def test_repaired_it_gives_the_stair_its_cell_back_on_every_storey(repaired):
     child, desc = operators.mutate_core_undivide(
         _two_storeys_with_a_divided_core(), np.random.default_rng(0), TYPES)
     assert "noop" not in desc
-    assert _stair_cells(child) == [(False, "C"), (False, "C")]     # not the room beside it
+    assert _stair_cells(child) == [(False, "E"), (False, "E")]     # not the room beside it
 
 
 def test_control_the_precondition_repaired_alone_leaves_a_room_there():
@@ -112,3 +114,36 @@ def test_repaired_it_undoes_a_core_divide(repaired, monkeypatch):
     assert fired >= 6
     assert restored >= 0.6 * fired
     assert emptied == 0
+
+
+def test_repaired_it_never_costs_the_building_a_staircase(repaired):
+    """The stacked pair on the ground and top storeys, and a finer tree on the
+    one between: merging the two would leave the stair's foot with nothing
+    over it, which is no staircase. (A pair on the LOWER storeys of a taller
+    shaft is a different thing since §39.125 -- a shaft may stop below the
+    top -- and is allowed.)"""
+    def pair():
+        return dom.Node(division=[0.5, 0.5], left=dom.Node(type="l1"),
+                        right=dom.Node(division=[0.3, 0.3], left=dom.Node(type="E"),
+                                       right=dom.Node(type="b1")))
+    root = pair()
+    root.above = dom.Node(division=[0.5, 0.5], left=dom.Node(type="l1"),
+                          right=dom.Node(division=[0.3, 0.3], left=dom.Node(type="E"),
+                                         right=dom.Node(division=[0.5, 0.5],
+                                                        left=dom.Node(type="b2"),
+                                                        right=dom.Node(type="b3"))))
+    root.above.above = pair()
+    dom.link(root)
+    assert len(operators._shaft_feet(dom.levels(root))) == 1
+    for seed in range(6):
+        child, desc = operators.mutate_core_undivide(root, np.random.default_rng(seed), TYPES)
+        assert len(operators._shaft_feet(dom.levels(child))) == 1, desc
+        assert "would cost a staircase" in desc, desc
+    # the control: with the guard blind, the same draw does take the staircase
+    count = operators._shaft_feet
+    operators._shaft_feet = lambda lvls: []
+    try:
+        child, desc = operators.mutate_core_undivide(root, np.random.default_rng(0), TYPES)
+    finally:
+        operators._shaft_feet = count
+    assert "noop" not in desc and len(count(dom.levels(child))) == 0

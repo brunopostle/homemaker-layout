@@ -70,8 +70,30 @@ def test_the_rate_alone_would_not_be_enough():
         "real improvement, §39.19's reasoning needs revisiting")
 
 
-def test_value_supported_is_the_outdoor_rate_not_the_indoor_one():
+def test_usable_space_is_worth_more_than_it_costs_and_a_terrace_more_than_a_garden():
+    """Owner's rulings of 2026-10-07 (DESIGN.md §39.115/§39.116), as rates per
+    square metre: a room, a garden and a terrace are each worth more than they
+    cost to build; a terrace is worth more than a garden and less than a room.
+
+    This replaces `value_supported == value_outside`, which §39.19 chose and
+    which left a terrace worth 100 against a cost of 110."""
+    from homemaker_layout.fitness import COST_DEFAULTS
+
     for name in CORPUS:
-        conf, _ = load_config(EXAMPLES / name)
-        assert conf["value_supported"] == conf["value_outside"], name
-        assert conf["value_supported"] < conf["value_inside"], name
+        conf, cost = load_config(EXAMPLES / name)
+        price = {**COST_DEFAULTS, **(cost or {})}
+        assert conf["value_inside"] > price["inside"], name
+        assert conf["value_outside"] > price["outside"], name
+        assert conf["value_supported"] > price["outside_supported"], name
+        assert conf["value_outside"] < conf["value_supported"] < conf["value_inside"], name
+
+
+def test_circulation_is_deliberately_not_worth_what_it_costs():
+    """The exception, and it is a ruling too: "any usable space" did not mean
+    circulation, "as a building without any circulation has an efficient
+    plan". If this ever fails, someone has made corridor profitable."""
+    from homemaker_layout.fitness import COST_DEFAULTS
+
+    for name in CORPUS:
+        conf, cost = load_config(EXAMPLES / name)
+        assert conf["value_circulation"] < {**COST_DEFAULTS, **(cost or {})}["inside"], name

@@ -45,21 +45,21 @@ REPO = Path(__file__).resolve().parents[1]
 # The starter, in metres on the plot-aligned frame (X across, Y along the
 # plot's longest side, origin at its first corner). ('X', v, low, high) is a
 # cut at X = v. Two storeys with the same skeleton, so the stair cores are the
-# same cell on both -- which is the one thing a stair needs (§39.72).
+# same cell on both -- which, with the label `E`, is what a stair needs
+# (§39.72, §39.125).
 SPINE_W, SPINE_E = 10.6, 13.2          # a 2.6 m band: stairs and corridor
 STAIR_S, STAIR_N = 5.6, 26.4           # stair cores at each end of it
-LANDING = 16.0                         # upstairs the corridor is two cells
 
 
 def _skeleton(corridor):
     return ("X", SPINE_W, "O",
-            ("X", SPINE_E, ("Y", STAIR_S, "C", ("Y", STAIR_N, corridor, "C")), "O"))
+            ("X", SPINE_E, ("Y", STAIR_S, "E", ("Y", STAIR_N, corridor, "E")), "O"))
 
 
-# A circulation cell that is the SAME cell on every storey is a staircase, so
-# a corridor drawn identically on both floors is a third stair ("too many
-# stairs"). Upstairs it is cut in two, which makes it a corridor again.
-STARTER = {"harbor-house": (_skeleton("C"), _skeleton(("Y", LANDING, "C", "C")))}
+# A stair is a cell labelled `E`, the same cell on each storey it climbs. The
+# corridor between them is `C` on both floors and in the same place, which
+# until §39.125 made it a third staircase and had to be cut in two upstairs.
+STARTER = {"harbor-house": (_skeleton("C"), _skeleton("C"))}
 
 
 def _hand3():
@@ -164,7 +164,7 @@ def write_template(prog: Path, name: str, storeys: int, force: bool) -> int:
 # --------------------------------------------------------------------------- #
 # compose, score, explain
 # --------------------------------------------------------------------------- #
-def check(prog: Path, name: str, tune: int, tol: float) -> int:
+def check(prog: Path, name: str, tune: int, tol: float, heights: bool = False) -> int:
     boundary, svg, out = paths(prog, name)
     if not svg.exists():
         print(f"no {svg.relative_to(REPO)}: run with --template first")
@@ -186,12 +186,20 @@ def check(prog: Path, name: str, tune: int, tol: float) -> int:
     dom.link(root)
     geometry.clear_cache()
     if tune:
-        res = innerloop.optimise(root, str(prog), budget=tune, method="nm")
+        # --heights: the storeys' heights are tuned with the walls, after a
+        # coarse look up and down each one (§39.128) -- a ceiling raised to
+        # 3.6 m is what lets a room 5.5 m deep keep its daylight
+        res = innerloop.optimise(root, str(prog), budget=tune, method="nm",
+                                 heights=heights, height_probe=heights)
         dom.dump(root, str(out))
         root = dom.load(str(out))
         dom.link(root)
         print(f"(walls tuned for {res.n_evals} evaluations: score {res.x0_fitness:.4g} -> "
-              f"{res.fitness:.4g}, fails {res.x0_n_fails} -> {res.n_fails})\n")
+              f"{res.fitness:.4g}, fails {res.x0_n_fails} -> {res.n_fails})")
+        if heights:
+            print("(storey heights: " + ", ".join(
+                f"{lvl.height:.2f} m" for lvl in dom.levels(root)) + ")")
+        print()
     report(root, prog, out)
     return 0
 
@@ -265,13 +273,15 @@ def main(argv=None) -> int:
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--tune", type=int, default=0, metavar="N",
                     help="then tune the wall positions for N evaluations")
+    ap.add_argument("--heights", action="store_true",
+                    help="with --tune: tune each storey's height too (2.7 m or more)")
     ap.add_argument("--tol", type=float, default=0.15,
                     help="how far short of its region's edge a line may stop, metres")
     a = ap.parse_args(argv)
     prog = REPO / "examples" / a.programme
     if a.template:
         return write_template(prog, a.name, a.storeys, a.force)
-    return check(prog, a.name, a.tune, a.tol)
+    return check(prog, a.name, a.tune, a.tol, a.heights)
 
 
 if __name__ == "__main__":

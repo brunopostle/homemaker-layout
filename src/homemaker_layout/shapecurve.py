@@ -190,7 +190,7 @@ def leaf_constraints(fit, leaf: dom_mod.Node) -> LeafBounds:
     # S is in both generic sets but takes the outside params, exactly as
     # get_space_params does -- test outside FIRST so S lands there.
     t0 = ("o" if leaf.type in dom_mod.GENERIC_OUTSIDE
-          else "c" if leaf.type == "C" else "")
+          else "c" if leaf.type in dom_mod.GENERIC_INDOOR_CIRCULATION else "")
 
     # --- size -> (amin, amax) ---
     params = (fit.conf("size_circulation") if t0 == "c"

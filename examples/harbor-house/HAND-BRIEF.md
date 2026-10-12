@@ -55,7 +55,7 @@ of that, move the band, or delete the lot and start from the plot outline.
   It changes nothing about the score.
 
 Labels: a room code from the schedule below, **`C`** for circulation
-(corridor, hall, landing, stair), **`O`** for outdoor space (garden, courtyard,
+(corridor, hall, landing), **`E`** for a stair, **`O`** for outdoor space (garden, courtyard,
 terrace). Rooms that come in numbers — `n`, `t`, `m`, `of`, `r` — are labelled
 with the same code each time.
 
@@ -111,12 +111,14 @@ neighbours. Rooms have no minimum width of their own, only the proportion.
 
 Each fail halves the score, so a handful of these outweigh every nicety.
 
-1. **Two staircases, exactly.** A stair is a `C` cell that is *the same cell
-   on both floors* — same walls, same place. It needs a real run: about
-   2.6 m × 3.5 m or more; a 2.7 m square is too small. Any other `C` cell
-   that happens to be identical on both floors is counted as a third stair
-   ("too many stairs"), which is why the starter's first-floor corridor is cut
-   in two.
+1. **Two staircases, exactly.** A stair is a cell labelled **`E`** that is
+   *the same cell on each floor it climbs* -- same walls, same place -- from
+   the ground up. It may stop below the top floor. It needs a real run: about
+   2.6 m x 3.5 m or more; a 2.7 m square is too small. An `E` cell is
+   circulation too: rooms may open off it and corridors join it, and two wings
+   upstairs that each have their own stair count as one connected building.
+   A corridor (`C`) may sit in the same place on every floor; that does not
+   make it a stair.
 2. **Every room opens off circulation**, and each floor's circulation is one
    connected piece. Circulation narrower than about
    2.0 m fails; 2.4 m is the aim. A bedroom-type room (`n`, `r`, `of`) is a

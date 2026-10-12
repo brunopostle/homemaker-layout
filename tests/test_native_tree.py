@@ -144,14 +144,14 @@ def test_a_frame_of_the_files_own_needs_no_switch():
 
 def test_a_stair_is_fitted_to_a_four_cornered_core_only():
     square = [[0, 0], [10, 0], [10, 10], [0, 10]]
-    tree = {"cut": "v", "at": 0.5, "low": {"cell": "C"}, "high": {"cell": "l1"}}
-    upper = {"low": {"cell": "C"}, "high": {"cell": "b1"}}
+    tree = {"cut": "v", "at": 0.5, "low": {"cell": "E"}, "high": {"cell": "l1"}}
+    upper = {"low": {"cell": "E"}, "high": {"cell": "b1"}}
     clipped = [[0, 0], [10, 0], [10, 10], [2, 10], [0, 7]]      # the core loses a corner
     for plot, want in ((square, True), (clipped, False)):
         root = _native(_doc(plot, tree, upper))
         lvls = dom.levels(root)
         graphs = [geometry.leaf_graph(lv) for lv in lvls]
-        core = _by_type(root)["C"]
+        core = _by_type(root)["E"]
         assert bool(graph.stack_corners_in_use(core, graphs, lvls)) is want
 
 

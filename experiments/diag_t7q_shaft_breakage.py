@@ -64,18 +64,10 @@ PROGRAMMES = ("harbor-house", "health-centre", "maple-court", "programme-house")
 
 
 def intact_shafts(lvls: "list[dom.Node]") -> "set[str]":
-    """Ground-floor ``C`` leaves whose exact id path is a ``C`` leaf all the way up."""
-    out: set[str] = set()
-    for leaf in lvls[0].leaves():
-        if leaf.type != "C":
-            continue
-        for lvl in lvls[1:]:
-            node = lvl.by_id(leaf.id)
-            if node is None or node.divided or node.type != "C":
-                break
-        else:
-            out.add(leaf.id)
-    return out
+    """The feet of the building's staircases: ground-floor ``E`` leaves whose
+    exact id path is an ``E`` leaf on the storey above (DESIGN.md §39.125;
+    until then, ``C`` all the way up)."""
+    return set(operators._shaft_paths(lvls))
 
 
 def _gates() -> "dict[str, bool]":

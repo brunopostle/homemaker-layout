@@ -192,13 +192,57 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "at seeding (default: off)")
     p.add_argument("--core-undivide-repaired", dest="core_undivide_repaired",
                    action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", False),
-                   help="homemaker-py-w4e (DESIGN.md §39.106): run core_undivide "
-                        "as its docstring describes it -- the inverse of "
-                        "core_divide -- instead of as shipped, where it almost "
-                        "never fires and would replace the staircase with a room "
-                        "if it did. Changes what a search does; the A/B that "
-                        "decides it has not been run (default: off)")
+                   default=_env_bool("HOMEMAKER_CORE_UNDIVIDE_REPAIRED", True),
+                   help="homemaker-py-w4e (DESIGN.md §39.106, §39.129): run "
+                        "core_undivide as its docstring describes it -- the "
+                        "inverse of core_divide. --no-core-undivide-repaired is "
+                        "the operator as shipped until 2026-10, which almost "
+                        "never fired and would have replaced the staircase with "
+                        "a room if it had. The A/B resolved nothing either way; "
+                        "adopted on correctness (default: on)")
+    p.add_argument("--label-writeback", dest="label_writeback",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_LABEL_WRITEBACK", False),
+                   help="homemaker-py-urzf.1 (DESIGN.md §39.130): after each "
+                        "child is tuned, write the scorer's room labels back "
+                        "to it, so operators read the rooms that were scored "
+                        "and not the ones the child was bred with. The score "
+                        "does not move. Changes what a search does; the A/B "
+                        "has not been run (default: off)")
+    p.add_argument("--aim-undivide", dest="aim_undivide",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_AIM_UNDIVIDE", False),
+                   help="homemaker-py-iplo (DESIGN.md §39.123): half of "
+                        "undivide's draws remove a wall beside a cell that is "
+                        "FAILING, chosen from the parent's fail lines; the "
+                        "other half pick as before. Changes what a search "
+                        "does; the A/B has not been run (default: off)")
+    p.add_argument("--seed-solver", dest="seed_solver",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_SEED_SOLVER", False),
+                   help="homemaker-py-8b2u.21 (DESIGN.md §39.118): size each "
+                        "constructed seed with the ratio solver before it is "
+                        "first evaluated. Seeds only, never children. The A/B "
+                        "that decides it has not been run (default: off)")
+    p.add_argument("--tune-heights", dest="tune_heights",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_TUNE_HEIGHTS", False),
+                   help="homemaker-py-y4p4.2 (DESIGN.md §39.128), owner's "
+                        "ruling: let the inner loop tune each storey's "
+                        "floor-to-floor height with the walls, so a deep room "
+                        "can earn its daylight by a higher ceiling. Never "
+                        "below 2.7 m; no ceiling, the cost of the walls is "
+                        "what holds it down. Changes what a search does; the "
+                        "A/B that decides the default has not been run "
+                        "(default: off)")
+    p.add_argument("--light-well", dest="light_well",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_LIGHT_WELL", False),
+                   help="homemaker-py-evxm: a move that cuts a well of outdoor "
+                        "space, open to the sky, beside a cell no daylight "
+                        "reaches -- the owner's alley (DESIGN.md §39.125). "
+                        "Changes what a search does; the A/B that decides it "
+                        "has not been run (default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
@@ -383,6 +427,14 @@ def main(argv=None) -> int:
     from . import operators
     os.environ["HOMEMAKER_CORE_UNDIVIDE_REPAIRED"] = "1" if args.core_undivide_repaired else "0"
     operators.CORE_UNDIVIDE_REPAIRED = bool(args.core_undivide_repaired)
+    # read by driver.search in every phase and by worker processes
+    os.environ["HOMEMAKER_LIGHT_WELL"] = "1" if args.light_well else "0"
+    os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
+    driver.SEED_SOLVER = bool(args.seed_solver)
+    os.environ["HOMEMAKER_LABEL_WRITEBACK"] = "1" if args.label_writeback else "0"
+    driver.LABEL_WRITEBACK = bool(args.label_writeback)
+    os.environ["HOMEMAKER_AIM_UNDIVIDE"] = "1" if args.aim_undivide else "0"
+    driver.AIM_UNDIVIDE = bool(args.aim_undivide)
 
     seed_file = args.seed_dom.resolve()
     if not seed_file.exists():
@@ -459,12 +511,19 @@ def main(argv=None) -> int:
     print(f"support outside    : {args.support_outside}", file=sys.stderr)
     print(f"level add+migrate  : {args.level_add_migrate}", file=sys.stderr)
     print(f"repair shaft       : {args.repair_shaft}", file=sys.stderr)
+    print(f"light well         : {args.light_well}", file=sys.stderr)
+    print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
+    print(f"seed solver        : {args.seed_solver}", file=sys.stderr)
+    print(f"label write-back   : {args.label_writeback}", file=sys.stderr)
+    print(f"aim undivide       : {args.aim_undivide}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)
     print(f"output       : {out or 'stdout'}", file=sys.stderr, flush=True)
 
+    # what every child's inner loop is told, phase after phase
+    _inner_kw = {"heights": True} if args.tune_heights else None
     anneal_ladder = None
     if args.anneal_grain:
         anneal_ladder = tuple(int(g) for g in args.anneal_grain.split(",")
@@ -503,6 +562,7 @@ def main(argv=None) -> int:
             checkpoint=_ckpt,
             checkpoint_every=args.checkpoint_every,
             log=lambda m: print(m, file=sys.stderr, flush=True),
+            inner_kw=_inner_kw,
         )
         _finish_sharing = False
     else:
@@ -532,6 +592,7 @@ def main(argv=None) -> int:
             checkpoint=_ckpt,
             checkpoint_every=args.checkpoint_every,
             log=lambda m: print(m, file=sys.stderr, flush=True),
+            inner_kw=_inner_kw,
         )
         _finish_sharing = args.leaf_sharing
 
@@ -563,6 +624,7 @@ def main(argv=None) -> int:
             multi_use=args.multi_use,
             collapse_insearch=args.collapse_insearch,
             log=lambda m: print(m, file=sys.stderr, flush=True),
+            inner_kw=_inner_kw,
         )
 
     # homemaker-py-94g: finish-time global cell→room collapse. Relabels the best

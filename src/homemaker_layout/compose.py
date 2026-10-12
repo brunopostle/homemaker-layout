@@ -201,8 +201,20 @@ def _parse_transform(s: str | None) -> Matrix:
     return m
 
 
-_PATH_CMD_RE = re.compile(r"([MLHVZmlhvz])\s*([^MLHVZmlhvzCcSsQqTtAa]*)")
-_PATH_CURVE_RE = re.compile(r"[CcSsQqTtAa]")
+_PATH_CMD_RE = re.compile(r"([MLHVZCmlhvzc])\s*([^MLHVZmlhvzCcSsQqTtAa]*)")
+_PATH_CURVE_RE = re.compile(r"[SsQqTtAa]")
+# how far a cubic's control points may stand off its chord and still be a
+# straight wall, as a share of the chord's length
+_STRAIGHT_TOL = 1e-6
+
+
+def _off_chord(p: Point, a: Point, b: Point) -> float:
+    """Distance of `p` from the line through `a` and `b`, over |ab|."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    L2 = dx * dx + dy * dy
+    if L2 == 0:
+        return math.inf
+    return abs((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / L2
 
 
 def _parse_path_points(d: str) -> "list[Point] | None":
@@ -214,7 +226,12 @@ def _parse_path_points(d: str) -> "list[Point] | None":
     vertical ones (``H``/``h``, ``V``/``v`` -- what Inkscape emits for exactly
     the axis-aligned walls an orthogonal plan is made of), and coordinates
     that follow a command without repeating it. A second ``M`` starts a new
-    line elsewhere and is refused: one path, one run of wall."""
+    line elsewhere and is refused: one path, one run of wall.
+
+    A cubic (``C``/``c``) whose control points lie ON its chord is a straight
+    line that Inkscape has stored as a curve -- it does that to a line whose
+    nodes were once made smooth -- and is read as the line it draws. A cubic
+    that bends, and every other curve, is refused."""
     if _PATH_CURVE_RE.search(d):
         return None
     pts: list[Point] = []
@@ -231,6 +248,17 @@ def _parse_path_points(d: str) -> "list[Point] | None":
             if len(nums) < 2 or len(nums) % 2:
                 return None
         rel = cmd.islower()
+        if cmd in "Cc":
+            if not pts or not nums or len(nums) % 6:
+                return None
+            for i in range(0, len(nums), 6):
+                c1, c2, end = ((nums[j] + (x if rel else 0), nums[j + 1] + (y if rel else 0))
+                               for j in (i, i + 2, i + 4))
+                if max(_off_chord(c1, (x, y), end), _off_chord(c2, (x, y), end)) > _STRAIGHT_TOL:
+                    return None
+                x, y = end
+                pts.append(end)
+            continue
         if cmd in "Hh":
             for v in nums:
                 x = x + v if rel else v
@@ -365,6 +393,7 @@ def _side(p: Point, a: Point, b: Point) -> float:
 def _find_span(
     corners: list[Point], lines: list[tuple[Point, Point]], tol: float,
     prefer: "tuple[Point, Point] | None" = None,
+    upper: "list[list[tuple[Point, Point]]] | None" = None,
 ) -> tuple[int, tuple[float, float], tuple[Point, Point]] | None:
     """Best line spanning ``corners`` edge-to-edge on either axis: axis 0 =
     edges (0,1)&(3,2), axis 1 = edges (1,2)&(0,3) — mirrors the two edge
@@ -377,6 +406,13 @@ def _find_span(
     pick the one cut that cannot be represented, since the storey below owns
     this wall (see ``InheritedCut``). A candidate lying on the inherited wall
     therefore outranks a closer-fitting one that does not.
+
+    ``upper`` is the traced walls of every storey ABOVE this one, and settles
+    the same ambiguity from the other side. Three rooms in a row downstairs
+    under two upstairs have two walls below and one above; whichever of the
+    two is cut FIRST below is the only one the storey above may keep, so the
+    first cut has to be the wall the upper storeys also drew. Among candidates
+    equal on ``prefer``, the one drawn on the most storeys above wins.
     """
     axes = (
         (0, corners[0], corners[1], corners[3], corners[2]),
@@ -395,7 +431,9 @@ def _find_span(
                 off_wall = 0
                 if prefer is not None and not _same_cut((p, q), prefer, tol):
                     off_wall = 1
-                key = (off_wall, err)
+                shared = sum(any(_same_cut((p, q), w, tol) for w in ws)
+                             for ws in upper or ())
+                key = (off_wall, -shared, err)
                 if best_key is None or key < best_key:
                     best_key = key
                     best = (axis, (t0, t1), (p, q))
@@ -411,11 +449,12 @@ def _build(
     frames: "dict[str, list[Point]] | None" = None,
     path: str = "",
     inherited: "dict[str, tuple[Point, Point]] | None" = None,
+    upper: "list[list[tuple[Point, Point]]] | None" = None,
 ) -> Node:
     if frames is not None:
         frames[path] = corners
     span = _find_span(corners, lines, tol,
-                      (inherited or {}).get(path))
+                      (inherited or {}).get(path), upper)
     if span is None:
         if not lines:
             texts = [text for _, text in labels]
@@ -461,9 +500,9 @@ def _build(
     node.rotation = rotation
     node.division = [t0, t1]
     node.left = _build(storey, left_corners, left_lines, left_labels, tol,
-                       frames, path + "l", inherited)
+                       frames, path + "l", inherited, upper)
     node.right = _build(storey, right_corners, right_lines, right_labels, tol,
-                        frames, path + "r", inherited)
+                        frames, path + "r", inherited, upper)
     return node
 
 
@@ -604,7 +643,7 @@ def compose(boundary_root: Node, storeys: list[StoreyTrace], tol: float = 0.15) 
     for i, (level_root, trace) in enumerate(zip(level_roots, storeys)):
         frames.append({})
         built = _build(i, corners, trace.lines, trace.labels, tol, frames[i], "",
-                       inherited)
+                       inherited, [t.lines for t in storeys[i + 1:]])
         level_root.division = built.division
         level_root.left = built.left
         level_root.right = built.right

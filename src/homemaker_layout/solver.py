@@ -134,6 +134,11 @@ def solve_ratios(
                        else _generic_min_width(leaf, conf))
             for leaf in all_leaves if leaf.type not in targets}
 
+    # how many rooms each leaf stands for: its share while the share is live
+    # (the same test `graph.leaf_share` and `dom.dump` apply), else one
+    rooms = {id(leaf): (leaf.share if leaf.share > 1 and leaf.share_type == leaf.type else 1)
+             for leaf in all_leaves}
+
     def apply(x: np.ndarray) -> None:
         for j, b in enumerate(free):
             if perpendicular:
@@ -149,7 +154,12 @@ def solve_ratios(
             req = targets.get(leaf.type)
             if req is not None:
                 area = geometry.area(leaf)
-                r.append((area - req.size) / req.size)
+                # A SHARED leaf stands for several rooms of one code (erc.3,
+                # §13.3) and is owed that many rooms' area. Aimed at one, the
+                # solver shrank exactly the cells the constructor had made
+                # large on purpose (homemaker-py-8b2u.21).
+                want = req.size * rooms[id(leaf)]
+                r.append((area - want) / want)
                 if weight_width:
                     w = geometry.length_narrowest(leaf)
                     r.append(weight_width * min(0.0, (w - req.width) / req.width))

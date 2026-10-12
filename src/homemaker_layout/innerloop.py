@@ -26,6 +26,33 @@ from . import dom, solver
 
 _EPS = 0.02  # keep cuts off the edges; matches solver/_experiments convention
 
+# Storey heights as inner-loop variables (owner's ruling, 2026-10-08/09,
+# DESIGN.md §39.125, §39.128; `homemaker-py-y4p4.2`). "4.86 m depth is only a
+# limit for low ceilings, the solver should be able to raise the ceiling
+# height of a storey and allow deeper rooms"; "2.7 can be a minimum height,
+# but we should leave the maximum open". The scorer has always read a storey's
+# height -- lit wall, wall cost, the risers a stair needs -- and `.dom` has
+# always stored it; nothing ever moved it.
+#
+# One variable per storey, appended to the ratio vector, so every search
+# method takes it as it takes a cut. It lives on the same (_EPS, 1 - _EPS)
+# interval as a ratio and maps to metres through a curve with a floor and no
+# practical ceiling: 2.7 m at the low end, 3.0 m at 0.25, 3.66 m at 0.5, and
+# some fifty metres at the high end. What keeps a storey low is the cost of
+# its walls, which the objective already charges.
+HEIGHT_MIN = 2.7
+HEIGHT_SCALE = 1.0
+
+
+def height_to_u(h: float) -> float:
+    t = max(float(h) - HEIGHT_MIN, 0.0) / HEIGHT_SCALE
+    return (t + _EPS) / (1.0 + t)
+
+
+def u_to_height(u: float) -> float:
+    u = min(max(float(u), _EPS), 1 - _EPS)
+    return HEIGHT_MIN + HEIGHT_SCALE * (u - _EPS) / (1.0 - u)
+
 
 def free_with_keys(root: dom.Node) -> list[tuple[tuple[int, str], dom.Node]]:
     """``solver.free_branches`` order, with (level_index, id-path) keys that
@@ -48,9 +75,44 @@ def warm_x0(root: dom.Node, ratios: dict[tuple[int, str], float]) -> np.ndarray:
     return np.array([ratios.get(k, 0.5) for k, _ in free_with_keys(root)])
 
 
+def probe_heights(ev: "NativeEvaluator", x: np.ndarray,
+                  steps: "tuple[float, ...]" = (0.3, 0.6, 0.9, -0.3)) -> np.ndarray:
+    """A coarse look up and down each storey's height before the fine search.
+
+    A storey's height has a valley in it that a local method does not cross:
+    raising a ceiling costs wall at once and pays only when a room's daylight
+    passes, which may be half a metre away. Measured on the owner's hand-drawn
+    harbor-house (§39.128): every storey at 3.6 m clears five fails, and 4,000
+    evaluations of Nelder-Mead from 3.0 m moved no storey by more than a
+    centimetre. So try each storey, then all of them together, a few steps
+    away, and keep what scores better. ``(storeys + 1) * len(steps)``
+    evaluations, counted against the budget like any other.
+    """
+    n = len(ev.free)
+    best_x = np.asarray(x, dtype=float).copy()
+    best = ev.evaluate([best_x])[0].fitness
+    k = ev.n_heights
+    groups = [[i] for i in range(k)] + ([list(range(k))] if k > 1 else [])
+    for group in groups:
+        base, found = best_x.copy(), None
+        for d in steps:
+            y = base.copy()
+            for i in group:
+                y[n + i] = height_to_u(u_to_height(base[n + i]) + d)
+            f = ev.evaluate([y])[0].fitness
+            if f > best:
+                best, found = f, y
+        if found is not None:
+            best_x = found
+    return best_x
+
+
 @dataclass
 class Result:
-    x: np.ndarray  # best equal-offset ratios, aligned with solver.free_branches(root)
+    # best equal-offset ratios, aligned with solver.free_branches(root) -- and,
+    # when storey heights were tuned, one more entry per storey after them
+    # (`height_to_u`); `NativeEvaluator.apply` is what reads both
+    x: np.ndarray
     fitness: float
     n_fails: int
     fail_lines: tuple[str, ...]
@@ -224,6 +286,7 @@ def nm_search(
 
     rng = np.random.default_rng(seed)
     n = len(x0)
+    n_h = getattr(ev, "n_heights", 0) if n > len(getattr(ev, "free", ())) else 0
     x = np.clip(np.asarray(x0, dtype=float), _EPS, 1 - _EPS)
     s = ev.evaluate([x])[0]
     best = Result(
@@ -253,6 +316,10 @@ def nm_search(
         except _BudgetExhausted:
             break
         start = rng.uniform(0.1, 0.9, n)
+        if n_h:
+            # a restart scatters the walls; a storey 2.8 m or 11 m high at
+            # random is not a restart, so the heights carry on from the best
+            start[-n_h:] = best.x[-n_h:]
 
     best.n_evals = ev.n_evals
     best.n_oracle_calls = ev.n_oracle_calls
@@ -286,11 +353,14 @@ class NativeEvaluator:
     """
 
     def __init__(self, root: dom.Node, programme_dir: str | Path,
-                 conf_overrides: dict | None = None):
+                 conf_overrides: dict | None = None, heights: bool = False):
         from . import fitness as fit_mod
 
         self.root = root
         self.free = solver.free_branches(root)
+        # the storeys whose height is a variable: all of them, or none
+        self.storeys = dom.levels(root) if heights else []
+        self.n_heights = len(self.storeys)
         conf, cost = fit_mod.load_config(programme_dir, overrides=conf_overrides)
         self._fit = fit_mod.Fitness(conf, cost)
         self.n_evals = 0
@@ -308,10 +378,21 @@ class NativeEvaluator:
             [(b.division[0] + b.division[1]) / 2 for b in self.free], dtype=float
         )
 
+    @property
+    def x_heights(self) -> np.ndarray:
+        return np.array([height_to_u(lvl.height if lvl.height else 3.0)
+                         for lvl in self.storeys], dtype=float)
+
     def apply(self, x: np.ndarray) -> None:
+        """Write a vector to the tree: the ratios, and the storey heights too
+        if the vector carries them (it need not -- a vector of ratios alone
+        leaves the heights where they are)."""
         xc = np.clip(x, _EPS, 1 - _EPS)
         for j, b in enumerate(self.free):
             b.division = [float(xc[j]), float(xc[j])]
+        if self.storeys and len(xc) == len(self.free) + len(self.storeys):
+            for lvl, u in zip(self.storeys, xc[len(self.free):]):
+                lvl.height = u_to_height(u)
 
     def evaluate(self, xs: list[np.ndarray]) -> "list[_NativeScore]":
         """Score a batch of ratio vectors; returns objects with .fitness /
@@ -337,6 +418,8 @@ def optimise(
     method: str = "nm",
 
     conf_overrides: dict | None = None,
+    heights: bool = False,
+    height_probe: bool = False,
     **search_kw,
 ) -> Result:
     """Optimise the free division ratios of ``root`` in place; return the best.
@@ -345,13 +428,25 @@ def optimise(
     parent's optimised ratios for a Lamarckian warm start. On return ``root``
     carries the best ratios found.
 
+    ``heights`` adds one variable per storey, its floor-to-floor height
+    (never below ``HEIGHT_MIN``, no ceiling), to the same search; ``x0`` is
+    still the RATIOS, and the heights start where the tree has them, so a
+    child inherits its parent's. ``Result.x`` then carries both.
+    ``height_probe`` spends a few evaluations first on :func:`probe_heights`;
+    for tuning ONE design (a search has `operators.mutate_storey_height` to
+    make the same jumps across its population, at no cost per child).
+
     evaluate with the native Python fitness.
     """
     ev_cls = NativeEvaluator
-    ev_args = (root, programme_dir, conf_overrides)
+    ev_args = (root, programme_dir, conf_overrides, heights)
     with ev_cls(*ev_args) as ev:
         if x0 is None:
             x0 = ev.x_current
+        if ev.n_heights and len(x0) == len(ev.free):
+            x0 = np.concatenate([np.asarray(x0, dtype=float), ev.x_heights])
+            if height_probe:
+                x0 = probe_heights(ev, x0)
         if len(x0) == 0:  # undivided topology (e.g. a bare plot): nothing to optimise
             s = ev.evaluate([np.empty(0)])[0]
             return Result(x=np.empty(0), fitness=s.fitness, n_fails=s.n_fails,

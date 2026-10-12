@@ -101,8 +101,12 @@ def test_lift_preserves_base_and_builds_upper(reqs):
         base, buckets[1:], rng, sorted(reqs) + ["C", "O"])
     lv = dom.levels(lifted)
     assert len(lv) == n
-    # base storey untouched
-    assert collections.Counter(l.type for l in lv[0].leaves()) == base_leaf_types
+    # base storey untouched -- but for the label on its core, which is what
+    # becomes the stair once there is a storey above to climb to (§39.125)
+    got = collections.Counter(l.type for l in lv[0].leaves())
+    assert got.pop("E", 0) == 1
+    got["C"] += 1
+    assert got == base_leaf_types
     # upper storey instantiates its required room set + keeps a circulation core
     up = collections.Counter(l.type for l in lv[1].leaves())
     for code, cnt in buckets[1].items():
