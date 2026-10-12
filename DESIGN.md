@@ -16854,3 +16854,85 @@ and cells a move touched -- which is a design question, not a tidy-up, and has
 no bead until someone wants it. Two standing lessons: **rank with `cProfile`,
 never size with it**, and before optimising a line it names, stub that line
 and time the whole.
+
+### 39.137 Every fail of the owner's hand design, classified: eight are one blind wall, and the rest are six questions about the rules (`homemaker-py-2g7.2`)
+
+§39.132 set `hand2a` beside twelve evolved designs and found it an ordinary
+member of the corpus that fails different things. This is the other half of
+what `2g7.2` asked in August: take each fail in turn and say whether it is
+(a) a real miss in the drawing, (b) one fact the scorer counts more than once
+or cannot see, or (c) a rule or a brief asking for more than a designer would.
+No box is needed; `experiments/diag_2g72_hand_fails.py` prints the measurement
+behind each one.
+
+**Measured on main + `brief-fixes`** (the brief without its foyer, which is
+what queue 4 lands), `hand2a.dom` as committed -- walls and storey heights
+tuned, 4.19 / 4.44 / 3.63 m: **24 fails, score 2.40e-08**. With every storey
+put back to 3.0 m: 29. That pair is the hand design's line for harbor-house
+until the drawing or a rule changes. (On today's main, with the foyer still
+in the brief, the same file is 25.)
+
+| what | fails | the measurement | class |
+|---|---|---|---|
+| Rooms along party wall `a` have no window | 7 daylight + 1 `not adjacent to o` | `ws1`, a bathroom and five of the ten rooms `r` on storey 1 stand in a row against side `a`. `HAND-BRIEF.md` gives `a` as a party wall, "no windows, no door". Lit wall: 0.00 m, all seven. | **(a)** the drawing |
+| A bathroom must be beside a neighbourhood | 3 | Six `t`, each asked to touch an `n` (Brand). Three do. The others serve the meeting rooms, the staff office, and -- on storey 1 -- a row of rooms `r`, which are bedrooms by `usage` but not by code. | **(c)** the brief |
+| A plant room reached through another room | 6 | `me1` opens off the office and onto the garden; `ut1` opens off the store `st2`. Neither touches `C`. Each pays `not adjacent to c` and `access`; `ut1` also cuts storey 1's circulation, and `1 inaccessible usable space` is reported twice by design (before and after the merge). So `ut1`'s one missing door is four fails, x1/16. | **(b)** for the double count; the rest a ruling |
+| A lobby 1.25 m wide | 2 | A 2.2 m2 `C` between a bathroom, a neighbourhood and the corridor, same cell on two storeys. `width_circulation` is [2.4, 0.2]: anything under 1.97 m fails. | **(c)** the constant, or (a) |
+| A strip of garden 1.8 m wide | 1 | 8 m2 of `O` left between a neighbourhood and wall `b`. `width_outside` [2.3, 0.05] fails under 2.19 m. | **(a)** |
+| Living rooms on the street with no garden door | 2 | `da1` and `cr1` fill the street corner: 7.5 m and 17.1 m of street wall, and no `O` cell beside either. `adjacency: o` means a cell of outdoor space on the plot. | a ruling |
+| No outdoor space on storey 1 | 1 | Storey 2 has six terraces, storey 1 none. | **(a)** |
+| One room `r` on storey 2 | 1 | Nine on storey 1, the tenth above. The brief says `level: 1`. | **(a)**, or the brief |
+
+Twenty-four. Read by class: **eleven are the drawing's** -- and eight of those
+are one decision, a row of rooms on a blind wall, which the owner called
+unfinished; **five are the brief or a constant asking for more than a designer
+gave**; **one is a double count**; and seven wait on a ruling. None is the
+daylight curve. `2g7.2`'s prime suspect, in August, was that a human plan
+would pay crinkliness broadly: it pays it seven times, all seven on rooms with
+no window at all.
+
+**But the daylight rule is in the design all the same, as its storey
+heights.** At 3.0 m five more cells fail, and they are not buried:
+
+| cell | size | lit wall | depth behind it | factor at 3.0 m | at the tuned height |
+|---|---|---|---|---|---|
+| kitchen `k1` | 22.1 m2 | 3.66 m | 6.04 m | 0.006 | 0.25 (4.19 m) |
+| dining `da1` | 42.8 m2 | 7.48 m | 5.73 m | 0.013 | 0.35 |
+| a neighbourhood `n` | 64.9 m2 | 11.13 m | 5.83 m | 0.010 | 0.43 (4.44 m) |
+| stair `E`, two storeys | 19.9 m2 | 3.51 m | 5.65 m | 0.016 | 0.37, 0.49 |
+
+Each is a room with one window wall and 5.7-6.0 m of floor behind it. The
+target, `uncrinkliness` [0.833, 0.367], is floor per metre of lit wall over
+storey height: full marks at 2.5 m deep under a 3.0 m storey, 0.39 at 4.0 m,
+and a fail past 4.86 m. So the tuner buys these rooms back with height --
+4.2 and 4.4 m storeys, which the owner has called unrealistic for a house --
+and they still keep a quarter to a half of their value. This is `y4p4`'s third
+question with its numbers attached: **is a single-aspect room 5.7 m deep a
+defect?** The common rule of thumb (mine, not the owner's) is that daylight
+reaches about twice the window-head height, 5 to 6 m here, which would put
+these rooms at the limit and not far past it. Two smaller things ride on the
+same rule: a stair is asked for daylight exactly as a room is, and the factor
+is two-sided, so the neighbourhood with 27 m of window to 48 m2 of floor is
+docked to 0.53 for having too much.
+
+**The questions, for the owner.** None is settled here; each would move the
+objective, so each is a ruling or it is nothing (§39.12).
+
+1. *Bathrooms.* Should `t` ask for a neighbourhood only where it serves one --
+   two codes, as health-centre's WC -- and should a room `r` count as sleeping
+   space for Brand's rule?
+2. *Plant and store.* May a utility room be reached through another utility
+   room, or from outside? (`me1` has a 3 m wall on the garden.)
+3. *The double count.* One unreachable room is `not adjacent to c`, `access`
+   and `inaccessible usable space` twice. Is four the price, or should the
+   storey-level fail be reported once?
+4. *A lobby.* Does a 1.25 m lobby fail, and is 2.4 m the right corridor? It
+   is the target for every `C`, with no provenance but Urb's.
+5. *Street rooms.* Does a common room on the street satisfy "next to
+   outdoors", or does the brief mean a garden or terrace it can open onto?
+6. *Single-aspect depth*, above.
+
+**What it does not show.** One design, one programme, one designer, and
+unfinished: this classifies a drawing, it does not calibrate a curve. Eight of
+the eleven "drawing" fails would go with one redrawn wing, and nothing here
+says what the design would fail next.
