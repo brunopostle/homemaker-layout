@@ -16782,3 +16782,35 @@ The lesson is §39.135's again, from the other side: that rehearsal existed
 and had been run, and its one failure was sitting in a log. **A negative
 control pinned to a live design is pinned to the brief too**; one that needs a
 particular defect to show should carry its own data.
+
+**Addendum, the same day: the tolerance was offered, tried, and bought
+nothing.** The owner allowed a native score to differ within a tolerance
+("yes", 2026-10-12), which is what the whole-cell shortcut §39.105 declined
+needed. Built on `native-fast` and measured: a cell further inside every side
+of a convex plot than a wall can be and still be read as lying on it
+(millimetres; inherited down the tree, so one test clears a subtree) is
+written as its rectangle from the frame, and its four walls answer
+`interior` without being measured.
+
+* What moved: 20 of 384 entries, all native, all in the last one or two
+  digits of the score (relative 1e-15); no fail list changed; 0 of 384 at a
+  relative tolerance of 1e-9.
+* What it saved: clips per score fell from 119 to 83 on harbor-house and 151
+  to 95 on maple-court, and the time did not move -- harbor-house 27.8 ->
+  27.7 ms, maple-court 40.9 -> 41.4, health-centre 17.4 -> 17.7,
+  programme-house 7.4 -> 7.5, all inside the repeatability of the timing.
+
+§39.105 priced this at "under 2%" and that is what it is: after the caches
+above, the crop and the wall test for a whole cell are too small a part of a
+score for skipping them to show, and the test that decides who may skip costs
+about what it saves. **Reverted, not landed** -- a change that moves scores,
+however slightly, has to buy something. The ruling stands for whatever needs
+it next; this did not.
+
+So a native score is at the quad tree's price and the remaining cost is not
+native's. What both trees pay now leads the profile: the graph copies inside
+`has_circulation` (8% of a harbor-house score), the repeated walks of
+`Node.leaves()` (6%), and the per-storey graph build. Work there makes every
+search faster and leaves the two trees level, which is the honest reading of
+"in principle it should be faster": the constraint makes native no dearer,
+and nothing measured here says it makes it cheaper.
