@@ -200,6 +200,23 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "never fired and would have replaced the staircase with "
                         "a room if it had. The A/B resolved nothing either way; "
                         "adopted on correctness (default: on)")
+    p.add_argument("--label-writeback", dest="label_writeback",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_LABEL_WRITEBACK", False),
+                   help="homemaker-py-urzf.1 (DESIGN.md §39.130): after each "
+                        "child is tuned, write the scorer's room labels back "
+                        "to it, so operators read the rooms that were scored "
+                        "and not the ones the child was bred with. The score "
+                        "does not move. Changes what a search does; the A/B "
+                        "has not been run (default: off)")
+    p.add_argument("--aim-undivide", dest="aim_undivide",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_AIM_UNDIVIDE", False),
+                   help="homemaker-py-iplo (DESIGN.md §39.123): half of "
+                        "undivide's draws remove a wall beside a cell that is "
+                        "FAILING, chosen from the parent's fail lines; the "
+                        "other half pick as before. Changes what a search "
+                        "does; the A/B has not been run (default: off)")
     p.add_argument("--seed-solver", dest="seed_solver",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_SEED_SOLVER", False),
@@ -218,6 +235,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "what holds it down. Changes what a search does; the "
                         "A/B that decides the default has not been run "
                         "(default: off)")
+    p.add_argument("--light-well", dest="light_well",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_LIGHT_WELL", False),
+                   help="homemaker-py-evxm: a move that cuts a well of outdoor "
+                        "space, open to the sky, beside a cell no daylight "
+                        "reaches -- the owner's alley (DESIGN.md §39.125). "
+                        "Changes what a search does; the A/B that decides it "
+                        "has not been run (default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
@@ -402,8 +427,14 @@ def main(argv=None) -> int:
     from . import operators
     os.environ["HOMEMAKER_CORE_UNDIVIDE_REPAIRED"] = "1" if args.core_undivide_repaired else "0"
     operators.CORE_UNDIVIDE_REPAIRED = bool(args.core_undivide_repaired)
+    # read by driver.search in every phase and by worker processes
+    os.environ["HOMEMAKER_LIGHT_WELL"] = "1" if args.light_well else "0"
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
     driver.SEED_SOLVER = bool(args.seed_solver)
+    os.environ["HOMEMAKER_LABEL_WRITEBACK"] = "1" if args.label_writeback else "0"
+    driver.LABEL_WRITEBACK = bool(args.label_writeback)
+    os.environ["HOMEMAKER_AIM_UNDIVIDE"] = "1" if args.aim_undivide else "0"
+    driver.AIM_UNDIVIDE = bool(args.aim_undivide)
 
     seed_file = args.seed_dom.resolve()
     if not seed_file.exists():
@@ -480,9 +511,12 @@ def main(argv=None) -> int:
     print(f"support outside    : {args.support_outside}", file=sys.stderr)
     print(f"level add+migrate  : {args.level_add_migrate}", file=sys.stderr)
     print(f"repair shaft       : {args.repair_shaft}", file=sys.stderr)
+    print(f"light well         : {args.light_well}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"seed solver        : {args.seed_solver}", file=sys.stderr)
+    print(f"label write-back   : {args.label_writeback}", file=sys.stderr)
+    print(f"aim undivide       : {args.aim_undivide}", file=sys.stderr)
     print(f"collapse in-search : {args.collapse_insearch}", file=sys.stderr)
     print(f"shapecurve warmstart : {args.shapecurve_warmstart}", file=sys.stderr)
     print(f"shapecurve prune     : {args.shapecurve_prune}", file=sys.stderr)

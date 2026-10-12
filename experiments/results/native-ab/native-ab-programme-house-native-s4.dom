@@ -1,0 +1,90 @@
+format: homemaker-dom
+version: 2
+frame:
+  u:
+  - 0.25246310202529687
+  - -0.9676065223611117
+plot:
+- - 1.67100188077385
+  - 11.9169190395339
+- - 8.72124918939699
+  - 13.7119442286569
+- - 6.79637028658874
+  - 21.3797854212389
+- - -0.42152047183069
+  - 19.9368564494913
+perimeter:
+- private
+- null
+- null
+- null
+wall_inner: 0.08
+wall_outer: 0.25
+storeys:
+- elevation: 0.0
+  height: 3.0
+  tree:
+    cut: u
+    at: 0.5003839745
+    low:
+      cut: v
+      at: 0.3215103656
+      low:
+        cut: u
+        at: 0.4216241783
+        low:
+          cell: t3
+        high:
+          cell: C
+      high:
+        cell: l1
+    high:
+      cut: v
+      at: 0.7692873724
+      low:
+        cut: v
+        at: 0.6173116457
+        low:
+          cut: v
+          at: 0.1083476644
+          low:
+            cell: O
+          high:
+            cut: v
+            at: 0.514785294
+            low:
+              cell: O
+            high:
+              cell: O
+        high:
+          cell: E
+      high:
+        cell: t2
+- height: 3.0
+  tree:
+    low:
+      low:
+        cell: O
+      high:
+        cell: b1
+    high:
+      low:
+        low:
+          low:
+            cut: v
+            at: 0.480851221
+            low:
+              cut: u
+              at: 0.5009306703
+              low:
+                cell: b1
+              high:
+                cell: t2
+            high:
+              cell: O
+          high:
+            cell: b2
+        high:
+          cell: E
+      high:
+        cell: t1

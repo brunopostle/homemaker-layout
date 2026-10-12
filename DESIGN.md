@@ -16271,3 +16271,432 @@ the answer. And on the order of the merge: "land all six first" --
 `storey-height`; full suite green on it), relabels the staircases of the
 designs the queue has written since, and only then runs the seed-solver A/B,
 at the objective with `E` in it.
+
+### 39.131 A light well: every one the move is willing to cut leaves fewer fails, and it is willing to cut few (`homemaker-py-evxm`)
+
+(§39.130 is reserved for the label write-back, `homemaker-py-urzf.1`, whose
+measurement was still running.)
+
+The first of five pieces of work the owner asked for while the A/B queues
+run ("create beads for all of these and try them in order", 2026-10-09).
+
+**Why this one first.** Crinkliness is about 45% of all fails. A taller
+storey was the previous idea for it (§39.128), and the day it was built the
+twelve `1a24b6a+orth` designs were re-scored with every storey at a fixed
+height, walls untouched:
+
+| daylight fails, three designs each | 3.0 m | 3.3 m | 3.6 m | 4.0 m |
+|---|---|---|---|---|
+| programme-house | 0 | 0 | 0 | 0 |
+| health-centre | 4 | 4 | 4 | 4 |
+| harbor-house | 37 | 34 | 32 | 32 |
+| maple-court | 83 | 83 | 83 | 81 |
+
+In evolved designs the cells that fail daylight are BURIED -- no wall of
+theirs sees a street or open sky -- and no ceiling repairs that. The owner's
+hand design gained five of twelve from height because a person puts rooms on
+the street; and the owner's own suggestion for the rest was an alley
+(§39.125). This is the alley as a move.
+
+**The move.** `operators.mutate_light_well`, branch `light-well` (off
+`trial-merge`), default OFF, `--light-well`, `flag_ab.py well`. A strip
+2.7 m wide is sliced off a room that has no lit wall, and off the cell at
+the same address on every storey above -- a well is open to the sky or it is
+a loggia. `repair_shaft`'s machinery, with `O` where that puts `E`.
+
+**Five rules, each from looking at what the first version broke.** The first
+version made designs much worse (health-centre 4 fails -> 10), and the fail
+lists said why:
+
+1. *Rooms only.* A buried corridor is what a corridor is; a strip out of one
+   parts it: two `inaccessible usable space` and an `access` per room beyond.
+2. *The room keeps its door, and the well has a way in.* Of the two ways to
+   slice and two sides to put the well, only those that leave the room a wall
+   onto circulation; and the well must touch circulation, or be cut from a
+   living room or kitchen. Four of eight wells on maple-court had no way in.
+3. *Nobody else loses theirs.* The scorer's connectivity test
+   (`graph.storey_graphs`) is run before and after; a well that parts any
+   storey is not cut. (A room upstairs reached only through the cell that was
+   cut.)
+4. *No storey is divided to reach the address.* `_open_address` would do it,
+   and the cells it makes are narrow and buried themselves: on harbor-house,
+   twenty new daylight fails for twenty-seven cleared. §39.75's lesson again.
+5. *The axis is written at the foot of the below-stack*, where the engine
+   reads an upper storey's (§39.70), and the strip's width is measured off a
+   trial cut. Computed from the node's own edges it was the wrong way round
+   and 2.0 m wide on any storey above the ground.
+
+**What it does** (`experiments/diag_evxm_light_well.py`: the six large
+`1a24b6a+orth` designs, the move, then tuned as a child by
+`driver._evaluate`, against the parent re-tuned for as long):
+
+| design | cell | storeys cut | fails, re-tuned parent -> with the well | daylight |
+|---|---|---|---|---|
+| harbor-house s1 | 0/llrl | 1 | 32 -> 31 | 15 -> 14 |
+| maple-court s1 | 1/rllrr | 1 | 53 -> 52 | 28 -> 28 |
+| maple-court s1 | 1/rlrrr | 2 | 53 -> 52 | 28 -> 27 |
+| maple-court s2 | 1/lrlrlr | 1 | 47 -> 46 | 27 -> 26 |
+| maple-court s2 | 0/lrlrr | 3 | 47 -> 44 | 27 -> 25 |
+
+- **Five distinct wells, all five better, none worse**, at 80 evaluations
+  and unchanged at 400. The tool's paired report says 12 of 12, p=0.0001;
+  that is the same five drawn more than once (four draws per design, and one
+  design offers a single cell), so the honest count is five, on three
+  designs. A sign test on five is p=0.06.
+- **The expectation recorded before the run was half wrong.** It said
+  daylight fails would fall and TOTAL fails would not, the well costing its
+  room a size fail as the alley on the owner's drawing did. Total fails fell
+  on all five: with rule 2 choosing the slice, `size` does not move (5.67 ->
+  5.50 a design). One well clears a fail without clearing a daylight fail
+  at all -- it gives a storey the outdoor space it lacked.
+- **It is narrow.** health-centre: no buried ROOM at all (its buried cells
+  are corridors). programme-house: nothing buried. harbor-house: one design
+  in three offers a cell; most of its buried rooms sit under a merged storey
+  (rule 4). The three designs that offer anything carry seventy daylight
+  fails between them, and the move reaches five cells.
+
+**What that means.** As guarded, the move is safe to play -- it has yet to
+make a design worse -- and small: a fail or two on the designs it applies
+to. The room to grow is rule 4. A well under a merged storey needs that
+storey opened WITHOUT minting buried slivers, which is a better
+`_open_address`, not a looser guard. And a search is not the corpus: early
+and mid-run designs have more buried rooms and fewer merged storeys.
+
+**Needs the box:** `flag_ab.py well`. Expectation, recorded now: on
+programme-house no difference at all (the move never applies; the draws are
+re-tunes). On maple-court and harbor-house fewer `crinkliness` fails, by one
+or two a design, and no more `inaccessible usable space` than the control.
+
+### 39.130 The scorer's labels, written back: `place_missing` stops cutting cells nobody asked for (`homemaker-py-urzf.1`)
+
+(Numbered before §39.131 and written after it.) The second of the five.
+
+§39.120 found `place_missing` applying on parents whose fail list named no
+missing room -- 2,089 of 2,095 applied draws on programme-house, a tenth of
+all children, 99.7% of them worse than their parent -- and traced it to two
+counts of one thing: the scorer relabels cells to rooms before it counts
+(`collapse_insearch`), on its own copy, and the operator counts the labels
+the tree was bred with.
+
+**How wide the gap is** (`experiments/diag_urzf1_labels.py`, branch
+`scorer-labels`: a real 14,000-evaluation programme-house search, every
+individual compared with what its scorer scored; 175 individuals):
+
+| | |
+|---|---|
+| cells the scorer relabels | 600 of 1,952 (31%) |
+| individuals with at least one relabelled cell | 175 of 175 |
+| a room MISSING by the stored labels | 135 of 175 (77%) |
+| ...and present to the scorer | 127 of 175 (73%) |
+| the relabelled tree scores exactly what the individual scored | 175 of 175 |
+
+So the stored labels are not a slightly stale copy of the scored ones; a
+third of them are different, on every individual, and three individuals in
+four look to `place_missing` like a design with a room to add. The last row
+is what makes the repair simple: the collapse of a collapsed tree is the
+same tree, so the labels can be written back without moving a score.
+
+**The repair.** `driver.LABEL_WRITEBACK` (`--label-writeback`,
+`HOMEMAKER_LABEL_WRITEBACK`, default OFF, in `search_config`): after the
+inner loop, the scorer's labels are written to the tree it tuned, as the
+ratios already are. Not a patch to `place_missing`: every operator that
+reads a label then reads what was scored. `flag_ab.py labels` is the paired
+run.
+
+**Whether it works** -- two recorded command-line runs, programme-house,
+30,000 evaluations, seed 104, 544 children each:
+
+| `place_missing` draws | as bred | labels written back |
+|---|---|---|
+| applied, parent's fail list names a missing room | 7 | 2 |
+| applied, nothing missing | 48 | 0 |
+| declined, nothing missing | 3 | 56 |
+
+It does: 48 misfires to none, and the move declines when the required set
+is complete, which is what its weight of 2.0 was justified by ("it noops
+cheaply once the required set is complete"). Both runs ended at 2 fails;
+one seed, and nothing is claimed from that.
+
+**One thing a quick check got wrong on the way.** A 12,000-evaluation
+search called through `driver.search` directly showed the move applying
+once in 14 draws WITHOUT the repair, as if there were nothing to fix. The
+command-line run is a different search in its seeding and phases and
+reproduces §39.120's figure (48 of 58). The measurement that found a defect
+is the one to re-run to see it gone.
+
+**What it changes besides.** The freed draws become declined draws, which
+is to say re-tunes (§39.120: the search's most reliably useful draw, and a
+quarter of them already). And every other label-reading operator --
+`retype`, `level_retype`, `level_fix`, `swap`'s effect on adjacency -- now
+starts from the scored rooms. That is the reason it is an A/B and not a
+patch. **Expectation, recorded now:** on programme-house no resolved
+difference in fails (§39.120's expectation, unchanged); on harbor-house the
+misfire was a useful `divide` early on (kept one time in five), so the
+flagged arm may be slower to start there.
+
+### 39.132 The other three of the five: an aim that does nothing to a finished design, briefs drafted, and the hand design beside twelve evolved ones (`homemaker-py-iplo`, `5nw`, `2g7.1`)
+
+**Fourth: `undivide` aimed at a failing cell** (`homemaker-py-iplo`, branch
+`targeted-undivide`, default OFF, `--aim-undivide`, `flag_ab.py aim`). Given
+its parent's fail lines, half of `undivide`'s draws choose among the cuts
+beside a failing cell (`operators.AIM_SHARE`); without them it is the move it
+was and draws nothing more from the random stream. §39.123 was
+observational, so `experiments/diag_iplo_aim_undivide.py` draws both
+deliberately: the 41 finished programme-house designs of the `child20` A/B
+that carry a fail naming a cell, 8 draws an arm, each child tuned as the
+search tunes one and judged against its re-tuned parent.
+
+| arm | children | fewer fails | more fails | beat parent |
+|---|---|---|---|---|
+| random | 328 | 0 | 86.3% | 1.8% |
+| aimed | 328 (264 actually aimed) | 0 | 74.7% | 3.7% |
+
+Not one fail removed by either. That is §39.124 again -- a design the search
+has finished with is a local optimum, and one more `undivide` does not shift
+it wherever it lands -- and it is NOT a test of §39.123, whose effect was in
+live runs and mostly on parents with three fails or more (16% against 9% at
+6+; 2.4% against 0 at 1-2). What the aim does here is less harm: fewer
+children end with more fails. The check on mid-run parents (twelve short
+searches' designs) was running as this was written and belongs on the bead.
+
+**Third: the brief fixes** (`homemaker-py-5nw`, branch `brief-fixes`), to
+land with the re-baseline and not before:
+
+- harbor-house loses `ef1` (§39.125); `HAND-BRIEF.md` follows (820 m2 of
+  rooms, the cap about 985, rule 5 reworded), and the lobby in `hand2a.svg`
+  is labelled `C`;
+- maple-court has the same foyer room and loses it too -- the owner ruled on
+  harbor-house only, so this is put to the owner;
+- maple-court gains `tn`, four Neighborhood Bathrooms on level 1 (6 m2,
+  beside circulation and a neighbourhood), mirroring the four on level 2 --
+  the count is a draft;
+- health-centre gains `t11`, a Treatment Room WC (3 m2, declared beside
+  `tr1` alone: it is reached through the room it serves, §38.14).
+
+`audit_programme_config.py` is clean. Five tests fail on the branch and are
+meant to: the committed designs contain an `ef1` cell the programme no
+longer declares (`rooms_export`, `roofs`, four tests) and one ordering test
+reads the old corpus. A brief and its corpus land together (§39.115).
+
+**Fifth: the hand design beside the evolved ones** (`homemaker-py-2g7.1`).
+On the merged tree (`E` stairs, the terrace at 120, harbor-house's brief
+still with its foyer): the owner's `hand2a` drawing, composed and given the
+4,000 walls-only evaluations any design starts from, and the twelve
+harbor-house designs of the last four sweeps, each then given the SAME 4,000
+more, twice (`diag_y4p42_heights.py`).
+
+| after 4,000 more evaluations | hand | evolved, mean of 12 | evolved, range |
+|---|---|---|---|
+| walls only | 30 | 28.2 | 24-35 |
+| walls and storey heights (probe first) | 25 | 26.2 | 20-33 |
+
+- **The hand design is an ordinary member of the corpus.** Two fails
+  above the mean one way, one below it the other; five of the twelve
+  evolved designs match or beat it with heights tuned. A first drawing, by
+  the owner's account unfinished, stands where 500,000 evaluations stand.
+- **What each fails is not the same** (walls and heights arm, fails per
+  design):
+
+  | family | hand | evolved mean |
+  |---|---|---|
+  | crinkliness | 7 | 12.2 |
+  | size | 0 | 2.8 |
+  | proportion | 0 | 2.4 |
+  | circulation `not connected`, either storey | 0 | 1.3 |
+  | too few stairs | 0 | 0.7 |
+  | not adjacent to outdoor space | 3 | 0.2 |
+  | not adjacent to a neighbourhood (bathrooms) | 3 | 1.2 |
+  | width | 3 | 1.1 |
+  | no outdoor space on a storey | 1 | 0 |
+  | a room on the wrong storey | 1 | 0 |
+
+  The person gets right what the search finds hardest -- rooms the right
+  size and shape, daylight, a connected plan, two staircases -- and misses
+  what a checklist would catch: three rooms that want a garden door, three
+  bathrooms away from their neighbourhood, a terrace, one room upstairs.
+  The search is the other way round. That is an argument for the two
+  together: a drawn plan as a SEED (`homemaker-py-2g7`'s original purpose).
+- **Storey height helps the evolved designs more than §39.131's table
+  said.** That table held the walls still: 37 daylight fails to 32 over
+  three designs. Tuned together, eight of the twelve lose fails to height
+  (two a design on average, as many as five) -- and the heights they choose
+  are 3.5 to 5.1 m. So the tempered expectation for the `heights` A/B was
+  too tempered, and the owner should see the second number: nothing in the
+  objective minds a 5 m storey but the cost of its walls.
+
+**Rulings on the above, the same day (owner, 2026-10-10).**
+
+- *The foyer:* "we should lose the foyer room if it isn't needed for the
+  model to work." It is not -- the way in is a ground-floor `C` on a street
+  side -- so maple-court loses `ef1` as harbor-house does.
+- *maple-court:* "entirely LLM generated so you are free to play with it as
+  you see fit." Four bathrooms on level 1 stand. Its brief is not evidence
+  of anything an architect wanted, which is worth remembering when its fail
+  counts are read.
+- *health-centre:* a WC reached through the treatment room is right.
+- *Storey height:* "5.1 m is unrealistic for domestic construction, but
+  normal for public buildings, in addition to wall cost it should require
+  much larger stair cores, let's leave it without a cap for now and maybe
+  introduce one later." No cap. And the stair is already charged for it:
+  `_stair_fit` counts risers from the storey's height, so a core that fits a
+  3.0 m storey exactly (1.03) is 0.91 of what 3.6 m needs, 0.85 at 4.2 m and
+  0.71 at 5.1 m -- measured on a corpus design, walls untouched. It lowers
+  the stair factor and does not by itself fail until the core is far too
+  small; whether that is charge enough is the "maybe later".
+
+### 39.133 The shaft repair earns its place: without it eight of 36 searches end with no staircase (`homemaker-py-t7q`)
+
+The A/B the bead has owed since §39.75: `flag_ab.py t7q`, programme-house,
+36 paired seeds at 500k, objective `64512f1+orth`. `repair` is the default
+search; `norepair` is the same search with `--no-repair-shaft`, which takes
+`mutate_repair_shaft` out of the mix. The `repair` arm is the fourth copy of
+the same 36 runs (§39.129): score and fail list match child20's control on
+36 of 36.
+
+| | repair (default) | norepair | paired difference | resolves? |
+|---|---|---|---|---|
+| fails | 0.67 | 1.17 | -0.50, CI [-0.90, -0.10], p 0.016 | yes (MDD 0.40) |
+| hard fails | 0.08 | 0.36 | -0.28, CI [-0.53, -0.03], p 0.031 | yes (MDD 0.25) |
+| score | 0.30 | 0.19 | +0.110, CI [+0.038, +0.182], p 0.004 | yes (MDD 0.072) |
+| time | 9134 s | 8910 s | +224 s | no (MDD 256 s) |
+| runs with no fails | 15 | 8 | | |
+| `staircase volume` | 0 | 8 | 8 discordant, all one way (sign test p 0.008) | yes |
+| `too few stairs` | 0 | 3 | 3 discordant, all one way | no, too few |
+
+**Against the expectation recorded on the bead before the run.**
+
+- *More runs end without a stair when the repair is off:* right, and by more
+  than expected. Eight of 36 against none.
+- *"There will be fewer than 6 discordant pairs, so it must be reported as
+  unresolvable":* wrong. Eight pairs, every one in the same direction.
+- *"Fails, hard fails and score: no resolved difference on programme-house":*
+  wrong. All three resolve.
+- *With the repair on, `staircase volume` in 2-5 runs of 36* (what the older
+  `59d8aa1` arms showed): it is 0 of 36 at today's search.
+
+**The whole margin is those eight runs.** They score 0.002-0.018 where their
+partners score 0.18-0.49 -- the x0.0225 of §39.72. Leave those eight seeds
+out and the other 28 pairs differ by -0.29 fails (sd 1.08) and +0.053 score
+(sd 0.20), neither of which 28 pairs can tell from zero. So the operator does
+one thing: it stops a search from finishing stairless. It does not otherwise
+change what the search finds, and it is not measurably slower.
+
+**What this settles.** `mutate_repair_shaft` stays on. §39.75 turned it on
+from a census of what it does to a damaged child; this is the missing half,
+that the search keeps what it produces. The bead's remaining question --
+guard the six exploratory operators that break shafts instead -- is not
+answered here and is no longer urgent, since with the repair on no run of 36
+ended stairless.
+
+**What it does not say.** One programme, which asks for one stair, at the
+search before `E` (§39.127). After queue 3 a stair is a labelled cell and the
+repair cuts an `E` column; the 36 seed-solver controls there are the check
+that the default still ends with a stair every time.
+
+### 39.134 `--level-add-migrate` makes three-storey houses and worse ones; it stays off (`homemaker-py-v2k`)
+
+The A/B the bead owed: `v2k` in the flag A/B tool, programme-house, 36
+seeds at 500k, objective `64512f1+orth`. `shipped` is the default search;
+`migrate` adds `--level-add-migrate`. Only the `migrate` arm was run: the
+`shipped` rows are child20's control, copied (§39.129), so **elapsed time is
+not paired here and is not read**.
+
+| | shipped (default) | migrate | paired difference | resolves? |
+|---|---|---|---|---|
+| fails | 0.67 | 0.97 | -0.31, CI [-0.62, +0.01], p 0.054 | no (MDD 0.31) |
+| hard fails | 0.08 | 0.17 | -0.08 | no (MDD 0.19) |
+| score | 0.30 | 0.20 | +0.097, CI [+0.031, +0.164], p 0.006 | yes (MDD 0.067) |
+| runs with no fails | 15 | 7 | | |
+| runs ending at three storeys | 0 | 7 | | |
+| `staircase volume` | 0 | 3 | 3 discordant, all one way | no, too few |
+
+**Against the expectation recorded on the bead before the run.**
+
+- *More runs end at three storeys:* right, 7 of 36 against none.
+- *"Fails and score: no resolved difference":* half wrong. Fails do not
+  resolve, by a hair; score does, and against the flag.
+- *"A resolved RISE in the stair fails would be a defect in its shaft
+  guard":* not resolved -- three runs -- so this A/B does not show a defect.
+  But all three go one way, and two of them are among the seven three-storey
+  runs. That is worth a census (`diag_v2k_migrate.py --from-broken` on
+  three-storey children) before anyone turns the flag on anywhere.
+
+**It is not only the stairs.** Leave the three stairless seeds out and the
+other 33 pairs still differ by +0.081 score (sd 0.20, t 2.4). And it is not
+only the third storey: the 29 `migrate` runs that end at two storeys average
+0.21 against their partners' 0.31. So offering the move costs the search
+even where it does not keep the result -- draws spent on a storey this
+programme does not need, which is what the expectation said in other words
+("little left for a third storey to fix") without following it through.
+
+**What this settles.** `--level-add-migrate` stays off by default. It was
+built to reach a terrace fail that has since become rare (§39.111); on
+programme-house it has nothing to buy. Whether it earns a place on a
+programme that needs more storeys than its seed has is a different A/B, on a
+different programme, after `E` (§39.127) -- where the migration would have to
+carry an `E` column up, which is the same guard this run leaves in doubt.
+
+### 39.135 `--native` finds the same houses and takes a sixth longer; and the ten branches land (`homemaker-py-8b2u.8`)
+
+The A/B the bead owed, finished at the second attempt (the first died after
+six pairs, §39.129): `native` in the flag A/B tool, programme-house, 36
+seeds at 500k. `quad` is the default search at `64512f1+orth`; `native` is
+the same search over the rectangle-frame tree (§39.104), `64512f1+native`.
+
+| | quad (default) | native | paired difference | resolves? |
+|---|---|---|---|---|
+| fails | 0.67 | 0.72 | -0.06, CI [-0.36, +0.25] | no (MDD 0.30) |
+| hard fails | 0.08 | 0.22 | -0.14, CI [-0.36, +0.08] | no (MDD 0.22) |
+| score | 0.30 | 0.27 | +0.031, CI [-0.039, +0.101] | no (MDD 0.070) |
+| time | 8769 s | 10178 s | native slower by 1408 s, 34 of 36 pairs | yes (MDD 307 s) |
+| `staircase volume` | 0 | 2 | 2 discordant | no, too few |
+
+**Against the expectation on the bead:** "no resolved difference on
+programme-house" -- right for every measure of the result. The time was not
+predicted there but was priced beforehand: §39.105 measured a native score at
+13-17% dearer than a quad one, and the runs are 16% longer.
+
+**What this settles, and what it does not.** On this programme the native
+tree buys nothing and costs a sixth of the box, so `--native` does not
+become the default on this evidence. The expectation's second half -- "if
+anything differs it will be on the large programmes, where more cells touch
+the skew boundary" -- is untested, and that is where the native tree's
+actual advantages lie (any plot, odd and empty cells). The bead's "then the
+full 12-run sweep if it holds" is the open step; it holds, in the sense that
+nothing broke, so the sweep is a question of box time for the owner.
+
+**The merge.** Queue 3 landed ten branches on main at 2026-10-12 08:03
+(`ffe4bc3`): `E` for stairs, storey heights, the terrace at 120, the move
+recorder with ancestry, the seed solver, the composer fixes, the repaired
+`core_undivide` as default, the light well, label write-back and the aimed
+`undivide`. The objective is `9533b38+orth`, the search `0fd7d88`. The 220
+designs written since the first relabelling were relabelled too: 602 scores
+re-taken, none moved. Every A/B section before this one was measured at
+`64512f1+orth`, where a stair was an inferred `C` column.
+
+It landed at the second attempt. The first stopped itself, main untouched,
+on one failing test of 861: a fixture that took "the first leaf that is not
+`C`, `O` or `S`" as a room, which after relabelling was a stair. The
+rehearsal had passed because it ran before those 220 designs were
+relabelled -- **a rehearsal of a merge that rewrites data has to rewrite the
+data too.** Two fixtures now ask `dom.GENERIC_TYPES`.
+
+Two stalls cost the box sixteen idle hours between them, both from the queue
+scripts rather than the runs: a script edited after it had started (bash
+reads a running script by offset; it died three days later, the moment its
+wait ended), and this failed test at 06:00 with nobody watching. A queue
+that stops safely still stops.
+
+**Ruling on the above (owner, 2026-10-12).** "We need to switch to native
+sooner or later, and in principle it should be faster because the orthogonal
+direction is constrained." So the question is not whether `--native` becomes
+the default but what stands in the way, and the 16% is the first thing. It is
+the implementation's and not the representation's: one programme-house
+design scored both ways (same score, 0.1820) costs 8.3 ms as a quad tree and
+9.6 ms native, and the native profile is led by `geometry._dist` under
+`boundary_id` -- about 145 distance calls per cell per score -- then
+`cells.clip` and `geometry.polygon`. That is the general-polygon route: it
+finds out which wall is which by measuring, for cells that are rectangles on
+one frame and could be told. Only a cell the plot boundary actually crops
+needs it. One design, one timing; `homemaker-py-8b2u.22` is the work, with
+`diag_8b2u_score_cost.py --snapshot/--diff` as the bit-for-bit check.

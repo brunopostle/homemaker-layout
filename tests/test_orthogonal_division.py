@@ -176,7 +176,7 @@ def _conf(**overrides):
 def _a_room():
     root = dom_mod.load(str(next(_artefacts())))
     return next(l for lvl in dom_mod.levels(root) for l in lvl.leaves()
-                if l.type not in ("C", "O", "S"))
+                if l.type not in dom_mod.GENERIC_TYPES)
 
 
 def test_perpendicular_is_retired_by_default():

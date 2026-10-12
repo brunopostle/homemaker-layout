@@ -67,6 +67,12 @@ index is how to get from a question to the section that answers it.
 | §39.126-§39.127 | Ancestry in the move recorder (and why recordings stay text); `E` built on a branch -- 1,002 scores unmoved by relabelling, 426 designs rewritten, a new `mutate_stair` whose first census caught it removing the only staircase. |
 | §39.128 | Storey height tuned by the search (branch, default off): the variable alone moves nothing, a jump move does -- the hand design goes 31 -> 26 fails at 3.6 / 3.6 / 2.7 m. |
 | §39.129 | `w4e`: the repaired `core_undivide` resolves nothing either way. And the queue's control arms are byte-identical from one A/B to the next -- half of each run re-derives a table that exists. |
+| §39.130 | The scorer relabels a third of all cells on its own copy; written back (branch, default off), `place_missing` goes from 48 misfires in 58 draws to none, and no score moves. |
+| §39.131 | A light-well move (branch, default off): on evolved designs daylight fails are buried cells, which height does not reach; every well the guarded move cuts leaves fewer fails (5 of 5), and it finds few to cut. (§39.130 is reserved.) |
+| §39.132 | The other three of five: an aimed `undivide` removes no fail from a finished design (mid-run parents pending); brief fixes drafted; the owner's hand design is an ordinary member of the evolved corpus (25 fails against a mean of 26.2) and fails different things. |
+| §39.133 | `t7q`: with `mutate_repair_shaft` off, 8 of 36 searches end with no staircase against none with it on; fails, hard fails and score all resolve, and the whole margin is those eight runs. The repair stays on. |
+| §39.134 | `v2k`: `--level-add-migrate` ends 7 of 36 runs at three storeys and scores lower (resolved), fails not resolved; three stairless runs leave its shaft guard in doubt. Stays off. |
+| §39.135 | `native`: no resolved difference in fails or score on programme-house, 16% slower (resolved). Not the default on this evidence; large programmes untested. And the ten held branches land: objective `9533b38+orth`. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -96,6 +102,8 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A stair is a cell labelled `E` (escalier), a fourth generic type beside `C`/`O`/`S` -- no longer inferred from a `C` cell stacked on every storey. `E` is circulation; a stacked `C` is no longer a stair anywhere; a shaft may stop below the top; an `E` shaft joins the storeys it serves | §39.125 |
 | An entrance foyer is "simply a circulation space that has street access": the brief changes, not the rule | §39.125 |
 | A room's depth limit is "only a limit for low ceilings": the daylight threshold stands and the search may raise a storey's height (3.3 m is not unusual for a ground floor) | §39.125 |
+| A storey's height has a floor of 2.7 m and NO cap, "for now": 5 m is unrealistic for a house and normal for a public building; a taller storey already needs a longer stair | §39.125, §39.132 |
+| maple-court's brief is LLM-generated and may be changed freely; an entrance-foyer ROOM goes wherever the model does not need it | §39.132 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -135,7 +143,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (234 of them, 16273 lines)
+## Every section of DESIGN.md (240 of them, 16702 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -420,4 +428,10 @@ below are the most recent work.
 - §39.126 · 16026-16046 · The recorder names a child's parents; and why the recordings stay text files (`homemaker-py-urzf`)
 - §39.127 · 16047-16135 · `E` built: no committed score moves, and the first census caught the new move (`homemaker-py-y4p4.1`)
 - §39.128 · 16136-16211 · Storey height as something the search tunes: the variable alone does nothing, the jump does (`homemaker-py-y4p4.2`)
-- §39.129 · 16212-16273 · `w4e`: the repaired `core_undivide` changes nothing a search can show -- and every A/B in the queue has been re-running the same control (`homemaker-py-w4e`)
+- §39.129 · 16212-16274 · `w4e`: the repaired `core_undivide` changes nothing a search can show -- and every A/B in the queue has been re-running the same control (`homemaker-py-w4e`)
+- §39.131 · 16275-16369 · A light well: every one the move is willing to cut leaves fewer fails, and it is willing to cut few (`homemaker-py-evxm`)
+- §39.130 · 16370-16436 · The scorer's labels, written back: `place_missing` stops cutting cells nobody asked for (`homemaker-py-urzf.1`)
+- §39.132 · 16437-16546 · The other three of the five: an aim that does nothing to a finished design, briefs drafted, and the hand design beside twelve evolved ones (`homemaker-py-iplo`, `5nw`, `2g7.1`)
+- §39.133 · 16547-16595 · The shaft repair earns its place: without it eight of 36 searches end with no staircase (`homemaker-py-t7q`)
+- §39.134 · 16596-16638 · `--level-add-migrate` makes three-storey houses and worse ones; it stays off (`homemaker-py-v2k`)
+- §39.135 · 16639-16702 · `--native` finds the same houses and takes a sixth longer; and the ten branches land (`homemaker-py-8b2u.8`)
