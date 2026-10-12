@@ -16700,3 +16700,85 @@ finds out which wall is which by measuring, for cells that are rectangles on
 one frame and could be told. Only a cell the plot boundary actually crops
 needs it. One design, one timing; `homemaker-py-8b2u.22` is the work, with
 `diag_8b2u_score_cost.py --snapshot/--diff` as the bit-for-bit check.
+
+### 39.136 A native score at the quad tree's price, bit for bit; and a test that would have stopped queue 4 (`homemaker-py-8b2u.22`, `5nw`)
+
+§39.135's ruling asked what stands between `--native` and the default, and
+named the 16% first. This is the part of it that can be had without moving a
+score. Branch `native-fast` (worktree `../hm-fast`), not on main: it edits
+`geometry.py`, an objective source, so it lands at a queue boundary.
+
+**The profile, on a large design this time.** harbor-house, 60 cells, native:
+`geometry.area` was 15% of a score, `boundary_id` 14%, `centroid` 7%. None of
+the three was cached. A cell's area was computed 430 times a score for 119
+cells; every wall was asked which plot side it lies on twice; and each of
+those asks measured the wall's midpoint against EVERY side of the plot with
+three square roots.
+
+**Three changes, all in `geometry.py`:**
+
+* `area` is kept in the geometry cache, for both trees -- the quad tree's
+  two Heron triangles were recomputed on every call as well;
+* a native cell's `boundary_id` and `centroid` are kept likewise;
+* `_native_boundary_id` skips a plot side the wall is nowhere near. The test
+  it skips asks whether the midpoint's distances to the side's two ends sum
+  to the side's length within 1e-7. At distance d from the side's line that
+  sum is at least sqrt(L^2 + 4d^2), so beyond the d at which that exceeds L
+  by 1e-6 the test cannot pass; one dot product says so. The margin is ten
+  times the test's own tolerance, so the answer is the same answer, not a
+  nearby one.
+
+The cache is the one `coordinate` and `polygon` already live in, cleared by
+the same `clear_cache()`, so the new entries are stale exactly when the
+corners they were computed from are.
+
+**The check** (§39.80's, `diag_8b2u_score_cost.py`): 384 entries -- every
+orthogonal artefact's score and fail list, quad and native -- snapshotted
+before and after: **0 of 384 moved, bit for bit.** The tool's control (one cut
+moved 1%) moved 384 of 384. So the stamp will move when this lands and the
+objective will not.
+
+**The cost**, CPU ms per score, fastest of nine, two designs a programme,
+with the seed-solver A/B on every core:
+
+| programme | cells | quad before | quad after | native before | native after | native / quad |
+|---|---|---|---|---|---|---|
+| programme-house | 11 | 7.3 | 6.9 | 8.1 | 7.4 | 1.10 -> 1.07 |
+| health-centre | 34 | 19.7 | 18.4 | 21.6 | 17.4 | 1.10 -> 0.95 |
+| harbor-house | 60 | 30.4 | 28.0 | 34.5 | 27.8 | 1.13 -> 0.99 |
+| maple-court | 75 | 44.2 | 41.5 | 49.8 | 40.9 | 1.13 -> 0.99 |
+
+A native score is 9-19% cheaper than it was and the default search's is 5-7%
+cheaper. On the three large programmes native is now level with the quad
+tree or just under it; on programme-house, where the A/B was run and nearly
+every cell touches the plot (so nearly every wall still takes the full
+test), it is 7% dearer rather than 10%. Differences of a point or two between
+columns are inside the timing's repeatability on a loaded box.
+
+**What is left, and why it was not taken.** `cells.clip` and
+`cells.shared_wall` are about 5% of a native score each. Both could be read
+off frame coordinates for a cell the plot does not crop, and neither would be
+bit-exact -- §39.105 declined the first for that reason and the reason
+stands. Making native clearly FASTER than quad, rather than level, means
+either accepting a tolerance on the objective (an owner's ruling, not a
+measurement) or restructuring what both trees share: the walk of
+`Node.leaves()` (4,500 calls a score on harbor-house) and the networkx graph
+copies are now larger than anything native-specific.
+
+**A queue that would have stopped.** Queue 4 lands the brief fixes
+(`homemaker-py-5nw`) behind a test gate. A rehearsal of that merge on today's
+main: 860 passed, 1 failed --
+`test_control_urbs_trim_does_depend_on_listing_order`, the negative control
+of §39.100. It restores Urb's circulation trim and requires the fail count
+of one harbor-house design to wobble with listing order; with that design's
+foyer cell read as circulation, it no longer does. Every orthogonal artefact
+was then searched under the new briefs, with stairs joining storeys and not:
+**none wobbles.** So the control now scores a copy of that design and the
+brief it was evolved under (`tests/data/listing-order/`), and the real test
+-- listing order decides no fail -- holds on both. On branch `brief-fixes`
+(`b81582f`), which is the ref queue 4 merges.
+
+The lesson is §39.135's again, from the other side: that rehearsal existed
+and had been run, and its one failure was sitting in a log. **A negative
+control pinned to a live design is pinned to the brief too**; one that needs a
+particular defect to show should carry its own data.
