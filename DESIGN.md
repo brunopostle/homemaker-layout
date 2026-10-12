@@ -16635,3 +16635,54 @@ programme-house it has nothing to buy. Whether it earns a place on a
 programme that needs more storeys than its seed has is a different A/B, on a
 different programme, after `E` (§39.127) -- where the migration would have to
 carry an `E` column up, which is the same guard this run leaves in doubt.
+
+### 39.135 `--native` finds the same houses and takes a sixth longer; and the ten branches land (`homemaker-py-8b2u.8`)
+
+The A/B the bead owed, finished at the second attempt (the first died after
+six pairs, §39.129): `native` in the flag A/B tool, programme-house, 36
+seeds at 500k. `quad` is the default search at `64512f1+orth`; `native` is
+the same search over the rectangle-frame tree (§39.104), `64512f1+native`.
+
+| | quad (default) | native | paired difference | resolves? |
+|---|---|---|---|---|
+| fails | 0.67 | 0.72 | -0.06, CI [-0.36, +0.25] | no (MDD 0.30) |
+| hard fails | 0.08 | 0.22 | -0.14, CI [-0.36, +0.08] | no (MDD 0.22) |
+| score | 0.30 | 0.27 | +0.031, CI [-0.039, +0.101] | no (MDD 0.070) |
+| time | 8769 s | 10178 s | native slower by 1408 s, 34 of 36 pairs | yes (MDD 307 s) |
+| `staircase volume` | 0 | 2 | 2 discordant | no, too few |
+
+**Against the expectation on the bead:** "no resolved difference on
+programme-house" -- right for every measure of the result. The time was not
+predicted there but was priced beforehand: §39.105 measured a native score at
+13-17% dearer than a quad one, and the runs are 16% longer.
+
+**What this settles, and what it does not.** On this programme the native
+tree buys nothing and costs a sixth of the box, so `--native` does not
+become the default on this evidence. The expectation's second half -- "if
+anything differs it will be on the large programmes, where more cells touch
+the skew boundary" -- is untested, and that is where the native tree's
+actual advantages lie (any plot, odd and empty cells). The bead's "then the
+full 12-run sweep if it holds" is the open step; it holds, in the sense that
+nothing broke, so the sweep is a question of box time for the owner.
+
+**The merge.** Queue 3 landed ten branches on main at 2026-10-12 08:03
+(`ffe4bc3`): `E` for stairs, storey heights, the terrace at 120, the move
+recorder with ancestry, the seed solver, the composer fixes, the repaired
+`core_undivide` as default, the light well, label write-back and the aimed
+`undivide`. The objective is `9533b38+orth`, the search `0fd7d88`. The 220
+designs written since the first relabelling were relabelled too: 602 scores
+re-taken, none moved. Every A/B section before this one was measured at
+`64512f1+orth`, where a stair was an inferred `C` column.
+
+It landed at the second attempt. The first stopped itself, main untouched,
+on one failing test of 861: a fixture that took "the first leaf that is not
+`C`, `O` or `S`" as a room, which after relabelling was a stair. The
+rehearsal had passed because it ran before those 220 designs were
+relabelled -- **a rehearsal of a merge that rewrites data has to rewrite the
+data too.** Two fixtures now ask `dom.GENERIC_TYPES`.
+
+Two stalls cost the box sixteen idle hours between them, both from the queue
+scripts rather than the runs: a script edited after it had started (bash
+reads a running script by offset; it died three days later, the moment its
+wait ended), and this failed test at 06:00 with nobody watching. A queue
+that stops safely still stops.

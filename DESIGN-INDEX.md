@@ -72,6 +72,7 @@ index is how to get from a question to the section that answers it.
 | §39.132 | The other three of five: an aimed `undivide` removes no fail from a finished design (mid-run parents pending); brief fixes drafted; the owner's hand design is an ordinary member of the evolved corpus (25 fails against a mean of 26.2) and fails different things. |
 | §39.133 | `t7q`: with `mutate_repair_shaft` off, 8 of 36 searches end with no staircase against none with it on; fails, hard fails and score all resolve, and the whole margin is those eight runs. The repair stays on. |
 | §39.134 | `v2k`: `--level-add-migrate` ends 7 of 36 runs at three storeys and scores lower (resolved), fails not resolved; three stairless runs leave its shaft guard in doubt. Stays off. |
+| §39.135 | `native`: no resolved difference in fails or score on programme-house, 16% slower (resolved). Not the default on this evidence; large programmes untested. And the ten held branches land: objective `9533b38+orth`. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -142,7 +143,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (239 of them, 16637 lines)
+## Every section of DESIGN.md (240 of them, 16688 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -432,4 +433,5 @@ below are the most recent work.
 - §39.130 · 16370-16436 · The scorer's labels, written back: `place_missing` stops cutting cells nobody asked for (`homemaker-py-urzf.1`)
 - §39.132 · 16437-16546 · The other three of the five: an aim that does nothing to a finished design, briefs drafted, and the hand design beside twelve evolved ones (`homemaker-py-iplo`, `5nw`, `2g7.1`)
 - §39.133 · 16547-16595 · The shaft repair earns its place: without it eight of 36 searches end with no staircase (`homemaker-py-t7q`)
-- §39.134 · 16596-16637 · `--level-add-migrate` makes three-storey houses and worse ones; it stays off (`homemaker-py-v2k`)
+- §39.134 · 16596-16638 · `--level-add-migrate` makes three-storey houses and worse ones; it stays off (`homemaker-py-v2k`)
+- §39.135 · 16639-16688 · `--native` finds the same houses and takes a sixth longer; and the ten branches land (`homemaker-py-8b2u.8`)
