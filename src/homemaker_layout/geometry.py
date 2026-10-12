@@ -481,12 +481,18 @@ def _triangle_area(a: Point, b: Point, c: Point) -> float:
 def area(n: Node) -> float:
     """Area of quad ``n``; mirrors ``Urb::Quad::Area`` (two Heron triangles).
     A native cell's is its polygon's."""
-    if _native(n) is not None:
-        from . import cells
+    key = (id(n), "area")
+    hit = _cache.get(key)
+    if hit is None:
+        if _native(n) is not None:
+            from . import cells
 
-        return cells.area(polygon(n))
-    c = [coordinate(n, i) for i in range(4)]
-    return _triangle_area(c[0], c[1], c[2]) + _triangle_area(c[0], c[2], c[3])
+            hit = cells.area(polygon(n))
+        else:
+            c = [coordinate(n, i) for i in range(4)]
+            hit = _triangle_area(c[0], c[1], c[2]) + _triangle_area(c[0], c[2], c[3])
+        _cache[key] = hit
+    return hit
 
 
 def edge_length(n: Node, idx: int) -> float:
@@ -571,6 +577,46 @@ def offset_quad(corners: list[Point], offset: float) -> list[Point]:
 # Leaf-adjacency graph (Urb::Quad::Graph + Urb::Boundary)
 # --------------------------------------------------------------------------- #
 
+def _native_plot_edges(g0: Node):
+    """Per side of the inner plot: ``(p, q, unit normal, reach)``. A point
+    further than ``reach`` from the side's LINE cannot pass the on-the-side
+    test in `_native_boundary_id`: at distance d from the line its two
+    distances to the ends sum to at least sqrt(L**2 + 4 d**2), and ``reach``
+    is the d at which that exceeds L by 1e-6 -- ten times the test's 1e-7."""
+    key = (id(g0), "plot-edges")
+    hit = _cache.get(key)
+    if hit is None:
+        inner = _native_frame(g0)[2]
+        hit = []
+        for k in range(len(inner)):
+            p, q = inner[k], inner[(k + 1) % len(inner)]
+            length = _dist(p, q)
+            if length > 0.0:
+                nx, ny = -(q[1] - p[1]) / length, (q[0] - p[0]) / length
+                reach = math.sqrt(5e-7 * length + 2.5e-13)
+            else:
+                nx = ny = 0.0
+                reach = math.inf            # no line to be far from: always test
+            hit.append((p, q, nx, ny, reach))
+        _cache[key] = hit
+    return hit
+
+
+def _native_boundary_id(g0: Node, poly: "list[Point]", edge: int) -> str:
+    a, b = poly[edge % len(poly)], poly[(edge + 1) % len(poly)]
+    mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+    for k, (p, q, nx, ny, reach) in enumerate(_native_plot_edges(g0)):
+        # most sides are nowhere near this wall: one product says so, where
+        # the test below costs three square roots (homemaker-py-8b2u.22)
+        if abs((mid[0] - p[0]) * nx + (mid[1] - p[1]) * ny) > reach:
+            continue
+        if abs(_dist(p, mid) + _dist(mid, q) - _dist(p, q)) < 1e-7:
+            dx, dy = q[0] - p[0], q[1] - p[1]
+            if abs(dx * (b[1] - a[1]) - dy * (b[0] - a[0])) < 1e-7 * max(1.0, _dist(p, q)):
+                return f"#{k}"
+    return "interior"
+
+
 def boundary_id(n: Node, edge: int) -> str:
     """Boundary id of ``edge`` (0..3) of ``n``; mirrors ``Urb::Quad::Boundary_Id``.
 
@@ -594,16 +640,11 @@ def boundary_id(n: Node, edge: int) -> str:
         poly = polygon(n)
         if not poly:
             return "interior"       # a void cell touches nothing
-        a, b = poly[edge % len(poly)], poly[(edge + 1) % len(poly)]
-        mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
-        inner = _native_frame(g0)[2]
-        for k in range(len(inner)):
-            p, q = inner[k], inner[(k + 1) % len(inner)]
-            if abs(_dist(p, mid) + _dist(mid, q) - _dist(p, q)) < 1e-7:
-                dx, dy = q[0] - p[0], q[1] - p[1]
-                if abs(dx * (b[1] - a[1]) - dy * (b[0] - a[0])) < 1e-7 * max(1.0, _dist(p, q)):
-                    return f"#{k}"
-        return "interior"
+        key = (id(n), "bid", edge % len(poly))
+        hit = _cache.get(key)
+        if hit is None:
+            hit = _cache[key] = _native_boundary_id(g0, poly, edge)
+        return hit
     nb = n
     while nb.below is not None:
         nb = nb.below
@@ -637,9 +678,13 @@ def centroid(n: Node) -> Point:
     if _native(n) is not None:
         from . import cells
 
-        poly = polygon(n)
-        c = cells.corners(poly) or poly
-        return [sum(p[0] for p in c) / len(c), sum(p[1] for p in c) / len(c)]
+        key = (id(n), "centroid")
+        hit = _cache.get(key)
+        if hit is None:
+            poly = polygon(n)
+            c = cells.corners(poly) or poly
+            hit = _cache[key] = (sum(p[0] for p in c) / len(c), sum(p[1] for p in c) / len(c))
+        return list(hit)
     c = [coordinate(n, i) for i in range(4)]
     return [(c[0][0] + c[1][0] + c[2][0] + c[3][0]) / 4,
             (c[0][1] + c[1][1] + c[2][1] + c[3][1]) / 4]
