@@ -143,7 +143,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (240 of them, 16702 lines)
+## Every section of DESIGN.md (241 of them, 16816 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -434,4 +434,5 @@ below are the most recent work.
 - §39.132 · 16437-16546 · The other three of the five: an aim that does nothing to a finished design, briefs drafted, and the hand design beside twelve evolved ones (`homemaker-py-iplo`, `5nw`, `2g7.1`)
 - §39.133 · 16547-16595 · The shaft repair earns its place: without it eight of 36 searches end with no staircase (`homemaker-py-t7q`)
 - §39.134 · 16596-16638 · `--level-add-migrate` makes three-storey houses and worse ones; it stays off (`homemaker-py-v2k`)
-- §39.135 · 16639-16702 · `--native` finds the same houses and takes a sixth longer; and the ten branches land (`homemaker-py-8b2u.8`)
+- §39.135 · 16639-16703 · `--native` finds the same houses and takes a sixth longer; and the ten branches land (`homemaker-py-8b2u.8`)
+- §39.136 · 16704-16816 · A native score at the quad tree's price, bit for bit; and a test that would have stopped queue 4 (`homemaker-py-8b2u.22`, `5nw`)
