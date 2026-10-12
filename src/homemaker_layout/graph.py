@@ -172,13 +172,35 @@ def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
     def _usage(v: Node) -> str:
         return usages.get(v.type, "")
 
+    # A utility room or workshop with neither circulation nor outdoor space beside it may
+    # be reached through a room that is not a bedroom (owner's ruling,
+    # §39.138; `serves_utility`). It keeps ONE such door, to the most central
+    # of them -- a store does not become a way through because it has two
+    # neighbours -- measured here before anything is trimmed and with ties
+    # going to geometry, for the reason given below (§39.100).
+    kept: set = set()
+    way_in = None
+    for v in list(G.nodes()):
+        if _usage(v) not in _pr.SERVICE_USAGES:
+            continue
+        nbs = list(G.neighbors(v))
+        if any(dom.is_circulation(nb) or dom.is_outside(nb) for nb in nbs):
+            continue
+        rooms = [nb for nb in nbs if serves_utility(nb, usages)]
+        if len(rooms) == 1:
+            kept.add(frozenset((v, rooms[0])))
+        elif rooms:
+            way_in = way_in or _centrality(G)
+            kept.add(frozenset((v, min(rooms, key=way_in))))
+
     # A TERMINAL room (bedroom/utility) is reachable from circulation or outside
     # only — never a route through. Trim its edges to every other room.
     for v in list(G.nodes()):
         if _usage(v) not in _pr.PRIVATE_USAGES:
             continue
         to_remove = [nb for nb in list(G.neighbors(v))
-                     if _usage(nb) in _pr.PRIVATE_STRIPS]
+                     if _usage(nb) in _pr.PRIVATE_STRIPS
+                     and frozenset((v, nb)) not in kept]
         G.remove_edges_from((v, nb) for nb in to_remove)
 
     # A toilet keeps its edge to a terminal room (the Brand adjacency, §39.6)
@@ -187,8 +209,9 @@ def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
         if _usage(v) != "toilet":
             continue
         to_remove = [nb for nb in list(G.neighbors(v))
-                     if nb.type in dom.GENERIC_OUTSIDE
-                     or _usage(nb) in _pr.TOILET_STRIPS]
+                     if (nb.type in dom.GENERIC_OUTSIDE
+                         or _usage(nb) in _pr.TOILET_STRIPS)
+                     and frozenset((v, nb)) not in kept]
         G.remove_edges_from((v, nb) for nb in to_remove)
 
     # Any classified room keeps only one circulation neighbour.
@@ -575,6 +598,29 @@ def _adjacency_target(target_code: str):
     return tc
 
 
+def serves_utility(nb: Node, usages: dict[str, str]) -> bool:
+    """Can a utility room or a workshop be reached from neighbour ``nb``?
+
+    Owner's ruling, 2026-10-12 (DESIGN.md §39.138): "A utility room can be
+    reached from another non sleeping room or from an outside space, as can a
+    workshop." So circulation serves it, as it serves every room; so does
+    outdoor space that can be stood in; and so does any room of the programme
+    that is not a bedroom. A plant room off a store, a store off a kitchen and
+    a workshop with a door to the yard are all reached.
+
+    The single definition, for the three places that ask it: the brief's
+    ``adjacency: c`` (:func:`check_adjacency`), the leaf's ``access`` factor
+    (``Fitness.access``) and the storey's connectivity (:func:`has_circulation`).
+    Asked for the usages in ``programme.SERVICE_USAGES``: utility and workshop.
+    """
+    if dom.is_circulation(nb):
+        return True
+    if dom.is_outside(nb):
+        return dom.is_usable(nb) and satisfies_as_outside(nb)
+    usage = usages.get(nb.type or "", "")
+    return bool(usage) and usage != "bedroom"
+
+
 def satisfies_as_outside(nb: Node) -> bool:
     """True unless ``nb`` is an outside space that cannot be stood in.
 
@@ -611,7 +657,8 @@ def satisfies_as_outside(nb: Node) -> bool:
 
 
 def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
-                  colocate_pairs=(), multi_use: bool = False) -> bool:
+                  colocate_pairs=(), multi_use: bool = False,
+                  serves=None) -> bool:
     """True if ``leaf`` (or its nearest graphed ancestor) has a neighbour whose
     type matches ``^target_code`` (case-insensitive prefix); mirrors
     ``ProgrammeDriven.pm::has_adjacency``.
@@ -620,6 +667,10 @@ def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
     longer appear as individual vertices in a post-merge graph. Under
     ``multi_use`` a neighbour's ``leaf_codes()`` (both type and any live
     co_type) are checked, not just its scalar ``type``.
+
+    ``serves``, if given, is asked of each neighbour as well: one it accepts
+    counts whatever its code. That is how a utility room's ``adjacency: c`` is
+    met by what :func:`serves_utility` allows.
     """
     node: Node | None = leaf
     while node is not None and not G.has_node(node):
@@ -628,6 +679,9 @@ def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
         return False
     tc = _adjacency_target(target_code)
     for nb in G.neighbors(node):
+        if serves is not None and any(
+                serves(x) for x in (nb.leaves() if nb.divided else [nb])):
+            return True
         if (_codes_match_prefix(leaf_codes(nb, colocate_pairs, multi_use), tc)
                 and satisfies_as_outside(nb)):
             return True
@@ -825,6 +879,7 @@ def check_adjacency(
     missing_set = set(missing)
     failures: list[str] = []
     seen: set[tuple] = set()   # dedup per (leaf.id, code, adj_code) like Perl
+    usages = {c: r.usage for c, r in targets.items()}
 
     for code, req in targets.items():
         if not req.adjacency:
@@ -851,7 +906,11 @@ def check_adjacency(
                     if key in seen:
                         continue
                     seen.add(key)
-                    if not has_adjacency(leaf, adj_code, G, colocate_pairs, multi_use):
+                    serves = None
+                    if req.usage in _pr.SERVICE_USAGES and adj_code.lower() == "c":
+                        serves = lambda nb: serves_utility(nb, usages)  # noqa: E731
+                    if not has_adjacency(leaf, adj_code, G, colocate_pairs, multi_use,
+                                         serves=serves):
                         failures.append(
                             f"{li}/{leaf.id} ({code}) not adjacent to {adj_code}"
                         )

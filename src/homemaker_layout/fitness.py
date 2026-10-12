@@ -1625,9 +1625,17 @@ class Fitness:
             usages = self.usages()
             return [t for t in types
                     if t in dom_mod.GENERIC_CIRCULATION
-                    or usages.get(t) == "living"]
+                    or usages.get(t) in ("living", "workshop")]
         if dom_mod.is_outside(leaf) or dom_mod.is_circulation(leaf):
             return types
+        if self.usage_of(leaf) in _programme.SERVICE_USAGES:
+            # circulation, outdoor space or any room but a bedroom (§39.138)
+            from . import graph as graph_mod
+
+            usages = self.usages()
+            return sorted(nb.type or "" for nb in G.neighbors(leaf)
+                          if dom_mod.is_usable(nb)
+                          and graph_mod.serves_utility(nb, usages))
         return [t for t in types if t in dom_mod.GENERIC_CIRCULATION]
 
     # ------------------------------------------------------------------ #
@@ -2432,10 +2440,11 @@ class Fitness:
         door_width = self.conf("door_width") or 1.2
         pre = graph_mod.storey_graphs(root, door_width, self.usages())
         graph_base_pre = pre[0]
-        # A storey whose circulation does not connect is reported here and
-        # again after the merge, as it always has been: the fail counts twice.
-        failures.extend(f"{i} inaccessible usable space"
-                        for i, ok in enumerate(pre[2]) if not ok)
+        # A storey whose circulation does not connect is reported ONCE, below,
+        # on the merged tree -- the building as it is scored. It used to be
+        # reported here as well, so one room nobody could reach was two fails
+        # before it was anything else. Owner's ruling, 2026-10-12: "one
+        # unreachable room is a single fail" (DESIGN.md §39.138).
 
         failures.extend(graph_mod.check_adjacency(
             root, programme, graph_base_pre, missing,
