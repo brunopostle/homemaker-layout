@@ -17144,3 +17144,84 @@ bathrooms, and this. Its expectation, added to §39.138's and the one above:
 harbor-house designs with seven bathrooms and a `t` on every neighbourhood;
 total fails on harbor-house NOT directly comparable with any earlier corpus,
 because the brief asks for two more rooms.
+
+### 39.140 `level_add_migrate`'s shaft guard holds; only one of §39.134's three runs was stairless, and the gap is the fallback (`homemaker-py-4ln3`)
+
+§39.134 left a doubt: three of 36 `--level-add-migrate` runs ended with a
+stair fail against none in the control, and the bead had said beforehand
+that this would be "a defect in its shaft guard". Three runs resolve
+nothing, so the operator was asked directly --
+`experiments/diag_4ln3_migrate_shaft.py`, the census pattern of §39.73.
+Container work; no search was run. Objective `9533b38+orth`, with `E`
+(§39.125).
+
+**The three designs, read first** (`--three`).
+
+| seed | storeys | fails today | staircase |
+|---|---|---|---|
+| 6 | 2 | `staircase volume` | intact `E` shaft, 5.0 m2, 1.97 m wide |
+| 14 | 3 | `staircase volume`, `too few stairs` | none: no `E` cell on any storey |
+| 32 | 3 | `staircase volume` | intact `E` shaft on all three storeys, 5.3 m2, 2.19 m wide |
+
+So "three stairless runs" was one. Seeds 6 and 32 kept their shaft, and it
+is too small for a flight (their control partners' cores are 14.6 and
+6.9 m2); seed 6 did not even end at three storeys. `staircase volume` fires
+both for a missing stair and for one that does not fit, and §39.134 read
+the fail name as the former.
+
+**The census.** Every committed `+orth` design (12 per programme, plus the
+36 control designs of the A/B for programme-house), 8 draws on
+programme-house and 4 on the others; then the same with the parent replaced
+by a child of one draw from the default search's mix (`--from-broken`). Per
+move: is every shaft the parent had still a shaft (LOST), does it reach the
+storey just added (short), and does the scorer newly fail on stairs.
+
+| parents with a shaft | moves | LOST | short | new `too few stairs` | new `staircase volume` |
+|---|---|---|---|---|---|
+| programme-house, converged | 280 | 0 | 0 | 0 | 8 |
+| programme-house, after one mutation | 108 | 0 | 0 | 0 | 2 |
+| harbor-house, converged | 32 | 0 | 0 | 0 | 0 |
+| harbor-house, after one mutation | 21 | 0 | 0 | 0 | 0 |
+| **all** | **441** | **0** | **0** | **0** | **10** |
+
+The negative control ran before every table (§39.79's discipline): six real
+children of the operator, each corrupted two ways -- the first-floor landing
+retyped `C`, and the new storey's landing retyped `C`. LOST, `too few
+stairs` and short each fired six times of six. So the zeros are zeros: **the
+guard holds.** The ten new `staircase volume` fails are kept shafts that no
+longer fit a flight once a third storey's doors are on them, scored with
+ratios untuned -- the seed 6 and 32 kind, and the comparator's business.
+
+maple-court never moved (every draw a noop: no room fits upstairs).
+health-centre is single-storey and so has no shaft to keep.
+
+**The gap is the fallback.** A parent with NO shaft is a different path
+through the operator: `_stair_path` falls back to the largest ground `E` or
+`C` leaf and that address is typed `E` on the new storey and wherever it is
+already a `C` leaf below.
+
+| parents with no shaft | moves | child has a shaft |
+|---|---|---|
+| health-centre (one storey) | 65 | 65 |
+| programme-house (two storeys) | 20 | 1 |
+| harbor-house | 19 | 0 |
+
+On one storey the fallback always works. On two or more it works only when
+the chosen address happens to be a circulation leaf on every storey (the
+`aligned` column: 1 of 19 where it was counted, the one that was made). The
+other 38 moves add a storey to a building with no staircase and leave it
+with none -- a third floor nobody can reach. Seed 14 is that shape, though
+an end state cannot say whether the operator met it stairless or another
+move broke the shaft afterwards (six exploratory operators can, §39.73).
+
+**What this settles.** The doubt §39.134 recorded is withdrawn: the guard
+is sound. What is not sound is offering this move to a multi-storey parent
+with no staircase. The cure is small and search-side -- decline when there
+is no shaft and more than one storey, and leave the stair to
+`mutate_repair_shaft` -- but the flag is off and stays off (§39.134's
+score result stands on its own), so it is filed, not built
+(`homemaker-py-4ln3.1`).
+
+**A reading lesson.** `staircase volume` alone means a stair that does not
+fit; with `too few stairs` it means no stair. Count the second when
+counting stairless designs.
