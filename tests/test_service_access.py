@@ -104,3 +104,13 @@ def test_the_door_kept_is_the_rulings_and_not_an_accident(monkeypatch):
     monkeypatch.setattr(dom, "is_usable", lambda n: True)
     monkeypatch.setattr(programme, "SERVICE_USAGES", ())
     assert graph.has_circulation(_chain("C", "st", "ut"), USAGES) is False
+
+
+def test_a_fail_on_one_storey_does_not_hide_the_same_fail_above_it(orthogonal):
+    """`check_adjacency` reported each (cell, code, neighbour) once, keyed by
+    the cell's path -- which is the same path on every storey. The drawing has
+    a bathroom at `lrllrr` on storeys 0 and 1, neither beside a neighbourhood;
+    only the lower one was reported."""
+    fails = _fails()
+    assert "0/lrllrr (t) not adjacent to n" in fails
+    assert "1/lrllrr (t) not adjacent to n" in fails

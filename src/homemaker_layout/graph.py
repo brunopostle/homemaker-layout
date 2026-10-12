@@ -902,7 +902,11 @@ def check_adjacency(
                     continue
                 G = graph_base[li]
                 for adj_code in req.adjacency:
-                    key = (leaf.id, *sorted((code, adj_code)))
+                    # The storey is part of the key: a leaf's id is its path
+                    # within ITS storey, so without it a cell hid the same
+                    # fail on the cell at that path on another storey (5 fails
+                    # on 4 of 49 designs, DESIGN.md §39.139).
+                    key = (li, leaf.id, *sorted((code, adj_code)))
                     if key in seen:
                         continue
                     seen.add(key)
