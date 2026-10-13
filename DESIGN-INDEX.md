@@ -78,6 +78,7 @@ index is how to get from a question to the section that answers it.
 | §39.138 | The owner's rulings on those questions. Built on branch `access-rulings`: utility rooms and workshops reached through a non-sleeping room or from outside (new usage `workshop`), and the storey fail reported once -- 19 of 192 designs move, all to fewer fails. Corridor and lobby widths wait on numbers. |
 | §39.139 | Second round: `width_circulation` [2.4, 0.2] -> [1.6, 0.2] and a `width_lobby` of 2.4 m for the one cell with the front door (built, same branch; 13 width fails go, none arrives); harbor-house's bathrooms become five `t` and two `wc`; an adjacency fail no longer hides the same fail on another storey (5 hidden on 4 of 49 designs). |
 | §39.140 | `level_add_migrate`'s shaft guard holds: 0 shafts lost in 441 moves, controls firing. Only one of §39.134's three "stairless" runs had no stair (the other two had one too small). The gap is the fallback: on a multi-storey parent with no shaft the move adds a storey and makes a stair 1 time in 39. |
+| §39.141 | `seedsolve`: `--seed-solver` resolves nothing in 36 programme-house pairs or 4 harbor-house pairs; its two-fail head start on the seed is gone by 1,000 evaluations. Stays off. Five of eight harbor-house runs end with `too few stairs`. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -155,7 +156,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (245 of them, 17227 lines)
+## Every section of DESIGN.md (246 of them, 17290 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -451,4 +452,5 @@ below are the most recent work.
 - §39.137 · 16858-16939 · Every fail of the owner's hand design, classified: eight are one blind wall, and the rest are six questions about the rules (`homemaker-py-2g7.2`)
 - §39.138 · 16940-17035 · The owner's rulings on §39.137's questions; utility access and the single storey fail built (`homemaker-py-2g7.2`, branch `access-rulings`)
 - §39.139 · 17036-17147 · Corridor, lobby and bathrooms: the second round of rulings; the first two built (`homemaker-py-2g7.11`, branch `access-rulings`)
-- §39.140 · 17148-17227 · `level_add_migrate`'s shaft guard holds; only one of §39.134's three runs was stairless, and the gap is the fallback (`homemaker-py-4ln3`)
+- §39.140 · 17148-17228 · `level_add_migrate`'s shaft guard holds; only one of §39.134's three runs was stairless, and the gap is the fallback (`homemaker-py-4ln3`)
+- §39.141 · 17229-17290 · `--seed-solver` buys a head start that is gone inside a thousand evaluations; it stays off (`homemaker-py-8b2u.21`)

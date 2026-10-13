@@ -17225,3 +17225,66 @@ score result stands on its own), so it is filed, not built
 **A reading lesson.** `staircase volume` alone means a stair that does not
 fit; with `too few stairs` it means no stair. Count the second when
 counting stairless designs.
+
+### 39.141 `--seed-solver` buys a head start that is gone inside a thousand evaluations; it stays off (`homemaker-py-8b2u.21`)
+
+The A/B §39.118 owed: `seedsolve` in the flag A/B tool, 500k, objective
+`9533b38+orth` (the ten branches of 2026-10-12 merged, `E` included).
+`built` seeds a run as the constructor leaves them; `solved` adds
+`--seed-solver`, which sizes each seed with the ratio solver first.
+programme-house 36 paired seeds, harbor-house 4.
+
+| programme-house, 36 pairs | built | solved | paired difference | resolves? |
+|---|---|---|---|---|
+| fails | 0.78 | 0.69 | +0.08, CI [-0.31, +0.47] | no (MDD 0.39) |
+| hard fails | 0.25 | 0.14 | +0.11, CI [-0.10, +0.32] | no (MDD 0.21) |
+| score | 0.29 | 0.27 | +0.019 for built, CI [-0.054, +0.093] | no (MDD 0.074) |
+| elapsed, s | 9221 | 9282 | -61 | no (MDD 349) |
+
+| harbor-house, 4 pairs | built | solved | paired difference | resolves? |
+|---|---|---|---|---|
+| fails | 29.0 | 31.25 | -2.25, CI [-15.5, +11.0] | no (MDD 13.2) |
+| hard fails | 4.25 | 4.75 | -0.5 | no (MDD 6.9) |
+| elapsed, s | 47364 | 45648 | +1716 (solved faster, 4 of 4) | no (MDD 2258) |
+
+**Against the expectation recorded before the run** (the A/B tool's
+docstring).
+
+- *"On programme-house NO resolved difference at 500k":* right, on every
+  metric.
+- *"If anything shows, it is on harbor-house ... and in the EARLY history
+  of a run, not its end":* nothing shows on harbor-house, and four pairs
+  could not have shown less than a 13-fail gap. The early history was read
+  from the runs' own logs (best design's fail count at fixed points):
+
+| evaluations | programme-house built / solved | harbor-house built / solved |
+|---|---|---|
+| first line (the seeds) | 13.6 / 11.2 | 71.8 / 69.8 |
+| 1,000 | 1.33 / 1.11 | 54.5 / 60.5 |
+| 5,000 | 1.25 / 1.08 | 48.3 / 56.3 |
+| 25,000 | 1.14 / 1.00 | 41.8 / 47.3 |
+| 100,000 | 0.94 / 0.83 | 33.5 / 39.0 |
+| end | 0.78 / 0.69 | 29.0 / 31.3 |
+
+  The head start exists -- two fails on the seed, on both programmes -- and
+  on programme-house it has shrunk to a fifth of a fail by 1,000
+  evaluations (t 0.8) and stays there. On harbor-house the solved arm is
+  BEHIND from 1,000 evaluations to the end by 2 to 8 fails; no point
+  resolves (t between -0.5 and -1.7 on four pairs), so that is a direction
+  to remember and not a finding. The container figure that prompted the
+  flag -- 8.9 fewer fails per seed after tuning, 15 on harbor-house
+  (§39.118) -- was a seed measured alone; in a run the seed's two-fail
+  lead is spent before the first percent of the budget.
+
+**What this settles.** `--seed-solver` stays off. It is the third measure
+of the same thing: §12.2 found seeding an accelerator and not a new
+asymptote, §39.109 found the solver good on a cold topology and harmful on
+a child, and here a better-sized cold seed changes nothing a 500k run can
+see. The flag remains for short budgets, where nobody has measured it.
+
+**Noticed in passing, for the re-baseline.** Five of the eight
+harbor-house runs end failing `too few stairs` (built 3 of 4, solved 2 of
+4): the brief asks for two staircases and, with `E`, half the runs do not
+finish with two. That is the first harbor-house evidence at an `E`
+objective and it is eight runs; the re-baseline at `4428262+orth` has
+three more.
