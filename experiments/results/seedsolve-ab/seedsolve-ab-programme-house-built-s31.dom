@@ -1,0 +1,124 @@
+node:
+- - 1.67100188077385
+  - 11.9169190395339
+- - 8.72124918939699
+  - 13.7119442286569
+- - 6.79637028658874
+  - 21.3797854212389
+- - -0.42152047183069
+  - 19.9368564494913
+perimeter:
+  a: private
+  b: null
+  c: null
+  d: null
+rotation: 0
+division:
+- 0.40337358856464733
+- 0.40337358856464733
+height: 3.0
+elevation: 0.0
+wall_inner: 0.08
+wall_outer: 0.25
+l:
+  rotation: 1
+  division:
+  - 0.26071164249590484
+  - 0.26071164249590484
+  l:
+    type: t2
+    rotation: 0
+  r:
+    rotation: 0
+    division:
+    - 0.2634291086200359
+    - 0.2634291086200359
+    l:
+      type: t3
+      rotation: 0
+    r:
+      type: O
+      rotation: 0
+r:
+  rotation: 1
+  division:
+  - 0.457448657811783
+  - 0.457448657811783
+  l:
+    type: E
+    rotation: 0
+  r:
+    rotation: 1
+    division:
+    - 0.7081750679359882
+    - 0.7081750679359882
+    l:
+      type: b2
+      rotation: 0
+    r:
+      type: l1
+      rotation: 0
+above:
+  rotation: 0
+  division:
+  - 0.615934063805381
+  - 0.615934063805381
+  height: 3.0
+  l:
+    rotation: 0
+    division:
+    - 0.5019327906155578
+    - 0.5019327906155578
+    l:
+      type: t1
+      rotation: 0
+    r:
+      type: b1
+      rotation: 0
+  r:
+    rotation: 0
+    division:
+    - 0.7987601383344528
+    - 0.7987601383344528
+    l:
+      type: E
+      rotation: 0
+    r:
+      type: O
+      rotation: 0
+  above:
+    rotation: 0
+    division:
+    - 0.615934063805381
+    - 0.615934063805381
+    height: 3.0
+    l:
+      rotation: 0
+      division:
+      - 0.5019327906155578
+      - 0.5019327906155578
+      l:
+        type: C
+        rotation: 0
+      r:
+        type: O
+        rotation: 0
+    r:
+      rotation: 0
+      division:
+      - 0.7987601383344528
+      - 0.7987601383344528
+      l:
+        rotation: 1
+        division:
+        - 0.5491649939269554
+        - 0.5491649939269554
+        l:
+          type: O
+          rotation: 0
+        r:
+          type: O
+          rotation: 0
+      r:
+        type: O
+        rotation: 0
