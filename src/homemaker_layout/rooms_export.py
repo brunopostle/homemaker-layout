@@ -35,6 +35,7 @@ USAGE_MAP = {
     "toilet": "toilet",
     "none": "void",
     "utility": "utility",
+    "workshop": "living",     # a workshop is a living space with one more way in (§39.138)
 }
 
 

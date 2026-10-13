@@ -78,9 +78,9 @@ and so does a wall onto an open outdoor cell.
 
 ## The schedule of rooms
 
-Two storeys (a third is allowed). 835 m² of rooms in all: 347 m² that must be
-on the ground floor, 152 m² that must be on the first, and 336 m² — the five
-neighbourhoods and six bathrooms — that may go on either.
+Two storeys (a third is allowed). 826 m² of rooms in all: 332 m² that must be
+on the ground floor, 164 m² that must be on the first, and 330 m² — the five
+neighbourhoods and their five bathrooms — that may go on either.
 
 "Passes" is the range of areas the scorer accepts; outside it the room fails
 on `size`. "Long : short" is the most elongated the room may be.
@@ -90,19 +90,19 @@ on `size`. "Long : short" is the most elongated the room may be.
 | `cr1` | Common room with fireplace | 1 | ground | 80 | 59–101 | 3.1 | circulation, outdoor space | yes |
 | `da1` | Dining area | 1 | ground | 60 | 43–77 | 4.2 | circulation, `k1`, outdoor space | yes |
 | `k1` | Kitchen | 1 | ground | 30 | 19–41 | 2.6 | `da1`, circulation | yes |
-| `ws1` | Workshop | 1 | ground | 40 | 27–53 | 2.9 | circulation, outdoor space | yes |
-| `ef1` | Entrance foyer | 1 | ground | 15 | 9–21 | 2.6 | circulation | yes |
+| `ws1` | Workshop | 1 | ground | 40 | 27–53 | 2.9 | circulation (or any room but a bedroom, or the yard), outdoor space | yes |
 | `m` | Meeting room | 3 | ground | 10 | 6–14 | 2.6 | circulation | yes |
 | `of` | Staff office | 2 | ground | 12.5 | 7–18 | 2.6 | circulation | yes |
-| `la1` | Laundry | 1 | ground | 20 | 11–29 | 2.6 | circulation | yes |
-| `st1` | Ground-floor store | 1 | ground | 22 | 13–31 | 2.6 | circulation | no |
-| `me1` | Plant room | 1 | ground | 25 | 16–34 | 2.6 | circulation | no |
-| `n` | Neighbourhood (a cluster of sleeping space) | 5 | either | 60 | 43–77 | 3.3 | circulation | yes |
-| `t` | Bathroom | 6 | either | 6 | 3–9 | 2.6 | circulation, and a neighbourhood `n` | yes |
+| `la1` | Laundry | 1 | ground | 20 | 11–29 | 2.6 | as `st1` | yes |
+| `st1` | Ground-floor store | 1 | ground | 22 | 13–31 | 2.6 | circulation, or any room but a bedroom, or outdoor space | no |
+| `me1` | Plant room | 1 | ground | 25 | 16–34 | 2.6 | as `st1` | no |
+| `n` | Neighbourhood (a cluster of sleeping space) | 5 | either | 60 | 43–77 | 3.3 | circulation, and its own bathroom `t` | yes |
+| `t` | Neighbourhood bathroom | 5 | either | 6 | 3–9 | 2.6 | circulation, and a neighbourhood `n` | yes |
+| `wc` | Bathroom for the individual rooms | 2 | first | 6 | 3–9 | 2.6 | circulation, and a room `r` | yes |
 | `li1` | Library corner | 1 | first | 20 | 11–29 | 2.6 | circulation | yes |
 | `r` | Individual room | 10 | first | 10 | 6–14 | 2.6 | circulation | yes |
-| `st2` | First-floor store | 1 | first | 18 | 10–26 | 2.6 | circulation | no |
-| `ut1` | Utilities closet | 1 | first | 14 | 8–20 | 2.6 | circulation | no |
+| `st2` | First-floor store | 1 | first | 18 | 10–26 | 2.6 | as `st1` | no |
+| `ut1` | Utilities closet | 1 | first | 14 | 8–20 | 2.6 | as `st1` | no |
 
 A door's width is 1.2 m: two cells that share less wall than that are not
 neighbours. Rooms have no minimum width of their own, only the proportion.
@@ -120,9 +120,12 @@ Each fail halves the score, so a handful of these outweigh every nicety.
    A corridor (`C`) may sit in the same place on every floor; that does not
    make it a stair.
 2. **Every room opens off circulation**, and each floor's circulation is one
-   connected piece. Circulation narrower than about
-   2.0 m fails; 2.4 m is the aim. A bedroom-type room (`n`, `r`, `of`) is a
-   dead end: nothing is reached through it.
+   connected piece -- except a store, plant room, laundry or the workshop,
+   which may instead open off any room that is not a bedroom, or off outdoor
+   space. A corridor narrower than about 1.2 m (1 m clear) fails; 1.6 m is
+   the aim. The LOBBY -- the circulation cell with the front door on the
+   street -- is an assembly space and wants 2.4 m. A bedroom-type room (`n`,
+   `r`, `of`) is a dead end: nothing is reached through it.
 3. **Every room that needs daylight needs an outside wall** — onto a street
    side, or onto an outdoor cell with nothing built over it. This is the rule
    the evolved designs fail most (half their fails): a deep plan buries rooms.
@@ -133,11 +136,13 @@ Each fail halves the score, so a handful of these outweigh every nicety.
    upstairs that is over a ground-floor `O` is air (a void over a courtyard):
    it lets light down, and counts as nothing else. Outdoor cells narrower than
    about 2.2 m fail; 2.3 m is the aim.
-5. **The way in.** The ground floor must be reachable from a street side:
-   either a `C` cell on side c or d, or an outdoor cell on a street side with
-   circulation, a living room or the kitchen opening onto it.
+5. **The way in.** There is no entrance-foyer room in the schedule: the
+   foyer is circulation with a door to the street. So the ground floor needs
+   a `C` cell on side c or d (label your lobby `C`) -- or an outdoor cell on
+   a street side with circulation, a living room or the kitchen opening onto
+   it. A stair (`E`) on the street is not by itself the way in.
 6. **Don't overbuild.** Indoor area, corridors included, starts to lose score
-   above 1.2 × the schedule (about 1,000 m²) and fails well beyond it. It is
+   above 1.2 × the schedule (about 985 m²) and fails well beyond it. It is
    the one rule that says generous circulation is waste. With two floors of
    720 m² there is 440 m² or more to give to courtyards, terraces and voids —
    and rule 3 wants it.

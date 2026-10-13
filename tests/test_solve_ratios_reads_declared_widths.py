@@ -68,7 +68,9 @@ def _solve(root, **kw):
 def test_a_corridor_is_held_above_its_declared_fail_threshold():
     """The headline: the default clears `quality_width`, the old knob does not."""
     declared = _solve(_corridor_and_room())
-    knob = _solve(_corridor_and_room(), min_width_generic=1.2)
+    # 0.9 m, not the 1.2 m the knob once defaulted to: since §39.139 a corridor
+    # passes from 1.17 m, so the control needs a floor that is under that
+    knob = _solve(_corridor_and_room(), min_width_generic=0.9)
 
     assert declared > _fail_threshold(WIDTH_CIRCULATION), (
         f"corridor solved to {declared:.3f} m, under width_circulation's "

@@ -122,21 +122,28 @@ RESERVED_CODES = ("C", "O", "S", "E")
 # The vocabulary is CONTROLLED because a value exists if and only if the engine
 # treats it differently somewhere — config selects among behaviours, it cannot
 # invent them. What a room is CALLED stays free text in ``name:``.
-USAGES = ("living", "kitchen", "bedroom", "toilet", "utility", "none")
+USAGES = ("living", "kitchen", "bedroom", "toilet", "utility", "workshop", "none")
 
 # Terminal rooms: reachable from circulation or outside, never a route through.
-# ``utility`` shares ``bedroom``'s access requirements today; it is a separate
-# value because it is a genuinely different use and because it gives
-# ``derive_interchange_classes`` an axis to relax on (§39.7 note 1).
+# ``utility`` differs from ``bedroom`` in one thing: with neither beside it, it
+# may be reached through one room that is not a bedroom (owner's ruling,
+# DESIGN.md §39.138; ``graph.serves_utility``; see SERVICE_USAGES). It also gives ``derive_interchange_classes`` an
+# axis to relax on (§39.7 note 1).
 PRIVATE_USAGES = ("bedroom", "utility")
 # What a terminal room's edges are stripped down to in ``graph.has_circulation``.
-PRIVATE_STRIPS = ("living", "kitchen", "bedroom", "toilet", "utility")
+PRIVATE_STRIPS = ("living", "kitchen", "bedroom", "toilet", "utility", "workshop")
 # A toilet keeps its edge to a terminal room (the Brand adjacency, §39.6 note 2)
 # and loses the rest.
-TOILET_STRIPS = ("living", "kitchen", "toilet")
+TOILET_STRIPS = ("living", "kitchen", "toilet", "workshop")
 # Sociable rooms keep their MOST central circulation neighbour; terminal rooms
 # and toilets keep their LEAST central one.
-SOCIABLE_USAGES = ("living", "kitchen")
+SOCIABLE_USAGES = ("living", "kitchen", "workshop")
+# Rooms that need not be on circulation: one of these may be reached from
+# outdoor space or through a room that is not a bedroom (owner's ruling,
+# 2026-10-12, DESIGN.md §39.138; ``graph.serves_utility``). ``workshop`` is
+# ``living`` in everything else -- a room people pass through and gather in --
+# and exists as a value only because of this.
+SERVICE_USAGES = ("utility", "workshop")
 # There is deliberately NO daylight vocabulary here. Daylight is not a separate
 # axis: the COMPACT side of the crinkliness gaussian -- too little exposed wall
 # per unit floor -- IS the daylight requirement, so a space states it in its own

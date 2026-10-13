@@ -374,7 +374,20 @@ CONF_DEFAULTS: dict = {
     # Base.pm with no stated provenance: full credit only at 3.0 m, failing
     # below 2.36 m, and a 2.5 m terrace kept only a quarter of its value.
     "width_outside": [2.3, 0.05],
-    "width_circulation": [2.4, 0.2],
+    # Owner's ruling, 2026-10-12 (DESIGN.md §39.139): "any corridor under 1m
+    # wide (clear not centres) would be a fail, but the width increases by
+    # capacity, so an institution like this would be ok at 1.6m centres."
+    # Cells are measured to wall centres and an internal wall is 0.16 m, so
+    # 1.0 m clear is 1.16 m here: [1.6, 0.2] gives full marks from 1.6 m and
+    # fails under 1.17 m, and the 1.25 m the owner called "ok, but not ideal"
+    # keeps a fifth. It was [2.4, 0.2], Urb's, which failed under 1.97 m. A
+    # programme with another capacity states its own.
+    "width_circulation": [1.6, 0.2],
+    # The LOBBY -- "simply the circulation cell that meets the street with a
+    # front door", and "an assembly space" that must be wider than a corridor
+    # (same ruling). No figure was given, so it keeps the width every
+    # circulation cell was held to before. `Fitness._lobby` says which cell.
+    "width_lobby": [2.4, 0.2],
     # §39.37 (homemaker-py-2f1): `None` means rooms have NO width requirement.
     # A leaf's area, narrowest width and aspect satisfy A = w^2 * r, so any two
     # fix the third: over 532 corpus leaves w^2*aspect/area has median 0.9929
@@ -1434,7 +1447,37 @@ class Fitness:
                 target, sigma = target + co_params[0], sigma + co_params[1]
         return gaussian(geometry.area(leaf), 1.0, target, sigma)
 
-    def quality_width(self, leaf: Node) -> float:
+    def _lobby(self, G: nx.Graph) -> "Node | None":
+        """The ground storey's lobby: the circulation cell that meets the
+        street with the front door (owner, §39.139). ``G`` is that storey's
+        graph. A corridor that merely touches the street further along is a
+        corridor, so of the ``C`` cells on a street side it is the WIDEST --
+        a building needs one front door, and it has a lobby if any of them
+        will do. With none on the street, the same among the ``C`` cells
+        reached across a front garden. A stair is not a lobby. The answer is
+        kept on the graph, which lives exactly as long as it is true."""
+        if "lobby" not in G.graph:
+            cells = [n for n in G.nodes() if n.type == "C" and not n.divided]
+            found = None
+            if cells:
+                root = cells[0]
+                while root.parent is not None:
+                    root = root.parent
+                front = [n for n in cells if self._public_access(n, root) is not None]
+                if not front:
+                    front = [n for n in cells if any(
+                        self._public_access_outside(nb, G, root)
+                        for nb in G.neighbors(n))]
+                if front:
+                    def key(n):
+                        c = geometry.centroid(n)
+                        return (geometry.usable_width(n), geometry.area(n),
+                                round(c[0], 6), round(c[1], 6))
+                    found = max(front, key=key)
+            G.graph["lobby"] = found
+        return G.graph["lobby"]
+
+    def quality_width(self, leaf: Node, lobby: bool = False) -> float:
         t0 = _generic_class(leaf)
         if (
             t0 in ("o", "s")
@@ -1446,7 +1489,7 @@ class Fitness:
         if t0 in ("o", "s"):
             params = self.conf("width_outside")
         elif t0 == "c":
-            params = self.conf("width_circulation")
+            params = self.conf("width_lobby" if lobby else "width_circulation")
         else:
             if self.conf("width_inside") is None:
                 return 1.0      # no room width requirement -- §39.37
@@ -1625,9 +1668,17 @@ class Fitness:
             usages = self.usages()
             return [t for t in types
                     if t in dom_mod.GENERIC_CIRCULATION
-                    or usages.get(t) == "living"]
+                    or usages.get(t) in ("living", "workshop")]
         if dom_mod.is_outside(leaf) or dom_mod.is_circulation(leaf):
             return types
+        if self.usage_of(leaf) in _programme.SERVICE_USAGES:
+            # circulation, outdoor space or any room but a bedroom (§39.138)
+            from . import graph as graph_mod
+
+            usages = self.usages()
+            return sorted(nb.type or "" for nb in G.neighbors(leaf)
+                          if dom_mod.is_usable(nb)
+                          and graph_mod.serves_utility(nb, usages))
         return [t for t in types if t in dom_mod.GENERIC_CIRCULATION]
 
     # ------------------------------------------------------------------ #
@@ -1663,7 +1714,8 @@ class Fitness:
         factors["size"] = f
         quality *= f
 
-        f = self.quality_width(leaf)
+        f = self.quality_width(
+            leaf, lobby=not level_id and leaf.type == "C" and self._lobby(G) is leaf)
         if f < FAIL_THRESHOLD:
             fail(f"{level_id}/{lid} width")
         factors["width"] = f
@@ -2432,10 +2484,11 @@ class Fitness:
         door_width = self.conf("door_width") or 1.2
         pre = graph_mod.storey_graphs(root, door_width, self.usages())
         graph_base_pre = pre[0]
-        # A storey whose circulation does not connect is reported here and
-        # again after the merge, as it always has been: the fail counts twice.
-        failures.extend(f"{i} inaccessible usable space"
-                        for i, ok in enumerate(pre[2]) if not ok)
+        # A storey whose circulation does not connect is reported ONCE, below,
+        # on the merged tree -- the building as it is scored. It used to be
+        # reported here as well, so one room nobody could reach was two fails
+        # before it was anything else. Owner's ruling, 2026-10-12: "one
+        # unreachable room is a single fail" (DESIGN.md §39.138).
 
         failures.extend(graph_mod.check_adjacency(
             root, programme, graph_base_pre, missing,

@@ -230,12 +230,19 @@ def test_control_a_mirror_that_drops_the_perimeter_does_change_scores(rt):
 ORDERED = REPO / "examples" / "harbor-house" / "coldstart-1a24b6a+orth-500000-s1.dom"
 
 
-def _fail_counts_over_relistings(rt) -> set:
+# The same design under the brief it was evolved for, kept for the control:
+# once the foyer is circulation (homemaker-py-5nw) Urb's trim no longer
+# wobbles on ORDERED, nor on any other committed design (tests/data/
+# listing-order/README).
+ORDERED_OLD_BRIEF = REPO / "tests" / "data" / "listing-order" / "harbor-house" / "design.dom"
+
+
+def _fail_counts_over_relistings(rt, path=ORDERED) -> set:
     """Fail counts of one design scored as listed, mirrored, and with each
     storey's cells and walls shuffled twenty ways (§39.100)."""
     inv = _invariance()
-    prog = ORDERED.parent
-    root = dom.load(str(ORDERED))
+    prog = path.parent
+    root = dom.load(str(path))
     seen = {len(rt.score(root, prog)[1]), len(rt.score(inv.mirror(root), prog)[1])}
     for seed in range(20):
         with inv.relisted(seed):
@@ -245,6 +252,7 @@ def _fail_counts_over_relistings(rt) -> set:
 
 def test_listing_order_decides_no_fail(rt):
     assert len(_fail_counts_over_relistings(rt)) == 1
+    assert len(_fail_counts_over_relistings(rt, ORDERED_OLD_BRIEF)) == 1
 
 
 def test_control_urbs_trim_does_depend_on_listing_order(rt, monkeypatch):
@@ -259,4 +267,4 @@ def test_control_urbs_trim_does_depend_on_listing_order(rt, monkeypatch):
     # reached by its stair, so §39.125's rule hides the 32-or-34 this control
     # exists to show (measured both ways, 2026-10-09).
     monkeypatch.setattr(graph, "STAIRS_JOIN_STOREYS", False)
-    assert len(_fail_counts_over_relistings(rt)) > 1
+    assert len(_fail_counts_over_relistings(rt, ORDERED_OLD_BRIEF)) > 1
