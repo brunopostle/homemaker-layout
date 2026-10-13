@@ -1,0 +1,157 @@
+seed         : /home/bruno/src/homemaker-layout/examples/programme-house/init.dom
+programme    : programme-house
+budget       : 500000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+support outside    : True
+level add+migrate  : False
+repair shaft       : True
+light well         : False
+tune storey heights: False
+core_undivide repaired : True
+seed solver        : False
+label write-back   : False
+aim undivide       : False
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/bruno/src/homemaker-layout/examples/programme-house/coldstart-4428262+orth-500000-s0.dom
+[    80 evals] best 2.14382e-06 (fails 13) via construct/0
+[   320 evals] best 0.000919621 (fails 5) via construct/3
+[  4800 evals] best 0.000952105 (fails 5) via place_missing noop
+[  5120 evals] best 0.000953722 (fails 5) via level_compound_fix noop
+[  5840 evals] best 0.000953775 (fails 5) via core_undivide noop
+[  6560 evals] best 0.00194637 (fails 4) via divide 1/rr
+[  7600 evals] best 0.0222905 (fails 4) via repair_shaft lll (2 storeys, 1 room(s) narrowed)
+[  8800 evals] best 0.0222939 (fails 4) via repair_shaft noop (shaft intact)
+[ 10720 evals] best 0.0223208 (fails 4) via stair noop
+[ 11280 evals] best 0.0223268 (fails 4) via stair noop
+[ 18800 evals] best 0.0228904 (fails 4) via rotate 0/l
+[ 20960 evals] best 0.0228939 (fails 4) via place_missing noop
+[ 21840 evals] best 0.0228954 (fails 4) via level_fix noop
+[ 24160 evals] best 0.0405769 (fails 3) via rotate 0/l
+[ 24480 evals] best 0.0407589 (fails 3) via level_compound_fix noop
+[ 24800 evals] best 0.0408734 (fails 3) via level_compound_fix noop
+[ 27040 evals] best 0.040981 (fails 3) via crossover lr<->ll
+[ 27040 evals] checkpoint -> coldstart-4428262+orth-500000-s0.dom.checkpoint (3 fails)
+[ 30480 evals] best 0.0410515 (fails 3) via support_outside noop
+[ 44720 evals] best 0.0426533 (fails 3) via crossover rr<->llr
+[ 45280 evals] best 0.0428161 (fails 3) via support_outside noop
+[ 48080 evals] best 0.0431291 (fails 3) via repair_shaft noop (shaft intact)
+[ 50720 evals] best 0.0439163 (fails 3) via repair_shaft noop (shaft intact)
+[ 51200 evals] best 0.0439201 (fails 3) via crossover llr<->lrr
+[ 53680 evals] best 0.0955936 (fails 2) via undivide 0/lr
+[ 53680 evals] checkpoint -> coldstart-4428262+orth-500000-s0.dom.checkpoint (2 fails)
+[ 54640 evals] best 0.0977289 (fails 2) via crossover root<->root
+[ 55280 evals] best 0.0980487 (fails 2) via repair_shaft noop (shaft intact)
+[ 73920 evals] best 0.0980612 (fails 2) via level_retype 0/llr<->1/llr
+[ 82240 evals] best 0.181864 (fails 1) via undivide 0/rl
+[ 82240 evals] checkpoint -> coldstart-4428262+orth-500000-s0.dom.checkpoint (1 fails)
+[ 82560 evals] best 0.182424 (fails 1) via stair noop
+[ 84480 evals] best 0.182456 (fails 1) via crossover rr<->rr
+[ 87600 evals] best 0.182486 (fails 1) via crossover lll<->lll
+[ 88880 evals] best 0.336355 (fails 0) via support_outside place 0/rl (split from b2)
+[ 92160 evals] best 0.340809 (fails 0) via support_outside noop
+[ 92480 evals] best 0.342303 (fails 0) via stair noop
+[ 94560 evals] best 0.353389 (fails 0) via swap 0/rl
+[ 97440 evals] best 0.35385 (fails 0) via support_outside place 0/rl (split from b2)
+[102560 evals] best 0.355139 (fails 0) via support_outside noop
+[105040 evals] best 0.355152 (fails 0) via crossover rr<->rr
+[106560 evals] best 0.355204 (fails 0) via crossover lll<->lll
+[106800 evals] best 0.355384 (fails 0) via crossover llr<->llr
+[113360 evals] best 0.35556 (fails 0) via divide 0/rlr
+[113360 evals] checkpoint -> coldstart-4428262+orth-500000-s0.dom.checkpoint (0 fails)
+[117120 evals] best 0.355663 (fails 0) via repair_shaft noop (shaft intact)
+[119040 evals] best 0.356199 (fails 0) via stair noop
+[120960 evals] best 0.356375 (fails 0) via crossover rll<->rll
+[248160 evals] best 0.35646 (fails 0) via support_outside noop
+[248160 evals] checkpoint -> coldstart-4428262+orth-500000-s0.dom.checkpoint (0 fails)
+[275120 evals] best 0.356483 (fails 0) via undivide 0/rlr
+[275120 evals] checkpoint -> coldstart-4428262+orth-500000-s0.dom.checkpoint (0 fails)
+
+--- finishing (homemaker-py-3l6): unfold + polish 250000 evals ---
+[finish] unfold: materialised 0 shared-leaf copies
+[   200 evals] best 0.356504 (fails 0) via seed
+[  8360 evals] best 0.364729 (fails 0) via core_undivide ll (2 floors)
+[ 10440 evals] best 0.395503 (fails 0) via level_compound_fix noop
+[ 11320 evals] best 0.402419 (fails 0) via repair_shaft noop (shaft intact)
+[ 13080 evals] best 0.402794 (fails 0) via core_undivide noop
+[ 13720 evals] best 0.402851 (fails 0) via level_retype 1/lrl<->0/rr
+[ 20760 evals] best 0.411671 (fails 0) via rotate 0/r
+[ 77080 evals] best 0.411688 (fails 0) via rotate 0/r
+[108040 evals] best 0.411693 (fails 0) via crossover r<->r
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 15 → 0 fails (applied)
+
+--- done ---
+elapsed      : 7652.9s
+evals        : 750040 across 9374 topologies
+best         : 0.411693 (0 fails) via crossover r<->r+collapse
+
+improvement history:
+  [    80] 2.14382e-06  (share:construct/0)
+  [   320] 0.000919621  (share:construct/3)
+  [  4800] 0.000952105  (share:place_missing noop)
+  [  5120] 0.000953722  (share:level_compound_fix noop)
+  [  5840] 0.000953775  (share:core_undivide noop)
+  [  6560] 0.00194637  (share:divide 1/rr)
+  [  7600] 0.0222905  (share:repair_shaft lll (2 storeys, 1 room(s) narrowed))
+  [  8800] 0.0222939  (share:repair_shaft noop (shaft intact))
+  [ 10720] 0.0223208  (share:stair noop)
+  [ 11280] 0.0223268  (share:stair noop)
+  [ 18800] 0.0228904  (share:rotate 0/l)
+  [ 20960] 0.0228939  (share:place_missing noop)
+  [ 21840] 0.0228954  (share:level_fix noop)
+  [ 24160] 0.0405769  (share:rotate 0/l)
+  [ 24480] 0.0407589  (share:level_compound_fix noop)
+  [ 24800] 0.0408734  (share:level_compound_fix noop)
+  [ 27040] 0.040981  (share:crossover lr<->ll)
+  [ 30480] 0.0410515  (share:support_outside noop)
+  [ 44720] 0.0426533  (share:crossover rr<->llr)
+  [ 45280] 0.0428161  (share:support_outside noop)
+  [ 48080] 0.0431291  (share:repair_shaft noop (shaft intact))
+  [ 50720] 0.0439163  (share:repair_shaft noop (shaft intact))
+  [ 51200] 0.0439201  (share:crossover llr<->lrr)
+  [ 53680] 0.0955936  (share:undivide 0/lr)
+  [ 54640] 0.0977289  (share:crossover root<->root)
+  [ 55280] 0.0980487  (share:repair_shaft noop (shaft intact))
+  [ 73920] 0.0980612  (share:level_retype 0/llr<->1/llr)
+  [ 82240] 0.181864  (share:undivide 0/rl)
+  [ 82560] 0.182424  (share:stair noop)
+  [ 84480] 0.182456  (share:crossover rr<->rr)
+  [ 87600] 0.182486  (share:crossover lll<->lll)
+  [ 88880] 0.336355  (share:support_outside place 0/rl (split from b2))
+  [ 92160] 0.340809  (share:support_outside noop)
+  [ 92480] 0.342303  (share:stair noop)
+  [ 94560] 0.353389  (share:swap 0/rl)
+  [ 97440] 0.35385  (share:support_outside place 0/rl (split from b2))
+  [102560] 0.355139  (share:support_outside noop)
+  [105040] 0.355152  (share:crossover rr<->rr)
+  [106560] 0.355204  (share:crossover lll<->lll)
+  [106800] 0.355384  (share:crossover llr<->llr)
+  [113360] 0.35556  (share:divide 0/rlr)
+  [117120] 0.355663  (share:repair_shaft noop (shaft intact))
+  [119040] 0.356199  (share:stair noop)
+  [120960] 0.356375  (share:crossover rll<->rll)
+  [248160] 0.35646  (share:support_outside noop)
+  [275120] 0.356483  (share:undivide 0/rlr)
+  [500200] 0.356504  (polish:seed)
+  [508360] 0.364729  (polish:core_undivide ll (2 floors))
+  [510440] 0.395503  (polish:level_compound_fix noop)
+  [511320] 0.402419  (polish:repair_shaft noop (shaft intact))
+  [513080] 0.402794  (polish:core_undivide noop)
+  [513720] 0.402851  (polish:level_retype 1/lrl<->0/rr)
+  [520760] 0.411671  (polish:rotate 0/r)
+  [577080] 0.411688  (polish:rotate 0/r)
+  [608040] 0.411693  (polish:crossover r<->r)
+written      : /home/bruno/src/homemaker-layout/examples/programme-house/coldstart-4428262+orth-500000-s0.dom
