@@ -17380,3 +17380,66 @@ The gap is in the search's topology, not in the scoring.
 3. What the cold search lacks that the drawing supplies (storey count,
    courtyard, cores) is a seeding question -- `8b2u.18`, min-cut seeds, and
    the constructor's storey count -- and the hand runs are its target.
+
+### 39.143 Three answers on §39.142: corridors stand, stairs must be apart (built), and the cold search must find the drawing's kind of plan (`homemaker-py-2g7.12`, `2g7.13`)
+
+**The owner's answers, 2026-10-14.**
+
+1. *Corridors at 1.18-1.25 m:* "these corridors are ok but would be better
+   wider." That is the ruling already in `width_circulation` (§39.139: 1.25 m
+   "ok, but not ideal" keeps a fifth of a corridor's value, full value from
+   1.6 m). **No change.**
+2. *Two stairs on harbor-house:* "a building this size needs two stairs and
+   they need to be separated from each other." **Built** (below).
+3. *Seeding:* "we need to figure out how to find these better designs
+   automatically." Filed as `2g7.13`; first measurement below.
+
+**Stair separation (branch `stair-separation`, c48685a; lands after queue
+4).** No distance was given, so the rule is a published one: the US building
+code's for two exits, unsprinklered (IBC 1007.1.1) -- **at least half the
+building's overall diagonal apart**. Distance is centroid to centroid of the
+shafts' ground cells; the diagonal is the longest distance between corners
+of indoor cells on any storey (via the convex hull, so it costs nothing a
+score notices). Stairs closer than that are one way out: the count that
+`staircase_min` checks is the largest pairwise-separated set, so the fail is
+the existing `too few stairs (N, min M)`. `staircase_separation`, a fraction
+of the diagonal, default 0.5, only matters where a brief asks for two.
+
+Measured before building, on harbor-house (diagonal 37.9 m, so 18.9 m):
+the owner's `hand2a` has its cores 19.9 m apart and passes; the hand-seeded
+runs of §39.142 had pulled them to 10.2, 20.0 and 5.0 m -- the search was
+using the gap. Priced with `diag_8b2u_score_cost.py --snapshot`: **2 of 204
+committed designs move**, each by one `too few stairs`; nothing else, quad
+and native alike. Two of the three hand-seeded designs gain the same fail
+(10 -> 11, 5 -> 6), so §39.142's comparison stands at 9.7 against 29.7.
+`tests/test_stair_separation.py`, with its own copy of the brief and two
+designs, and a negative control (the rule off, the close pair counts two).
+
+*Expectation for the first sweep with it:* harbor-house designs whose two
+stairs stand on opposite sides of the building; `too few stairs` no rarer
+than in §39.142 (seven of eleven runs), possibly commoner, until the search
+has a move that adds a second, distant `E` column -- which it does not have
+(§39.140: `repair_shaft` and `level_add_migrate` place one).
+
+**Seeding, first measurement** (`experiments/diag_2g713_seed_storeys.py`,
+container). The constructor builds `max(level:, storey_minimum)` storeys --
+two for harbor-house -- so every cold run starts at two. Six constructor
+seeds at two storeys and six at three from the same streams, each tuned 600
+evaluations; the owner's drawing tuned alike:
+
+| start | fails, tuned | stair shafts | crinkliness |
+|---|---|---|---|
+| constructor, 2 storeys | 81.0 (71-95) | 0 in 6 | 25.5 |
+| constructor, 3 storeys | 103.7 (94-116), worse in 6 of 6 | 0 in 6 | 40.7 |
+| `hand2a` | 24 | 2 | 7 |
+
+So **asking the constructor for a third storey makes it worse**: it spreads
+the rooms over more floor and buries more of them. And no constructor seed
+has a staircase at all; the search cuts one later. The drawing's advantage
+is not its storey count but its arrangement -- cores placed for two wings, a
+courtyard that gives the deep plan its light -- and that is what a
+constructor would have to learn. Where to look next, in order of cost:
+which of the drawing's features carries the gap (remove one at a time and
+re-tune: a counterfactual, container); a constructor that places separated
+stair cores and a courtyard before the rooms; and the box A/B of whatever
+that produces against the cold default.

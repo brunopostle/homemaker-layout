@@ -80,6 +80,7 @@ index is how to get from a question to the section that answers it.
 | §39.140 | `level_add_migrate`'s shaft guard holds: 0 shafts lost in 441 moves, controls firing. Only one of §39.134's three "stairless" runs had no stair (the other two had one too small). The gap is the fallback: on a multi-storey parent with no shaft the move adds a storey and makes a stair 1 time in 39. |
 | §39.141 | `seedsolve`: `--seed-solver` resolves nothing in 36 programme-house pairs or 4 harbor-house pairs; its two-fail head start on the seed is gone by 1,000 evaluations. Stays off. Five of eight harbor-house runs end with `too few stairs`. |
 | §39.142 | The `4428262+orth` re-baseline (brief fixes, native-fast, access rulings): under today's scorer the new designs beat the old on all four programmes; no circulation `width` fails, but 12 of 80 `C` cells sit within 8 cm of the fail line. Seeded from the owner's drawing, harbor-house ends at 10 / 12 / 5 fails against 28 / 24 / 37 cold: the gap is the search's topology, not the objective. |
+| §39.143 | Owner's answers: corridors stand; two stairs must be separated -- built as IBC's half-diagonal rule (branch, lands after queue 4; 2 of 204 designs gain a fail); find the drawing's kind of plan automatically -- a three-storey constructor seed is WORSE (104 fails against 81, 6 of 6), and no constructor seed has a stair. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -115,6 +116,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | One unreachable room is a single fail: the storey's `inaccessible usable space` is reported once | §39.138 |
 | A corridor under 1 m clear fails; an institution's is right at 1.6 m centres, and width grows with capacity. A lobby is "simply the circulation cell that meets the street with a front door", an assembly space, wider than a corridor | §39.138, §39.139 |
 | Each neighbourhood has its own bathroom, and harbor-house has two more beside the individual sleeping rooms (a brief change, landing just before a re-baseline) | §39.139 |
+| A building the size of harbor-house needs two stairs, separated from each other (built as half the building's diagonal, IBC 1007.1.1). Corridors at 1.2 m are ok but better wider: the existing gaussian already says so | §39.143 |
 | A common room opens onto PRIVATE outdoor space: a street wall is not "next to outdoors" | §39.138 |
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
@@ -157,7 +159,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (247 of them, 17382 lines)
+## Every section of DESIGN.md (248 of them, 17445 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -455,4 +457,5 @@ below are the most recent work.
 - §39.139 · 17036-17147 · Corridor, lobby and bathrooms: the second round of rulings; the first two built (`homemaker-py-2g7.11`, branch `access-rulings`)
 - §39.140 · 17148-17228 · `level_add_migrate`'s shaft guard holds; only one of §39.134's three runs was stairless, and the gap is the fallback (`homemaker-py-4ln3`)
 - §39.141 · 17229-17291 · `--seed-solver` buys a head start that is gone inside a thousand evaluations; it stays off (`homemaker-py-8b2u.21`)
-- §39.142 · 17292-17382 · The `4428262+orth` re-baseline, and the owner's drawing as a seed: harbor-house ends at 9 fails against 30 (`homemaker-py-5nw`, `2g7.11`, `2g7.1`)
+- §39.142 · 17292-17383 · The `4428262+orth` re-baseline, and the owner's drawing as a seed: harbor-house ends at 9 fails against 30 (`homemaker-py-5nw`, `2g7.11`, `2g7.1`)
+- §39.143 · 17384-17445 · Three answers on §39.142: corridors stand, stairs must be apart (built), and the cold search must find the drawing's kind of plan (`homemaker-py-2g7.12`, `2g7.13`)
