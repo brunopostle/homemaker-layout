@@ -17288,3 +17288,95 @@ harbor-house runs end failing `too few stairs` (built 3 of 4, solved 2 of
 finish with two. That is the first harbor-house evidence at an `E`
 objective and it is eight runs; the re-baseline at `4428262+orth` has
 three more.
+
+### 39.142 The `4428262+orth` re-baseline, and the owner's drawing as a seed: harbor-house ends at 9 fails against 30 (`homemaker-py-5nw`, `2g7.11`, `2g7.1`)
+
+Queue 4 merged `brief-fixes` (8a17b77: the brief fixes of `5nw`,
+native-fast of §39.136, and the access rulings of §39.138/§39.139) at
+21:35 on 2026-10-13, 886 tests green, and ran the 12-run sweep: objective
+**`4428262+orth`**, search `0fd7d88`, config `368c602c18`, 500k, 8 slots on
+the owner's desktop. Makespan 15 h 53 m (maple-court sets it, 13.5-14.9 h
+a run). `verify_results_table.py`: 12 of 12 rows reproduce exactly.
+
+| programme | s0 | s1 | s2 | mean | `1a24b6a+orth` as recorded | `1a24b6a+orth` artefacts, today's scorer |
+|---|---|---|---|---|---|---|
+| harbor-house | 28 | 24 | 37 | 29.7 | 27.3 | 42.7 |
+| health-centre | 7 | 8 | 3 | 6.0 | 4.3 | 10.7 |
+| maple-court | 62 | 67 | 60 | 63.0 | 50.0 | 69.7 |
+| programme-house | 0 | 1 | 1 | 0.67 | 1.33 | 1.33 |
+
+Against its own recorded rows the new corpus looks worse (24.8 against
+20.8 fails a design, not resolved; maple-court +13 with t 6.2 on three
+pairs). That reading is the objective moving, not the search: 21 commits
+to `OBJECTIVE_SOURCES` lie between them, among them daylight counted once
+(§39.95, which un-hid 3-8% of every corpus's fails) and harbor-house's
+two extra bathrooms. **Held to today's scorer, the old designs are worse
+on every programme** -- 42.7 / 10.7 / 69.7 / 1.33 against 29.7 / 6.0 /
+63.0 / 0.67 -- which is the only like-for-like reading available (layouts
+compared under one scorer, not a search A/B; §39.12 clause 3).
+
+**Against the expectations recorded before the run.**
+
+- *§39.138, utility access and the storey fail once: "fails down by about
+  one on harbor-house and maple-court from the double count alone".* Not
+  separable from the other twenty commits; the per-programme falls above
+  are larger than one and consistent with it.
+- *§39.139, corridor 1.6 m: "`width` fails on circulation ... expect them
+  near zero".* Right: **none**. The one `width` fail in the corpus is an
+  outdoor cell on programme-house.
+- *"If corridors land AT 1.17 m in number, the gaussian is being ridden to
+  its edge and the sigma wants another look."* **They do.** Of 80
+  `C` cells, 12 have a usable width of 1.18-1.25 m, i.e. within
+  8 cm of the fail line; health-centre s0 has six of its nine there. A
+  corridor that narrow passes and costs nearly nothing, so the search
+  takes it. The owner's ruling put "right" at 1.6 m; this is the evidence
+  the sigma was to be looked at against. Question for the owner, not
+  changed.
+- *§39.139 addendum, bathrooms: "seven bathrooms and a `t` on every
+  neighbourhood".* Half right: every harbor-house design has five `t` and
+  two `wc`; `not adjacent to t` still fires 4 times over three designs.
+- *"No change expected in crinkliness's share."* 48.7% of the fail set,
+  against 46.2% at `1a24b6a+orth` -- the 2.5-point rise is about what
+  §39.95's un-hidden fails predict.
+
+`too few stairs` on harbor-house: 2 of 3 cold runs end with one staircase
+of two, as 5 of 8 did in §39.141. That is now seven of eleven runs at an
+`E` objective: a pattern, filed as a question below.
+
+**The hand-seeded runs.** Queue 4 then ran harbor-house three more times
+with the owner's drawing `hand2a.dom` (24 fails as committed) as the seed,
+same budget and seeds as the cold runs.
+
+| seed | cold start | from the owner's drawing |
+|---|---|---|
+| 0 | 28 | **10** |
+| 1 | 24 | **12** |
+| 2 | 37 | **5** |
+| mean | 29.7 | **9.0** |
+
+All three pairs go the same way, by 12 to 32 fails (mean 20.7, sd 10.3,
+t 3.5 on two degrees of freedom); scores 1e-4 to 1.6e-2 against 1e-8 to
+1e-12. Three pairs is three pairs, but no reading of them makes the cold
+search competitive. What differs is visible in the fail lists: every cold
+design fails `level 0 not connected` and `level 1 not connected` and
+carries 11-15 crinkliness fails (buried cells on two deep storeys); the
+hand-seeded designs keep the drawing's three storeys (every cold design
+has two), and carry 1-4 crinkliness fails and at most one `level N not
+connected`. The residue of the hand-seeded runs is mostly adjacency
+(`n` / `t`, `da1` next to outside) and a few shapes.
+
+This answers the question `2g7.1` was opened to ask. The objective is not
+what stops the search reaching a good harbor-house: a person's topology,
+then the search's own operators and inner loop, reaches 5-12 fails under
+it. The cold search does not find that topology -- three storeys, with stair
+cores placed for two wings -- in 500k evaluations.
+The gap is in the search's topology, not in the scoring.
+
+**Open, for the owner.**
+1. Corridors at 1.18-1.25 m: widen the sigma, or accept them?
+2. `too few stairs` on harbor-house in seven of eleven `E` runs: is two
+   staircases the brief's intent at this size, and if so is the search
+   short of a move that makes a second `E` column?
+3. What the cold search lacks that the drawing supplies (storey count,
+   courtyard, cores) is a seeding question -- `8b2u.18`, min-cut seeds, and
+   the constructor's storey count -- and the hand runs are its target.
