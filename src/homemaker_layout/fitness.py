@@ -22,6 +22,7 @@ Call ``dom.merge_divided(root)`` and rebuild graphs before ``process_storey``
 from __future__ import annotations
 
 import functools
+import itertools
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -388,6 +389,14 @@ CONF_DEFAULTS: dict = {
     # (same ruling). No figure was given, so it keeps the width every
     # circulation cell was held to before. `Fitness._lobby` says which cell.
     "width_lobby": [2.4, 0.2],
+    # Owner's ruling, 2026-10-14 (DESIGN.md §39.143): "a building this size
+    # needs two stairs and they need to be separated from each other". How
+    # far is the US building code's rule for two exits (IBC 1007.1.1, no
+    # sprinklers): at least HALF the building's overall diagonal apart. Two
+    # stairs closer than that are one way out, so they count as one towards
+    # `staircase_min`. A fraction of the diagonal; it only matters where a
+    # brief asks for two or more.
+    "staircase_separation": 0.5,
     # §39.37 (homemaker-py-2f1): `None` means rooms have NO width requirement.
     # A leaf's area, narrowest width and aspect satisfy A = w^2 * r, so any two
     # fix the third: over 532 corpus leaves w^2*aspect/area has median 0.9929
@@ -441,6 +450,28 @@ _PARAM_FALLBACKS = {
 }
 
 _E = 2.718281828  # Urb::Math::gaussian uses this truncated e, not math.e
+
+
+def _convex_hull(points) -> "list[tuple[float, float]]":
+    """Andrew's monotone chain: the hull's vertices, anticlockwise."""
+    pts = sorted(set(points))
+    if len(pts) < 3:
+        return pts
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower: list = []
+    upper: list = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
 
 
 def gaussian(x: float, a: float, b: float, c: float) -> float:
@@ -2085,6 +2116,33 @@ class Fitness:
             proportion_non_o = 1.0
         return gaussian(proportion_type / proportion_non_o, 1.0, ratio, sigma)
 
+    def _separated_stairs(self, root: Node, stairs: "list[Node]") -> int:
+        """How many of ``stairs`` are separate ways out: the largest set whose
+        every pair stands at least ``staircase_separation`` of the building's
+        overall diagonal apart (owner's ruling, §39.143; IBC 1007.1.1's rule
+        for two exits). Distance is centroid to centroid -- a shaft is the same
+        cell on every storey it climbs, so its ground leaf stands for it -- and
+        the diagonal is the longest distance between corners of indoor cells
+        on any storey. Stairs are few, so every subset is tried."""
+        frac = self.conf("staircase_separation")
+        if not frac:
+            return len(stairs)
+        corners = {(round(p[0], 6), round(p[1], 6))
+                   for lvl in dom_mod.levels(root) for lf in lvl.leaves()
+                   if not dom_mod.is_outside(lf) for p in geometry.polygon(lf)}
+        hull = _convex_hull(corners)      # the farthest pair is on the hull
+        diagonal = max((math.dist(a, b) for a, b in
+                        itertools.combinations(hull, 2)), default=0.0)
+        need = frac * diagonal
+        centres = [geometry.centroid(lf) for lf in stairs]
+        far = {(i, j) for i, j in itertools.combinations(range(len(stairs)), 2)
+               if math.dist(centres[i], centres[j]) >= need}
+        for k in range(len(stairs), 1, -1):
+            for group in itertools.combinations(range(len(stairs)), k):
+                if all(pair in far for pair in itertools.combinations(group, 2)):
+                    return k
+        return 1
+
     def quality_staircase_volume(self, *stair_fits: float) -> float:
         """Best-stair gaussian; mirrors ``ProgrammeDriven::quality_staircase_volume``."""
         factor = 0.09
@@ -2271,6 +2329,7 @@ class Fitness:
                                 leaf, graph_circ, all_lvls, doors=door)
                         stair_fit = self._stair_fit(leaf, corners)
                         tracking["stair_fit"].append(stair_fit)
+                        tracking["stair_leaves"].append(leaf)
 
                 # Public access tracking
                 if root is not None:
@@ -2366,11 +2425,15 @@ class Fitness:
 
         stair_min = self.conf("staircase_min") or 1
         stair_max = self.conf("staircase_max") or 1
-        stair_count = len(tracking.get("stair_fit", []))
+        stairs = tracking.get("stair_leaves", [])
+        stair_count = len(stairs)
+        separated = stair_count
+        if stair_min > 1 and stair_count > 1:
+            separated = self._separated_stairs(root, stairs)
 
-        if stair_count < stair_min:
+        if separated < stair_min:
             tracking["_failures"].append(
-                f"too few stairs ({stair_count}, min {stair_min})"
+                f"too few stairs ({separated}, min {stair_min})"
             )
         if stair_count > stair_max:
             tracking["_failures"].append(
@@ -2439,6 +2502,7 @@ class Fitness:
             "has_public_access_outside": False,
             "has_public_access_inside": False,
             "stair_fit": [],
+            "stair_leaves": [],
             "_failures": failures,
         }
 
