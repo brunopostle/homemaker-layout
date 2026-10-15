@@ -9,36 +9,33 @@ and a link), and the right one depends on the scale of the plot. Find them with
 a minimal programme -- inside and outside only -- at a ladder of plot sizes,
 and use them to seed the search.
 
-**Why not the scorer.** `fitness.py` on a one-usage programme still demands a
-stair (`staircase_min: 0` reads as 1), circulation and access: a bare L fails
-all three. So this scores the one thing the parti is FOR, daylight, in terms
-taken from Alexander (107 Wings of Light, 106 Positive Outdoor Space):
+**The rule is the scorer's own, and it is scale-free.** `fitness.py`
+cannot score a minimal programme whole (with one usage it still asks for a
+stair, circulation and access), but its daylight test is one line: a cell
+fails crinkliness when its floor area exceeds 1.62 x lit wall length x storey
+height, a lit wall being one on an outdoor cell or an open plot side (a
+private or party side gives none). That is A / (L h), unchanged when plan and
+height scale together -- an L for a 12 m plot at 3 m storeys is the L for a
+24 m plot at 6 m (owner, 2026-10-15) -- so lengths here are in storey heights
+and the catalogue is enumerated ONCE. It also survives subdivision: cutting a
+cell lit on two opposite walls, either way, gives cells at the parent's ratio,
+so a plan whose wings pass leaves rooms that can pass -- but only a WING: a
+fat cell lit round its edge passes A / (L h) whole and buries the rooms cut
+from its middle. So the test is the scorer's number applied pointwise:
+every built point within 1.62 h of a lit wall of its own cell. That implies
+the area rule, and it is what guarantees the cell divides into single-aspect
+rooms 1.62 h deep at most, each of which passes.
 
-* a FACADE is a built edge that sees an open plot side, or looks across
-  outdoor space at least ``court`` metres deep before meeting a wall (a
-  building or a party wall);
-* a built point is LIT if it is within ``depth`` metres of a facade of its own
-  cell (cell-local, so light does not jump a slot to the next wing);
-* a built cell narrower than ``wing_min`` is a sliver and lights nothing;
-* only one connected building counts; any other piece is unlit.
+Beyond daylight, only what the scorer would also refuse: a built cell under
+``b_min`` wide, an outdoor cell under ``o_min`` (width_outside, 2.3 m), a
+building in two pieces. A tree's CAPACITY on a plot is the largest built
+fraction at which all of that holds; a project wants the trees whose capacity
+reaches the cover its ground floor needs, on a plot of its own P / h. That is
+the filter -- nothing here ranks one parti above another (§39.144 tried, and
+it took a ruling nobody had made).
 
-* outdoor space is USABLE where a ``court`` x ``court`` square of it fits
-  (a morphological opening); the rest is a slot or a sliver, and wasted.
-
-score = lit - unlit - wasted outdoor, in m2, less twice the miss on
-``coverage`` (the built fraction of the plot) when one is asked for, less
-``envelope`` m2 a metre of external wall, plus ``enclosure`` m2 a metre of
-usable outdoor edge held by building or party wall. Daylight and coverage
-alone do NOT rank plans: at half cover, 23 outlines on an open 18 m square and
-36 on a 24 m one are all lit with nothing wasted. The last two terms are the
-candidate tie-breakers, economy and positive outdoor space, both off unless
-asked for. Without it the parti is the
-densest building that is all lit, and on a plot under two light depths across
-that is simply the whole plot; a coverage is what makes a garden worth keeping.
-
-The answer is not one tree but the PORTFOLIO within ``tol`` m2 of the best,
-grouped by the outline they draw: different trees drawing one outline are
-listed under it, since they are different seeds.
+An earlier version of this tool scored a daylight model of its own (light
+depth, court width, enclosure, envelope); §39.144 records what it showed.
 
 **The trees.** A plan is an n-ary slicing tree: a node cuts its rectangle
 into k >= 2 strips across one axis, children alternate axis (so a chain of
@@ -50,12 +47,12 @@ B from some O. Trees are canonical under the square's eight symmetries; on a
 plot each is evaluated in every orientation the plot distinguishes (two on an
 open rectangle, eight once its sides differ), and reported as the best.
 
-**The ratios** live on a grid of ``res`` metres: each node's strips are whole
-cells summing to its span, improved by hill-climbing (move one cell between
-neighbouring strips) from several starts.
+**The ratios** live on a grid of ``res`` storey heights: each node's strips
+are whole cells summing to its span, hill-climbed from several starts to the
+largest feasible cover.
 
-    python experiments/wings_catalogue.py --leaves 6 --plots 12x12 24x24 36x24
-    ... --sides open,open,party,party   (south, east, north, west)
+    python experiments/wings_catalogue.py --leaves 6 --plots 4x4 8x8 12x8
+    ... --sides open,party,open,party   (south, east, north, west)
 """
 
 from __future__ import annotations
@@ -67,7 +64,6 @@ import sys
 from dataclasses import dataclass
 
 import numpy as np
-from scipy import ndimage
 
 # ---------------------------------------------------------------- trees ----
 # A tree is "B", "O", or (axis, (child, ...)) with axis "V" (cuts across x:
@@ -184,17 +180,24 @@ def nodes(t) -> list:
 
 
 # ------------------------------------------------------------ geometry ----
+# Every length is in units of the storey height h. Crinkliness is A / (L h)
+# for floor area A and lit wall length L, so a plan scaled by k with h scaled
+# by k scores the same (the owner's point, 2026-10-15): the catalogue is
+# enumerated once, and a project picks from it by its own P / h.
+
+K_LIT = 1.6202   # A <= K_LIT * L * h at the fail edge (fitness.py, §38.3/§39.16)
+
 
 @dataclass
 class Plot:
-    nx: int          # cells across (x)
-    ny: int          # cells up (y)
-    res: float       # metres a cell
-    open: tuple      # (south, east, north, west): True if light comes in
+    nx: int          # grid cells across (x)
+    ny: int          # grid cells up (y)
+    res: float       # storey heights a grid cell
+    open: tuple      # (south, east, north, west): True if the side gives light
 
     @property
     def label(self):
-        return (f"{self.nx * self.res:g}x{self.ny * self.res:g} "
+        return (f"{self.nx * self.res:g}h x {self.ny * self.res:g}h "
                 + "".join("o" if o else "p" for o in self.open))
 
 
@@ -213,98 +216,82 @@ def draw(t, sizes: dict, x0, y0, x1, y1, out: list):
             draw(c, sizes, x0, y0 + a, x1, y0 + b, out)
 
 
-def runs(o: np.ndarray, axis: int, reverse: bool) -> tuple[np.ndarray, np.ndarray]:
-    """For every cell, how many O cells lie beyond it in the direction, and
-    whether that run of O reaches the plot edge."""
-    a = np.moveaxis(o, axis, 0)
-    if reverse:
-        a = a[::-1]
-    n = np.zeros(a.shape, int)
-    edge = np.zeros(a.shape, bool)
-    cnt = np.zeros(a.shape[1:], int)
-    reach = np.ones(a.shape[1:], bool)
-    for i in range(a.shape[0] - 1, -1, -1):
-        n[i] = cnt
-        edge[i] = reach
-        cnt = np.where(a[i], cnt + 1, 0)
-        reach = np.where(a[i], reach, False)
-    if reverse:
-        n, edge = n[::-1], edge[::-1]
-    return np.moveaxis(n, 0, axis), np.moveaxis(edge, 0, axis)
+def shared(a, b) -> int:
+    """Length of wall two rectangles share, in grid cells."""
+    _la, ax0, ay0, ax1, ay1 = a
+    _lb, bx0, by0, bx1, by1 = b
+    if ax1 == bx0 or bx1 == ax0:
+        return max(0, min(ay1, by1) - max(ay0, by0))
+    if ay1 == by0 or by1 == ay0:
+        return max(0, min(ax1, bx1) - max(ax0, bx0))
+    return 0
 
 
-def edges_between(a: np.ndarray, b: np.ndarray, plot: Plot, b_outside: bool) -> int:
-    """Grid edges between a cell of ``a`` and a cell of ``b``; with
-    ``b_outside``, an ``a`` cell on a plot side counts too, once per side that
-    is open (``b_outside`` True) -- or party (False)."""
-    n = (a[1:, :] & b[:-1, :]).sum() + (a[:-1, :] & b[1:, :]).sum()
-    n += (a[:, 1:] & b[:, :-1]).sum() + (a[:, :-1] & b[:, 1:]).sum()
-    s, e, nn, w = plot.open
-    for side_open, line in ((s, a[:, 0]), (e, a[-1, :]), (nn, a[:, -1]), (w, a[0, :])):
-        if side_open == b_outside:
-            n += line.sum()
-    return int(n)
-
-
-def score(leaves, plot: Plot, depth: float, court: float, wing_min: float,
-          coverage: float | None = None, envelope: float = 0.0,
-          enclosure: float = 0.0):
-    """(score, lit m2, built m2, wasted outdoor m2) of a plan drawn as ``leaves``."""
-    built = np.zeros((plot.nx, plot.ny), bool)
-    for lab, x0, y0, x1, y1 in leaves:
-        if lab == "B":
-            built[x0:x1, y0:y1] = True
-    o = ~built
-    court_n = court / plot.res
-    # facing[d]: the cell's neighbour in direction d is light, d = +x, +y, -x, -y
-    # plot sides: +x east (1), +y north (2), -x west (3), -y south (0)
-    side_of = {(0, False): 1, (1, False): 2, (0, True): 3, (1, True): 0}
-    lightfrom = {}
-    for axis in (0, 1):
-        for rev in (False, True):
-            n, edge = runs(o, axis, rev)
-            ok = np.where(edge, plot.open[side_of[axis, rev]] | (n >= court_n),
-                          n >= court_n)
-            lightfrom[axis, rev] = ok
-    lit = np.zeros_like(built)
-    depth_n = depth / plot.res
-    wing_n = wing_min / plot.res
-    for lab, x0, y0, x1, y1 in leaves:
-        if lab != "B" or min(x1 - x0, y1 - y0) < wing_n:
-            continue
-        src = np.zeros((x1 - x0, y1 - y0), bool)
-        src[-1, :] |= lightfrom[0, False][x1 - 1, y0:y1]
-        src[0, :] |= lightfrom[0, True][x0, y0:y1]
-        src[:, -1] |= lightfrom[1, False][x0:x1, y1 - 1]
-        src[:, 0] |= lightfrom[1, True][x0:x1, y0]
-        if not src.any():
-            continue
-        # distance from a facade cell's outer face: a facade cell is half a
-        # cell from its wall, so the edt (centre to centre) plus 0.5
-        d = ndimage.distance_transform_edt(~src) + 0.5
-        lit[x0:x1, y0:y1] = d <= depth_n
-    comp, k = ndimage.label(built)
-    if k > 1:
-        big = np.argmax(np.bincount(comp.ravel())[1:]) + 1
-        lit &= comp == big
-    a = plot.res ** 2
-    lit_m2 = lit.sum() * a
-    built_m2 = built.sum() * a
-    # outdoor space is usable where a court x court square of it fits
-    k = max(1, round(court_n))
-    usable = ndimage.binary_opening(o, structure=np.ones((k, k), bool))
-    waste_m2 = (o & ~usable).sum() * a
-    val = lit_m2 - (built_m2 - lit_m2) - waste_m2
-    if envelope:
-        # external wall: built against outdoor space or an open plot side
-        val -= envelope * edges_between(built, o, plot, True) * plot.res
-    if enclosure:
-        # usable outdoor space held by the building or by a party wall
-        val += enclosure * edges_between(usable, built, plot, False) * plot.res
-    if coverage is not None:
-        # weight 2: at 1, a m2 built past the target is lit and costs nothing
-        val -= 2 * abs(built_m2 - coverage * plot.nx * plot.ny * a)
-    return val, lit_m2, built_m2, waste_m2
+def check(leaves, plot: Plot, b_min: float, o_min: float):
+    """(built fraction, violation) of a plan. Violation is 0 when every built
+    cell passes the scorer's crinkliness edge and is at least ``b_min`` wide,
+    every outdoor cell at least ``o_min`` wide, and the building is one piece;
+    otherwise a positive measure of how far it is from that, in h^2."""
+    s, e, n, w = plot.open
+    B = [lf for lf in leaves if lf[0] == "B"]
+    O = [lf for lf in leaves if lf[0] == "O"]
+    r = plot.res
+    bad = 0.0
+    reach = max(1, int(K_LIT / r + 1e-9))  # grid cells a lit wall reaches
+    for lf in B:
+        _l, x0, y0, x1, y1 = lf
+        # every point within K_LIT h of a lit wall of its own cell: then the
+        # cell divides into rooms lit on one side and K_LIT h deep at most,
+        # each of which passes -- the area rule alone lets a fat cell lit
+        # round its edge pass while the rooms cut from its middle are buried
+        cover = np.zeros((x1 - x0, y1 - y0), bool)
+        sides = {"W": [(y0, y1)] if (x0 == 0 and w) else [],
+                 "E": [(y0, y1)] if (x1 == plot.nx and e) else [],
+                 "S": [(x0, x1)] if (y0 == 0 and s) else [],
+                 "N": [(x0, x1)] if (y1 == plot.ny and n) else []}
+        for _o, ox0, oy0, ox1, oy1 in O:
+            if ox1 == x0:
+                sides["W"].append((max(y0, oy0), min(y1, oy1)))
+            if ox0 == x1:
+                sides["E"].append((max(y0, oy0), min(y1, oy1)))
+            if oy1 == y0:
+                sides["S"].append((max(x0, ox0), min(x1, ox1)))
+            if oy0 == y1:
+                sides["N"].append((max(x0, ox0), min(x1, ox1)))
+        for side, ivs in sides.items():
+            for a, b in ivs:
+                if b <= a:
+                    continue
+                if side == "W":
+                    cover[:reach, a - y0:b - y0] = True
+                elif side == "E":
+                    cover[-reach:, a - y0:b - y0] = True
+                elif side == "S":
+                    cover[a - x0:b - x0, :reach] = True
+                else:
+                    cover[a - x0:b - x0, -reach:] = True
+        bad += (~cover).sum() * r * r
+        short, long_ = sorted((x1 - x0, y1 - y0))
+        bad += max(0.0, b_min - short * r) * long_ * r
+    for lf in O:
+        _l, x0, y0, x1, y1 = lf
+        short, long_ = sorted((x1 - x0, y1 - y0))
+        bad += max(0.0, o_min - short * r) * long_ * r
+    # one building: the built cells' adjacency graph is connected
+    if len(B) > 1:
+        seen, todo = {0}, [0]
+        while todo:
+            i = todo.pop()
+            for j in range(len(B)):
+                if j not in seen and shared(B[i], B[j]) > 0:
+                    seen.add(j)
+                    todo.append(j)
+        for j in range(len(B)):
+            if j not in seen:
+                _l, x0, y0, x1, y1 = B[j]
+                bad += (x1 - x0) * (y1 - y0) * r * r
+    built = sum((x1 - x0) * (y1 - y0) for _l, x0, y0, x1, y1 in B)
+    return built / (plot.nx * plot.ny), bad
 
 
 def initial_sizes(t, span_x, span_y, rng) -> dict:
@@ -318,9 +305,9 @@ def initial_sizes(t, span_x, span_y, rng) -> dict:
         k = len(kids)
         if span < k:
             raise ValueError("plot too small for this tree")
-        w = rng.dirichlet(np.ones(k)) * (span - k)
-        parts = np.floor(w).astype(int) + 1
-        parts[np.argmax(w - np.floor(w))] += span - parts.sum()
+        wts = rng.dirichlet(np.ones(k)) * (span - k)
+        parts = np.floor(wts).astype(int) + 1
+        parts[np.argmax(wts - np.floor(wts))] += span - parts.sum()
         sizes[id(t)] = parts
         for c, p in zip(kids, parts):
             rec(c, p if ax == "V" else sx, sy if ax == "V" else p)
@@ -338,48 +325,54 @@ def respan(t, sizes, sx, sy):
     p = sizes[id(t)]
     if p.sum() != span:
         k = len(p)
-        w = p / p.sum() * (span - k)
-        q = np.floor(w).astype(int) + 1
-        q[np.argmax(w - np.floor(w))] += span - q.sum()
+        wts = p / p.sum() * (span - k)
+        q = np.floor(wts).astype(int) + 1
+        q[np.argmax(wts - np.floor(wts))] += span - q.sum()
         sizes[id(t)] = p = q
-    for c, w in zip(kids, p):
-        respan(c, sizes, w if ax == "V" else sx, sy if ax == "V" else w)
+    for c, wd in zip(kids, p):
+        respan(c, sizes, wd if ax == "V" else sx, sy if ax == "V" else wd)
 
 
-def optimise(t, plot: Plot, depth, court, wing_min, rng, starts=4, max_steps=400,
-             coverage=None, envelope=0.0, enclosure=0.0):
-    """Best (score, lit, built, waste, sizes) for tree ``t`` on ``plot``."""
-    best = None
+def optimise(t, plot: Plot, b_min, o_min, rng, starts=6, max_steps=600,
+             coverage=None):
+    """Hill-climb a tree's strip widths. Without ``coverage``: the largest
+    built fraction at which every rule holds (its CAPACITY on this plot).
+    With it: the feasible plan nearest that fraction. Returns (key, built
+    fraction, violation, sizes) for the best start, or None if the plot is too
+    small to draw the tree at all."""
     inner = nodes(t)
 
-    def evaluate(sizes):
+    def key(sizes):
         out = []
         draw(t, sizes, 0, 0, plot.nx, plot.ny, out)
-        return score(out, plot, depth, court, wing_min, coverage, envelope, enclosure)
+        frac, bad = check(out, plot, b_min, o_min)
+        aim = -abs(frac - coverage) if coverage is not None else frac
+        return (-bad, aim), frac, bad
 
+    best = None
     for _ in range(starts):
         try:
             sizes = initial_sizes(t, plot.nx, plot.ny, rng)
         except ValueError:
             return None
-        cur = evaluate(sizes)
-        step = max(1, max(plot.nx, plot.ny) // 8)
+        cur = key(sizes)
+        step = max(1, max(plot.nx, plot.ny) // 6)
         steps = 0
         while step >= 1 and steps < max_steps:
             improved = False
-            moves = [(n, i, s) for n in inner for i in range(len(n[1]) - 1)
-                     for s in (step, -step)]
+            moves = [(nd, i, sg) for nd in inner for i in range(len(nd[1]) - 1)
+                     for sg in (step, -step)]
             for j in rng.permutation(len(moves)):
-                n, i, s = moves[j]
-                p = sizes[id(n)]
-                if p[i] + s < 1 or p[i + 1] - s < 1:
+                nd, i, sg = moves[j]
+                p = sizes[id(nd)]
+                if p[i] + sg < 1 or p[i + 1] - sg < 1:
                     continue
                 trial = {k: v.copy() for k, v in sizes.items()}
-                trial[id(n)][i] += s
-                trial[id(n)][i + 1] -= s
+                trial[id(nd)][i] += sg
+                trial[id(nd)][i + 1] -= sg
                 respan(t, trial, plot.nx, plot.ny)
                 steps += 1
-                val = evaluate(trial)
+                val = key(trial)
                 if val[0] > cur[0]:
                     sizes, cur, improved = trial, val, True
             if not improved:
@@ -424,10 +417,8 @@ def ascii_plan(t, sizes, plot: Plot, width=24) -> list[str]:
     for lab, x0, y0, x1, y1 in out:
         g[x0:x1, y0:y1] = "#" if lab == "B" else "."
     step = max(1, plot.nx // width)
-    rows = []
-    for y in range(plot.ny - 1, -1, -step):
-        rows.append("".join(g[x, y] for x in range(0, plot.nx, step)))
-    return rows
+    return ["".join(g[x, y] for x in range(0, plot.nx, step))
+            for y in range(plot.ny - 1, -1, -step)]
 
 
 def parse_plot(spec: str, sides: str, res: float) -> Plot:
@@ -437,79 +428,81 @@ def parse_plot(spec: str, sides: str, res: float) -> Plot:
     return Plot(round(w / res), round(h / res), res, flags)
 
 
+def stable_rng(*parts) -> np.random.Generator:
+    import hashlib
+    h = hashlib.sha1("|".join(map(str, parts)).encode()).digest()
+    return np.random.default_rng(int.from_bytes(h[:8], "big"))
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--leaves", type=int, default=6)
-    ap.add_argument("--plots", nargs="+", default=["12x12", "18x18", "24x24", "30x30"])
+    ap.add_argument("--plots", nargs="+", default=["4x4", "6x6", "8x8", "10x10", "12x12"],
+                    help="plot sizes in storey heights (8x8 is 24 m at h = 3 m)")
     ap.add_argument("--sides", default="open,open,open,open",
-                    help="south,east,north,west: open or party")
-    ap.add_argument("--res", type=float, default=1.0)
-    ap.add_argument("--depth", type=float, default=6.0,
-                    help="metres a facade lights (a two-sided wing is twice this)")
-    ap.add_argument("--court", type=float, default=6.0,
-                    help="outdoor depth a facade needs to see to count as lit")
-    ap.add_argument("--wing-min", type=float, default=4.0)
-    ap.add_argument("--starts", type=int, default=4)
-    ap.add_argument("--coverage", type=float, default=None,
-                    help="built fraction of the plot to aim at (default: none)")
-    ap.add_argument("--envelope", type=float, default=0.0,
-                    help="m2 charged per metre of external wall (party walls free)")
-    ap.add_argument("--enclosure", type=float, default=0.0,
-                    help="m2 credited per metre of usable outdoor edge held by "
-                         "building or party wall (Alexander 106)")
-    ap.add_argument("--tol", type=float, default=5.0,
-                    help="m2 below the best still reported")
-    ap.add_argument("--width", type=int, default=24, help="ascii plan width")
-    ap.add_argument("--top", type=int, default=8, help="outlines shown")
+                    help="south,east,north,west: open or party (no light)")
+    ap.add_argument("--res", type=float, default=None,
+                    help="grid, in storey heights (default: 1/32 of the plot's "
+                         "longer side, at least 0.25)")
+    ap.add_argument("--b-min", type=float, default=1.0,
+                    help="narrowest built cell, in h (3 m at h = 3 m)")
+    ap.add_argument("--o-min", type=float, default=0.77,
+                    help="narrowest outdoor cell, in h (width_outside 2.3 m at h = 3 m)")
+    ap.add_argument("--starts", type=int, default=6)
+    ap.add_argument("--top", type=int, default=8, help="outlines shown per plot")
+    ap.add_argument("--width", type=int, default=16, help="ascii plan width")
+    ap.add_argument("--json", default=None, help="write the catalogue here")
     ap.add_argument("--count", action="store_true",
                     help="only count the catalogue by leaf number")
     args = ap.parse_args(argv)
 
     cat = catalogue(args.leaves)
-    by_n = {}
+    by_n: dict = {}
     for t in cat:
         by_n[n_leaves(t)] = by_n.get(n_leaves(t), 0) + 1
     print("canonical minimal trees by leaves:", by_n, "total", len(cat), flush=True)
     if args.count:
         return 0
 
+    record = {"b_min": args.b_min, "o_min": args.o_min, "k_lit": K_LIT,
+              "sides": args.sides, "plots": {}}
     for spec in args.plots:
-        plot = parse_plot(spec, args.sides, args.res)
+        res = args.res or max(0.25, max(float(v) for v in spec.split("x")) / 32)
+        plot = parse_plot(spec, args.sides, res)
         gs = orientations(plot)
         rows = []
         for t in cat:
             best = None
             for g in gs:
                 tt = transform(t, *g)
-                rng = np.random.default_rng(
-                    int.from_bytes(text(tt).encode()[-8:].rjust(8, b"_"), "big") % 2**32)
-                r = optimise(tt, plot, args.depth, args.court, args.wing_min, rng,
-                             starts=args.starts, coverage=args.coverage,
-                             envelope=args.envelope, enclosure=args.enclosure)
-                if r and (best is None or r[0] > best[0]):
-                    best = (*r, tt)
+                r = optimise(tt, plot, args.b_min, args.o_min,
+                             stable_rng(text(tt), spec), starts=args.starts)
+                if r and r[2] == 0 and (best is None or r[1] > best[1]):
+                    best = (r[1], r[3], tt, t)
             if best:
                 rows.append(best)
-        rows.sort(key=lambda r: (-r[0], n_leaves(r[-1]), text(r[-1])))
-        top = rows[0][0]
-        keep = [r for r in rows if r[0] >= top - args.tol]
+        rows.sort(key=lambda r: (-r[0], n_leaves(r[2]), text(r[2])))
         groups: dict = {}
-        for r in keep:
-            plan = "\n".join(ascii_plan(r[-1], r[-2], plot, args.width))
+        for r in rows:
+            plan = "\n".join(ascii_plan(r[2], r[1], plot, args.width))
             groups.setdefault(plan, []).append(r)
-        print(f"\nplot {plot.label}, coverage {args.coverage}: {len(rows)} trees x "
-              f"{len(gs)} orientation(s); {len(keep)} within {args.tol:g} m2 of "
-              f"the best, drawing {len(groups)} outline(s)", flush=True)
+        record["plots"][spec] = [
+            {"tree": text(c), "capacity": round(float(f), 4)} for f, _s, _tt, c in rows]
+        caps = [r[0] for r in rows]
+        print(f"\nplot {plot.label}: {len(rows)} of {len(cat)} trees can be built "
+              f"all lit ({len(gs)} orientation(s) tried); capacity "
+              f"{max(caps, default=0):.0%} best, {np.median(caps) if caps else 0:.0%} "
+              f"median; {len(groups)} outlines", flush=True)
         for plan, rs in list(groups.items())[:args.top]:
-            sc, lit, built, waste = rs[0][:4]
-            print(f"  score {sc:6.0f}: lit {lit:.0f} of {built:.0f} m2 built, "
-                  f"{waste:.0f} m2 outdoor wasted; {len(rs)} tree(s):")
-            for r in rs[:6]:
-                print(f"      {n_leaves(r[-1])} leaves  {text(r[-1])}")
-            if len(rs) > 6:
-                print(f"      ... and {len(rs) - 6} more")
+            print(f"  capacity {rs[0][0]:.0%}, {len(rs)} tree(s): "
+                  + ", ".join(text(r[2]) for r in rs[:3])
+                  + (f" ... +{len(rs) - 3}" if len(rs) > 3 else ""))
             for line in plan.split("\n"):
                 print("        " + line)
+    if args.json:
+        import json
+        with open(args.json, "w") as fh:
+            json.dump(record, fh, indent=1)
     return 0
 
 
