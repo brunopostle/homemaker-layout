@@ -17443,3 +17443,83 @@ which of the drawing's features carries the gap (remove one at a time and
 re-tune: a counterfactual, container); a constructor that places separated
 stair cores and a courtyard before the rooms; and the box A/B of whatever
 that produces against the cold default.
+
+### 39.144 The drawing's footprint carries its daylight, and daylight alone does not rank a parti (`homemaker-py-2g7.13.1`)
+
+**The owner's proposal, 2026-10-15.** The hand-seeded harbor-house wins
+(§39.142) because its plan is *wings of light* (Alexander 107): `hand2a`'s
+ground floor is an E -- a spine on the street side, three wings, two courts
+open to private side b. Such parti are few (L, C/Z, E, F, O, 8, b, ...); each
+can be cut by more than one slicing tree drawing the same outline (a C as one
+long wing with the rest subdivided, or two long wings and a link), and those
+are different seeds. Find them on minimal single-storey programmes at a ladder
+of plot sizes and seed the search with them.
+
+**Step 0: is it the footprint?** (`experiments/diag_2g7131_footprint.py`,
+container, 6 seeds an arm, 600 inner-loop evaluations, as §39.143.) Arms built
+from `hand2a`: *relabel* keeps every wall and re-places the rooms with the
+constructor's assignment; *footprint* keeps only the O and E cells, collapses
+every subtree holding neither and refills it with the constructor's growth,
+assignment and sizing (each storey's room multiset from the drawing);
+*nocore* refills the E cells too.
+
+| start | fails, tuned | crinkliness | stair shafts |
+|---|---|---|---|
+| `hand2a` | 24 | 7 | 2 |
+| relabel | 57.8 (55-60) | 7.0 | 2 |
+| footprint | 71.8 (64-80) | 7.0 | 2 |
+| nocore | 74.5 (70-87) | 8.3 | 0 |
+| constructor, 2 storeys | 81.0 (71-95) | 25.5 | 0 |
+| constructor, 3 storeys | 103.7 (94-116) | 40.7 | 0 |
+
+On the fail count the footprint is worth little -- 72 against 81 -- and the
+owner's room placement is worth most of the drawing's lead at the seed (24
+against 58). But the families say the opposite of the totals. **Every arm
+that keeps the drawing's footprint keeps its crinkliness, 7-8 fails, against
+25-41 from the constructor**, cores or no cores; what the refilled seeds add
+is adjacency, size, access and proportion, which are what the hand-seeded
+searches of §39.142 went on to repair (they end at 1-4 crinkliness, the cold
+ones at 11-15). Crinkliness is the family three measured nulls failed to
+move by re-weighting (§39.68) and the one an operator would have to stop
+burying. So the reading is: the footprint carries the drawing's daylight, the
+search can supply the rooms, and the cores are worth about three fails at the
+seed. That is a seed measurement; whether a footprint-seeded SEARCH keeps the
+lead is the box A/B, and it can be run with no `src/` change, since
+`homemaker-evolve` warm-starts from any seed `.dom`.
+
+**Step 1: the catalogue** (`experiments/wings_catalogue.py`). The real scorer
+cannot score a minimal programme: with one usage it still asks for a stair
+(`staircase_min: 0` reads as 1), circulation and access, and a bare L fails
+all three. So the tool scores daylight directly: a facade sees an open plot
+side or at least `court` metres of outdoor space; a built point is lit within
+`depth` of a facade of its own cell; a cell under `wing_min` is a sliver;
+outdoor space is usable where a `court` square fits. Trees are n-ary (a run of
+parallel cuts is one node, so `(A|B)|C` and `A|(B|C)` are listed once),
+minimal (adjacent sibling leaves differ, every cut separates B from O), and
+canonical under the square's eight symmetries but NOT merged by outline. They
+number 1, 4, 20, 120, 792 at 2-6 leaves; a plot then evaluates each in every
+orientation it distinguishes -- one on an open square, two on an open
+rectangle, four or eight once its sides differ. Ratios are whole grid cells,
+hill-climbed from several starts; 145 trees on three plots take about a
+minute.
+
+What the first runs show (depth 6 m, court 6 m, wing 4 m, open plots):
+
+- **Without a coverage target the answer is "build it all"**: on 12 m a
+  two-sided 12 m block is entirely lit; on 24 m, a ring round a 6 m court,
+  drawn by three different trees.
+- **With one (half the plot), daylight does not rank**: 23 outlines on an
+  18 m square and 36 on a 24 m one are all lit with nothing wasted, at the
+  same score. Daylight and coverage are a filter, not an objective.
+- So the L the owner expects on a small plot needs a reason to beat a strip.
+  Two candidate tie-breakers are in the tool, both off: `--envelope`
+  (m2 per metre of external wall: economy) picks the strip at every size;
+  `--enclosure` (m2 per metre of usable outdoor edge held by building or party
+  wall: Alexander 106) picks an L on 18 m and a C/comb on 24 m. At 12 m and
+  half cover no L is feasible at all -- its arms would be under 4 m.
+
+**Open, for the owner.** What ranks one parti above another when both are
+lit: positive outdoor space (enclosure), economy (envelope), both, or
+something else? And should the plot ladder carry party walls -- harbor-house
+has two private sides and two street sides, and a party wall is what decides
+which way an L faces.

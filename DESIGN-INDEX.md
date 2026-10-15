@@ -81,6 +81,7 @@ index is how to get from a question to the section that answers it.
 | §39.141 | `seedsolve`: `--seed-solver` resolves nothing in 36 programme-house pairs or 4 harbor-house pairs; its two-fail head start on the seed is gone by 1,000 evaluations. Stays off. Five of eight harbor-house runs end with `too few stairs`. |
 | §39.142 | The `4428262+orth` re-baseline (brief fixes, native-fast, access rulings): under today's scorer the new designs beat the old on all four programmes; no circulation `width` fails, but 12 of 80 `C` cells sit within 8 cm of the fail line. Seeded from the owner's drawing, harbor-house ends at 10 / 12 / 5 fails against 28 / 24 / 37 cold: the gap is the search's topology, not the objective. |
 | §39.143 | Owner's answers: corridors stand; two stairs must be separated -- built as IBC's half-diagonal rule (branch, lands after queue 4; 2 of 204 designs gain a fail); find the drawing's kind of plan automatically -- a three-storey constructor seed is WORSE (104 fails against 81, 6 of 6), and no constructor seed has a stair. |
+| §39.144 | The owner's "wings of light" proposal. The drawing's footprint, refilled by the constructor, keeps its crinkliness (7 fails against 25-41 cold) though not its fail count (72 against 81): the footprint carries the daylight, the search can supply the rooms. A catalogue tool enumerates parti (1/4/20/120/792 trees at 2-6 leaves); daylight and coverage filter but do not rank, and what ranks them is a question for the owner. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -159,7 +160,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (248 of them, 17445 lines)
+## Every section of DESIGN.md (249 of them, 17525 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -458,4 +459,5 @@ below are the most recent work.
 - §39.140 · 17148-17228 · `level_add_migrate`'s shaft guard holds; only one of §39.134's three runs was stairless, and the gap is the fallback (`homemaker-py-4ln3`)
 - §39.141 · 17229-17291 · `--seed-solver` buys a head start that is gone inside a thousand evaluations; it stays off (`homemaker-py-8b2u.21`)
 - §39.142 · 17292-17383 · The `4428262+orth` re-baseline, and the owner's drawing as a seed: harbor-house ends at 9 fails against 30 (`homemaker-py-5nw`, `2g7.11`, `2g7.1`)
-- §39.143 · 17384-17445 · Three answers on §39.142: corridors stand, stairs must be apart (built), and the cold search must find the drawing's kind of plan (`homemaker-py-2g7.12`, `2g7.13`)
+- §39.143 · 17384-17446 · Three answers on §39.142: corridors stand, stairs must be apart (built), and the cold search must find the drawing's kind of plan (`homemaker-py-2g7.12`, `2g7.13`)
+- §39.144 · 17447-17525 · The drawing's footprint carries its daylight, and daylight alone does not rank a parti (`homemaker-py-2g7.13.1`)
