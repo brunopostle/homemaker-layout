@@ -325,6 +325,8 @@ def respan(t, sizes, sx, sy):
     p = sizes[id(t)]
     if p.sum() != span:
         k = len(p)
+        if span < k:
+            raise ValueError("a strip is narrower than the strips inside it")
         wts = p / p.sum() * (span - k)
         q = np.floor(wts).astype(int) + 1
         q[np.argmax(wts - np.floor(wts))] += span - q.sum()
@@ -370,7 +372,10 @@ def optimise(t, plot: Plot, b_min, o_min, rng, starts=6, max_steps=600,
                 trial = {k: v.copy() for k, v in sizes.items()}
                 trial[id(nd)][i] += sg
                 trial[id(nd)][i + 1] -= sg
-                respan(t, trial, plot.nx, plot.ny)
+                try:
+                    respan(t, trial, plot.nx, plot.ny)
+                except ValueError:
+                    continue
                 steps += 1
                 val = key(trial)
                 if val[0] > cur[0]:
@@ -477,7 +482,7 @@ def main(argv=None) -> int:
                 tt = transform(t, *g)
                 r = optimise(tt, plot, args.b_min, args.o_min,
                              stable_rng(text(tt), spec), starts=args.starts)
-                if r and r[2] == 0 and (best is None or r[1] > best[1]):
+                if r and r[2] == 0 and (best is None or r[1] > best[0]):
                     best = (r[1], r[3], tt, t)
             if best:
                 rows.append(best)
