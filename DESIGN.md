@@ -17672,3 +17672,70 @@ evaluations is a poor predictor of a 500k run (the reason for the halving),
 so this says placement is worth searching over, not which placement wins:
 the variants go to `successive_halving.py` (`2g7.13.1.2`), ranked on
 structural fails.
+
+### 39.147 The seeder's circulation repair was erasing its own bridges and destroying rooms; a corridor cut through a room instead (`homemaker-py-2g7.13.1.1`)
+
+`2g7.13.1.1` left part (c) open: every storey of every catalogue seed was
+`level N not connected`, and with the courts protected the repair "connected
+nothing". **It connected everything, and the seeder then undid it.** Traced on
+three plans, piece counts per storey after each build step: the repair takes
+every storey to one piece, and the next step finds it in four again. The
+courts wore a room's code while the repair ran, so crossing one cost what
+crossing a room costs (5), and a court touches more cells than a room does --
+on every storey of all three plans the cheapest bridge ran through one.
+Restoring the courts to `O` afterwards deleted it. (The first trace blamed the
+upper storey's `grow`, because it measured inside the disguise. The storey's
+cells and edges were unchanged across `grow`; what had changed was the type
+written back just before it.)
+
+So the seeder now bridges for itself (`bridge_indoors`): outdoor cells are not
+in its graph, it uses the repair's own costs otherwise, and above the ground it
+treats every piece holding a stair as one piece (`graph.STAIRS_JOIN_STOREYS`
+joins them through the floor below), bridging only pieces without one. Same 18
+seeds as §39.146 (3 plans x 6 core placements, 200 evaluations), four ways of
+crossing a room, each measured:
+
+| arm | median log10 score | hard fails | soft fails | `not connected` | missing rooms |
+|---|---|---|---|---|---|
+| before (repair, courts disguised) | -27.4 | 809 | 833 | 44 | 69 |
+| indoor bridge, rooms retyped `C` | -34.3 | 1296 | 769 | 13 | 163 |
+| indoor bridge, rooms CUT, retype if no cut joins | -28.6 | -- | -- | 13 | 56 |
+| **indoor bridge, rooms cut, whole or not at all, else route around** | **-23.9** | **425** | **992** | 36 | **0** |
+
+Read across, three findings:
+
+1. **Retyping a room to bridge it is the expensive part, and the old seeds
+   were paying it.** The "before" arm's 69 missing rooms -- about four a seed
+   -- were the repair's bridges through rooms, which the court restore did not
+   undo. Stop retyping and the median seed gains **4 decades of score** (better
+   on 16 of 18), and hard fails halve. It is §39.74's lesson a third time:
+   retyping a cell trades one fail for five, dividing it costs nothing.
+2. **A corridor cut through a room** (`bridge_strip`: a 1.6 m strip,
+   `width_circulation`, off whichever side of eight placements leaves the
+   storey in fewest pieces, then scores the building best) joins 111 rooms.
+   It cannot join the rest: of the rooms it failed on in a census of nine
+   seeds, 27 had the path's two neighbours on opposite sides (a single cut
+   gives a strip at an edge, reaching them only at corners), 21 met
+   circulation on one side only, 13 on adjacent sides with the corner not
+   covered. Those 68 rooms are left whole and routed around; a bridge that
+   would stop part way is put back whole, since a dead-end strip is a buried
+   corridor joining nothing.
+3. **So connectivity is mostly still the search's to find**: `not connected`
+   44 -> 36. What a strip does join costs daylight -- an interior corridor is
+   dark, and this brief asks circulation for daylight too: corridor
+   crinkliness fails 64 -> 124 in the arm that retyped as a fallback; judging
+   each cut on the room's own daylight, or on the whole score, moved that by
+   under 10. Soft fails rise 833 -> 992 overall, the rest from rooms that now
+   exist to fail.
+
+Note for the halving (`2g7.13.1.2`): its structural rank counts crinkliness
+beside connectivity, so a seed that trades a disconnected storey for a dark
+corridor ranks no better there, though it scores far better. `--rank total` is
+the control already planned; this is a reason to read it.
+
+The seeder no longer calls `repair_circulation_settled`, so §39.146's
+`ordered_components` workaround is gone with it; `bridge_indoors` breaks ties
+on tree path, and 18 seeds built in two processes are still byte-identical.
+`homemaker-py-9cpc` stands for the repair itself. Two seeder bugs fixed on the
+way: a strip ratio left as a numpy float, which YAML refuses (the same fault
+killed §39.145's ranked run), and `--out-dir` not creating its directory.

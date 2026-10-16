@@ -30,7 +30,6 @@ a project and
 from __future__ import annotations
 
 import argparse
-import contextlib
 import copy
 import itertools
 import math
@@ -49,7 +48,7 @@ import wings_catalogue as wc  # noqa: E402
 from diag_2g713_seed_storeys import constructor_kwargs, family, rng_for  # noqa: E402
 from diag_2g7131_footprint import grow  # noqa: E402
 
-from homemaker_layout import dom, genome, geometry, innerloop, operators, programme  # noqa: E402
+from homemaker_layout import dom, genome, geometry, graph, innerloop, operators, programme  # noqa: E402
 from homemaker_layout.fitness import Fitness  # noqa: E402
 from homemaker_layout.fitness_cmd import load_config  # noqa: E402
 
@@ -266,34 +265,216 @@ def ground(init, t, sizes) -> dom.Node:
     return root
 
 
-@contextlib.contextmanager
-def ordered_components():
-    """`repair_circulation_settled` walks `nx.connected_components`, whose
-    sets of `dom.Node` iterate in id() order, and keeps the first of equally
-    cheap bridges -- so the same plan built twice came out with 122, 120 and
-    119 fails (homemaker-py-2g7.13.1.6). Each component in tree-path order,
-    and the components in order of their first path, make it reproducible,
-    which is what lets core variants differ ONLY in their cores. Not the
-    graph's own node order: it is called on `G.subgraph(...)`, a view that
-    can list its nodes by iterating a set, so that order is id()'s too. One
-    storey at a time, so a path names a leaf. Drop this when the src/ fix
-    lands (homemaker-py-9cpc)."""
-    plain = nx.connected_components
+# A room no strip can bridge: True makes it circulation, as the constructor's
+# repair does; False blocks it and looks for a route around. Retyping cost 69
+# missing rooms over 18 seeds and the median seed 4.7 decades of score (§39.147).
+RETYPE_FALLBACK = False
 
-    def ordered(G):
-        comps = [sorted(c, key=lambda n: n.id or "") for c in plain(G)]
-        yield from sorted(comps, key=lambda c: c[0].id or "")
-    nx.connected_components = ordered
-    try:
-        yield
-    finally:
-        nx.connected_components = plain
+
+def bridge_indoors(lvl: dom.Node, reqs, stairs_join: bool, max_bridges: int = 16,
+                   stats: "Counter | None" = None, fit: "Fitness | None" = None) -> int:
+    """Join a storey's circulation through the building, never through an
+    outdoor cell, and return how many cells were made or cut circulation.
+
+    `operators.repair_circulation_settled` with the courts disguised as rooms
+    was the first try, and every bridge it laid on every storey of three
+    plans ran through a court -- they cost what a room costs, and a court
+    touches more cells -- so restoring the courts deleted the bridges and
+    every storey stayed `not connected` (§39.147). Here the outdoor cells are
+    simply not in the graph. Its cost model otherwise: circulation free, an
+    untyped or generic cell 1, a programme room 5 (crossed last).
+
+    A room on the bridge is not retyped -- that lost a room per bridge and
+    made all 18 seeds of §39.147 score worse -- but CUT: a corridor strip
+    (`bridge_strip`) off the side that joins the path, the room keeping the
+    rest, §39.74's lesson that dividing a cell costs nothing where retyping
+    it trades one fail for five. A bridge is laid whole or not at all: where
+    a room on it takes no strip that joins anything, every cell of that
+    bridge is put back, the room is left whole, and the next route goes
+    around it (`RETYPE_FALLBACK`). ``stats`` counts strips cut, rooms
+    retyped and rooms routed around.
+
+    ``stairs_join`` (a storey above the ground, built after it): the scorer
+    joins pieces that each hold a stair through the floor below
+    (`graph.STAIRS_JOIN_STOREYS`), so those count as one piece here and only
+    a piece without a stair is bridged. Ties go to tree path, not id(), so
+    the same plan builds the same seed (§39.146)."""
+    def cost(x: dom.Node) -> int:
+        if dom.is_circulation(x):
+            return 0
+        if x.type and x.type in reqs:
+            return 5
+        return 1
+
+    made = 0
+    blocked: set = set()      # rooms no strip could bridge; still the same nodes
+    for _ in range(max_bridges):
+        geometry.clear_cache()
+        G = geometry.leaf_graph(lvl, graph.DOOR_WIDTH)
+        indoor = sorted((x for x in G if not dom.is_outside(x) and x not in blocked),
+                        key=lambda x: x.id or "")
+        H = nx.Graph()
+        H.add_nodes_from(indoor)
+        H.add_edges_from(sorted(((a, b) for a, b in G.subgraph(indoor).edges()),
+                                key=lambda e: tuple(sorted((e[0].id or "", e[1].id or "")))),
+                         )
+        for a, b in H.edges():
+            H[a][b]["w"] = (cost(a) + cost(b)) / 2.0
+        comps = circ_pieces(H, stairs_join)
+        if len(comps) <= 1:
+            return made
+        best = None
+        for i, j in itertools.combinations(range(len(comps)), 2):
+            T = H.copy()
+            T.add_edges_from(("SRC", x, {"w": 0.0}) for x in comps[i])
+            T.add_edges_from(("DST", x, {"w": 0.0}) for x in comps[j])
+            try:
+                _w, path = nx.single_source_dijkstra(T, "SRC", "DST", weight="w")
+            except nx.NetworkXNoPath:
+                continue
+            middle = [x for x in path[1:-1] if not dom.is_circulation(x)]
+            w = sum(cost(x) for x in middle)
+            if middle and (best is None or w < best[0]):
+                best = (w, middle)
+        if best is None:
+            return made
+        rooms = [x for x in best[1] if cost(x) == 5]
+        # all or nothing: a bridge that stops part way leaves dead-end
+        # corridors, buried and joining nothing (§39.147)
+        undo = [(x, x.type) for x in best[1] if x not in rooms]
+        for x, _t in undo:
+            x.type = "C"
+        dom.link(lvl)
+        cut, failed = [], None
+        for k, x in enumerate(rooms):
+            code = x.type
+            if bridge_strip(lvl, x, stairs_join, assume=rooms[k + 1:], fit=fit):
+                cut.append((x, code))
+            elif RETYPE_FALLBACK:
+                x.type = "C"
+                if stats is not None:
+                    stats["retyped"] += 1
+            else:
+                failed = x
+                break
+            dom.link(lvl)
+        if failed is not None:
+            for x, code in cut:
+                x.type, x.division, x.left, x.right = code, None, None, None
+            for x, t in undo:
+                x.type = t
+            dom.link(lvl)
+            blocked.add(failed)
+            if stats is not None:
+                stats["left"] += 1
+            continue
+        made += len(undo) + len(rooms)
+        if stats is not None:
+            stats["strip"] += len(cut)
+    return made
+
+
+def circ_pieces(H: nx.Graph, stairs_join: bool) -> list[list[dom.Node]]:
+    """The circulation pieces of indoor graph ``H``, stair-holding pieces as
+    one when ``stairs_join``, in tree-path order."""
+    circ = [x for x in H if dom.is_circulation(x)]
+    comps = [sorted(c, key=lambda x: x.id or "")
+             for c in nx.connected_components(H.subgraph(circ))]
+    if stairs_join:
+        up = [c for c in comps if any(x.type == dom.GENERIC_STAIR for x in c)]
+        if len(up) > 1:
+            comps = [c for c in comps if c not in up] + [sum(up, [])]
+    return sorted(comps, key=lambda c: min(x.id or "" for x in c))
+
+
+def n_pieces(lvl: dom.Node, stairs_join: bool) -> int:
+    geometry.clear_cache()
+    G = geometry.leaf_graph(lvl, graph.DOOR_WIDTH)
+    return len(circ_pieces(G.subgraph([x for x in G if not dom.is_outside(x)]), stairs_join))
+
+
+def bridge_strip(lvl: dom.Node, room: dom.Node, stairs_join: bool,
+                 depth_m: float = 1.6, assume=(), fit: "Fitness | None" = None) -> bool:
+    """Cut a corridor ``depth_m`` deep (`width_circulation`'s 1.6 m) off
+    ``room``, whichever of its eight placements -- four rotations, strip on
+    either side -- leaves the storey in fewest circulation pieces, then the
+    building's score under ``fit`` -- a corridor cut through the middle of a
+    building is buried, and this brief asks circulation for daylight too:
+    chosen on the room's area alone, the strips added 60 corridor
+    crinkliness fails over 18 seeds, and on the room's own daylight 67
+    (§39.147) -- then the most room. Without ``fit``, the room's daylight
+    (`area_outside` over area). Keeps it and returns True only if it joined
+    something.
+    ``assume``: rooms further along the same bridge, counted as circulation
+    while this one is judged, since a strip can only join what they will."""
+    kept = [(x, x.type) for x in assume]
+    for x, _t in kept:
+        x.type = "C"
+    before = n_pieces(lvl, stairs_join)
+    code = room.type
+    building = lvl
+    while building.below is not None:
+        building = building.below
+    best = None
+    for rot in range(4):
+        for side in (0, 1):
+            room.type = None
+            room.rotation = rot
+            room.left, room.right = dom.Node(type="C"), dom.Node(type="C")
+            room.division = [0.5, 0.5]
+            dom.link(lvl)
+            geometry.clear_cache()
+            whole = geometry.area(room)
+            # the strip's depth is measured across the cut, on the left part
+            span = max(1e-6, extent(room, _cut_normal(room)))
+            f = float(min(0.45, depth_m / span))  # numpy floats do not dump to YAML
+            f = f if side == 0 else 1 - f
+            room.division = [f, f]
+            strip, rest = (room.left, room.right) if side == 0 else (room.right, room.left)
+            strip.type, rest.type = "C", code
+            dom.link(lvl)
+            got = n_pieces(lvl, stairs_join)
+            if fit is not None:
+                judge = -fit.score_with_fails(copy.deepcopy(building))[0]
+                geometry.clear_cache()
+            else:
+                judge = -(Fitness.area_outside(None, rest, geometry.leaf_graph(
+                    lvl, graph.DOOR_WIDTH), {}) / max(geometry.area(rest), 1e-9))
+            cand = (got, judge, -geometry.area(rest) / whole, rot, side)
+            if best is None or cand < best[0]:
+                best = (cand, rot, side, f)
+    (got, *_), rot, side, f = best
+    for x, t in kept:
+        x.type = t
+    if got >= before:
+        room.type, room.division, room.left, room.right = code, None, None, None
+        dom.link(lvl)
+        geometry.clear_cache()
+        return False
+    room.type = None
+    room.rotation, room.division = rot, [f, f]
+    room.left, room.right = (dom.Node(type="C"), dom.Node(type=code)) if side == 0 \
+        else (dom.Node(type=code), dom.Node(type="C"))
+    dom.link(lvl)
+    geometry.clear_cache()
+    return True
+
+
+def _cut_normal(node: dom.Node):
+    """Unit vector across ``node``'s cut, from its left part's centroid to
+    its right's."""
+    a = np.array(geometry.centroid(node.left))
+    b = np.array(geometry.centroid(node.right))
+    v = b - a
+    return v / (np.linalg.norm(v) or 1.0)
 
 
 def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
-               placement: "tuple | None" = None) -> dom.Node:
+               placement: "tuple | None" = None, stats: "Counter | None" = None,
+               fit: "Fitness | None" = None) -> dom.Node:
     """``placement`` names the cores (`core_placements`); by default the
-    seeder's own choice."""
+    seeder's own choice. ``stats`` counts how `bridge_indoors` crossed rooms;
+    ``fit`` lets it choose each corridor cut on the building's score."""
     root = ground(init, t, sizes)
     if n_storeys > 1 and (n_cores > 0 or placement):
         table = core_table(root, frame_axes(init))
@@ -333,17 +514,8 @@ def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
         dom.link(root)
         # the dominating set is grown on the pre-sizing geometry, and on a
         # footprint split by courts it falls into one piece per wing: every
-        # storey of the first build was `not connected` (§39.145). The repair
-        # bridges through outdoor cells first, which is right for leftover
-        # yard and wrong for a court: the courts ARE the strategy. So they
-        # wear a room's code (crossed last) while it runs, and are restored.
-        courts = [lf for lf in lvl.leaves() if lf.type == "O" and lf not in scope]
-        for lf in courts:
-            lf.type = next(iter(reqs))
-        with ordered_components():
-            operators.repair_circulation_settled(lvl, reqs)
-        for lf in courts:
-            lf.type = "O"
+        # storey of the first build was `not connected` (§39.145, §39.147)
+        bridge_indoors(lvl, reqs, stairs_join=li > 0, stats=stats, fit=fit)
         dom.link(root)
     # a terrace with a room built over it is `covered outside above ground`
     geometry.clear_cache()
@@ -483,7 +655,8 @@ def main(argv=None) -> int:
         for v, pl in enumerate(placements):
             # one room-assignment stream per plan, so variants differ only in the cores
             rng = rng_for(args.programme, txt, n)
-            root = build_seed(init, tt, sizes, reqs, n, rng, kw, n_cores, pl)
+            crossed = Counter()
+            root = build_seed(init, tt, sizes, reqs, n, rng, kw, n_cores, pl, crossed, fit)
             geometry.clear_cache()
             ground_lvl = dom.levels(root)[0]
             stairs = [lf for lf in ground_lvl.leaves() if lf.type == "E"]
@@ -495,7 +668,9 @@ def main(argv=None) -> int:
             ground_lvl = dom.levels(root)[0]
             sep = separation(ground_lvl, [np.array(geometry.centroid(lf))
                                           for lf in ground_lvl.leaves() if lf.type == "E"])
-            label = f"cores {cores} (v{v}, sep {sep:.2f})"
+            label = (f"cores {cores} (v{v}, sep {sep:.2f}), bridged rooms "
+                     f"{crossed['strip']} cut / {crossed['retyped']} retyped / "
+                     f"{crossed['left']} routed around")
             rows.append((len(fails), res.fitness, n, txt, outline, root, list(fails), raw,
                          frac, label))
             print(f"  [{i + 1}/{len(plans)}] {n} storeys, {txt}, {label}: cover {frac:.0%}, "
@@ -512,6 +687,7 @@ def main(argv=None) -> int:
         for line in outline.split("\n"):
             print("        " + line)
     out_dir = Path(args.out_dir) if args.out_dir else prog
+    out_dir.mkdir(parents=True, exist_ok=True)
     for k, r in enumerate(rows[:args.write]):
         out = out_dir / f"{args.prefix}-{k + 1}.dom"
         dom.dump(r[5], str(out))
