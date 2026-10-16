@@ -17523,3 +17523,80 @@ lit: positive outdoor space (enclosure), economy (envelope), both, or
 something else? And should the plot ladder carry party walls -- harbor-house
 has two private sides and two street sides, and a party wall is what decides
 which way an L faces.
+
+### 39.145 A scale-free catalogue on the scorer's own daylight rule, the seeds it gives harbor-house, and the A/B they are in (`homemaker-py-2g7.13.1`)
+
+**The owner's simplification, 2026-10-15**: rank nothing; find every layout
+that is generically possible and feed them to every project, with some
+filtering. And crinkliness is scale-invariant -- it is A / (L h), so an L for
+three rooms on a 12 m plot at 3 m storeys is the L for a 24 m plot at 6 m --
+and subdividing a passing space leaves spaces that pass.
+
+Both points check out against `fitness.py`, the second with a limit: a cell
+lit on two OPPOSITE walls, cut either way, gives children at exactly the
+parent's ratio, but a fat cell lit round its edge passes whole while the
+rooms cut from its middle are buried. So `wings_catalogue.py` now measures in
+storey heights and applies the scorer's number pointwise -- every built point
+within 1.62 h of a lit wall of its own cell (a lit wall faces an outdoor cell
+or an open plot side; `private` and `fortified` sides give none, as in
+`area_outside`) -- which implies the area rule and guarantees the cell divides
+into single-aspect rooms that pass. The only other constraints are ones the
+scorer would also refuse: built cells under 1 h wide, outdoor cells under
+`width_outside`'s 2.3 m, a building in two pieces. §39.144's invented terms
+(light depth, court, enclosure, envelope) are gone. A tree's CAPACITY on a
+plot is the most cover it reaches with all of that holding.
+
+The 6-leaf catalogue on open square plots
+(`experiments/results/wings_catalogue_6.json`):
+
+| plot | trees feasible (of 937) | best capacity | median | best outlines |
+|---|---|---|---|---|
+| 4h (12 m at 3 m) | 322 | 94% | 66% | court, C |
+| 6h | 415 | 92% | 62% | court |
+| 8h | 455 | 84% | 52% | court, drawn by 7 trees |
+| 12h | 453 | 78% | 37% | 8 (ring and a bar; two courts) |
+| 16h | 437 | 60% | 29% | 8 |
+
+Capacity falls with scale, as it must, and the best parti move from one court
+to two -- the owner's alphabet, found rather than drawn. At 16h six leaves
+are no longer enough for anything denser.
+
+**The seeder** (`experiments/seed_from_catalogue.py`): a project's plot in
+storey heights, the cover its programme needs at each storey count the brief
+allows (room area plus a quarter for circulation), every tree in every
+orientation sized to it, filtered, one tree kept per outline; each survivor
+drawn on the real plot as a quad tree (a run of strips becomes a chain of
+cuts, each cut's rotation found by testing which puts the first strip on the
+low side -- `rotation` is relative to the parent's corners), storeys stacked
+with courts open to the sky, rooms filled by the constructor's growth,
+assignment and sizing, tuned 200 evaluations, ranked.
+
+On harbor-house (8.0h x 9.8h, sides a and b private) **the filter alone
+says something**: two storeys need 74% cover and only 33 outlines reach it
+all lit; three need 50% and 673 do. The cold constructor always seeds at
+`storey_minimum`, two -- a plan that cannot be lit -- and every cold design
+of §39.142 is two storeys with 11-15 crinkliness fails; the owner's drawing
+is three. Whether seeding cold runs at the storey count the filter allows
+helps on its own is a separate question, not yet asked.
+
+The best three of 40 tuned seeds, all three storeys at 49-50% cover: 70 / 72 /
+73 fails, **crinkliness 3 / 8 / 6** against 25.5 for constructor seeds and 7
+for the owner's refilled footprint (§39.144); their excess is adjacency,
+access and size. Committed as `examples/harbor-house/wings-{1,2,3}.dom` (the
+ranked run died writing them -- numpy floats in the YAML -- and `--only`
+rebuilt them exactly, the build being deterministic). Unlike
+`footprint-sK.dom` they are written tuned; 200 evaluations against a 500k
+search.
+
+**The A/B, running from 2026-10-16 09:09** (`experiments/run_wings_ab.sh`):
+harbor-house warm-started from `footprint-sK` and `wings-(K+1)`, 500k,
+`--seed K`, K = 0-2, at `4428262+orth` -- the stamp, budget and seeds of
+§39.142's cold (28 / 24 / 37) and hand-seeded (10 / 12 / 5) runs. **Expected,
+recorded before the runs**: both arms end with crinkliness at or under 4 and
+total fails between the hand-seeded and the cold runs.
+
+The labels A/B was stopped for it at 20 of 36 pairs (seeds 0-19 recorded;
+`flag_ab.py labels --resume` runs the rest). Its box time was then lost
+overnight to a waiting loop that matched its own command line in `pgrep -f`
+-- the runner's guard for "the seeder is still running" saw the session's
+watcher, whose loop text named the seeder. Wait on a PID, not a pattern.
