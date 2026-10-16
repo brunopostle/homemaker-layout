@@ -87,6 +87,7 @@ index is how to get from a question to the section that answers it.
 | §39.147 | The seeder's circulation repair erased its own bridges (courts disguised as rooms were the cheapest crossing, then restored) and destroyed ~4 rooms a seed. A corridor CUT through a room instead, whole bridge or none: hard fails 809 -> 425, median seed +4 decades, no missing rooms; connectivity mostly left to the search (single cuts cannot cross a room between opposite sides). |
 | §39.148 | The catalogue filter on all four programmes: only harbor-house cannot light its minimum storeys; maple-court lights 225 outlines at three storeys yet its cold design has 34 of 62 fails in crinkliness, so it is the next programme to seed; programme-house is a block, which the catalogue now includes. The seeder costs ~1 h, not 20; a capacity prune is not lossless (loses up to 19% of outlines) and stays off. Owner: yes, a plan with more cover than needed passes (tighten later). |
 | §39.149 | Room-to-wing allocation pilot: CP-SAT returns as many area-feasible allocations as asked (20 of 20, three plans), keeping room-room adjacency together; exact shape feasibility prunes none of them, and the few dealt allocations it catches an area check would too. The seeder's storey split overflows a storey in up to 53 of 200 splits. |
+| §39.150 | The wings A/B: on harbor-house the footprint-seeded runs end at 11.3 fails and the catalogue-seeded at 16.3, against 29.7 cold and 9.0 hand-seeded. All six seeded runs beat the best cold one, but no paired margin resolves at n = 3. Crinkliness falls from 33 cold to 5 and 14: the seeds' daylight survives 500k evaluations. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -169,7 +170,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (254 of them, 17900 lines)
+## Every section of DESIGN.md (255 of them, 17951 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -474,4 +475,5 @@ below are the most recent work.
 - §39.146 · 17618-17675 · The search cannot move a stair far, so the seeder offers several; and the seeder was not deterministic (`homemaker-py-2g7.13.1.6`, `9cpc`)
 - §39.147 · 17676-17742 · The seeder's circulation repair was erasing its own bridges and destroying rooms; a corridor cut through a room instead (`homemaker-py-2g7.13.1.1`)
 - §39.148 · 17743-17829 · The catalogue filter on all four programmes: maple-court can be lit at its minimum storeys and is not, programme-house is a block, and the seeder was not slow (`homemaker-py-2g7.13.1.3`)
-- §39.149 · 17830-17900 · Room-to-wing allocation: CP-SAT finds as many as asked, area decides them, and exact shape feasibility prunes none (`homemaker-py-2g7.13.1.4`)
+- §39.149 · 17830-17901 · Room-to-wing allocation: CP-SAT finds as many as asked, area decides them, and exact shape feasibility prunes none (`homemaker-py-2g7.13.1.4`)
+- §39.150 · 17902-17951 · The wings A/B: both seeded arms beat every cold run, footprint ahead of the catalogue, and n = 3 resolves neither margin (`homemaker-py-2g7.13.1`)

@@ -17898,3 +17898,54 @@ greedy one that balances minimum room area against each storey's built area)
 is cheap and would remove the overflowing seeds; per-wing allocation is cheap
 too, but its value is a box question about whether it helps a search, not
 something feasibility can settle. Nothing is wired into the seeder yet.
+
+### 39.150 The wings A/B: both seeded arms beat every cold run, footprint ahead of the catalogue, and n = 3 resolves neither margin (`homemaker-py-2g7.13.1`)
+
+§39.145's A/B finished on 2026-10-16 at 23:18 (artefacts at `0bc4b31`):
+harbor-house, 500k, `--seed K`, `4428262+orth`, warm-started from
+`footprint-sK` (the owner's drawing's footprint, refilled by the constructor,
+§39.144) and `wings-(K+1)` (the best three catalogue seeds, §39.145), beside
+§39.142's cold and hand-seeded runs at the same stamp, budget and seeds.
+
+| arm | fails s0 / s1 / s2 | mean | crinkliness fails | storeys |
+|---|---|---|---|---|
+| cold | 28 / 24 / 37 | 29.7 | 16 / 9 / 8 | 2 / 2 / 2 |
+| catalogue (`wings`) | 20 / 13 / 16 | 16.3 | 9 / 2 / 3 | 3 / 3 / 3 |
+| footprint | 11 / 14 / 9 | 11.3 | 1 / 2 / 2 | 3 / 2 / 2 |
+| hand-seeded | 10 / 12 / 5 | 9.0 | | |
+
+**Against the expectation recorded before the runs** (both arms at or under 4
+crinkliness fails, totals between hand and cold): the totals hold for all six
+runs. Crinkliness holds for five of six, and `wings` s0 ends with 9.
+
+What the sample can say, through `ab_report.py` paired by seed: cold against
+footprint +18.3, MDD 22.5; cold against wings +13.3, MDD 16.9; footprint
+against wings 5.0, MDD 13.1; hand against wings 7.3, MDD 13.7. **None
+resolves at n = 3.** Unpaired, the seeds are not a natural pairing between
+arms that start from different files, and the six seeded runs all end below
+the best cold run (20 against 24). That is the whole of the evidence for
+"seeding helps": complete separation at 3 against 3, a one-sided rank p of
+1/20.
+
+Readings, held to that:
+
+- **The daylight the seeds carry survives the search.** Crinkliness, the
+  family the cold search never fixes (§39.142: 33 fails over three runs), is
+  5 over three footprint runs and 14 over three catalogue runs, 7 of those in
+  one run. That is §39.144's claim, that a footprint carries its daylight,
+  checked at full budget.
+- **Two footprint runs dropped a storey** and still ended with 2 crinkliness
+  fails, so the footprint's light outlives the storey count it was drawn at.
+  The cold search seeds at two storeys and stays there; the catalogue's
+  three-storey seeds stayed at three.
+- **What the seeded arms still fail is the small-scale structure**: size
+  (2-5 a run), `connected` (2-3), a missing space or two. That is the half
+  the owner said the search is already good at, and the gap to the
+  hand-seeded 9.0 is of a size n = 3 cannot see.
+
+Next, as planned on `2g7.13.1.2`: successive halving over EVERY filtered plan
+and core placement, built with today's seeder (§39.147's indoor bridging,
+§39.148's one-sided filter). It ranks the candidates rather than testing a
+margin, so it does not need a power the A/B lacks. A margin between seeding
+strategies, if anyone wants one, needs about 7 pairs (footprint against
+wings) on the box.
