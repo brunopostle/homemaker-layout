@@ -17826,3 +17826,75 @@ unpruned, at `4428262+orth` (trees / outlines):
 Programme-house now passes at its minimum storeys with the one plan its cold
 search finds. Harbor-house's lists are identical, so `wings-{1,2,3}.dom` and
 the running wings A/B are what this filter would give today.
+
+### 39.149 Room-to-wing allocation: CP-SAT finds as many as asked, area decides them, and exact shape feasibility prunes none (`homemaker-py-2g7.13.1.4`)
+
+The seeder never decides which rooms go in which wing: `buckets` deals rooms
+to storeys round-robin, `grow` splits the largest cells of all wings, and the
+adjacency-aware assignment places rooms over every wing at once. The bead
+asked what an explicit allocation, from generic structure only, would add,
+and whether `shapecurve`'s exact size / width / proportion feasibility prunes
+any.
+
+`experiments/diag_2g71314_allocation.py`: a plan sized on the plot as the
+seeder sizes it; each built cell on each storey is a BIN with its rectangle.
+CP-SAT allocates rooms to bins -- every room in one bin, `level:` rooms on
+their storey, each bin's room area within 30% of 80% of the bin (the rest is
+circulation), as many room-room `adjacency:` requirements met inside a bin as
+possible -- with random objective noise for diversity. Each bin is then tested
+for SHAPE: does any slicing of its rectangle fit its rooms plus the seeder's
+circulation cells (one per `circ_divisor` = 3 rooms), every room inside the
+scorer's own fail-line bounds (`shapecurve.leaf_constraints`)? Shape curves are
+composed over every split of the bin's room MULTISET (equal rooms are
+interchangeable, which turned 3^n splits into seconds), and a union of ranges
+is stored as its hull, so the test over-states feasibility and a "no" is
+sound. Control: the seeder's own storey split, rooms then dealt to a storey's
+wings in proportion to area. Harbor-house, the three plans of §39.146,
+three storeys, nine bins each:
+
+| plan | arm | allocations | every bin area-feasible | ... and shape-feasible | rooms with a room-room need met in-bin (median, of 24) |
+|---|---|---|---|---|---|
+| `H(B V(B H(O B) O))` | CP-SAT | 20 | 20 | 20 | 23 |
+| | dealt | 100 | 16 | 13 | 13 |
+| `H(B V(B H(O B)) O)` | CP-SAT | 20 | 20 | 20 | 22 |
+| | dealt | 100 | 13 | 10 | 12 |
+| `H(V(B H(O V(O B))) B)` | CP-SAT | 20 | 20 | 20 | 14 |
+| | dealt | 100 | 4 | 4 | 14 |
+
+Three findings:
+
+1. **Exact shape feasibility prunes nothing that respects area.** Of 540
+   CP-SAT bins, none is shape-infeasible. The wings are 4.5-11 m wide and the
+   rooms bend to fit them. In the dealt arm it catches 61 of 2,700 bins whose
+   areas fit: a lone toilet in a big wing (one corridor cell cannot make room
+   for it, so it would have to span the whole wing, which its area and
+   proportion forbid), and an 11.1 x 4.5 m wing holding a neighbourhood and
+   a small room. Every one of those is an allocation an area check with an
+   upper bound would also refuse. **So area capacity is the filter, and
+   `shapecurve` is not worth its cost here.**
+2. **Allocations are not scarce.** CP-SAT returned 20 distinct allocations,
+   all of them feasible, every time it was asked, so "how many survive" is
+   "as many as you ask for". Allocation is a dimension of the portfolio with
+   no natural size: it needs choosing on something other than feasibility,
+   or leaving to the search.
+3. **The seeder's own storey split is close to the edge.** Measured on the
+   real `buckets`, 200 splits per plan: the fullest storey's minimum room area
+   is a median 85-90% of the storey's built area (circulation wants 20%), and
+   it OVERFLOWS the storey in 4, 4 and **53 of 200** splits. Dealing rooms to
+   wings at random would make most seeds area-infeasible in some wing (84-96%
+   of them), and CP-SAT avoids that by construction while keeping room-room
+   adjacency together (up to 23 of 24 against 13).
+
+A first run said 11 CP-SAT bins on the third plan were infeasible. All 11 were
+the grid's doing: on a 5% geometric grid, inverting a range rounded it inward
+to grid points, which under-states and so breaks the one direction the test
+must be sound in. The inversion now rounds outward and the fit is read at both
+bracketing grid points. The `--self-test` carries the marginal case (`cr1` and
+`la1` in a 4.5 m wing, near `cr1`'s proportion limit) beside cases known
+infeasible.
+
+What this means for the seeder: a capacity-aware storey split (CP-SAT, or a
+greedy one that balances minimum room area against each storey's built area)
+is cheap and would remove the overflowing seeds; per-wing allocation is cheap
+too, but its value is a box question about whether it helps a search, not
+something feasibility can settle. Nothing is wired into the seeder yet.
