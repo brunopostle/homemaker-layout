@@ -87,7 +87,7 @@ def to_quad(t, sizes, lvl: dom.Node, root: dom.Node, axes) -> None:
     axis = axes[0] if ax == "V" else axes[1]
     node = lvl
     for i, kid in enumerate(kids[:-1]):
-        f = widths[i] / sum(widths[i:])
+        f = float(widths[i] / sum(widths[i:]))  # numpy floats do not dump to YAML
         node.type = None
         node.division = [f, f]
         node.left, node.right = dom.Node(type="C"), dom.Node(type="C")
@@ -165,6 +165,29 @@ def needed_cover(reqs, conf, plot_m2: float, circ_share: float) -> dict:
     return {n: area / n / plot_m2 for n in range(lo, hi + 1)}
 
 
+def parse_tree(s: str):
+    """The inverse of `wings_catalogue.text`: "H(B V(B O))" -> a tree."""
+    pos = 0
+
+    def node():
+        nonlocal pos
+        c = s[pos]
+        pos += 1
+        if c in "BO":
+            return c
+        assert s[pos] == "("
+        pos += 1
+        kids = []
+        while s[pos] != ")":
+            if s[pos] == " ":
+                pos += 1
+                continue
+            kids.append(node())
+        pos += 1
+        return (c, tuple(kids))
+    return node()
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--programme", default="harbor-house")
@@ -183,6 +206,10 @@ def main(argv=None) -> int:
     ap.add_argument("--starts", type=int, default=4,
                     help="hill-climb starts per tree and orientation")
     ap.add_argument("--write", type=int, default=0, help="save the best N seeds")
+    ap.add_argument("--only", nargs="+", default=None, metavar="N:TREE",
+                    help="build just these plans, as printed (e.g. '3:H(B V(B O))'), "
+                         "skipping the enumeration; sizing and building are "
+                         "deterministic, so this reproduces a ranked run's seeds")
     args = ap.parse_args(argv)
     if not geometry.ORTHOGONAL_DIVISION:
         print("set HOMEMAKER_ORTHOGONAL_DIVISION=1", file=sys.stderr)
@@ -203,10 +230,20 @@ def main(argv=None) -> int:
           f"{plot.label}; cover needed " +
           ", ".join(f"{n} storeys {c:.0%}" for n, c in covers.items()), flush=True)
 
-    cat = wc.catalogue(args.leaves)
-    gs = wc.orientations(plot)
     plans = []
-    for n, cover in covers.items():
+    if args.only:
+        for spec in args.only:
+            n_s, txt = spec.split(":", 1)
+            n, tt = int(n_s), parse_tree(txt)
+            assert wc.text(tt) == txt, (txt, wc.text(tt))
+            r = wc.optimise(tt, plot, args.b_min, args.o_min,
+                            wc.stable_rng(txt, args.programme, n),
+                            starts=args.starts, coverage=covers[n])
+            plans.append((n, wc.n_leaves(tt), txt, tt, r[3], r[1],
+                          "\n".join(wc.ascii_plan(tt, r[3], plot, 16))))
+    cat = [] if args.only else wc.catalogue(args.leaves)
+    gs = wc.orientations(plot)
+    for n, cover in ({} if args.only else covers).items():
         if cover > 0.98:
             continue
         seen = set()
@@ -224,8 +261,9 @@ def main(argv=None) -> int:
                 seen.add(outline)
                 plans.append((n, wc.n_leaves(tt), wc.text(tt), tt, r[3], r[1], outline))
         print(f"  {n} storeys: {len(seen)} outlines pass the filter", flush=True)
-    plans.sort(key=lambda p: (p[1], p[0], p[2]))
-    plans = plans[:args.max_seeds]
+    if not args.only:
+        plans.sort(key=lambda p: (p[1], p[0], p[2]))
+        plans = plans[:args.max_seeds]
 
     rows = []
     for i, (n, nl, txt, tt, sizes, frac, outline) in enumerate(plans):
