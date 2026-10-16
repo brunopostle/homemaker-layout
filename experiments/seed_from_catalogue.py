@@ -126,34 +126,112 @@ def buckets(reqs, n_storeys: int, rng) -> list[list[str]]:
     return out
 
 
-def build_seed(init, t, sizes, reqs, n_storeys, rng, kw) -> dom.Node:
+def extent(leaf: dom.Node, axis) -> float:
+    pts = [np.dot(geometry.coordinate(leaf, i), axis) for i in range(geometry.n_edges(leaf))]
+    return max(pts) - min(pts)
+
+
+def carve_cores(lvl: dom.Node, root: dom.Node, n: int, axes) -> list[dom.Node]:
+    """Cut ``n`` stair cells (`E`) from the ground storey's built cells before
+    the storeys are stacked, so each is one column at one path on every
+    storey. A core is a strip `operators._STAIR_STRIP_M` deep cut across the
+    long axis of a built cell, at the end farthest from the other cores: for
+    two, the pair of built cells farthest apart, which is what §39.143's
+    half-diagonal separation asks."""
+    built = [lf for lf in lvl.leaves() if lf.type != "O"]
+    if n <= 0 or not built:
+        return []
+    cen = {id(lf): np.array(geometry.centroid(lf)) for lf in built}
+    if n == 1 or len(built) == 1:
+        chosen = [max(built, key=geometry.area)]
+    else:
+        chosen = list(max(((a, b) for i, a in enumerate(built) for b in built[i + 1:]),
+                          key=lambda ab: np.linalg.norm(cen[id(ab[0])] - cen[id(ab[1])])))
+    cores = []
+    for k, leaf in enumerate(chosen):
+        others = [cen[id(o)] for o in chosen if o is not leaf]
+        ax = max(axes, key=lambda a: extent(leaf, a))
+        long_ = extent(leaf, ax)
+        f = float(min(0.45, operators._STAIR_STRIP_M / long_))
+        leaf.type = None
+        leaf.division = [f, f]
+        leaf.left, leaf.right = dom.Node(type="E"), dom.Node(type="C")
+        best = None
+        for rot in range(4):
+            leaf.rotation = rot
+            dom.link(root)
+            geometry.clear_cache()
+            across = extent(leaf.left, ax) < 0.75 * long_
+            far = (min(np.linalg.norm(np.array(geometry.centroid(leaf.left)) - o)
+                       for o in others) if others else 0.0)
+            cand = (across, far)
+            if best is None or cand > best[0]:
+                best = (cand, rot)
+        leaf.rotation = best[1]
+        dom.link(root)
+        geometry.clear_cache()
+        cores.append(leaf.left)
+    return cores
+
+
+def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0) -> dom.Node:
     root = copy.deepcopy(init)
     root.above = None
     dom.link(root)
-    to_quad(t, sizes, root, root, frame_axes(init))
+    axes = frame_axes(init)
+    to_quad(t, sizes, root, root, axes)
     dom.link(root)
+    if n_storeys > 1:
+        carve_cores(root, root, n_cores, axes)
     while len(dom.levels(root)) < n_storeys:
         top = dom.levels(root)[-1]
         dup = genome._copy_storey(top)
         dup.height = top.height
         top.above = dup
     dom.link(root)
-    for lvl, rooms in zip(dom.levels(root), buckets(reqs, n_storeys, rng)):
-        wings = [lf for lf in lvl.leaves() if lf.type != "O"]
+    terraces = []
+    for li, (lvl, rooms) in enumerate(zip(dom.levels(root), buckets(reqs, n_storeys, rng))):
+        wings = [lf for lf in lvl.leaves() if lf.type not in ("O", "E")]
+        stairs = [lf for lf in lvl.leaves() if lf.type == "E"]
         n_circ = max(1, -(-len(rooms) // kw["circ_divisor"]))
-        # +1: the assignment always places one O in scope; it goes back to C
+        # +1: the assignment always places one O in scope, on the most
+        # landlocked cell. On the ground it goes back to C (the footprint
+        # keeps its own courts); upstairs it stays, a terrace over the
+        # building below -- every level needs outdoor space of its own
+        # (`force_roof_garden`), and a court below is a hole up here.
         scope = grow(lvl, wings, len(rooms) + n_circ + 1, rng)
         operators._assign_adjacency_aware(
-            lvl, rooms, reqs, rng, interior_outside=True, n_outside=1,
-            scope=set(scope))
+            lvl, rooms, reqs, rng, fixed_circ=stairs or None,
+            interior_outside=True, n_outside=1, scope=set(scope))
         for lf in scope:
             if lf.type == "O":
-                lf.type = "C"
+                if li == 0:
+                    lf.type = "C"
+                else:
+                    terraces.append(lf)
         dom.link(root)
         for w in wings:
             if w.divided:
                 operators._size_divisions_from_targets(w, reqs)
         dom.link(root)
+        # the dominating set is grown on the pre-sizing geometry, and on a
+        # footprint split by courts it falls into one piece per wing: every
+        # storey of the first build was `not connected` (§39.145). The repair
+        # bridges through outdoor cells first, which is right for leftover
+        # yard and wrong for a court: the courts ARE the strategy. So they
+        # wear a room's code (crossed last) while it runs, and are restored.
+        courts = [lf for lf in lvl.leaves() if lf.type == "O" and lf not in scope]
+        for lf in courts:
+            lf.type = next(iter(reqs))
+        operators.repair_circulation_settled(lvl, reqs)
+        for lf in courts:
+            lf.type = "O"
+        dom.link(root)
+    # a terrace with a room built over it is `covered outside above ground`
+    geometry.clear_cache()
+    for lf in terraces:
+        if lf.type == "O" and dom.is_covered(lf):
+            lf.type = "C"
     return operators._finalise(root)
 
 
@@ -206,6 +284,9 @@ def main(argv=None) -> int:
     ap.add_argument("--starts", type=int, default=4,
                     help="hill-climb starts per tree and orientation")
     ap.add_argument("--write", type=int, default=0, help="save the best N seeds")
+    ap.add_argument("--cores", type=int, default=None,
+                    help="stair cores to cut (default: the brief's staircase_min; 0: none)")
+    ap.add_argument("--prefix", default="wings", help="written seeds are <prefix>-<rank>.dom")
     ap.add_argument("--only", nargs="+", default=None, metavar="N:TREE",
                     help="build just these plans, as printed (e.g. '3:H(B V(B O))'), "
                          "skipping the enumeration; sizing and building are "
@@ -226,6 +307,8 @@ def main(argv=None) -> int:
         covers = {n: covers.get(n, list(covers.values())[0] * min(covers) / n)
                   for n in args.storeys}
     kw = constructor_kwargs()
+    n_cores = (args.cores if args.cores is not None
+               else int(conf.get("staircase_min") or 1))
     print(f"{args.programme}: plot {w:.1f} x {d:.1f} m, storey {h:g} m -> "
           f"{plot.label}; cover needed " +
           ", ".join(f"{n} storeys {c:.0%}" for n, c in covers.items()), flush=True)
@@ -268,7 +351,7 @@ def main(argv=None) -> int:
     rows = []
     for i, (n, nl, txt, tt, sizes, frac, outline) in enumerate(plans):
         rng = rng_for(args.programme, txt, n)
-        root = build_seed(init, tt, sizes, reqs, n, rng, kw)
+        root = build_seed(init, tt, sizes, reqs, n, rng, kw, n_cores)
         geometry.clear_cache()
         raw = len(fit.score_with_fails(root)[1])
         res = innerloop.optimise(root, str(prog), budget=args.budget, method="nm")
@@ -288,7 +371,7 @@ def main(argv=None) -> int:
         for line in outline.split("\n"):
             print("        " + line)
     for k, r in enumerate(rows[:args.write]):
-        out = prog / f"wings-{k + 1}.dom"
+        out = prog / f"{args.prefix}-{k + 1}.dom"
         dom.dump(r[5], str(out))
         print(f"wrote {out.relative_to(REPO)}")
     return 0
