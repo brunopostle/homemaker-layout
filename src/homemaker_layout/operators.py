@@ -438,6 +438,24 @@ def mutate_place_missing(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"place_missing {code} -> {host_id}"
 
 
+def _ordered_components(G, nodes) -> list[list[dom.Node]]:
+    """The connected components of ``G`` restricted to ``nodes``, each listed
+    by tree path and the list ordered by its first path.
+
+    homemaker-py-9cpc (DESIGN.md §39.146): ``nx.connected_components`` yields
+    SETS of ``dom.Node``, which hash by ``id()``, and the subgraph view lists
+    its nodes through a set too -- so a tie between equally cheap bridges went
+    to memory order and the same input gave a different output per process.
+    Within one storey a path names a leaf, so this order is the tree's own.
+    """
+    import networkx as nx
+
+    def path(n: dom.Node) -> str:
+        return n.id or ""
+    comps = [sorted(c, key=path) for c in nx.connected_components(G.subgraph(nodes))]
+    return sorted(comps, key=lambda c: path(c[0]))
+
+
 def mutate_bridge_circulation(root: dom.Node, rng: np.random.Generator,
                               types: list[str], reqs=None) -> tuple[dom.Node, str]:
     """Repair operator (homemaker-py-8sh): retype the leaves on the cheapest
@@ -484,7 +502,7 @@ def mutate_bridge_circulation(root: dom.Node, rng: np.random.Generator,
         circ = [n for n in G.nodes() if dom.is_circulation(n)]
         if not circ:
             continue
-        comps = list(nx.connected_components(G.subgraph(circ)))
+        comps = _ordered_components(G, circ)
         if len(comps) <= 1:
             continue
         # Node cost split across its edges (average of endpoint costs) so a
@@ -569,7 +587,7 @@ def repair_circulation_settled(lvl: dom.Node, reqs, max_bridges: int = 8) -> int
         circ = [x for x in G.nodes() if dom.is_circulation(x)]
         if not circ:
             return retyped
-        comps = list(nx.connected_components(G.subgraph(circ)))
+        comps = _ordered_components(G, circ)
         if len(comps) <= 1:
             return retyped
         weighted = G.copy()

@@ -215,7 +215,11 @@ def test_every_orthogonal_artefact_is_drawn_as_todays_geometry_draws_it(monkeypa
     # of 3,879 fall short (§39.99), none in the three newest coldstart corpora
     # -- so the shape score is NOT score-neutral on c836457+orth or on two e4r
     # artefacts, and stage 1b's gate has to say which corpora it means.
-    assert docked == {"coldstart-c836457+orth": 4, "e4r": 1, "e4r-tiers": 1}
+    # The 4428262+orth re-baseline (§39.142, committed 2026-10-14) adds two:
+    # a `t` and a `C` cell of harbor-house s2, both at 0.785 of the usable
+    # rectangle against SHAPE_FULL 0.85.
+    assert docked == {"coldstart-c836457+orth": 4, "coldstart-4428262+orth": 2,
+                      "e4r": 1, "e4r-tiers": 1}
 
 
 @pytest.mark.skipif(not (REPO / "examples" / "maple-court").is_dir(),
