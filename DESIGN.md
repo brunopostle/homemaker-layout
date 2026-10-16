@@ -17600,3 +17600,17 @@ The labels A/B was stopped for it at 20 of 36 pairs (seeds 0-19 recorded;
 overnight to a waiting loop that matched its own command line in `pgrep -f`
 -- the runner's guard for "the seeder is still running" saw the session's
 watcher, whose loop text named the seeder. Wait on a PID, not a pattern.
+
+**Owner, 2026-10-16, on what a brief is.** The example briefs are test
+projects, written to give the layout code a hard problem, not buildings to be
+built. Harbor-house's neighbourhoods are one big room with bed alcoves -- they
+could as well be a cluster of small rooms -- and are not a building type. So
+nothing in the search may be derived from what a brief's rooms MEAN: wing
+allocation, decomposition and seeds come from generic structure only (sizes,
+`level:`, usage, the adjacency graph), and what works on harbor-house is
+checked on all four programmes before it becomes a default. Hence the plan
+after the wings A/B: successive halving over strategy x orientation x
+room-to-wing allocation (allocations generated from an area-weighted
+partition of the adjacency graph, pruned by `shapecurve` feasibility), ranked
+on the families the search does not repair -- crinkliness, connectivity,
+storeys, stairs -- rather than on total fails.

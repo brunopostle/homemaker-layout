@@ -119,6 +119,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A corridor under 1 m clear fails; an institution's is right at 1.6 m centres, and width grows with capacity. A lobby is "simply the circulation cell that meets the street with a front door", an assembly space, wider than a corridor | §39.138, §39.139 |
 | Each neighbourhood has its own bathroom, and harbor-house has two more beside the individual sleeping rooms (a brief change, landing just before a re-baseline) | §39.139 |
 | A building the size of harbor-house needs two stairs, separated from each other (built as half the building's diagonal, IBC 1007.1.1). Corridors at 1.2 m are ok but better wider: the existing gaussian already says so | §39.143 |
+| The example briefs are TEST projects, not buildings: harbor-house's neighbourhoods are a big room with alcoves, not a type. Derive no search structure from what rooms mean; validate on all four programmes | §39.145 |
 | A common room opens onto PRIVATE outdoor space: a street wall is not "next to outdoors" | §39.138 |
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
@@ -161,7 +162,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (250 of them, 17602 lines)
+## Every section of DESIGN.md (250 of them, 17616 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -462,4 +463,4 @@ below are the most recent work.
 - §39.142 · 17292-17383 · The `4428262+orth` re-baseline, and the owner's drawing as a seed: harbor-house ends at 9 fails against 30 (`homemaker-py-5nw`, `2g7.11`, `2g7.1`)
 - §39.143 · 17384-17446 · Three answers on §39.142: corridors stand, stairs must be apart (built), and the cold search must find the drawing's kind of plan (`homemaker-py-2g7.12`, `2g7.13`)
 - §39.144 · 17447-17526 · The drawing's footprint carries its daylight, and daylight alone does not rank a parti (`homemaker-py-2g7.13.1`)
-- §39.145 · 17527-17602 · A scale-free catalogue on the scorer's own daylight rule, the seeds it gives harbor-house, and the A/B they are in (`homemaker-py-2g7.13.1`)
+- §39.145 · 17527-17616 · A scale-free catalogue on the scorer's own daylight rule, the seeds it gives harbor-house, and the A/B they are in (`homemaker-py-2g7.13.1`)
