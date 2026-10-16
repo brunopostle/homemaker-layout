@@ -1,0 +1,281 @@
+seed         : /tmp/wings_ab/wings-s1/wings-2.dom
+programme    : wings-s1
+budget       : 500000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 1
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+support outside    : True
+level add+migrate  : False
+repair shaft       : True
+light well         : False
+tune storey heights: False
+core_undivide repaired : True
+seed solver        : False
+label write-back   : False
+aim undivide       : False
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /tmp/wings_ab/wings-s1/out.dom
+[   200 evals] best 5.62843e-20 (fails 59) via seed
+[   280 evals] best 9.15558e-19 (fails 55) via place_missing noop
+[   600 evals] best 3.68663e-18 (fails 53) via place_missing noop
+[   920 evals] best 4.01455e-18 (fails 53) via undivide 0/lrr
+[  1080 evals] best 4.02467e-18 (fails 53) via core_divide noop
+[  1240 evals] best 1.51017e-17 (fails 53) via repair_shaft rrl (3 storeys, generic)
+[  1480 evals] best 6.78412e-17 (fails 51) via divide 1/lrrr
+[  2680 evals] best 3.00683e-17 (fails 50) via core_undivide noop
+[  2840 evals] best 3.04118e-17 (fails 50) via retype 1/lrrr->n
+[  3080 evals] best 3.05028e-17 (fails 50) via level_fix noop
+[  3640 evals] best 1.26372e-16 (fails 48) via support_outside place 2/ll (split from t)
+[  4840 evals] best 1.2659e-16 (fails 48) via level_compound_fix noop
+[  5320 evals] best 1.26834e-16 (fails 48) via undivide 0/rllrr
+[  5400 evals] best 1.27051e-16 (fails 48) via retype 1/rllrr->ws1
+[  5480 evals] best 1.27201e-16 (fails 48) via core_undivide noop
+[  7160 evals] best 1.27797e-16 (fails 48) via undivide 0/rllrl
+[  9080 evals] best 5.14381e-16 (fails 46) via undivide 1/rlrrrrl
+[ 13560 evals] best 5.15151e-16 (fails 46) via crossover rlrrrrl<->rllllr
+[ 15400 evals] best 5.1517e-16 (fails 46) via stair make rlrrrlr (2 storeys)
+[ 15480 evals] best 2.91925e-15 (fails 46) via stair make rlrrrlr (2 storeys)
+[ 16520 evals] best 4.53128e-15 (fails 46) via repair_shaft noop (shaft intact)
+[ 16680 evals] best 1.15587e-14 (fails 45) via divide 1/rlrrrrr
+[ 21080 evals] best 2.41123e-14 (fails 44) via level_compound_fix noop
+[ 21800 evals] best 2.45726e-14 (fails 44) via repair_shaft noop (shaft intact)
+[ 24200 evals] best 2.47657e-14 (fails 44) via undivide 0/rlrrll
+[ 24280 evals] best 1.00053e-13 (fails 42) via undivide 0/rlrrrr
+[ 30360 evals] best 1.01253e-13 (fails 42) via repair_shaft noop (shaft intact)
+[ 33880 evals] best 1.01741e-13 (fails 42) via level_retype 2/llr<->1/rllrr
+[ 33960 evals] best 1.02423e-13 (fails 42) via repair_shaft noop (shaft intact)
+[ 34520 evals] best 1.02642e-13 (fails 42) via undivide 0/rllrr
+[ 34600 evals] best 1.03092e-13 (fails 42) via retype 0/rllrl->k1
+[ 36840 evals] best 1.03208e-13 (fails 42) via crossover lrll<->rllllr
+[ 39480 evals] best 1.03348e-13 (fails 42) via stair make rlrrrlr (2 storeys)
+[ 40600 evals] best 1.05233e-13 (fails 42) via crossover rlllll<->rlrrrll
+[ 41800 evals] best 2.02798e-13 (fails 41) via level_retype 0/rlrrlrr<->1/llrl
+[ 44680 evals] best 2.06062e-13 (fails 41) via rotate 0/rlrrr
+[ 48600 evals] best 2.2033e-13 (fails 41) via rotate 1/rlrrrrl
+[ 54440 evals] best 1.70454e-12 (fails 38) via rotate 1/rlrrrrl
+[ 55080 evals] best 1.73623e-12 (fails 38) via swap 0/lrr
+[ 63080 evals] best 3.48588e-12 (fails 37) via crossover rlrrrll<->rlrrrl
+[ 66280 evals] best 3.50277e-12 (fails 37) via retype 0/rlrrrlll->r
+[ 68600 evals] best 5.7726e-11 (fails 33) via undivide 0/lrl
+[ 68760 evals] best 5.85314e-11 (fails 33) via crossover lrrr<->lllr
+[ 74360 evals] best 5.85425e-11 (fails 33) via repair_shaft noop (shaft intact)
+[ 74600 evals] best 5.88173e-11 (fails 33) via rotate 0/lrr
+[ 75080 evals] best 5.95456e-11 (fails 33) via retype 1/rlllrl->ws1
+[ 76040 evals] best 5.96756e-11 (fails 33) via repair_shaft noop (shaft intact)
+[ 76600 evals] best 5.98415e-11 (fails 33) via level_retype 1/lrlr<->2/rrlr
+[ 76920 evals] best 1.19594e-10 (fails 32) via retype 1/rllllr->k1
+[ 77880 evals] best 6.53497e-11 (fails 30) via level_compound_fix ws1: lvl1 → lvl0/rlrl
+[ 79560 evals] best 4.65195e-10 (fails 30) via crossover rlrrrll<->rrl
+[ 80920 evals] best 9.30352e-10 (fails 29) via repair_shaft noop (shaft intact)
+[ 82280 evals] best 2.56568e-10 (fails 28) via retype 1/rlllrl->m
+[ 83000 evals] best 2.88234e-10 (fails 28) via undivide 1/rlrrrrl
+[ 86280 evals] best 3.05236e-10 (fails 28) via repair_shaft noop (shaft intact)
+[ 86600 evals] best 1.89478e-09 (fails 28) via repair_shaft noop (shaft intact)
+[105000 evals] best 1.91512e-09 (fails 28) via crossover rllllr<->rlrrlrr
+[108520 evals] best 3.01648e-08 (fails 24) via divide 1/lrlr
+[114920 evals] best 6.00817e-08 (fails 23) via level_retype 0/rlrrrll<->1/llll
+[115000 evals] best 6.08044e-08 (fails 23) via retype 0/rlrrlllr->r
+[118600 evals] best 6.08734e-08 (fails 23) via repair_shaft noop (shaft intact)
+[119320 evals] best 6.0943e-08 (fails 23) via stair make rlrrrlr (2 storeys)
+[121080 evals] best 6.10098e-08 (fails 23) via retype 0/lrrl->me1
+[121560 evals] best 6.11288e-08 (fails 23) via swap 0/lll
+[121640 evals] best 6.15639e-08 (fails 23) via undivide 1/llr
+[125000 evals] best 6.16302e-08 (fails 23) via crossover rlrrrr<->rlrrllr
+[126120 evals] best 6.16876e-08 (fails 23) via repair_shaft noop (shaft intact)
+[126520 evals] best 6.17118e-08 (fails 23) via retype 1/rlrrrrr->r
+[129880 evals] best 1.28585e-07 (fails 22) via retype 1/rlrrrrll->ws1
+[132440 evals] best 2.52441e-07 (fails 21) via swap 1/llr
+[134520 evals] best 2.52473e-07 (fails 21) via repair_shaft noop (shaft intact)
+[141000 evals] best 4.85693e-07 (fails 20) via crossover rlrrlll<->rlrrrl
+[142840 evals] best 4.86437e-07 (fails 20) via crossover rlrrlrr<->rlllrr
+[143800 evals] best 4.86921e-07 (fails 20) via repair_shaft noop (shaft intact)
+[144120 evals] best 4.87134e-07 (fails 20) via repair_shaft noop (shaft intact)
+[146600 evals] best 4.87322e-07 (fails 20) via repair_shaft noop (shaft intact)
+[148440 evals] best 4.95609e-07 (fails 20) via retype 1/llrr->me1
+[150520 evals] best 5.01342e-07 (fails 20) via swap 1/lrlr
+[151480 evals] best 5.01473e-07 (fails 20) via retype 1/lrrl->st1
+[158920 evals] best 5.01534e-07 (fails 20) via repair_shaft noop (shaft intact)
+[172520 evals] best 5.01989e-07 (fails 20) via retype 2/lr->ut1
+[176440 evals] best 5.05172e-07 (fails 20) via rotate 1/lrlr
+[181000 evals] best 2.11381e-06 (fails 18) via level_retype 0/lrrr<->2/rlrrr
+[183800 evals] best 2.11392e-06 (fails 18) via repair_shaft noop (shaft intact)
+[210440 evals] best 2.15262e-06 (fails 18) via swap 0/rlrrlll
+[215080 evals] best 2.15554e-06 (fails 18) via crossover rlrrrlr<->rrl
+[218680 evals] best 2.15694e-06 (fails 18) via repair_shaft noop (shaft intact)
+[223320 evals] best 8.58809e-06 (fails 16) via crossover rllr<->lrr
+[227640 evals] best 8.59975e-06 (fails 16) via crossover rlrrlrl<->rlrrllrl
+[228040 evals] best 8.664e-06 (fails 16) via repair_shaft noop (shaft intact)
+[234200 evals] best 8.67569e-06 (fails 16) via repair_shaft noop (shaft intact)
+[240040 evals] best 8.6804e-06 (fails 16) via crossover rlrrllrrl<->rlrrlllr
+[240680 evals] best 8.68132e-06 (fails 16) via crossover rlrrllrrl<->llr
+[248680 evals] best 8.68157e-06 (fails 16) via repair_shaft noop (shaft intact)
+[252040 evals] best 8.68832e-06 (fails 16) via swap 2/rrl
+[253560 evals] best 8.6913e-06 (fails 16) via crossover rlrrlrl<->llr
+[257320 evals] best 8.69345e-06 (fails 16) via crossover rlrrllrr<->rlrrllrr
+[259320 evals] best 8.69416e-06 (fails 16) via crossover rlrrll<->rlrrll
+[266920 evals] best 8.71108e-06 (fails 16) via level_retype 0/rlrrllll<->2/llr
+[277480 evals] best 1.74193e-05 (fails 15) via rotate 0/rlrrllrr
+[289560 evals] best 1.74857e-05 (fails 15) via crossover rlrrllll<->rlrrrll
+[306920 evals] best 1.75065e-05 (fails 15) via level_retype 0/llr<->1/rlrrllr
+[307320 evals] best 1.7544e-05 (fails 15) via stair make rlrrrlr (2 storeys)
+[308600 evals] best 1.75616e-05 (fails 15) via repair_shaft noop (shaft intact)
+[309080 evals] best 3.48886e-05 (fails 14) via crossover rlrrllrl<->rllllr
+[315800 evals] best 3.48921e-05 (fails 14) via level_retype 0/rlrrrr<->1/rlrrrrr
+[332360 evals] best 3.51222e-05 (fails 14) via swap 1/llr
+[332520 evals] best 3.51505e-05 (fails 14) via crossover rllllr<->rlrrlllll
+[335240 evals] best 3.51746e-05 (fails 14) via crossover rlrrllrrl<->rlrrlrl
+[337080 evals] best 3.51992e-05 (fails 14) via crossover rlrrrll<->rllr
+[338440 evals] best 3.52234e-05 (fails 14) via repair_shaft noop (shaft intact)
+[338920 evals] best 3.52269e-05 (fails 14) via repair_shaft noop (shaft intact)
+[349960 evals] best 3.54428e-05 (fails 14) via swap 1/rllr
+[353560 evals] best 3.54436e-05 (fails 14) via crossover lllr<->lllr
+[367880 evals] best 3.58322e-05 (fails 14) via crossover rlrrrr<->lrr
+[415480 evals] best 3.6047e-05 (fails 14) via rotate 0/rllll
+
+--- finishing (homemaker-py-3l6): unfold + polish 250000 evals ---
+[finish] unfold: materialised 0 shared-leaf copies
+[   200 evals] best 3.60628e-05 (fails 14) via seed
+[ 85560 evals] best 7.24735e-05 (fails 13) via undivide 1/rlrrlrl
+[150120 evals] best 7.45702e-05 (fails 13) via undivide 1/lrlrl
+[206920 evals] best 7.45737e-05 (fails 13) via crossover rlrrllrrl<->rlrrllrrl
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 107 → 13 fails (applied)
+
+--- done ---
+elapsed      : 48464.6s
+evals        : 750080 across 9373 topologies
+best         : 7.45737e-05 (13 fails) via crossover rlrrllrrl<->rlrrllrrl+collapse
+
+improvement history:
+  [   200] 5.62843e-20  (share:seed)
+  [   280] 9.15558e-19  (share:place_missing noop)
+  [   600] 3.68663e-18  (share:place_missing noop)
+  [   920] 4.01455e-18  (share:undivide 0/lrr)
+  [  1080] 4.02467e-18  (share:core_divide noop)
+  [  1240] 1.51017e-17  (share:repair_shaft rrl (3 storeys, generic))
+  [  1480] 6.78412e-17  (share:divide 1/lrrr)
+  [  2680] 3.00683e-17  (share:core_undivide noop)
+  [  2840] 3.04118e-17  (share:retype 1/lrrr->n)
+  [  3080] 3.05028e-17  (share:level_fix noop)
+  [  3640] 1.26372e-16  (share:support_outside place 2/ll (split from t))
+  [  4840] 1.2659e-16  (share:level_compound_fix noop)
+  [  5320] 1.26834e-16  (share:undivide 0/rllrr)
+  [  5400] 1.27051e-16  (share:retype 1/rllrr->ws1)
+  [  5480] 1.27201e-16  (share:core_undivide noop)
+  [  7160] 1.27797e-16  (share:undivide 0/rllrl)
+  [  9080] 5.14381e-16  (share:undivide 1/rlrrrrl)
+  [ 13560] 5.15151e-16  (share:crossover rlrrrrl<->rllllr)
+  [ 15400] 5.1517e-16  (share:stair make rlrrrlr (2 storeys))
+  [ 15480] 2.91925e-15  (share:stair make rlrrrlr (2 storeys))
+  [ 16520] 4.53128e-15  (share:repair_shaft noop (shaft intact))
+  [ 16680] 1.15587e-14  (share:divide 1/rlrrrrr)
+  [ 21080] 2.41123e-14  (share:level_compound_fix noop)
+  [ 21800] 2.45726e-14  (share:repair_shaft noop (shaft intact))
+  [ 24200] 2.47657e-14  (share:undivide 0/rlrrll)
+  [ 24280] 1.00053e-13  (share:undivide 0/rlrrrr)
+  [ 30360] 1.01253e-13  (share:repair_shaft noop (shaft intact))
+  [ 33880] 1.01741e-13  (share:level_retype 2/llr<->1/rllrr)
+  [ 33960] 1.02423e-13  (share:repair_shaft noop (shaft intact))
+  [ 34520] 1.02642e-13  (share:undivide 0/rllrr)
+  [ 34600] 1.03092e-13  (share:retype 0/rllrl->k1)
+  [ 36840] 1.03208e-13  (share:crossover lrll<->rllllr)
+  [ 39480] 1.03348e-13  (share:stair make rlrrrlr (2 storeys))
+  [ 40600] 1.05233e-13  (share:crossover rlllll<->rlrrrll)
+  [ 41800] 2.02798e-13  (share:level_retype 0/rlrrlrr<->1/llrl)
+  [ 44680] 2.06062e-13  (share:rotate 0/rlrrr)
+  [ 48600] 2.2033e-13  (share:rotate 1/rlrrrrl)
+  [ 54440] 1.70454e-12  (share:rotate 1/rlrrrrl)
+  [ 55080] 1.73623e-12  (share:swap 0/lrr)
+  [ 63080] 3.48588e-12  (share:crossover rlrrrll<->rlrrrl)
+  [ 66280] 3.50277e-12  (share:retype 0/rlrrrlll->r)
+  [ 68600] 5.7726e-11  (share:undivide 0/lrl)
+  [ 68760] 5.85314e-11  (share:crossover lrrr<->lllr)
+  [ 74360] 5.85425e-11  (share:repair_shaft noop (shaft intact))
+  [ 74600] 5.88173e-11  (share:rotate 0/lrr)
+  [ 75080] 5.95456e-11  (share:retype 1/rlllrl->ws1)
+  [ 76040] 5.96756e-11  (share:repair_shaft noop (shaft intact))
+  [ 76600] 5.98415e-11  (share:level_retype 1/lrlr<->2/rrlr)
+  [ 76920] 1.19594e-10  (share:retype 1/rllllr->k1)
+  [ 77880] 6.53497e-11  (share:level_compound_fix ws1: lvl1 → lvl0/rlrl)
+  [ 79560] 4.65195e-10  (share:crossover rlrrrll<->rrl)
+  [ 80920] 9.30352e-10  (share:repair_shaft noop (shaft intact))
+  [ 82280] 2.56568e-10  (share:retype 1/rlllrl->m)
+  [ 83000] 2.88234e-10  (share:undivide 1/rlrrrrl)
+  [ 86280] 3.05236e-10  (share:repair_shaft noop (shaft intact))
+  [ 86600] 1.89478e-09  (share:repair_shaft noop (shaft intact))
+  [105000] 1.91512e-09  (share:crossover rllllr<->rlrrlrr)
+  [108520] 3.01648e-08  (share:divide 1/lrlr)
+  [114920] 6.00817e-08  (share:level_retype 0/rlrrrll<->1/llll)
+  [115000] 6.08044e-08  (share:retype 0/rlrrlllr->r)
+  [118600] 6.08734e-08  (share:repair_shaft noop (shaft intact))
+  [119320] 6.0943e-08  (share:stair make rlrrrlr (2 storeys))
+  [121080] 6.10098e-08  (share:retype 0/lrrl->me1)
+  [121560] 6.11288e-08  (share:swap 0/lll)
+  [121640] 6.15639e-08  (share:undivide 1/llr)
+  [125000] 6.16302e-08  (share:crossover rlrrrr<->rlrrllr)
+  [126120] 6.16876e-08  (share:repair_shaft noop (shaft intact))
+  [126520] 6.17118e-08  (share:retype 1/rlrrrrr->r)
+  [129880] 1.28585e-07  (share:retype 1/rlrrrrll->ws1)
+  [132440] 2.52441e-07  (share:swap 1/llr)
+  [134520] 2.52473e-07  (share:repair_shaft noop (shaft intact))
+  [141000] 4.85693e-07  (share:crossover rlrrlll<->rlrrrl)
+  [142840] 4.86437e-07  (share:crossover rlrrlrr<->rlllrr)
+  [143800] 4.86921e-07  (share:repair_shaft noop (shaft intact))
+  [144120] 4.87134e-07  (share:repair_shaft noop (shaft intact))
+  [146600] 4.87322e-07  (share:repair_shaft noop (shaft intact))
+  [148440] 4.95609e-07  (share:retype 1/llrr->me1)
+  [150520] 5.01342e-07  (share:swap 1/lrlr)
+  [151480] 5.01473e-07  (share:retype 1/lrrl->st1)
+  [158920] 5.01534e-07  (share:repair_shaft noop (shaft intact))
+  [172520] 5.01989e-07  (share:retype 2/lr->ut1)
+  [176440] 5.05172e-07  (share:rotate 1/lrlr)
+  [181000] 2.11381e-06  (share:level_retype 0/lrrr<->2/rlrrr)
+  [183800] 2.11392e-06  (share:repair_shaft noop (shaft intact))
+  [210440] 2.15262e-06  (share:swap 0/rlrrlll)
+  [215080] 2.15554e-06  (share:crossover rlrrrlr<->rrl)
+  [218680] 2.15694e-06  (share:repair_shaft noop (shaft intact))
+  [223320] 8.58809e-06  (share:crossover rllr<->lrr)
+  [227640] 8.59975e-06  (share:crossover rlrrlrl<->rlrrllrl)
+  [228040] 8.664e-06  (share:repair_shaft noop (shaft intact))
+  [234200] 8.67569e-06  (share:repair_shaft noop (shaft intact))
+  [240040] 8.6804e-06  (share:crossover rlrrllrrl<->rlrrlllr)
+  [240680] 8.68132e-06  (share:crossover rlrrllrrl<->llr)
+  [248680] 8.68157e-06  (share:repair_shaft noop (shaft intact))
+  [252040] 8.68832e-06  (share:swap 2/rrl)
+  [253560] 8.6913e-06  (share:crossover rlrrlrl<->llr)
+  [257320] 8.69345e-06  (share:crossover rlrrllrr<->rlrrllrr)
+  [259320] 8.69416e-06  (share:crossover rlrrll<->rlrrll)
+  [266920] 8.71108e-06  (share:level_retype 0/rlrrllll<->2/llr)
+  [277480] 1.74193e-05  (share:rotate 0/rlrrllrr)
+  [289560] 1.74857e-05  (share:crossover rlrrllll<->rlrrrll)
+  [306920] 1.75065e-05  (share:level_retype 0/llr<->1/rlrrllr)
+  [307320] 1.7544e-05  (share:stair make rlrrrlr (2 storeys))
+  [308600] 1.75616e-05  (share:repair_shaft noop (shaft intact))
+  [309080] 3.48886e-05  (share:crossover rlrrllrl<->rllllr)
+  [315800] 3.48921e-05  (share:level_retype 0/rlrrrr<->1/rlrrrrr)
+  [332360] 3.51222e-05  (share:swap 1/llr)
+  [332520] 3.51505e-05  (share:crossover rllllr<->rlrrlllll)
+  [335240] 3.51746e-05  (share:crossover rlrrllrrl<->rlrrlrl)
+  [337080] 3.51992e-05  (share:crossover rlrrrll<->rllr)
+  [338440] 3.52234e-05  (share:repair_shaft noop (shaft intact))
+  [338920] 3.52269e-05  (share:repair_shaft noop (shaft intact))
+  [349960] 3.54428e-05  (share:swap 1/rllr)
+  [353560] 3.54436e-05  (share:crossover lllr<->lllr)
+  [367880] 3.58322e-05  (share:crossover rlrrrr<->lrr)
+  [415480] 3.6047e-05  (share:rotate 0/rllll)
+  [500240] 3.60628e-05  (polish:seed)
+  [585600] 7.24735e-05  (polish:undivide 1/rlrrlrl)
+  [650160] 7.45702e-05  (polish:undivide 1/lrlrl)
+  [706960] 7.45737e-05  (polish:crossover rlrrllrrl<->rlrrllrrl)
+written      : /tmp/wings_ab/wings-s1/out.dom
