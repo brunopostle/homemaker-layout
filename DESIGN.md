@@ -17807,3 +17807,22 @@ scale-free ladder (`wings_catalogue_6.json`, nearest plot no bigger) was worse:
 the ladder under-states a tree's capacity on a rectangle by up to 0.20, and a
 10-point margin would have skipped 43-157 passing trees. The capacity prune
 stays as `--prune`, off; `--check-prune` reports what it loses.
+
+**Owner's ruling, the same day**: "I think we should be less strict now and
+tighten these things later as an optimisation." So the filter is one-sided
+(`covers_enough`): a plan passes at no less than the need minus `--tol`, and
+any amount over it; `--max-excess 0.05` restores the old window. The
+hill-climb still aims at the need, so what newly passes is a tree whose
+nearest all-lit size lies above the window, not every denser variant. Re-run,
+unpruned, at `4428262+orth` (trees / outlines):
+
+| programme | before (5% window) | after (one-sided) |
+|---|---|---|
+| programme-house | 2 st 0 / 0, 3 st 3 / 7, 4 st 2 / 5, 5 st 3 / 6 | **1 / 1 (the block)**, 5 / 10, 5 / 10, 6 / 14 |
+| health-centre | 1 st 164 / 199, 2 st 524 / 1172 | 164 / 199, 576 / 1269 |
+| maple-court | (pruned floor: 155 / 225, 367 / 812) | 202 / 309, 425 / 1080 |
+| harbor-house | 2 st 31 / 33, 3 st 314 / 673 | 31 / 33, 314 / 673 -- unchanged |
+
+Programme-house now passes at its minimum storeys with the one plan its cold
+search finds. Harbor-house's lists are identical, so `wings-{1,2,3}.dom` and
+the running wings A/B are what this filter would give today.

@@ -580,6 +580,16 @@ def capacities(cat, gs, plot, args) -> dict:
     return caps
 
 
+def covers_enough(frac: float, cover: float, args) -> bool:
+    """Does a plan built at ``frac`` serve a storey needing ``cover``? At least
+    the need less ``--tol``; MORE is allowed (owner, 2026-10-16: "be less
+    strict now and tighten these things later as an optimisation"), up to
+    ``--max-excess`` over the need when that is given."""
+    if frac < cover - args.tol:
+        return False
+    return args.max_excess is None or frac <= cover + args.max_excess
+
+
 def passing(cat, gs, plot, args, n: int, cover: float, caps=None):
     """The filter at one storey count: {outline: (leaves, text, cover, tree,
     sizes)}, one tree per outline, and the set of base trees that pass. With
@@ -597,7 +607,7 @@ def passing(cat, gs, plot, args, n: int, cover: float, caps=None):
             r = wc.optimise(tt, plot, args.b_min, args.o_min,
                             wc.stable_rng(txt, args.programme, n),
                             starts=args.starts, coverage=cover)
-            if not r or r[2] > 0 or abs(r[1] - cover) > args.tol:
+            if not r or r[2] > 0 or not covers_enough(r[1], cover, args):
                 continue
             passed.add(wc.text(t))
             outline = "\n".join(wc.ascii_plan(tt, r[3], plot, 16))
@@ -632,7 +642,7 @@ def filter_report(args, plot, covers) -> int:
         for line in wc.ascii_plan(tt, sizes, plot, 16):
             print("        " + line)
     for n, cover in covers.items():
-        if cover > 0.98:
+        if cover > 1.0:
             print(f"\n  {n} storeys, cover {cover:.0%}: not drawn", flush=True)
             continue
         t0 = time.process_time()
@@ -667,7 +677,11 @@ def main(argv=None) -> int:
     ap.add_argument("--circ-share", type=float, default=0.25,
                     help="circulation added to the room area when asking the cover")
     ap.add_argument("--tol", type=float, default=0.05,
-                    help="how far from the needed cover a plan may land")
+                    help="how far BELOW the needed cover a plan may land")
+    ap.add_argument("--max-excess", type=float, default=None,
+                    help="how far ABOVE the needed cover a plan may land (default: any "
+                         "amount -- the owner's 2026-10-16 ruling, to tighten later; "
+                         "0.05 is the old symmetric window)")
     ap.add_argument("--b-min", type=float, default=1.0)
     ap.add_argument("--o-min", type=float, default=0.77)
     ap.add_argument("--max-seeds", type=int, default=40,
@@ -741,7 +755,7 @@ def main(argv=None) -> int:
     gs = wc.orientations(plot)
     caps = capacities(cat, gs, plot, args) if (args.prune and not args.only) else None
     for n, cover in ({} if args.only else covers).items():
-        if cover > 0.98:
+        if cover > 1.0:
             continue
         seen, _passed, _tried = passing(cat, gs, plot, args, n, cover, caps)
         for outline, (nl, txt, frac, tt, sizes) in seen.items():

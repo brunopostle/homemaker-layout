@@ -85,7 +85,7 @@ index is how to get from a question to the section that answers it.
 | §39.145 | The owner's simplification: no ranking, every generically possible layout fed to every project. Crinkliness is A/(L h), so the catalogue is scale-free; applied pointwise it finds court -> 8 as plots grow (capacity 94% -> 60%). On harbor-house the filter says two storeys cannot be lit and three can; catalogue seeds reach crinkliness 3-8 against 25 cold. The wings A/B is running. |
 | §39.146 | The search cannot move a stair far (no operator relocates a shaft), so the seeder builds several core placements per plan; placement moves a tuned seed by 20-40 fails and the default is worst or near worst on two of three plans. The seeder was not deterministic (id()-ordered ties in `repair_circulation_settled`, through a subgraph view); worked around in the seeder, `src/` fix waits for the box (`9cpc`). |
 | §39.147 | The seeder's circulation repair erased its own bridges (courts disguised as rooms were the cheapest crossing, then restored) and destroyed ~4 rooms a seed. A corridor CUT through a room instead, whole bridge or none: hard fails 809 -> 425, median seed +4 decades, no missing rooms; connectivity mostly left to the search (single cuts cannot cross a room between opposite sides). |
-| §39.148 | The catalogue filter on all four programmes: only harbor-house cannot light its minimum storeys; maple-court lights 225 outlines at three storeys yet its cold design has 34 of 62 fails in crinkliness, so it is the next programme to seed; programme-house is a block, which the catalogue now includes. The seeder costs ~1 h, not 20; a capacity prune is not lossless (loses up to 19% of outlines) and stays off. Owner question: should a plan with more cover than needed pass? |
+| §39.148 | The catalogue filter on all four programmes: only harbor-house cannot light its minimum storeys; maple-court lights 225 outlines at three storeys yet its cold design has 34 of 62 fails in crinkliness, so it is the next programme to seed; programme-house is a block, which the catalogue now includes. The seeder costs ~1 h, not 20; a capacity prune is not lossless (loses up to 19% of outlines) and stays off. Owner: yes, a plan with more cover than needed passes (tighten later). |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -123,6 +123,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Each neighbourhood has its own bathroom, and harbor-house has two more beside the individual sleeping rooms (a brief change, landing just before a re-baseline) | §39.139 |
 | A building the size of harbor-house needs two stairs, separated from each other (built as half the building's diagonal, IBC 1007.1.1). Corridors at 1.2 m are ok but better wider: the existing gaussian already says so | §39.143 |
 | The example briefs are TEST projects, not buildings: harbor-house's neighbourhoods are a big room with alcoves, not a type. Derive no search structure from what rooms mean; validate on all four programmes | §39.145 |
+| The seeder's cover filter is one-sided: a plan with MORE cover than the brief needs passes. "Be less strict now and tighten these things later as an optimisation" | §39.148 |
 | A common room opens onto PRIVATE outdoor space: a street wall is not "next to outdoors" | §39.138 |
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
@@ -166,7 +167,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (253 of them, 17809 lines)
+## Every section of DESIGN.md (253 of them, 17828 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -470,4 +471,4 @@ below are the most recent work.
 - §39.145 · 17527-17617 · A scale-free catalogue on the scorer's own daylight rule, the seeds it gives harbor-house, and the A/B they are in (`homemaker-py-2g7.13.1`)
 - §39.146 · 17618-17675 · The search cannot move a stair far, so the seeder offers several; and the seeder was not deterministic (`homemaker-py-2g7.13.1.6`, `9cpc`)
 - §39.147 · 17676-17742 · The seeder's circulation repair was erasing its own bridges and destroying rooms; a corridor cut through a room instead (`homemaker-py-2g7.13.1.1`)
-- §39.148 · 17743-17809 · The catalogue filter on all four programmes: maple-court can be lit at its minimum storeys and is not, programme-house is a block, and the seeder was not slow (`homemaker-py-2g7.13.1.3`)
+- §39.148 · 17743-17828 · The catalogue filter on all four programmes: maple-court can be lit at its minimum storeys and is not, programme-house is a block, and the seeder was not slow (`homemaker-py-2g7.13.1.3`)
