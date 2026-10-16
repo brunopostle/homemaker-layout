@@ -556,6 +556,108 @@ def parse_tree(s: str):
     return node()
 
 
+def plans_catalogue(max_leaves: int) -> list:
+    """The catalogue plus the BLOCK, "B": the whole plot built, no court. The
+    catalogue starts at two leaves with a court in each, so without it a small
+    plot lit all round reads as unlightable at a cover programme-house's
+    designs reach (86-96% at two storeys, no crinkliness fail)."""
+    return ["B"] + wc.catalogue(max_leaves)
+
+
+def capacities(cat, gs, plot, args) -> dict:
+    """Each oriented tree's CAPACITY on this plot -- the most cover it reaches
+    all lit -- keyed by its text, as (cover, sizes, tree), None where no size
+    of it is all lit. `sizes` is keyed by id() of that tree's nodes, so the
+    tree is kept with it."""
+    caps = {}
+    for t in cat:
+        for g in gs:
+            tt = wc.transform(t, *g)
+            r = wc.optimise(tt, plot, args.b_min, args.o_min,
+                            wc.stable_rng(wc.text(tt), args.programme, "cap"),
+                            starts=args.starts)
+            caps[wc.text(tt)] = (r[1], r[3], tt) if r and r[2] == 0 else None
+    return caps
+
+
+def passing(cat, gs, plot, args, n: int, cover: float, caps=None):
+    """The filter at one storey count: {outline: (leaves, text, cover, tree,
+    sizes)}, one tree per outline, and the set of base trees that pass. With
+    ``caps`` an oriented tree is tried only if its capacity on this plot comes
+    within ``tol`` of the cover. That would be lossless if the capacity were
+    exact; it is a hill-climb, and under-finds (DESIGN.md §39.148)."""
+    seen, passed, tried = {}, set(), 0
+    for t in cat:
+        for g in gs:
+            tt = wc.transform(t, *g)
+            txt = wc.text(tt)
+            if caps is not None and (caps[txt] is None or caps[txt][0] < cover - args.tol):
+                continue
+            tried += 1
+            r = wc.optimise(tt, plot, args.b_min, args.o_min,
+                            wc.stable_rng(txt, args.programme, n),
+                            starts=args.starts, coverage=cover)
+            if not r or r[2] > 0 or abs(r[1] - cover) > args.tol:
+                continue
+            passed.add(wc.text(t))
+            outline = "\n".join(wc.ascii_plan(tt, r[3], plot, 16))
+            seen.setdefault(outline, (wc.n_leaves(tt), txt, r[1], tt, r[3]))
+    return seen, passed, tried
+
+
+def filter_report(args, plot, covers) -> int:
+    """`--filter-only`: each tree's capacity on this plot, and per storey count
+    the outlines the filter passes (pruned only with ``--prune``).
+    ``--check-prune`` runs each storey count both ways and reports what the
+    prune loses."""
+    import time
+    cat = plans_catalogue(args.leaves)
+    gs = wc.orientations(plot)
+    print(f"  {len(cat)} trees x {len(gs)} orientation(s)", flush=True)
+    t0 = time.process_time()
+    caps = capacities(cat, gs, plot, args)
+    t_cap = time.process_time() - t0
+    best = {}
+    for t in cat:
+        for g in gs:
+            c = caps[wc.text(wc.transform(t, *g))]
+            if c and (wc.text(t) not in best or c[0] > best[wc.text(t)][0]):
+                best[wc.text(t)] = (c[0], c[2], c[1])
+    print(f"  capacity pass: {len(best)} of {len(cat)} trees can be built all lit, best "
+          f"{max((v[0] for v in best.values()), default=0):.0%}, {t_cap:.0f} s CPU", flush=True)
+    print(f"  the block (all built, cover 100%) is "
+          f"{'all lit' if caps['B'] else 'NOT all lit'}", flush=True)
+    for cap, tt, sizes in sorted(best.values(), key=lambda v: (-v[0], wc.n_leaves(v[1])))[:3]:
+        print(f"    capacity {cap:.0%}: {wc.text(tt)}")
+        for line in wc.ascii_plan(tt, sizes, plot, 16):
+            print("        " + line)
+    for n, cover in covers.items():
+        if cover > 0.98:
+            print(f"\n  {n} storeys, cover {cover:.0%}: not drawn", flush=True)
+            continue
+        t0 = time.process_time()
+        seen, passed, tried = passing(cat, gs, plot, args, n, cover,
+                                      caps if (args.prune or args.check_prune) else None)
+        dt = time.process_time() - t0
+        print(f"\n  {n} storeys, cover {cover:.0%}: {len(passed)} trees, {len(seen)} outlines "
+              f"pass ({tried} of {len(cat) * len(gs)} oriented trees tried, {dt:.0f} s CPU)",
+              flush=True)
+        for outline, (nl, txt, frac, _tt, _s) in sorted(seen.items(), key=lambda kv: kv[1][:3])[:3]:
+            print(f"    {nl} leaves, {txt}, cover {frac:.0%}")
+            for line in outline.split("\n"):
+                print("        " + line)
+        if args.check_prune:
+            t0 = time.process_time()
+            full, fpassed, ftried = passing(cat, gs, plot, args, n, cover)
+            dt = time.process_time() - t0
+            lost = [v[1] for k, v in full.items() if k not in seen]
+            print(f"    unpruned: {len(fpassed)} trees, {len(full)} outlines ({ftried} tried, "
+                  f"{dt:.0f} s CPU); outlines the prune loses: {len(lost)} {lost[:5]}; "
+                  f"same plans: {[v[1] for v in full.values()] == [v[1] for v in seen.values()]}",
+                  flush=True)
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--programme", default="harbor-house")
@@ -588,6 +690,17 @@ def main(argv=None) -> int:
                     help="build just these plans, as printed (e.g. '3:H(B V(B O))'), "
                          "skipping the enumeration; sizing and building are "
                          "deterministic, so this reproduces a ranked run's seeds")
+    ap.add_argument("--filter-only", action="store_true",
+                    help="report what the filter passes at each storey count, with "
+                         "each tree's capacity on this plot, and build nothing")
+    ap.add_argument("--check-prune", action="store_true",
+                    help="with --filter-only: run the filter with and without the "
+                         "capacity prune and report any outline the prune loses")
+    ap.add_argument("--prune", action="store_true",
+                    help="try an oriented tree at a storey count only if its capacity on "
+                         "this plot comes within --tol of the cover. NOT lossless: the "
+                         "capacity hill-climb under-finds, and on health-centre the prune "
+                         "lost 45 of 199 and 218 of 1172 outlines (DESIGN.md §39.148)")
     args = ap.parse_args(argv)
     if not geometry.ORTHOGONAL_DIVISION:
         print("set HOMEMAKER_ORTHOGONAL_DIVISION=1", file=sys.stderr)
@@ -610,6 +723,9 @@ def main(argv=None) -> int:
           f"{plot.label}; cover needed " +
           ", ".join(f"{n} storeys {c:.0%}" for n, c in covers.items()), flush=True)
 
+    if args.filter_only:
+        return filter_report(args, plot, covers)
+
     plans = []
     if args.only:
         for spec in args.only:
@@ -621,25 +737,15 @@ def main(argv=None) -> int:
                             starts=args.starts, coverage=covers[n])
             plans.append((n, wc.n_leaves(tt), txt, tt, r[3], r[1],
                           "\n".join(wc.ascii_plan(tt, r[3], plot, 16))))
-    cat = [] if args.only else wc.catalogue(args.leaves)
+    cat = [] if args.only else plans_catalogue(args.leaves)
     gs = wc.orientations(plot)
+    caps = capacities(cat, gs, plot, args) if (args.prune and not args.only) else None
     for n, cover in ({} if args.only else covers).items():
         if cover > 0.98:
             continue
-        seen = set()
-        for t in cat:
-            for g in gs:
-                tt = wc.transform(t, *g)
-                r = wc.optimise(tt, plot, args.b_min, args.o_min,
-                                wc.stable_rng(wc.text(tt), args.programme, n),
-                                starts=args.starts, coverage=cover)
-                if not r or r[2] > 0 or abs(r[1] - cover) > args.tol:
-                    continue
-                outline = "\n".join(wc.ascii_plan(tt, r[3], plot, 16))
-                if outline in seen:
-                    continue
-                seen.add(outline)
-                plans.append((n, wc.n_leaves(tt), wc.text(tt), tt, r[3], r[1], outline))
+        seen, _passed, _tried = passing(cat, gs, plot, args, n, cover, caps)
+        for outline, (nl, txt, frac, tt, sizes) in seen.items():
+            plans.append((n, nl, txt, tt, sizes, frac, outline))
         print(f"  {n} storeys: {len(seen)} outlines pass the filter", flush=True)
     if not args.only:
         plans.sort(key=lambda p: (p[1], p[0], p[2]))

@@ -17739,3 +17739,71 @@ on tree path, and 18 seeds built in two processes are still byte-identical.
 `homemaker-py-9cpc` stands for the repair itself. Two seeder bugs fixed on the
 way: a strip ratio left as a numpy float, which YAML refuses (the same fault
 killed §39.145's ranked run), and `--out-dir` not creating its directory.
+
+### 39.148 The catalogue filter on all four programmes: maple-court can be lit at its minimum storeys and is not, programme-house is a block, and the seeder was not slow (`homemaker-py-2g7.13.1.3`)
+
+The bead asked whether §39.145's harbor-house verdict -- two storeys cannot be
+lit, three can -- is particular to it, and to make the seeder cheaper.
+`seed_from_catalogue.py --filter-only` now reports, per programme, each tree's
+CAPACITY on the real plot (the most cover it reaches all lit, best
+orientation) and, per storey count the brief allows, how many trees and
+outlines the filter passes. 6 leaves, 4 starts, `4428262+orth`; the corpus
+column is the `coldstart-4428262+orth-500000-s0` design of §39.142:
+
+| programme | plot | cover needed | best capacity | trees / outlines passing | cold corpus s0 |
+|---|---|---|---|---|---|
+| programme-house | 2.25h x 2.5h, 3 sides open | 2 st 91%, 3 st 60%, 4 st 45%, 5 st 36% | 100% (the block) | 0 / 0, 3 / 7, 2 / 5, 3 / 6 | 2 storeys, ground 86% built, 0 fails |
+| health-centre | 6.25h x 7h, 3 open | 1 st 76%, 2 st 38% | 87% | 164 / 199, 524 / 1172 | 1 storey, 68%, 7 fails, 0 crinkliness |
+| maple-court | 9.7h x 8.8h, 2 open | 3 st 56%, 4 st 42% | 83% | 155 / 225, 367 / 812 | 3 storeys, 62 fails, **34 crinkliness** |
+| harbor-house | 8.0h x 9.8h, 2 open | 2 st 74%, 3 st 50% | 82% | 31 / 33, 314 / 673 | 2 storeys, 28 fails, 16 crinkliness |
+
+(Maple-court's counts are from the pruned pass described below, so they are a
+floor; the rest are unpruned.)
+
+Three readings:
+
+1. **Harbor-house's storey verdict is its own.** It is the one programme whose
+   minimum storey count asks for more cover than all but a few dozen plans can
+   light (74% against an 82% best; 33 outlines, all of five or six leaves).
+   Health-centre and maple-court are comfortably lit at their minimum, and so
+   the cold constructor's habit of seeding at `storey_minimum` (§39.145) only
+   costs harbor-house.
+2. **Maple-court is where a strategy seed should pay next.** Its plot lights
+   225 outlines at three storeys -- six leaves are enough; the composition the
+   bead expected maple to need is not needed for the filter -- yet the cold
+   search ends with 34 of its 62 fails in crinkliness, a larger share than
+   harbor-house's 16 of 28. Its trouble is the plan, not the storey count:
+   the case §39.144 made for harbor-house, more strongly.
+3. **Programme-house is a block, and the catalogue could not say so.** Every
+   catalogue tree has at least two leaves and a court, so on a 2.25h plot lit
+   on three sides -- every point within 1.13h of an open side -- the filter
+   called two storeys unlightable while the cold search's two-storey designs
+   cover 86-96% of the plot with no crinkliness fail. The seeder now adds the
+   BLOCK, `"B"`, to the catalogue (`plans_catalogue`); it is all lit on
+   programme-house and nowhere else. It still does not pass at two storeys,
+   because the filter wants a plan within `--tol` (5%) of the needed cover and
+   a block is 100% against 91%. **Question for the owner**: should a plan
+   with MORE cover than the brief needs pass -- the excess going to bigger
+   rooms or circulation -- or is the window right? It matters beyond
+   programme-house: an open upper bound would let dense plans into
+   harbor-house's three-storey list too.
+
+**Cheaper, measured.** The bead cites ~20 h for the seeder's enumeration. At
+today's code, niced beside the six-run wings A/B, the unpruned filter costs
+404 s CPU for a capacity pass it does not need and ~410 s per storey count on
+harbor-house (8 orientations), ~225 s per storey count on health-centre (4);
+one harbor-house seed costs 4.6 s to build and 6 s more for its 200-evaluation
+tune. So §39.145's 40 plans x 6 core placements is about 45 minutes after a
+14-minute filter. Whatever took 20 h then, it is not this code now, and
+nothing here is worth cutting.
+
+One cut was tried anyway, and is **not lossless**: try a tree at a storey count
+only when its capacity on this plot comes within `--tol` of the cover. It
+would be sound if capacity were exact; it is a 4-start hill-climb, and it
+under-finds. On programme-house it lost nothing (3,748 tries per storey count
+down to 15-19, identical plans); on health-centre it lost **45 of 199** outlines
+at one storey and **218 of 1,172** at two, for a 5-10x saving. A prune on the
+scale-free ladder (`wings_catalogue_6.json`, nearest plot no bigger) was worse:
+the ladder under-states a tree's capacity on a rectangle by up to 0.20, and a
+10-point margin would have skipped 43-157 passing trees. The capacity prune
+stays as `--prune`, off; `--check-prune` reports what it loses.
