@@ -83,6 +83,7 @@ index is how to get from a question to the section that answers it.
 | §39.143 | Owner's answers: corridors stand; two stairs must be separated -- built as IBC's half-diagonal rule (branch, lands after queue 4; 2 of 204 designs gain a fail); find the drawing's kind of plan automatically -- a three-storey constructor seed is WORSE (104 fails against 81, 6 of 6), and no constructor seed has a stair. |
 | §39.144 | The owner's "wings of light" proposal. The drawing's footprint, refilled by the constructor, keeps its crinkliness (7 fails against 25-41 cold) though not its fail count (72 against 81): the footprint carries the daylight, the search can supply the rooms. A catalogue tool enumerates parti (1/4/20/120/792 trees at 2-6 leaves); daylight and coverage filter but do not rank, and what ranks them is a question for the owner. |
 | §39.145 | The owner's simplification: no ranking, every generically possible layout fed to every project. Crinkliness is A/(L h), so the catalogue is scale-free; applied pointwise it finds court -> 8 as plots grow (capacity 94% -> 60%). On harbor-house the filter says two storeys cannot be lit and three can; catalogue seeds reach crinkliness 3-8 against 25 cold. The wings A/B is running. |
+| §39.146 | The search cannot move a stair far (no operator relocates a shaft), so the seeder builds several core placements per plan; placement moves a tuned seed by 20-40 fails and the default is worst or near worst on two of three plans. The seeder was not deterministic (id()-ordered ties in `repair_circulation_settled`, through a subgraph view); worked around in the seeder, `src/` fix waits for the box (`9cpc`). |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -162,7 +163,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (250 of them, 17616 lines)
+## Every section of DESIGN.md (251 of them, 17674 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -463,4 +464,5 @@ below are the most recent work.
 - §39.142 · 17292-17383 · The `4428262+orth` re-baseline, and the owner's drawing as a seed: harbor-house ends at 9 fails against 30 (`homemaker-py-5nw`, `2g7.11`, `2g7.1`)
 - §39.143 · 17384-17446 · Three answers on §39.142: corridors stand, stairs must be apart (built), and the cold search must find the drawing's kind of plan (`homemaker-py-2g7.12`, `2g7.13`)
 - §39.144 · 17447-17526 · The drawing's footprint carries its daylight, and daylight alone does not rank a parti (`homemaker-py-2g7.13.1`)
-- §39.145 · 17527-17616 · A scale-free catalogue on the scorer's own daylight rule, the seeds it gives harbor-house, and the A/B they are in (`homemaker-py-2g7.13.1`)
+- §39.145 · 17527-17617 · A scale-free catalogue on the scorer's own daylight rule, the seeds it gives harbor-house, and the A/B they are in (`homemaker-py-2g7.13.1`)
+- §39.146 · 17618-17674 · The search cannot move a stair far, so the seeder offers several; and the seeder was not deterministic (`homemaker-py-2g7.13.1.6`, `9cpc`)

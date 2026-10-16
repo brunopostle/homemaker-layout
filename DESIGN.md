@@ -17614,3 +17614,61 @@ room-to-wing allocation (allocations generated from an area-weighted
 partition of the adjacency graph, pruned by `shapecurve` feasibility), ranked
 on the families the search does not repair -- crinkliness, connectivity,
 storeys, stairs -- rather than on total fails.
+
+### 39.146 The search cannot move a stair far, so the seeder offers several; and the seeder was not deterministic (`homemaker-py-2g7.13.1.6`, `9cpc`)
+
+**Owner, 2026-10-16**: cores in the seed are "fine, but maybe a bit
+premature" -- unless evolution can move them. Read off the operators, it
+mostly cannot. An `E` core slides with the inner loop's ratios, and
+`mutate_rotate` on its ground-storey parent cut puts the strip at the other end
+of its host cell on every storey at once (the storeys above inherit the cut).
+Nothing relocates a shaft: `mutate_stair` makes a stair only from a `C` column
+already stacked on every storey and unmakes one only while another stands, so
+a move is two draws through `too many stairs`; breaking a shaft and letting
+`repair_shaft` re-cut it passes through x0.0225 and re-cuts in the smallest
+generic column, not a better place. **So the seed's placement is a prior the
+search keeps.** The atomic move (unmake and make in one draw, every storey, as
+`core_divide` does for division) is recorded on the bead as the alternative,
+worth building if the halving shows placement matters and runs never move a
+stair.
+
+What was built instead: `seed_from_catalogue.py --core-variants K` builds each
+plan with up to K placements -- which built cells, which end of each --
+variant 0 the seeder's own (farthest-apart cells, far ends), the rest
+separated first (half the built footprint's diagonal, the rule on the
+`stair-separation` branch) and every set of host cells once before any is
+reused with its other ends. One room-assignment stream per plan, so variants
+differ only in their cores -- which needed the second finding.
+
+**The seeder was not deterministic.** The same plan built three times gave
+122, 120 and 119 raw fails, and 115 when built beside two other plans; §39.145's
+"`--only` rebuilt them exactly" held by luck of memory layout. Traced by
+building one seed twice in one process and diffing the tree after every step:
+the first divergence is in `operators.repair_circulation_settled`, which walks
+`nx.connected_components` -- sets of `dom.Node`, hashing by `id()` -- and keeps
+the first of equally cheap bridges. Sorting each component by the graph's node
+order was NOT enough: the graph there is `G.subgraph(circ)`, a view that can
+list its nodes by iterating a set, so that order is `id()`'s too. Sorting by
+tree path is. The seeder now wraps the call (`ordered_components`); 18 seeds
+built in two processes are byte-identical, and a plan built alone matches the
+same plan built in a batch. The defect is in `src/` and waits for the box
+(`homemaker-py-9cpc`); neither function is live in a default search
+(`repair_circulation` and `bridge_circulation` are both off), so no sweep is
+touched. `wings-{1,2,3}.dom`, `footprint-sK.dom` and the running A/B are
+unaffected: a seed is its file.
+
+**What placement is worth at the seed** (harbor-house, the three plans the
+bead rebuilds, six placements each, 200 evaluations, deterministic build):
+
+| plan | v0 (default) | best of six | worst of six |
+|---|---|---|---|
+| `H(B V(B H(O B) O))` | 101 | 79 (v3) | 117 (v4) |
+| `H(B V(B H(O B)) O)` | 103 | 76 (v2) | 103 (v0) |
+| `H(V(B H(O V(O B))) B)` | 82 | 82 (v0, v4) | 101 (v5) |
+
+Placement moves a tuned seed by 20-40 fails, as much as the choice of plan,
+and the default is worst or near worst on two of three. Two hundred
+evaluations is a poor predictor of a 500k run (the reason for the halving),
+so this says placement is worth searching over, not which placement wins:
+the variants go to `successive_halving.py` (`2g7.13.1.2`), ranked on
+structural fails.

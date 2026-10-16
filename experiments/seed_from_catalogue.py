@@ -30,7 +30,9 @@ a project and
 from __future__ import annotations
 
 import argparse
+import contextlib
 import copy
+import itertools
 import math
 import statistics
 import sys
@@ -40,6 +42,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+import networkx as nx  # noqa: E402
 import numpy as np  # noqa: E402
 
 import wings_catalogue as wc  # noqa: E402
@@ -131,58 +134,172 @@ def extent(leaf: dom.Node, axis) -> float:
     return max(pts) - min(pts)
 
 
-def carve_cores(lvl: dom.Node, root: dom.Node, n: int, axes) -> list[dom.Node]:
-    """Cut ``n`` stair cells (`E`) from the ground storey's built cells before
-    the storeys are stacked, so each is one column at one path on every
-    storey. A core is a strip `operators._STAIR_STRIP_M` deep cut across the
-    long axis of a built cell, at the end farthest from the other cores: for
-    two, the pair of built cells farthest apart, which is what §39.143's
-    half-diagonal separation asks."""
-    built = [lf for lf in lvl.leaves() if lf.type != "O"]
+def cut_core(leaf: dom.Node, root: dom.Node, rot: int, f: float) -> None:
+    """Make ``leaf`` a strip ``f`` deep typed `E` and the rest `C`."""
+    leaf.type = None
+    leaf.division = [f, f]
+    leaf.left, leaf.right = dom.Node(type="E"), dom.Node(type="C")
+    leaf.rotation = rot
+    dom.link(root)
+    geometry.clear_cache()
+
+
+def core_table(root: dom.Node, axes) -> dict:
+    """Every strip a core could be, per built cell of the single (ground)
+    storey ``root``: ``{cell id: (f, [(rotation, across, strip centroid)])}``.
+    A core is a strip `operators._STAIR_STRIP_M` deep; it is ``across`` when
+    it cuts the cell's long axis. Cutting one cell moves no other cell's walls,
+    so strips in different cells combine freely."""
+    out = {}
+    for leaf in [lf for lf in root.leaves() if lf.type != "O"]:
+        probe = copy.deepcopy(root)
+        dom.link(probe)
+        geometry.clear_cache()
+        cell = probe.by_id(leaf.id)
+        ax = max(axes, key=lambda a: extent(cell, a))
+        long_ = extent(cell, ax)
+        f = float(min(0.45, operators._STAIR_STRIP_M / long_))
+        rows = []
+        for rot in range(4):
+            cut_core(cell, probe, rot, f)
+            rows.append((rot, bool(extent(cell.left, ax) < 0.75 * long_),
+                         np.array(geometry.centroid(cell.left))))
+        out[leaf.id] = (f, rows)
+    geometry.clear_cache()
+    return out
+
+
+def default_placement(root: dom.Node, n: int, table: dict) -> tuple:
+    """The seeder's own choice, as ``((cell id, rotation), ...)``: for two
+    cores the pair of built cells farthest apart, each strip at the end
+    farthest from the other cell, which is what §39.143's half-diagonal
+    separation asks; for one, the largest built cell."""
+    built = [lf for lf in root.leaves() if lf.type != "O"]
     if n <= 0 or not built:
-        return []
-    cen = {id(lf): np.array(geometry.centroid(lf)) for lf in built}
+        return ()
+    cen = {lf.id: np.array(geometry.centroid(lf)) for lf in built}
     if n == 1 or len(built) == 1:
         chosen = [max(built, key=geometry.area)]
     else:
         chosen = list(max(((a, b) for i, a in enumerate(built) for b in built[i + 1:]),
-                          key=lambda ab: np.linalg.norm(cen[id(ab[0])] - cen[id(ab[1])])))
+                          key=lambda ab: np.linalg.norm(cen[ab[0].id] - cen[ab[1].id])))
+    out = []
+    for leaf in chosen:
+        others = [cen[o.id] for o in chosen if o is not leaf]
+        _f, rows = table[leaf.id]
+        rot = max(rows, key=lambda r: (r[1], min(np.linalg.norm(r[2] - o) for o in others)
+                                       if others else 0.0))[0]
+        out.append((leaf.id, rot))
+    return tuple(out)
+
+
+def apply_placement(root: dom.Node, placement: tuple, table: dict) -> list[dom.Node]:
+    """Cut the cores of ``placement`` into the single storey ``root`` before
+    the storeys are stacked, so each is one column at one path on every
+    storey."""
     cores = []
-    for k, leaf in enumerate(chosen):
-        others = [cen[id(o)] for o in chosen if o is not leaf]
-        ax = max(axes, key=lambda a: extent(leaf, a))
-        long_ = extent(leaf, ax)
-        f = float(min(0.45, operators._STAIR_STRIP_M / long_))
-        leaf.type = None
-        leaf.division = [f, f]
-        leaf.left, leaf.right = dom.Node(type="E"), dom.Node(type="C")
-        best = None
-        for rot in range(4):
-            leaf.rotation = rot
-            dom.link(root)
-            geometry.clear_cache()
-            across = extent(leaf.left, ax) < 0.75 * long_
-            far = (min(np.linalg.norm(np.array(geometry.centroid(leaf.left)) - o)
-                       for o in others) if others else 0.0)
-            cand = (across, far)
-            if best is None or cand > best[0]:
-                best = (cand, rot)
-        leaf.rotation = best[1]
-        dom.link(root)
-        geometry.clear_cache()
+    for cid, rot in placement:
+        leaf = root.by_id(cid)
+        cut_core(leaf, root, rot, table[cid][0])
         cores.append(leaf.left)
     return cores
 
 
-def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0) -> dom.Node:
+def separation(root: dom.Node, centres) -> float:
+    """The cores' closest pair over the built footprint's diagonal (the
+    stair-separation rule asks >= 0.5); 1.0 for a single core."""
+    if len(centres) < 2:
+        return 1.0
+    pts = [np.array(geometry.coordinate(lf, i)) for lf in root.leaves()
+           if lf.type != "O" for i in range(geometry.n_edges(lf))]
+    diag = max(np.linalg.norm(a - b) for i, a in enumerate(pts) for b in pts[i + 1:])
+    d = min(np.linalg.norm(a - b) for i, a in enumerate(centres) for b in centres[i + 1:])
+    return float(d / diag) if diag else 0.0
+
+
+def core_placements(root: dom.Node, n: int, table: dict, k: int) -> list[tuple]:
+    """Up to ``k`` placements: the default first, then the rest separated
+    first and farthest apart first, every set of host cells once before any
+    is used again with its other ends."""
+    first = default_placement(root, n, table)
+    if k <= 1 or not first:
+        return [first]
+    ends = {}
+    for cid, (_f, rows) in table.items():
+        use = [r for r in rows if r[1]] or rows
+        seen, keep = set(), []
+        for rot, _a, c in use:
+            key = tuple(np.round(c, 2))
+            if key not in seen:
+                seen.add(key)
+                keep.append((rot, c))
+        ends[cid] = keep
+    n = min(n, len(table))
+    cands = []
+    for cells in itertools.combinations(sorted(table), n):
+        for pick in itertools.product(*(ends[c] for c in cells)):
+            pl = tuple((c, rot) for c, (rot, _c) in zip(cells, pick))
+            if pl == first:
+                continue
+            sep = separation(root, [c for _rot, c in pick])
+            cands.append((sep >= 0.5, sep, pl))
+    cands.sort(key=lambda r: (r[0], r[1]), reverse=True)
+    out, used = [first], {frozenset(c for c, _r in first)}
+    for _ok, _sep, pl in cands:
+        cells = frozenset(c for c, _r in pl)
+        if cells not in used and len(out) < k:
+            used.add(cells)
+            out.append(pl)
+    for _ok, _sep, pl in cands:
+        if pl not in out and len(out) < k:
+            out.append(pl)
+    return out
+
+
+def ground(init, t, sizes) -> dom.Node:
+    """Catalogue tree ``t`` drawn on the plot, one storey, no rooms yet."""
     root = copy.deepcopy(init)
     root.above = None
     dom.link(root)
-    axes = frame_axes(init)
-    to_quad(t, sizes, root, root, axes)
+    to_quad(t, sizes, root, root, frame_axes(init))
     dom.link(root)
-    if n_storeys > 1:
-        carve_cores(root, root, n_cores, axes)
+    return root
+
+
+@contextlib.contextmanager
+def ordered_components():
+    """`repair_circulation_settled` walks `nx.connected_components`, whose
+    sets of `dom.Node` iterate in id() order, and keeps the first of equally
+    cheap bridges -- so the same plan built twice came out with 122, 120 and
+    119 fails (homemaker-py-2g7.13.1.6). Each component in tree-path order,
+    and the components in order of their first path, make it reproducible,
+    which is what lets core variants differ ONLY in their cores. Not the
+    graph's own node order: it is called on `G.subgraph(...)`, a view that
+    can list its nodes by iterating a set, so that order is id()'s too. One
+    storey at a time, so a path names a leaf. Drop this when the src/ fix
+    lands (homemaker-py-9cpc)."""
+    plain = nx.connected_components
+
+    def ordered(G):
+        comps = [sorted(c, key=lambda n: n.id or "") for c in plain(G)]
+        yield from sorted(comps, key=lambda c: c[0].id or "")
+    nx.connected_components = ordered
+    try:
+        yield
+    finally:
+        nx.connected_components = plain
+
+
+def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
+               placement: "tuple | None" = None) -> dom.Node:
+    """``placement`` names the cores (`core_placements`); by default the
+    seeder's own choice."""
+    root = ground(init, t, sizes)
+    if n_storeys > 1 and (n_cores > 0 or placement):
+        table = core_table(root, frame_axes(init))
+        if placement is None:
+            placement = default_placement(root, n_cores, table)
+        apply_placement(root, placement, table)
     while len(dom.levels(root)) < n_storeys:
         top = dom.levels(root)[-1]
         dup = genome._copy_storey(top)
@@ -223,7 +340,8 @@ def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0) -> do
         courts = [lf for lf in lvl.leaves() if lf.type == "O" and lf not in scope]
         for lf in courts:
             lf.type = next(iter(reqs))
-        operators.repair_circulation_settled(lvl, reqs)
+        with ordered_components():
+            operators.repair_circulation_settled(lvl, reqs)
         for lf in courts:
             lf.type = "O"
         dom.link(root)
@@ -286,7 +404,14 @@ def main(argv=None) -> int:
     ap.add_argument("--write", type=int, default=0, help="save the best N seeds")
     ap.add_argument("--cores", type=int, default=None,
                     help="stair cores to cut (default: the brief's staircase_min; 0: none)")
+    ap.add_argument("--core-variants", type=int, default=1,
+                    help="build each plan with up to this many stair-core placements "
+                         "(which built cells, which end of each); the first is the "
+                         "default, the rest separated first. The search cannot move a "
+                         "shaft far (homemaker-py-2g7.13.1.6), so let the halving choose")
     ap.add_argument("--prefix", default="wings", help="written seeds are <prefix>-<rank>.dom")
+    ap.add_argument("--out-dir", default=None,
+                    help="where --write saves (default: the programme's directory)")
     ap.add_argument("--only", nargs="+", default=None, metavar="N:TREE",
                     help="build just these plans, as printed (e.g. '3:H(B V(B O))'), "
                          "skipping the enumeration; sizing and building are "
@@ -350,30 +475,47 @@ def main(argv=None) -> int:
 
     rows = []
     for i, (n, nl, txt, tt, sizes, frac, outline) in enumerate(plans):
-        rng = rng_for(args.programme, txt, n)
-        root = build_seed(init, tt, sizes, reqs, n, rng, kw, n_cores)
-        geometry.clear_cache()
-        raw = len(fit.score_with_fails(root)[1])
-        res = innerloop.optimise(root, str(prog), budget=args.budget, method="nm")
-        geometry.clear_cache()
-        _s, fails = fit.score_with_fails(root)
-        rows.append((len(fails), res.fitness, n, txt, outline, root, list(fails), raw, frac))
-        print(f"  [{i + 1}/{len(plans)}] {n} storeys, {txt}: cover {frac:.0%}, "
-              f"{raw} fails raw -> {len(fails)} tuned", flush=True)
+        placements = [None]
+        if n > 1 and n_cores > 0 and args.core_variants > 1:
+            g = ground(init, tt, sizes)
+            placements = core_placements(g, n_cores, core_table(g, frame_axes(init)),
+                                         args.core_variants)
+        for v, pl in enumerate(placements):
+            # one room-assignment stream per plan, so variants differ only in the cores
+            rng = rng_for(args.programme, txt, n)
+            root = build_seed(init, tt, sizes, reqs, n, rng, kw, n_cores, pl)
+            geometry.clear_cache()
+            ground_lvl = dom.levels(root)[0]
+            stairs = [lf for lf in ground_lvl.leaves() if lf.type == "E"]
+            cores = " ".join(lf.id or "root" for lf in stairs) or "none"
+            raw = len(fit.score_with_fails(root)[1])
+            res = innerloop.optimise(root, str(prog), budget=args.budget, method="nm")
+            geometry.clear_cache()
+            _s, fails = fit.score_with_fails(root)
+            ground_lvl = dom.levels(root)[0]
+            sep = separation(ground_lvl, [np.array(geometry.centroid(lf))
+                                          for lf in ground_lvl.leaves() if lf.type == "E"])
+            label = f"cores {cores} (v{v}, sep {sep:.2f})"
+            rows.append((len(fails), res.fitness, n, txt, outline, root, list(fails), raw,
+                         frac, label))
+            print(f"  [{i + 1}/{len(plans)}] {n} storeys, {txt}, {label}: cover {frac:.0%}, "
+                  f"{raw} fails raw -> {len(fails)} tuned", flush=True)
 
     rows.sort(key=lambda r: (r[0], -r[1]))
     print(f"\n{len(rows)} seeds, {args.budget} inner-loop evaluations each; "
           f"tuned fails median {statistics.median(r[0] for r in rows) if rows else 0}")
-    for k, (nf, sc, n, txt, outline, root, fails, raw, frac) in enumerate(rows[:8]):
+    for k, (nf, sc, n, txt, outline, root, fails, raw, frac, label) in enumerate(rows[:8]):
         fam = Counter(family(f) for f in fails)
-        print(f"  #{k + 1}: {nf} fails, score {sc:.3g}, {n} storeys, {txt}, cover {frac:.0%}")
+        print(f"  #{k + 1}: {nf} fails, score {sc:.3g}, {n} storeys, {txt}, cover {frac:.0%}, "
+              f"{label}")
         print("      " + ", ".join(f"{a} {b}" for a, b in fam.most_common(6)))
         for line in outline.split("\n"):
             print("        " + line)
+    out_dir = Path(args.out_dir) if args.out_dir else prog
     for k, r in enumerate(rows[:args.write]):
-        out = prog / f"{args.prefix}-{k + 1}.dom"
+        out = out_dir / f"{args.prefix}-{k + 1}.dom"
         dom.dump(r[5], str(out))
-        print(f"wrote {out.relative_to(REPO)}")
+        print(f"wrote {out}  ({r[3]}, {r[9]})")
     return 0
 
 
