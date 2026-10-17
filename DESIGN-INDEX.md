@@ -171,7 +171,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (256 of them, 18028 lines)
+## Every section of DESIGN.md (256 of them, 18037 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -478,4 +478,4 @@ below are the most recent work.
 - §39.148 · 17743-17829 · The catalogue filter on all four programmes: maple-court can be lit at its minimum storeys and is not, programme-house is a block, and the seeder was not slow (`homemaker-py-2g7.13.1.3`)
 - §39.149 · 17830-17901 · Room-to-wing allocation: CP-SAT finds as many as asked, area decides them, and exact shape feasibility prunes none (`homemaker-py-2g7.13.1.4`)
 - §39.150 · 17902-17952 · The wings A/B: both seeded arms beat every cold run, footprint ahead of the catalogue, and n = 3 resolves neither margin (`homemaker-py-2g7.13.1`)
-- §39.151 · 17953-18028 · Successive halving on harbor-house: a catalogue seed ranked ninth at 4k wins with 8 fails, and stairs do move (`homemaker-py-2g7.13.1.2`)
+- §39.151 · 17953-18037 · Successive halving on harbor-house: a catalogue seed ranked ninth at 4k wins with 8 fails, and stairs do move (`homemaker-py-2g7.13.1.2`)

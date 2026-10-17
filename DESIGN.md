@@ -18019,6 +18019,15 @@ Readings, held to one run per candidate:
   argued.** The seeds still differ in where their cores START, which is not
   nothing. But `2g7.13.1.6`'s three placements per plan are a diversity of
   starting points, not of final designs.
+- **Not a cold start, in mechanism or in outcome.** A divided seed takes
+  `driver.search`'s single-seed path: the population grows from that one
+  design, with no bootstrap and no restarts. And the plan survives.
+  `experiments/diag_halving_carry.py` compares where the winner is built and
+  unbuilt, storey by storey, with all 55 starting designs and the three cold
+  runs. The three closest are `halv-44` (0.851), `halv-1` (0.846) and `halv-5`
+  (0.839): the SAME plan, `V(B H(V(O B O) B))`, with different cores. The cold
+  runs agree at 0.61-0.72, and the median is 0.64. What the search changed is
+  the inside and the stairs, not the outline the catalogue chose.
 - **The stair-separation ruling (`2g7.12`) would not change the result.**
   `halv-1`'s shafts end 20.2 m apart, against hand2a's 19.9 m, which passes
   (§39.143).
