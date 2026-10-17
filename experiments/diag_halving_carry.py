@@ -3,10 +3,11 @@
 Rasterises each storey into built (room, circulation, stair) and unbuilt
 (outside, sahn) on an 80 x 80 grid over the plot, and reports the fraction of
 points on which the given design agrees with every halving seed, the
-footprint seeds, hand2a and the cold 4428262+orth runs. The cold runs are the
+footprint seeds and hand2a where the programme has them, and the cold 4428262+orth runs. The cold runs are the
 control: what agreement looks like with no common ancestry.
 
     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/diag_halving_carry.py experiments/results/halving-harbor/winner-total.dom
+    HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/diag_halving_carry.py experiments/results/halving-maple/winner.dom --programme maple-court
 """
 import glob, sys
 import numpy as np
@@ -38,11 +39,20 @@ def agree(a, b):
     s = [np.mean(built(a[i]) == built(b[i])) for i in range(k)]
     return float(np.mean(s))
 
-W = raster(sys.argv[1])
+import argparse, os
+ap = argparse.ArgumentParser()
+ap.add_argument("design")
+ap.add_argument("--programme", default="harbor-house")
+ap.add_argument("--cold", default="4428262+orth", help="stamp of the cold runs used as the control")
+a = ap.parse_args()
+prog = a.programme
+halv = {"harbor-house": "halving-harbor", "maple-court": "halving-maple"}[prog]
+W = raster(a.design)
 rows = []
-for p in sorted(glob.glob("experiments/results/halving-harbor/halv-*.dom")) + \
-         sorted(glob.glob("examples/harbor-house/footprint-s*.dom")) + ["examples/harbor-house/hand2a.dom"] + \
-         sorted(glob.glob("examples/harbor-house/coldstart-4428262+orth-500000-s*.dom")):
+for p in sorted(glob.glob(f"experiments/results/{halv}/halv-*.dom")) + \
+         sorted(glob.glob(f"examples/{prog}/footprint-s*.dom")) + \
+         [f for f in [f"examples/{prog}/hand2a.dom"] if os.path.exists(f)] + \
+         sorted(glob.glob(f"examples/{prog}/coldstart-{a.cold}-500000-s*.dom")):
     rows.append((agree(W, raster(p)), p.split("/")[-1]))
 rows.sort(reverse=True)
 for a, n in rows[:6]: print(f"  {a:.3f} {n}")

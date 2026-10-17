@@ -695,8 +695,9 @@ def main(argv=None) -> int:
     ap.add_argument("--core-variants", type=int, default=1,
                     help="build each plan with up to this many stair-core placements "
                          "(which built cells, which end of each); the first is the "
-                         "default, the rest separated first. The search cannot move a "
-                         "shaft far (homemaker-py-2g7.13.1.6), so let the halving choose")
+                         "default, the rest separated first. No operator moves a shaft, "
+                         "but a run can lose one and cut another 13-18 m away "
+                         "(DESIGN.md §39.151), so these vary the start, not the end")
     ap.add_argument("--prefix", default="wings", help="written seeds are <prefix>-<rank>.dom")
     ap.add_argument("--out-dir", default=None,
                     help="where --write saves (default: the programme's directory)")
