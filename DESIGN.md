@@ -17949,3 +17949,80 @@ and core placement, built with today's seeder (§39.147's indoor bridging,
 margin, so it does not need a power the A/B lacks. A margin between seeding
 strategies, if anyone wants one, needs about 7 pairs (footprint against
 wings) on the box.
+
+### 39.151 Successive halving on harbor-house: a catalogue seed ranked ninth at 4k wins with 8 fails, and stairs do move (`homemaker-py-2g7.13.1.2`)
+
+`experiments/run_halving.sh` ran from 2026-10-17 00:48 to 12:45 at
+`4428262+orth`. There were 52 candidates: 48 catalogue seeds
+(`experiments/results/halving-harbor/halv-*.dom`, the 16 smallest filtered
+plans x 3 core placements, built by `708c5f9`'s seeder), the three footprint
+seeds and `hand2a`. Each stage gave a survivor twice the budget of the last,
+CONTINUING from its previous stage's design: 4k, 8k ... 128k, so the finalists
+had spent 252k evaluations. Eta was 2 and each run used 4 slots. Two halvings
+ran side by side, one ranked on structural fails and one on total fails.
+Stage tables: `stages-{structural,total}.tsv`; the winners are
+`winner-{structural,total}.dom`, the same file.
+
+**Both rankings pick `halv-1`: 3 structural fails, 8 total, score 0.00237.**
+Both scorers reproduce it, at main and on `stair-separation`. The plan is
+`V(B H(V(O B O) B))` with cores at `ll` and `rlrll`, and the search dropped it
+from three storeys to two. What is left is small-scale: four `size` and one
+`width` on the ground floor, one `proportion`, one inaccessible space and the
+two `level N not connected`. **There is no crinkliness at all.** The runner-up
+`hand2a`, at the same budget, ends at 14 fails: 6 crinkliness, 4 not
+adjacent, 4 size.
+
+| candidate | 4k | 8k | 16k | 32k | 64k | 128k |
+|---|---|---|---|---|---|---|
+| `halv-1` | 45 (9th) | 38 | 25 | 21 | 12 | **8** |
+| `hand2a` | 23 (1st) | 18 | 17 | 16 | 16 | 14 |
+| `footprint-s0` | 37 | 30 | 20 | 18 | 16 | -- |
+
+The rank shown is by total fails among all 52 candidates.
+
+**Against the expectations recorded before the run:**
+
+1. *The structural winner ends at <= 3 structural fails and 9-20 total.* It
+   ends at 3 structural, as expected, and 8 total, below the range.
+2. *The two rankings keep different stage-0 halves.* Held: they share 15 of
+   26 at stage 0, 7 of 13 at stage 1 and 4 of 7 at stage 2. They still
+   converged on the same final two. A candidate's run at a given stage is
+   seeded from its name and the stage, so where the rankings agree they ran
+   the same search: the two halvings are less independent than "side by
+   side" suggests.
+3. *Under structural ranking a reference is among the last four.* Wrong, the
+   other way: `hand2a` and `footprint-s0` reached the last four at the top,
+   not the bottom, and `hand2a` was runner-up.
+4. *No run relocates a stair.* **Wrong.** `experiments/diag_halving_stairs.py`
+   compares each seed shaft's ground-cell centroid with the nearest final one,
+   and its `--self-test` fires. Both of `halv-1`'s shafts moved, by 14.1 and
+   13.5 m (29.5 m apart in the seed, 20.2 m at the end), and `hand2a`'s second
+   moved 18.3 m (`lllr` -> `llrll`). By 32k `halv-1` was down to one shaft. No
+   operator moves a shaft, but the search loses one and `repair_shaft` /
+   `mutate_stair` make another elsewhere. §39.146's premise, that the core a
+   seed is built with is the core the run keeps, is too strong.
+
+Readings, held to one run per candidate:
+
+- **The early stages do not predict the winner.** `halv-1` was 9th of 52 at
+  4k and 7th-9th of 26 at 8k, and only took the lead at 64k. `hand2a` led every
+  stage up to 32k. A cut at eta 2 kept it in, but a harsher eta, or a ranking
+  on the first stage alone, would have lost the winner. With one seed per
+  candidate, part of that is the seed and not the plan.
+- **Best of 52 is not a margin.** The 500k arms of §39.150 averaged 29.7
+  (cold), 16.3 (catalogue), 11.3 (footprint) and 9.0 (hand-seeded). `halv-1`'s
+  8 at 252k is a maximum over 52 draws and must not be compared with those
+  means. What it does show is that a catalogue plan the 4k stage rated
+  mediocre can reach a lit, near-complete design at harbor-house's size, and
+  the catalogue's best plan beat the owner's drawing at equal budget.
+- **Because stairs move, varying the core placement buys less than §39.146
+  argued.** The seeds still differ in where their cores START, which is not
+  nothing. But `2g7.13.1.6`'s three placements per plan are a diversity of
+  starting points, not of final designs.
+- **The stair-separation ruling (`2g7.12`) would not change the result.**
+  `halv-1`'s shafts end 20.2 m apart, against hand2a's 19.9 m, which passes
+  (§39.143).
+
+Next: the queue-4 A/Bs (`run_ab_queue5.sh`) have the box for about 2.5 days.
+If the halving is repeated, it should give each candidate 2-3 seeds at the
+early stages, which is where the ranking was least stable.
