@@ -1,0 +1,128 @@
+node:
+- - 1.67100188077385
+  - 11.9169190395339
+- - 8.72124918939699
+  - 13.7119442286569
+- - 6.79637028658874
+  - 21.3797854212389
+- - -0.42152047183069
+  - 19.9368564494913
+perimeter:
+  a: private
+  b: null
+  c: null
+  d: null
+rotation: 1
+division:
+- 0.681320337637018
+- 0.681320337637018
+height: 2.7298529872566233
+elevation: 0.0
+wall_inner: 0.08
+wall_outer: 0.25
+l:
+  rotation: 1
+  division:
+  - 0.3550098906561227
+  - 0.3550098906561227
+  l:
+    rotation: 1
+    division:
+    - 0.46638265963185155
+    - 0.46638265963185155
+    l:
+      type: C
+      rotation: 0
+    r:
+      type: t1
+      rotation: 0
+  r:
+    rotation: 1
+    division:
+    - 0.4547343263021769
+    - 0.4547343263021769
+    l:
+      type: E
+      rotation: 0
+    r:
+      type: b1
+      rotation: 0
+r:
+  rotation: 1
+  division:
+  - 0.3559060650382962
+  - 0.3559060650382962
+  l:
+    rotation: 1
+    division:
+    - 0.6718643562255637
+    - 0.6718643562255637
+    l:
+      type: t3
+      rotation: 0
+    r:
+      type: l1
+      rotation: 0
+  r:
+    rotation: 2
+    division:
+    - 0.7260433985611082
+    - 0.7260433985611082
+    l:
+      type: O
+      rotation: 0
+    r:
+      type: C
+      rotation: 0
+above:
+  rotation: 0
+  division:
+  - 0.6715201525514205
+  - 0.6715201525514205
+  height: 2.7
+  l:
+    rotation: 0
+    division:
+    - 0.5
+    - 0.5
+    l:
+      rotation: 0
+      division:
+      - 0.5
+      - 0.5
+      l:
+        type: C
+        rotation: 0
+      r:
+        type: O
+        rotation: 0
+    r:
+      rotation: 1
+      division:
+      - 0.4565577119680997
+      - 0.4565577119680997
+      l:
+        type: E
+        rotation: 0
+      r:
+        rotation: 3
+        division:
+        - 0.5981718058128629
+        - 0.5981718058128629
+        l:
+          type: O
+          rotation: 0
+        r:
+          type: O
+          rotation: 0
+  r:
+    rotation: 0
+    division:
+    - 0.29411764705882354
+    - 0.29411764705882354
+    l:
+      type: t2
+      rotation: 0
+    r:
+      type: b2
+      rotation: 0
