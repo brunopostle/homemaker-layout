@@ -18035,3 +18035,98 @@ Readings, held to one run per candidate:
 Next: the queue-4 A/Bs (`run_ab_queue5.sh`) have the box for about 2.5 days.
 If the halving is repeated, it should give each candidate 2-3 seeds at the
 early stages, which is where the ranking was least stable.
+
+### 39.152 Queue 5's A/Bs: `labels` and `well` null as expected, `aim` at the edge of resolving, and `heights` on programme-house costs hard fails by moving the search, not the ceiling (`homemaker-py-urzf.1`, `iplo`, `y4p4.2`, `evxm`)
+
+`experiments/run_ab_queue5.sh` finished what queue 4 began (§39.142). It
+resumed `labels` at 20 of 36 pairs on programme-house, then ran `aim` and
+`heights` there, and `well` on harbor-house. Everything is at `4428262+orth`,
+500k, 8 slots. `heights` on harbor-house (4 pairs) is still running and is
+not in this section.
+
+**How the control arms were sourced, which the readings depend on.**
+
+- **`labels` spans two search commits.** Seeds 0-19 ran at `0fd7d88`, before
+  queue 4 stopped. Seeds 20-35 ran at `1db93d5`, after `homemaker-py-9cpc`
+  changed how circulation components are ordered. No pair is mixed, so the
+  paired test stands.
+- **That is why `prefill_control.py` refused `labels` -> `aim`, and it was
+  right to.** `aim` ran both arms itself. `heights`' control was then supplied
+  from `aim`'s `random` arm (`experiments/prefill_when_ready.sh`, in 38
+  seconds before the queue reached it), so **`heights`' `elapsed_s` is not
+  paired, and its "heights faster" line in the report must not be read.**
+- **§39.129's premise checked out: `labels`' control on seeds 20-35 is
+  identical to `aim`'s, 16 of 16 scores equal to the last digit.** So the
+  three programme-house A/Bs SHARE a control: all 36 seeds for `aim` and
+  `heights`, and 16 for `labels`. They are three comparisons against one
+  sample of the default search, not three independent experiments.
+
+**`labels` (`urzf.1`, §39.130): null, as expected.** Fails 0.92 -> 0.78,
++0.14 against an MDD of 0.32, p = 0.38. Hard fails and score do not resolve
+either. The two search-commit blocks lean the same way, +0.05 (seeds 0-19)
+and +0.25 (20-35), and neither resolves on its own. One thing does resolve:
+**the flagged arm is 328 s faster a run** (95% CI +56 to +601, p = 0.02). The
+freed `place_missing` draws are cheaper moves. The expectation held: no
+resolved difference in fails.
+
+**`aim` (`iplo`, §39.123): at the edge.** Fails 0.92 -> 0.61, +0.31 against
+an MDD of 0.31, t-test p = 0.054, Wilcoxon p = 0.058, 15 wins, 6 losses and
+15 ties. The score points the same way (Wilcoxon p = 0.043, t p = 0.052).
+`ab_report.py` estimates that about 38 pairs would resolve a margin this size.
+By family, every one the expectation named moved the way it said: `size`
+11 -> 7, `width` 9 -> 6, and `staircase volume` 5 -> 2 where the expectation
+said "no more staircase fails". `crinkliness` stayed at 1 against 1, but
+programme-house has almost none to lose. `elapsed_s` is unmoved. **What this
+is:** the right sign in every family, a margin the size of the MDD, and a
+sample two pairs short of the power it needs. It does not justify a default
+change on its own. Twelve more pairs on programme-house (24 runs, about 9 h
+on the box) would settle it.
+
+**`heights` (`y4p4.2`, §39.128) on programme-house: the expectation said no
+resolved difference in fails. Total fails do not resolve (0.92 -> 1.22,
+MDD 0.44), but HARD fails do, and in the wrong direction:** 0.17 -> 0.44 a
+design, 2 wins and 11 losses, p = 0.010. By family: `not connected` 2 -> 6,
+`too few stairs` 0 -> 3, `too many stairs` 0 -> 1, `proportion` 1 -> 4.
+Two findings about why:
+
+- **The search drives every storey to the 2.7 m floor.** 16 of 36 designs end
+  at exactly 2.7 m on both storeys, and 29 have no storey above 2.75 m (the
+  highest is 3.39 m). Programme-house's rooms are shallow, so a taller
+  storey buys no daylight, and walls cost. The variable does what the
+  objective asks: it saves wall cost. That is the owner's floor
+  (`innerloop.HEIGHT_MIN`, "2.7 can be a minimum height") being found, not a
+  defect.
+- **The extra hard fails are NOT caused by the height.** All 36 `heights`
+  designs were re-scored with every storey reset to 3.0 m, walls untouched:
+  17 hard fails as built, 17 at 3.0 m, 44 total fails both ways. A negative
+  control shows the re-score can see a height change (s12 scores 0.00193 as
+  built, 0.00178 at 3.0 m, 0.00093 at 6.0 m, and gains two fails at 1.5 m).
+  So these runs reached topologies that are worse in connectivity and stairs.
+  One more variable per storey in every inner-loop solve is the likeliest
+  cause. That is a hypothesis, not a measurement.
+
+So on programme-house `--tune-heights` is a cost with no benefit. The case
+for it was always the large programmes, where daylight is the problem (the
+expectation: "the thing to read is crinkliness on the large programmes").
+Harbor-house's 4 pairs are still running, and n = 4 cannot resolve a
+crinkliness margin of one or two a design (`well`'s MDD below is 16.8 fails).
+**Leave it default OFF.** If it is wanted on large programmes, it needs
+either a per-programme switch or a fix for whatever moves the search, and
+then a maple-court A/B at real n.
+
+**`well` (`evxm`, §39.131) on harbor-house, n = 4: null, and the directions
+match the expectation.** Fails 28.75 -> 30.0, MDD 16.8, p = 0.83, 2 wins and
+2 losses. Over the four designs, `crinkliness` fell 44 -> 39 (the expectation
+said "fewer by one or two a design"; this is 1.25) and `inaccessible usable
+space` fell 6 -> 4 ("no more than the control": held). `size` rose 15 -> 23,
+which is the cost §39.131's first expectation predicted and its census then
+did not see. `too few stairs` is 3 of 4 in both arms. That is the cold
+harbor-house search's own failure (§39.142), which the move does not touch.
+n = 4 resolves nothing, as planned; §39.131 called the move narrow, one
+harbor-house design in three. **Leave it default OFF.**
+
+**For the owner, in one line each:** `labels`: harmless and a little faster,
+so it could become default on that ground alone. `aim`: probably helps, and
+twelve more pairs would say for sure. `heights`: off; on programme-house it
+finds the 2.7 m floor and loses connectivity. `well`: off; nothing to see at
+n = 4.
