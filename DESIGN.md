@@ -18144,3 +18144,39 @@ search. The open ceiling in `innerloop.py` ("leave the maximum open") lets
 daylight out-bid every other cost. **Before `--tune-heights` is worth another
 A/B it needs the ceiling the owner deferred: a per-programme maximum (domestic
 against public), or a stair whose size grows with its rise.**
+
+### 39.153 Owner's rulings on queue 5: label write-back adopted, `aim` to be settled, and storeys capped at 3.9 m in whole 75 mm courses (`homemaker-py-urzf.1`, `iplo`, `y4p4.2`)
+
+The owner, 2026-10-20, on §39.152:
+
+- **`labels`: adopted.** Write-back is the default (`--no-label-writeback` /
+  `HOMEMAKER_LABEL_WRITEBACK=0` is the search as it was). It is built on
+  branch `height-cap` (`90245b9`) and lands after the `aim` extension below,
+  because every A/B's control arm now writes labels back.
+- **`aim`: settle it.** `experiments/run_aim_extend.sh` adds seeds 36-47 (12
+  pairs, both arms) after the maple-court halving. It refuses to run unless the
+  stamps are still `4428262+orth` / search `1db93d5`, which the first 36 were
+  measured at.
+- **Storey height: "a height cap configurable per project, default 3.9 m.
+  Masonry buildings tend to have a brick or block module of 75 mm, so heights
+  should be multiples of this."** Built on `height-cap` (`a465cd0`):
+  `innerloop.HeightRule` maps the inner-loop variable linearly onto
+  [`storey_height_min`, `storey_height_max`] from the brief (defaults 2.7 and
+  3.9 m, 36 and 52 courses) and snaps to `storey_height_module` (default
+  0.075 m). It is search-side: the scorer reads whatever height a file
+  carries, so a hand design at 5 m still scores, and the objective stamp does
+  not move. The `--tune-heights` default stays OFF.
+
+**One consequence of the module, recorded so that changing it is a decision.**
+Snapped heights are flat between courses, and Nelder-Mead's first step (5% of
+the variable) is less than a course, so the fine search no longer moves a
+height at all. §39.128 had already found that it moved one by a centimetre at
+most and that the jumps did the work. `mutate_storey_height` gains one- and
+two-course steps (+-75 and +-150 mm) beside its 0.3 and 0.6 m ones, so the
+search can still fine-tune; `tests/test_storey_height.py` holds both. A new
+`heights` A/B is the measurement, best on harbor-house or maple-court, where
+§39.152's daylight gain was.
+
+**Merge order once the box is free:** `aim` extension -> `height-cap`
+(search-side) -> `stair-separation` (objective; moves the stamp) -> the next
+re-baseline.
