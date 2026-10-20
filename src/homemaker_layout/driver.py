@@ -206,9 +206,10 @@ SEED_SOLVER = __import__("os").environ.get("HOMEMAKER_SEED_SOLVER", "") == "1"
 # cell nobody asked for on a tenth of programme-house's draws. With this on,
 # the labels are written back after the inner loop, as the ratios already are
 # (Lamarckian), and every operator reads what was scored. The score does not
-# move: the collapse of a collapsed tree is the same tree. Default OFF: it
-# changes what a search does and the A/B has not been run.
-LABEL_WRITEBACK = __import__("os").environ.get("HOMEMAKER_LABEL_WRITEBACK", "") == "1"
+# move: the collapse of a collapsed tree is the same tree. Default ON since
+# 2026-10-20 (owner, on §39.152's A/B: no resolved difference in fails, 328 s a
+# run faster); HOMEMAKER_LABEL_WRITEBACK=0 is the search as it was.
+LABEL_WRITEBACK = __import__("os").environ.get("HOMEMAKER_LABEL_WRITEBACK", "1") != "0"
 
 
 def write_labels_back(root: dom.Node, fit) -> int:

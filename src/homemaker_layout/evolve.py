@@ -202,13 +202,13 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "adopted on correctness (default: on)")
     p.add_argument("--label-writeback", dest="label_writeback",
                    action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_LABEL_WRITEBACK", False),
-                   help="homemaker-py-urzf.1 (DESIGN.md §39.130): after each "
-                        "child is tuned, write the scorer's room labels back "
-                        "to it, so operators read the rooms that were scored "
-                        "and not the ones the child was bred with. The score "
-                        "does not move. Changes what a search does; the A/B "
-                        "has not been run (default: off)")
+                   default=_env_bool("HOMEMAKER_LABEL_WRITEBACK", True),
+                   help="homemaker-py-urzf.1 (DESIGN.md §39.130, §39.152): after "
+                        "each child is tuned, write the scorer's room labels "
+                        "back to it, so operators read the rooms that were "
+                        "scored and not the ones the child was bred with. The "
+                        "score does not move. The A/B resolved nothing in fails "
+                        "and ran 4%% faster; adopted (default: on)")
     p.add_argument("--aim-undivide", dest="aim_undivide",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_AIM_UNDIVIDE", False),

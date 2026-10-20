@@ -115,6 +115,12 @@ EXPERIMENTS = {
                    env="HOMEMAKER_LABEL_WRITEBACK",
                    bead="homemaker-py-urzf.1, DESIGN.md §39.130",
                    what="the scorer's labels written back to each child against the default"),
+    # RUN AND JUDGED (§39.152: nothing resolved in fails, 328 s a run faster),
+    # and write-back is the default since 2026-10-20 -- so this entry's `bred`
+    # arm is no longer the default search. To run it again its control needs
+    # HOMEMAKER_LABEL_WRITEBACK=0 / --no-label-writeback. And every OTHER
+    # entry's control now writes labels back: an A/B begun before 2026-10-20
+    # (aim, heights, well) is extended only at its own search commit.
     "aim": dict(arms=("random", "aimed"), flag="--aim-undivide",
                 env="HOMEMAKER_AIM_UNDIVIDE",
                 bead="homemaker-py-iplo, DESIGN.md §39.123",
