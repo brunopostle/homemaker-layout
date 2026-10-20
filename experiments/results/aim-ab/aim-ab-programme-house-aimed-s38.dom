@@ -1,0 +1,128 @@
+node:
+- - 1.67100188077385
+  - 11.9169190395339
+- - 8.72124918939699
+  - 13.7119442286569
+- - 6.79637028658874
+  - 21.3797854212389
+- - -0.42152047183069
+  - 19.9368564494913
+perimeter:
+  a: private
+  b: null
+  c: null
+  d: null
+rotation: 1
+division:
+- 0.7201797110579519
+- 0.7201797110579519
+height: 3.0
+elevation: 0.0
+wall_inner: 0.08
+wall_outer: 0.25
+l:
+  rotation: 1
+  division:
+  - 0.49765292720202503
+  - 0.49765292720202503
+  l:
+    rotation: 1
+    division:
+    - 0.38521376461825463
+    - 0.38521376461825463
+    l:
+      type: E
+      rotation: 0
+    r:
+      type: b2
+      rotation: 0
+  r:
+    rotation: 3
+    division:
+    - 0.826088423589961
+    - 0.826088423589961
+    l:
+      rotation: 0
+      division:
+      - 0.528395346221018
+      - 0.528395346221018
+      l:
+        type: O
+        rotation: 0
+      r:
+        type: O
+        rotation: 0
+    r:
+      type: l1
+      rotation: 0
+r:
+  rotation: 1
+  division:
+  - 0.5373568806787785
+  - 0.5373568806787785
+  l:
+    type: E
+    rotation: 0
+  r:
+    rotation: 0
+    division:
+    - 0.49625601833014965
+    - 0.49625601833014965
+    l:
+      type: E
+      rotation: 0
+    r:
+      type: t3
+      rotation: 0
+above:
+  rotation: 0
+  division:
+  - 0.461355312064873
+  - 0.461355312064873
+  height: 3.0
+  l:
+    rotation: 0
+    division:
+    - 0.49741962095765774
+    - 0.49741962095765774
+    l:
+      rotation: 1
+      division:
+      - 0.5213173077139838
+      - 0.5213173077139838
+      l:
+        type: E
+        rotation: 0
+      r:
+        rotation: 1
+        division:
+        - 0.4339009595675127
+        - 0.4339009595675127
+        l:
+          type: C
+          rotation: 0
+        r:
+          type: t1
+          rotation: 0
+    r:
+      type: b1
+      rotation: 0
+  r:
+    rotation: 0
+    division:
+    - 0.5739544274838372
+    - 0.5739544274838372
+    l:
+      rotation: 1
+      division:
+      - 0.600967419171134
+      - 0.600967419171134
+      l:
+        type: t2
+        rotation: 0
+      r:
+        type: C
+        rotation: 0
+    r:
+      type: O
+      rotation: 0
