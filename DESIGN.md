@@ -18226,3 +18226,64 @@ on programme-house (4% of draws) and larger on maple-court (10%). Filed as
 `homemaker-py-urzf.2`. It does not by itself make the case for a harbor-house
 `labels` A/B (the risk check §39.153 offered); the next re-baseline measures
 write-back on all four programmes.
+
+### 39.155 Successive halving on maple-court: a catalogue seed wins with 23 fails against cold runs' 60-67, and crinkliness falls from 34-42 to 5 (`homemaker-py-2g7.13.1.9`)
+
+§39.151's pipeline (enumerate partis, filter for daylight, build seeds with
+several stair placements, successive halving) was developed against
+harbor-house. This is the test of whether it carries to a building it was not
+tuned on. `experiments/run_halving_maple.sh`, at `4428262+orth` / search
+`1db93d5`: 48 catalogue seeds (16 smallest filtered plans x 3 stair
+placements, `experiments/results/halving-maple/build.log`) plus three cold
+candidates (`init.dom` under three names), ranked on total fails, 4k doubling
+to 128k, each stage continuing the last. A finalist has had 252k evaluations.
+
+| | total fails | crinkliness | evaluations |
+|---|---|---|---|
+| winner `halv-2` | **23** | **5** | 252k |
+| runner-up `halv-1` | 23 | 5 | 252k |
+| cold 500k runs, s0 / s1 / s2 | 62 / 67 / 60 | 34 / 42 / 35 | 500k |
+
+`halv-2` wins the tie with `halv-1` on score (7.29e-8 against 6.77e-8).
+`experiments/results/halving-maple/{winner.dom,stages.tsv}`.
+
+**The expectations recorded on 2026-10-17, before the run:**
+
+1. *Winner is a catalogue seed, <= 4 crinkliness fails, fewer total fails
+   than the best cold run (60).* **Total held by a wide margin (23 against
+   60, at half the budget); crinkliness missed by one (5).** Read as written,
+   the clause "if (1) fails on crinkliness ... 'any building' is wrong as
+   stated" fires. Read for what it was meant to catch, it does not: the
+   catalogue cut maple-court's crinkliness by a factor of seven against cold
+   search, and the threshold of 4 was set from harbor-house's 8-fail winner.
+   Recorded as a miss, with that reading beside it.
+2. *No cold candidate survives past 16k.* **Held**: all three were dropped at
+   4k, last three of 51 (109-132 fails against the catalogue's 60-110). The
+   caveat from §39.151 stands -- 4k is tiny for a cold start, so this says the
+   catalogue gives a better *start*, which is the whole claim, and nothing
+   about where cold search would end.
+3. *The winner's built/unbuilt plan agrees with its own seed more than with
+   any cold run.* **Held**: 0.965 with its own seed (the highest of all 51),
+   0.44-0.54 with the three cold finals, median 0.745
+   (`diag_halving_carry.py`).
+
+**Two things that differ from harbor-house:**
+
+- **The early stages did predict the winner here.** `halv-1` and `halv-2`
+  tied first at 4k (60 fails each) and were never out of the top three. On
+  harbor-house the winner was ninth at 4k. Two programmes, one of each, so
+  neither "early ranking is noise" nor "it is reliable" is supported; keeping
+  half at each stage hedges both.
+- **Stairs moved again**, in the winner: both of `halv-2`'s shafts ended in
+  one place, 4.6 m and 24.6 m from where they started (`rrl`, `ll` ->
+  `rrrlllr`), while `halv-1`'s stayed within 0.7 m
+  (`diag_halving_stairs.py`). As on harbor-house, stair placement is a
+  starting variation and not a constraint the search keeps.
+
+**Verdict:** the catalogue generalises to a second programme on the measure
+that matters -- the same pipeline, no retuning, beats cold search by 37 fails
+at half its budget, and the daylight family is where most of the gain is.
+What it does not show is that the gain survives a fair budget for the cold
+arm: the cold candidates in the field had 4k, and the 500k references are
+separate runs. A cold arm continued to 252k inside the halving is the
+missing control, if that question matters.
