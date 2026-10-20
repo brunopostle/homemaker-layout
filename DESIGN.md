@@ -18180,3 +18180,49 @@ search can still fine-tune; `tests/test_storey_height.py` holds both. A new
 **Merge order once the box is free:** `aim` extension -> `height-cap`
 (search-side) -> `stair-separation` (objective; moves the stamp) -> the next
 re-baseline.
+
+### 39.154 Label moves under write-back: up to half of `retype` and `level_retype` draws vanish into the scorer's relabelling (`homemaker-py-urzf`)
+
+The owner asked (2026-10-20) whether label write-back could work better.
+`experiments/diag_urzf_label_moves.py` takes every `4428262+orth` design, holds
+it as a search with write-back would (labels written back, so the parent's
+labels ARE its scored labels), applies each label move 20 times, and asks what
+the scorer sees. A move is **undone** when the cells are the same and the
+scorer's relabelling (`collapse_insearch`) returns exactly the parent's labels.
+`--self-test` checks that write-back is a fixed point, that an untouched copy
+reads `undone` and a divide reads `topology`.
+
+| programme | `retype` undone | `level_retype` undone | `swap` undone |
+|---|---|---|---|
+| programme-house | 38% | 28% | 0% |
+| health-centre | 65% | (always declines) | 13% |
+| harbor-house | 47% | 47% | 33% |
+| maple-court | 70% | 55% | 35% |
+
+The default search draws `retype`, `swap` and `level_retype` at weight 1 each
+out of about 15.4. So **4% (programme-house) to 10% (maple-court) of mutation
+draws are label edits the collapse erases before scoring.** Such a draw is not
+lost: the child is still re-tuned, so it acts as a re-tune, which is the
+search's most reliably useful draw (§39.120). But it is not the move it was
+drawn as, and the share is largest on the programmes that are hardest.
+
+Two further readings, held to what the census can say:
+
+- **A label edit that survives is never better on a finished design:** 0
+  better and 313 worse over the four programmes, the rest equal. The same
+  holds for `divide` and `undivide` (0 better, 463 worse). That is §39.75's lesson -- a finished design is
+  the wrong state to judge a move in -- and it says nothing about mid-run
+  value.
+- **The repair moves always decline on a finished design:** `level_fix`,
+  `level_compound_fix` and `place_missing`, 100% each. That is correct now:
+  before write-back, `place_missing` fired on 99.7% of such draws (§39.130).
+
+**What would make it work better:** let the collapse own WHICH room a cell
+is, and let the moves own only WHAT KIND of cell it is. A `retype` that
+chooses only between generic kinds (room, `C`, `O`), leaving the room code to
+the scorer's relabelling, could not be undone by it. That is a search change,
+so only an A/B can say whether it helps. The census says the lever is small
+on programme-house (4% of draws) and larger on maple-court (10%). Filed as
+`homemaker-py-urzf.2`. It does not by itself make the case for a harbor-house
+`labels` A/B (the risk check §39.153 offered); the next re-baseline measures
+write-back on all four programmes.
