@@ -44,18 +44,42 @@ def _design():
     return root
 
 
-@pytest.mark.parametrize("h", [2.7, 3.0, 3.3, 4.5, 12.0, 40.0])
+@pytest.mark.parametrize("h", [2.7, 3.0, 3.3, 3.525, 3.9])
 def test_a_height_survives_the_round_trip(h):
     u = innerloop.height_to_u(h)
     assert innerloop._EPS <= u <= 1 - innerloop._EPS
     assert innerloop.u_to_height(u) == pytest.approx(h)
 
 
-def test_no_storey_goes_below_the_floor_and_none_is_capped_low():
+def test_the_floor_and_the_cap():
     assert innerloop.u_to_height(0.0) == pytest.approx(innerloop.HEIGHT_MIN)
     assert innerloop.u_to_height(innerloop.height_to_u(2.2)) == pytest.approx(2.7)
-    # "leave the maximum open": the top of the range is far above any storey
-    assert innerloop.u_to_height(1.0) > 40
+    assert innerloop.u_to_height(1.0) == pytest.approx(3.9)
+    assert innerloop.u_to_height(innerloop.height_to_u(10.75)) == pytest.approx(3.9)
+
+
+@pytest.mark.parametrize("u", np.linspace(0, 1, 41))
+def test_every_height_is_a_whole_course(u):
+    h = innerloop.u_to_height(u)
+    assert 2.7 - 1e-9 <= h <= 3.9 + 1e-9
+    assert abs(h / 0.075 - round(h / 0.075)) < 1e-6, h
+
+
+def test_the_brief_sets_the_rule():
+    brief = {"storey_height_min": 2.4, "storey_height_max": 4.8, "storey_height_module": 0.1}
+    rule = innerloop.height_rule(brief.get)
+    assert (rule.lo, rule.hi, rule.module) == (2.4, 4.8, 0.1)
+    assert innerloop.u_to_height(1.0, rule) == pytest.approx(4.8)
+    assert innerloop.u_to_height(innerloop.height_to_u(3.333, rule), rule) == pytest.approx(3.3)
+    # unset keys take the defaults
+    assert innerloop.height_rule({}.get) == innerloop.DEFAULT_HEIGHTS
+    # a fixed height is allowed: floor == cap
+    fixed = innerloop.HeightRule(3.0, 3.0)
+    assert innerloop.u_to_height(0.9, fixed) == pytest.approx(3.0)
+    with pytest.raises(ValueError):
+        innerloop.HeightRule(3.01, 3.06)         # no whole 75 mm course inside
+    with pytest.raises(ValueError):
+        innerloop.HeightRule(module=0)
 
 
 def test_unasked_the_loop_leaves_every_height_alone(orth):
@@ -69,14 +93,25 @@ def test_unasked_the_loop_leaves_every_height_alone(orth):
 def test_asked_it_tunes_one_height_per_storey_and_writes_them_back(orth):
     root = _design()
     n_cuts, storeys = len(innerloop.free_with_keys(root)), dom.levels(root)
-    r = innerloop.optimise(root, str(PH), budget=120, heights=True)
+    r = innerloop.optimise(root, str(PH), budget=120, heights=True, height_probe=True)
     assert len(r.x) == n_cuts + len(storeys)
     got = [lvl.height for lvl in storeys]
     assert got == pytest.approx([innerloop.u_to_height(u) for u in r.x[n_cuts:]])
-    assert all(h >= innerloop.HEIGHT_MIN for h in got)
-    assert any(abs(h - 3.0) > 1e-6 for h in got), "the loop never moved a height"
+    assert all(2.7 - 1e-9 <= h <= 3.9 + 1e-9 for h in got)
+    assert all(abs(h / 0.075 - round(h / 0.075)) < 1e-6 for h in got), got
     # and it is the same objective: never worse than where it started
     assert r.fitness >= r.x0_fitness
+
+
+def test_nelder_mead_alone_does_not_cross_a_course(orth):
+    """Snapped heights are flat between courses, and Nelder-Mead's first step
+    (5% of the variable) is under one; so the fine search leaves a height where
+    it is, and the jumps -- the probe and `mutate_storey_height` -- move it.
+    Recorded so that a change to this is a decision (§39.153)."""
+    root = _design()
+    before = [lvl.height for lvl in dom.levels(root)]
+    innerloop.optimise(root, str(PH), budget=120, heights=True)
+    assert [lvl.height for lvl in dom.levels(root)] == pytest.approx(before)
 
 
 def test_a_vector_of_ratios_alone_is_still_accepted(orth):
@@ -88,7 +123,8 @@ def test_a_vector_of_ratios_alone_is_still_accepted(orth):
     ev.apply(ev.x_current)
     assert [lvl.height for lvl in dom.levels(root)] == before
     ev.apply(np.concatenate([ev.x_current, [innerloop.height_to_u(3.4)] * ev.n_heights]))
-    assert [lvl.height for lvl in dom.levels(root)] == pytest.approx([3.4] * ev.n_heights)
+    # 3.4 m is not a whole course; 3.375 m (45 courses) is the nearest
+    assert [lvl.height for lvl in dom.levels(root)] == pytest.approx([3.375] * ev.n_heights)
 
 
 def test_a_restart_scatters_the_walls_and_keeps_the_heights(orth, monkeypatch):
@@ -112,7 +148,7 @@ def test_a_restart_scatters_the_walls_and_keeps_the_heights(orth, monkeypatch):
     assert len(starts) >= 3
     for s in starts[1:]:
         hs = [innerloop.u_to_height(u) for u in s[-n_h:]]
-        assert all(2.7 <= h < 4.5 for h in hs), hs
+        assert all(2.7 <= h <= 3.9 for h in hs), hs
 
 
 def test_the_probe_crosses_a_valley_the_fine_search_does_not(orth, monkeypatch):
@@ -149,6 +185,7 @@ def test_the_height_move_steps_a_storey_and_respects_the_floor():
         child, desc = operators.mutate_storey_height(root, np.random.default_rng(seed), [])
         hs = [lvl.height for lvl in dom.levels(child)]
         assert all(h >= innerloop.HEIGHT_MIN - 1e-9 for h in hs), (desc, hs)
+        assert all(abs(h / 0.075 - round(h / 0.075)) < 1e-6 for h in hs), (desc, hs)
         assert "noop" in desc or any(abs(h - 3.0) > 1e-9 for h in hs)
         seen.add(desc.split()[1])
     assert {"all", "0", "1"} <= seen
@@ -180,12 +217,16 @@ def test_a_default_search_never_draws_the_height_move(orth):
         operators.MUTATIONS["storey_height"] = real
 
 
-def _evolve(tmp_path: Path, name: str, monkeypatch, flag: "str | None") -> Path:
+def _evolve(tmp_path: Path, name: str, monkeypatch, flag: "str | None",
+            brief_extra: str = "") -> Path:
     work = tmp_path / name
     work.mkdir()
     for f in ("init.dom", "patterns.config", "costs.config"):
         if (PH / f).exists():
             shutil.copy(PH / f, work / f)
+    if brief_extra:
+        with open(work / "patterns.config", "a") as fh:
+            fh.write("\n" + brief_extra + "\n")
     monkeypatch.setenv("HOMEMAKER_ORTHOGONAL_DIVISION", "1")
     monkeypatch.delenv("HOMEMAKER_TUNE_HEIGHTS", raising=False)
     out = work / "out.dom"
@@ -212,3 +253,13 @@ def test_the_search_takes_the_flag_and_is_unchanged_without_it(tmp_path, monkeyp
     # trial merge of 2026-10-09 found by changing the mutation mix. That the
     # loop and the move do change heights is held by the tests above.)
     assert tall.read_text() != plain.read_text()
+
+
+def test_a_search_keeps_to_the_briefs_cap_in_whole_courses(tmp_path, monkeypatch, orth):
+    """The cap is the brief's, end to end: a search told 3.15 m builds no storey
+    above it, and every storey it writes is a whole 75 mm course."""
+    out = _evolve(tmp_path, "capped", monkeypatch, "--tune-heights",
+                  brief_extra="storey_height_max: 3.15")
+    hs = [lvl.height for lvl in dom.levels(dom.load(str(out)))]
+    assert all(2.7 - 1e-9 <= h <= 3.15 + 1e-9 for h in hs), hs
+    assert all(abs(h / 0.075 - round(h / 0.075)) < 1e-6 for h in hs), hs

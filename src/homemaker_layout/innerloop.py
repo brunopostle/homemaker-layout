@@ -15,6 +15,7 @@ Lamarckian inheritance).
 
 from __future__ import annotations
 
+import math
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -36,22 +37,77 @@ _EPS = 0.02  # keep cuts off the edges; matches solver/_experiments convention
 #
 # One variable per storey, appended to the ratio vector, so every search
 # method takes it as it takes a cut. It lives on the same (_EPS, 1 - _EPS)
-# interval as a ratio and maps to metres through a curve with a floor and no
-# practical ceiling: 2.7 m at the low end, 3.0 m at 0.25, 3.66 m at 0.5, and
-# some fifty metres at the high end. What keeps a storey low is the cost of
-# its walls, which the objective already charges.
+# interval as a ratio and maps LINEARLY onto [lo, hi], snapped to the module.
+#
+# The ceiling, 2026-10-20 (owner, DESIGN.md §39.153): the open maximum let
+# daylight out-bid wall cost on harbor-house, whose search built 7-11 m ground
+# floors (§39.152 addendum). So a storey is held between a floor and a cap that
+# a brief may set -- `storey_height_min` (default 2.7 m), `storey_height_max`
+# (default 3.9 m) -- and to whole multiples of `storey_height_module` (default
+# 0.075 m: "masonry buildings tend to have a brick or block module of 75 mm").
+# 2.7 and 3.9 are both whole courses (36 and 52). Search-side only: the scorer
+# reads whatever height a file carries, so a hand design at 5 m still scores.
 HEIGHT_MIN = 2.7
-HEIGHT_SCALE = 1.0
+HEIGHT_MAX = 3.9
+HEIGHT_MODULE = 0.075
 
 
-def height_to_u(h: float) -> float:
-    t = max(float(h) - HEIGHT_MIN, 0.0) / HEIGHT_SCALE
-    return (t + _EPS) / (1.0 + t)
+@dataclass(frozen=True)
+class HeightRule:
+    """The heights a search may give a storey: whole modules in [lo, hi]."""
+    lo: float = HEIGHT_MIN
+    hi: float = HEIGHT_MAX
+    module: float = HEIGHT_MODULE
+
+    def __post_init__(self):
+        if self.module <= 0:
+            raise ValueError(f"storey_height_module must be positive, not {self.module}")
+        if self.steps() < 0:
+            raise ValueError(f"no whole {self.module} m module lies in "
+                             f"[{self.lo}, {self.hi}]")
+
+    def _k_lo(self) -> int:
+        return math.ceil(self.lo / self.module - 1e-9)
+
+    def _k_hi(self) -> int:
+        return math.floor(self.hi / self.module + 1e-9)
+
+    def steps(self) -> int:
+        return self._k_hi() - self._k_lo()
+
+    def snap(self, h: float) -> float:
+        """The nearest whole module inside the bounds."""
+        k = min(max(round(float(h) / self.module), self._k_lo()), self._k_hi())
+        return round(k * self.module, 6)
 
 
-def u_to_height(u: float) -> float:
+DEFAULT_HEIGHTS = HeightRule()
+
+
+def height_rule(conf) -> HeightRule:
+    """The brief's rule. ``conf`` is a key -> value lookup that returns None for
+    a key the brief does not set (`fitness.Fitness.conf`)."""
+    def get(key, default):
+        v = conf(key)
+        return default if v is None else float(v)
+    return HeightRule(get("storey_height_min", HEIGHT_MIN),
+                      get("storey_height_max", HEIGHT_MAX),
+                      get("storey_height_module", HEIGHT_MODULE))
+
+
+def height_to_u(h: float, rule: HeightRule = DEFAULT_HEIGHTS) -> float:
+    span = rule.snap(rule.hi) - rule.snap(rule.lo)
+    if span <= 0:
+        return 0.5
+    t = (rule.snap(h) - rule.snap(rule.lo)) / span
+    return _EPS + (1 - 2 * _EPS) * t
+
+
+def u_to_height(u: float, rule: HeightRule = DEFAULT_HEIGHTS) -> float:
     u = min(max(float(u), _EPS), 1 - _EPS)
-    return HEIGHT_MIN + HEIGHT_SCALE * (u - _EPS) / (1.0 - u)
+    t = (u - _EPS) / (1 - 2 * _EPS)
+    lo, hi = rule.snap(rule.lo), rule.snap(rule.hi)
+    return rule.snap(lo + (hi - lo) * t)
 
 
 def free_with_keys(root: dom.Node) -> list[tuple[tuple[int, str], dom.Node]]:
@@ -98,7 +154,7 @@ def probe_heights(ev: "NativeEvaluator", x: np.ndarray,
         for d in steps:
             y = base.copy()
             for i in group:
-                y[n + i] = height_to_u(u_to_height(base[n + i]) + d)
+                y[n + i] = height_to_u(u_to_height(base[n + i], ev.rule) + d, ev.rule)
             f = ev.evaluate([y])[0].fitness
             if f > best:
                 best, found = f, y
@@ -363,6 +419,7 @@ class NativeEvaluator:
         self.n_heights = len(self.storeys)
         conf, cost = fit_mod.load_config(programme_dir, overrides=conf_overrides)
         self._fit = fit_mod.Fitness(conf, cost)
+        self.rule = height_rule(self._fit.conf)
         self.n_evals = 0
         self.n_oracle_calls = 0  # legacy name: batches, not Perl calls
 
@@ -380,7 +437,7 @@ class NativeEvaluator:
 
     @property
     def x_heights(self) -> np.ndarray:
-        return np.array([height_to_u(lvl.height if lvl.height else 3.0)
+        return np.array([height_to_u(lvl.height if lvl.height else 3.0, self.rule)
                          for lvl in self.storeys], dtype=float)
 
     def apply(self, x: np.ndarray) -> None:
@@ -392,7 +449,7 @@ class NativeEvaluator:
             b.division = [float(xc[j]), float(xc[j])]
         if self.storeys and len(xc) == len(self.free) + len(self.storeys):
             for lvl, u in zip(self.storeys, xc[len(self.free):]):
-                lvl.height = u_to_height(u)
+                lvl.height = u_to_height(u, self.rule)
 
     def evaluate(self, xs: list[np.ndarray]) -> "list[_NativeScore]":
         """Score a batch of ratio vectors; returns objects with .fitness /
@@ -429,7 +486,8 @@ def optimise(
     carries the best ratios found.
 
     ``heights`` adds one variable per storey, its floor-to-floor height
-    (never below ``HEIGHT_MIN``, no ceiling), to the same search; ``x0`` is
+    (whole ``storey_height_module`` steps between the brief's
+    ``storey_height_min`` and ``storey_height_max``), to the same search; ``x0`` is
     still the RATIOS, and the heights start where the tree has them, so a
     child inherits its parent's. ``Result.x`` then carries both.
     ``height_probe`` spends a few evaluations first on :func:`probe_heights`;

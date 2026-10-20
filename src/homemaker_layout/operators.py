@@ -3259,7 +3259,10 @@ def mutate_storey_height(root: dom.Node, rng: np.random.Generator,
     daylight for a deeper room. The inner loop tunes heights to the centimetre
     (`innerloop.optimise(heights=True)`) but cannot cross the valley between
     paying for more wall and a fail clearing; that jump is this move, and the
-    comparator judges it. Never below `innerloop.HEIGHT_MIN`; no ceiling.
+    comparator judges it. Never below `innerloop.HEIGHT_MIN`. The steps are
+    whole 75 mm courses; the brief's floor, ceiling and module
+    (`innerloop.height_rule`) are applied when the child's inner loop writes
+    its heights back, so a step past the ceiling comes back AT it.
 
     Drawn only when the search tunes heights (`--tune-heights`): its weight is
     zero otherwise, so a default search never plays it.
@@ -3268,7 +3271,11 @@ def mutate_storey_height(root: dom.Node, rng: np.random.Generator,
 
     child = copy.deepcopy(root)
     lvls = dom.levels(child)
-    step = (-0.6, -0.3, 0.3, 0.6, 0.9)[int(rng.integers(5))]
+    # whole 75 mm courses. The fine steps are new with the cap (§39.153):
+    # snapped heights are flat to Nelder-Mead between courses, so a course or
+    # two up or down is this move's to make or nobody's
+    steps = (-0.6, -0.3, -0.15, -0.075, 0.075, 0.15, 0.3, 0.6)
+    step = steps[int(rng.integers(len(steps)))]
     li = None if rng.random() < 1 / 3 else int(rng.integers(len(lvls)))
     changed = False
     for lvl in (lvls if li is None else [lvls[li]]):
@@ -3280,7 +3287,7 @@ def mutate_storey_height(root: dom.Node, rng: np.random.Generator,
     if not changed:
         return _finalise(child), "storey_height noop"
     return (_finalise(child),
-            f"storey_height {'all' if li is None else li} {step:+.1f}")
+            f"storey_height {'all' if li is None else li} {step:+.3f}")
 
 
 def mutate_level_delete(root: dom.Node, rng: np.random.Generator,
