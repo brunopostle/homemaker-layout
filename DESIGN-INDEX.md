@@ -174,7 +174,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (257 of them, 18132 lines)
+## Every section of DESIGN.md (257 of them, 18146 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -482,4 +482,4 @@ below are the most recent work.
 - §39.149 · 17830-17901 · Room-to-wing allocation: CP-SAT finds as many as asked, area decides them, and exact shape feasibility prunes none (`homemaker-py-2g7.13.1.4`)
 - §39.150 · 17902-17952 · The wings A/B: both seeded arms beat every cold run, footprint ahead of the catalogue, and n = 3 resolves neither margin (`homemaker-py-2g7.13.1`)
 - §39.151 · 17953-18038 · Successive halving on harbor-house: a catalogue seed ranked ninth at 4k wins with 8 fails, and stairs do move (`homemaker-py-2g7.13.1.2`)
-- §39.152 · 18039-18132 · Queue 5's A/Bs: `labels` and `well` null as expected, `aim` at the edge of resolving, and `heights` on programme-house costs hard fails by moving the search, not the ceiling (`homemaker-py-urzf.1`, `iplo`, `y4p4.2`, `evxm`)
+- §39.152 · 18039-18146 · Queue 5's A/Bs: `labels` and `well` null as expected, `aim` at the edge of resolving, and `heights` on programme-house costs hard fails by moving the search, not the ceiling (`homemaker-py-urzf.1`, `iplo`, `y4p4.2`, `evxm`)

@@ -18130,3 +18130,17 @@ so it could become default on that ground alone. `aim`: probably helps, and
 twelve more pairs would say for sure. `heights`: off; on programme-house it
 finds the 2.7 m floor and loses connectivity. `well`: off; nothing to see at
 n = 4.
+
+**Addendum, 2026-10-20: `heights` on harbor-house (4 pairs, finished 04:00).**
+Fails 28.75 -> 27.5, MDD 12.8, p = 0.78: null at n = 4, as planned.
+`crinkliness` fell 44 -> 35 over the four designs, 2.25 a design, the largest
+daylight gain any queue-5 move showed. **It was bought with storeys no one
+would build:** ground floors of 8.8, 7.35, 4.98 and 10.75 m, upper floors of
+3.2 to 7.5 m. On programme-house the same variable found the 2.7 m floor. On
+harbor-house, with deep buried rooms, wall cost does not stop it climbing.
+That is the owner's 2026-10-10 objection ("5.1 m is unrealistic for domestic
+construction ... it should require much larger" stairs) seen in a real
+search. The open ceiling in `innerloop.py` ("leave the maximum open") lets
+daylight out-bid every other cost. **Before `--tune-heights` is worth another
+A/B it needs the ceiling the owner deferred: a per-programme maximum (domestic
+against public), or a stair whose size grows with its rise.**
