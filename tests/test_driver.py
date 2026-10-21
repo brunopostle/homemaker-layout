@@ -75,8 +75,11 @@ def test_search_children_warm_start_and_local_sigma(fake_inner):
     for c in child_calls:
         assert c["budget"] == 60
         assert c["x0"] is not None  # warm-started
-        # inherited cuts carry the parent's written-back ratios
-        assert np.isin(c["x0"], [0.25, 0.5]).all()
+        # inherited cuts carry the parent's written-back ratios; a fresh cut
+        # starts where its operator puts it (0.5, or 0.3 for place_missing,
+        # which fires here once label write-back is on, §39.153)
+        assert np.isin(c["x0"], [0.25, 0.5, 0.3]).all()
+        assert (c["x0"] == 0.25).any()
         assert "sigmas" not in c["kw"]  # NM inner loop takes no sigmas
 
 
