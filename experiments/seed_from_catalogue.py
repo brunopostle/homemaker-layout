@@ -43,6 +43,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import networkx as nx  # noqa: E402
 import numpy as np  # noqa: E402
+from shapely.geometry import Polygon  # noqa: E402
+from shapely.ops import unary_union  # noqa: E402
 
 import wings_catalogue as wc  # noqa: E402
 from diag_2g713_seed_storeys import constructor_kwargs, family, rng_for  # noqa: E402
@@ -525,6 +527,34 @@ def _undo(node: dom.Node, typ, lvl: dom.Node) -> None:
     geometry.clear_cache()
 
 
+def _gap(pieces) -> float:
+    """How far the circulation pieces are from joining: the sum, over pieces
+    joined nearest-first, of the distance between them plus whatever a door's
+    width of shared wall still lacks -- two strips meeting at a corner are
+    0 m apart and still not joined. With only (pieces, area) to rank on, a
+    storey no single strip could join took its smallest strip -- a 1.6 m
+    stub that joined nothing (§39.161)."""
+    if len(pieces) < 2:
+        return 0.0
+    polys = [unary_union([Polygon([geometry.coordinate(x, i)[:2]
+                                   for i in range(geometry.n_edges(x))]) for x in c])
+             for c in pieces]
+
+    def apart(p, q):
+        d = p.distance(q)
+        if d > 1e-3:
+            return d + graph.DOOR_WIDTH
+        return max(0.0, graph.DOOR_WIDTH - p.buffer(1e-3).intersection(q.boundary).length / 2)
+
+    joined, rest, total = [0], set(range(1, len(polys))), 0.0
+    while rest:
+        d, j = min((apart(polys[a], polys[b]), b) for a in joined for b in rest)
+        total += d
+        joined.append(j)
+        rest.discard(j)
+    return round(total, 1)
+
+
 SPINE_HOLD = "_wing"  # a wing's placeholder type while spines are laid: not circulation
 
 
@@ -573,7 +603,8 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
         G = geometry.leaf_graph(lvl, graph.DOOR_WIDTH)
         H = G.subgraph([x for x in G if not dom.is_outside(x)])
         circ = [x for x in H if dom.is_circulation(x)]
-        return (len(circ_pieces(H, stairs_join)),
+        pieces = circ_pieces(H, stairs_join)
+        return (len(pieces), _gap(pieces),
                 sum(geometry.area(x) for x in circ if x.type == "C"))
 
     chosen = {}
