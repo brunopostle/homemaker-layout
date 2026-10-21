@@ -1,0 +1,159 @@
+seed         : /home/bruno/src/homemaker-layout/experiments/results/dnc-wing/init.dom
+programme    : dnc-wing
+budget       : 50000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 2
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+support outside    : True
+level add+migrate  : False
+repair shaft       : True
+light well         : False
+retype kind        : False
+pivot              : False
+tune storey heights: False
+core_undivide repaired : True
+seed solver        : False
+label write-back   : True
+aim undivide       : True
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/bruno/src/homemaker-layout/experiments/results/dnc-wing/cold-50000-s2.dom
+[    80 evals] best 3.44773e-15 (fails 43) via construct/0
+[   160 evals] best 3.52854e-12 (fails 33) via construct/1
+[   720 evals] best 2.33816e-10 (fails 27) via construct/8
+[  1600 evals] best 2.00812e-09 (fails 24) via rotate 0/lrr
+[  4320 evals] best 2.03818e-09 (fails 24) via core_divide noop
+[  4400 evals] best 2.07497e-09 (fails 24) via support_outside noop
+[  4560 evals] best 1.09694e-07 (fails 22) via repair_shaft rrrl (2 storeys, 1 room(s) narrowed)
+[  6080 evals] best 1.15102e-07 (fails 22) via support_outside noop
+[  6320 evals] best 1.15834e-07 (fails 22) via crossover rlrl<->rlrl
+[  7760 evals] best 1.15863e-07 (fails 22) via support_outside noop
+[  7920 evals] best 1.51807e-08 (fails 21) via undivide 1/rll aimed
+[  9360 evals] best 2.21905e-07 (fails 21) via place_missing r -> rll
+[ 10720 evals] best 2.29474e-07 (fails 21) via place_missing r -> rll
+[ 11280 evals] best 3.58547e-06 (fails 17) via place_missing r -> rllr
+[ 11440 evals] best 2.15645e-06 (fails 14) via core_divide rrrl (2 floors)
+[ 12080 evals] best 2.16801e-06 (fails 14) via repair_shaft noop (shaft intact)
+[ 12400 evals] best 2.17041e-06 (fails 14) via level_compound_fix noop
+[ 14720 evals] best 3.6519e-05 (fails 13) via level_add (3 storeys)
+[ 14800 evals] best 4.00715e-05 (fails 13) via rotate 0/rl
+[ 15280 evals] best 0.000158051 (fails 11) via crossover lrrl<->rll
+[ 15520 evals] best 0.000162225 (fails 11) via stair noop
+[ 16080 evals] best 0.00026154 (fails 10) via support_outside underbuild 2/llrl (+1 below)
+[ 16880 evals] best 0.00026669 (fails 10) via swap 0/llr
+[ 19760 evals] best 0.000275587 (fails 10) via level_compound_fix noop
+[ 20960 evals] best 0.00028011 (fails 10) via crossover rlrl<->lrrr
+[ 21040 evals] best 0.000285928 (fails 10) via repair_shaft noop (shaft intact)
+[ 21920 evals] best 0.000793305 (fails 9) via level_delete (2 storeys)
+[ 25120 evals] best 0.000803997 (fails 9) via repair_shaft noop (shaft intact)
+[ 27520 evals] best 0.000811602 (fails 9) via retype 0/lrrr->ut1
+[ 29360 evals] best 0.000822739 (fails 9) via support_outside noop
+[ 32800 evals] best 0.00159487 (fails 8) via undivide 0/rrl
+[ 37040 evals] best 0.00167118 (fails 8) via repair_shaft noop (shaft intact)
+[ 40000 evals] best 0.00169096 (fails 8) via support_outside noop
+[ 41280 evals] best 0.00176569 (fails 8) via undivide 0/lll
+[ 43920 evals] best 0.00317654 (fails 7) via rotate 0/lr
+[ 44320 evals] best 0.00322698 (fails 7) via stair noop
+[ 45920 evals] best 0.0032506 (fails 7) via stair noop
+[ 46000 evals] best 0.00672535 (fails 6) via rotate 0/lll
+[ 46960 evals] best 0.00702427 (fails 6) via repair_shaft noop (shaft intact)
+[ 48400 evals] best 0.00704484 (fails 6) via retype 0/rlrl->n
+[ 49040 evals] best 0.00705008 (fails 6) via retype 0/llrl->t
+
+--- finishing (homemaker-py-3l6): unfold + polish 25000 evals ---
+[finish] unfold: materialised 2 shared-leaf copies
+[   200 evals] best 0.000103548 (fails 12) via seed
+[   280 evals] best 0.000103751 (fails 12) via level_compound_fix noop
+[  1240 evals] best 0.000103933 (fails 12) via level_fix noop
+[  1800 evals] best 0.000104007 (fails 12) via repair_shaft noop (shaft intact)
+[  2200 evals] best 0.000104073 (fails 12) via level_fix noop
+[  5080 evals] best 0.000104104 (fails 12) via crossover rrl<->llrr
+[  5400 evals] best 0.00660498 (fails 6) via crossover llr<->rl
+[  5800 evals] best 0.00663569 (fails 6) via place_missing noop
+[  9320 evals] best 0.00665399 (fails 6) via level_compound_fix noop
+[ 10520 evals] best 0.00667815 (fails 6) via place_missing noop
+[ 12200 evals] best 0.00671595 (fails 6) via level_compound_fix noop
+[ 12680 evals] best 0.00672791 (fails 6) via support_outside noop
+[ 13720 evals] best 0.00674363 (fails 6) via level_retype 0/rrrlr<->1/rrrlr
+[ 13960 evals] best 0.00674707 (fails 6) via level_fix noop
+[ 14120 evals] best 0.00674711 (fails 6) via level_compound_fix noop
+[ 14200 evals] best 0.00682467 (fails 6) via rotate 0/lrrl
+[ 14600 evals] best 0.00682472 (fails 6) via repair_shaft noop (shaft intact)
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 6 → 6 fails (applied)
+
+--- done ---
+elapsed      : 2402.6s
+evals        : 75000 across 936 topologies
+best         : 0.00682472 (6 fails) via repair_shaft noop (shaft intact)+collapse
+
+improvement history:
+  [    80] 3.44773e-15  (share:construct/0)
+  [   160] 3.52854e-12  (share:construct/1)
+  [   720] 2.33816e-10  (share:construct/8)
+  [  1600] 2.00812e-09  (share:rotate 0/lrr)
+  [  4320] 2.03818e-09  (share:core_divide noop)
+  [  4400] 2.07497e-09  (share:support_outside noop)
+  [  4560] 1.09694e-07  (share:repair_shaft rrrl (2 storeys, 1 room(s) narrowed))
+  [  6080] 1.15102e-07  (share:support_outside noop)
+  [  6320] 1.15834e-07  (share:crossover rlrl<->rlrl)
+  [  7760] 1.15863e-07  (share:support_outside noop)
+  [  7920] 1.51807e-08  (share:undivide 1/rll aimed)
+  [  9360] 2.21905e-07  (share:place_missing r -> rll)
+  [ 10720] 2.29474e-07  (share:place_missing r -> rll)
+  [ 11280] 3.58547e-06  (share:place_missing r -> rllr)
+  [ 11440] 2.15645e-06  (share:core_divide rrrl (2 floors))
+  [ 12080] 2.16801e-06  (share:repair_shaft noop (shaft intact))
+  [ 12400] 2.17041e-06  (share:level_compound_fix noop)
+  [ 14720] 3.6519e-05  (share:level_add (3 storeys))
+  [ 14800] 4.00715e-05  (share:rotate 0/rl)
+  [ 15280] 0.000158051  (share:crossover lrrl<->rll)
+  [ 15520] 0.000162225  (share:stair noop)
+  [ 16080] 0.00026154  (share:support_outside underbuild 2/llrl (+1 below))
+  [ 16880] 0.00026669  (share:swap 0/llr)
+  [ 19760] 0.000275587  (share:level_compound_fix noop)
+  [ 20960] 0.00028011  (share:crossover rlrl<->lrrr)
+  [ 21040] 0.000285928  (share:repair_shaft noop (shaft intact))
+  [ 21920] 0.000793305  (share:level_delete (2 storeys))
+  [ 25120] 0.000803997  (share:repair_shaft noop (shaft intact))
+  [ 27520] 0.000811602  (share:retype 0/lrrr->ut1)
+  [ 29360] 0.000822739  (share:support_outside noop)
+  [ 32800] 0.00159487  (share:undivide 0/rrl)
+  [ 37040] 0.00167118  (share:repair_shaft noop (shaft intact))
+  [ 40000] 0.00169096  (share:support_outside noop)
+  [ 41280] 0.00176569  (share:undivide 0/lll)
+  [ 43920] 0.00317654  (share:rotate 0/lr)
+  [ 44320] 0.00322698  (share:stair noop)
+  [ 45920] 0.0032506  (share:stair noop)
+  [ 46000] 0.00672535  (share:rotate 0/lll)
+  [ 46960] 0.00702427  (share:repair_shaft noop (shaft intact))
+  [ 48400] 0.00704484  (share:retype 0/rlrl->n)
+  [ 49040] 0.00705008  (share:retype 0/llrl->t)
+  [ 50200] 0.000103548  (polish:seed)
+  [ 50280] 0.000103751  (polish:level_compound_fix noop)
+  [ 51240] 0.000103933  (polish:level_fix noop)
+  [ 51800] 0.000104007  (polish:repair_shaft noop (shaft intact))
+  [ 52200] 0.000104073  (polish:level_fix noop)
+  [ 55080] 0.000104104  (polish:crossover rrl<->llrr)
+  [ 55400] 0.00660498  (polish:crossover llr<->rl)
+  [ 55800] 0.00663569  (polish:place_missing noop)
+  [ 59320] 0.00665399  (polish:level_compound_fix noop)
+  [ 60520] 0.00667815  (polish:place_missing noop)
+  [ 62200] 0.00671595  (polish:level_compound_fix noop)
+  [ 62680] 0.00672791  (polish:support_outside noop)
+  [ 63720] 0.00674363  (polish:level_retype 0/rrrlr<->1/rrrlr)
+  [ 63960] 0.00674707  (polish:level_fix noop)
+  [ 64120] 0.00674711  (polish:level_compound_fix noop)
+  [ 64200] 0.00682467  (polish:rotate 0/lrrl)
+  [ 64600] 0.00682472  (polish:repair_shaft noop (shaft intact))
+written      : /home/bruno/src/homemaker-layout/experiments/results/dnc-wing/cold-50000-s2.dom

@@ -18650,3 +18650,64 @@ search A/B made at search commit `4c0f28c` can borrow (`prefill_control.py`).
 The merges queued behind the sweep (`help-strings`, `retype-kind`, `pivot`,
 `hand-curves`) move the search commit, so A/Bs begun after them borrow
 nothing from it.
+
+### 39.165 Divide-and-conquer pilot: a wing cut out of a building keeps its own fails exactly, loses the relations that crossed the cut, and is a cheap problem on its own (`homemaker-py-2g7.13.1.5`)
+
+The question (§39.145): search effort grows faster than cell count, and the
+search is good at programme-house-sized problems -- so can a building be
+solved a wing at a time? `experiments/dnc_wing_pilot.py` cuts a wing out of a
+whole-building design and poses it as a building of its own: the wing's
+outline as the plot, each side labelled from what lies beyond it (a plot side
+keeps its label; an internal side is open if more than half of it faces
+outdoor cells on every storey, else `private`), and the brief cut to the
+rooms the wing holds, with their counts, one staircase and the wing's storey
+count. Everything is under `experiments/results/dnc-wing/`.
+
+**The wing.** Harbor-house's halving winner (§39.151, `halv-1` after 252k
+evaluations in the race; 8 fails at `0d79403+orth`) is `V(B H(V(O B O) B))`
+and its first cut gives a clean wing: path `l`, a 6.35 x 30.5 m strip down
+the west of the plot, 15 cells on each of two storeys, with its own stair.
+Its east side faces the court for 84% of its length on both storeys, so it is
+open.
+
+**The cut is faithful where it can be.** The wing as built, on its own plot
+under its own brief, reproduces all three of the fails it has inside the
+building, exactly (`0/lrlrlrr size`, `0/lrrrr size`, `1/lrlllrl proportion`,
+now one level shallower). What it adds is every relation that crossed the
+cut: `ws1 not adjacent to o` (it touched the court CELL; an open plot side is
+not an outdoor cell), `li1 not adjacent to c` and `access` (its corridor was
+in the next wing), and the inaccessible-space fail moving from one storey to
+both. 10 fails as built, against 3 of its own plus a share of the building's
+connectivity fails inside.
+
+**On its own it is a small problem.** Three cold searches on the bare wing
+plot, 50k evaluations each (`run.sh`, about an hour each beside the box's
+queue):
+
+| | fails | in cells | building-wide |
+|---|---|---|---|
+| the wing as built (252k, whole building, from a catalogue seed) | 10 | 7 | 3 |
+| cold s0 | 15 | 10 | 5 |
+| cold s1 | 6 | 3 | 3 |
+| cold s2 | 6 | 3 | 3 |
+
+Two of three cold runs reach three cell fails at a fifth of the budget the
+winner spent on the whole building -- the same count the wing has inside it,
+of the same kinds (size, proportion, crinkliness, one adjacency). n = 3 and
+the budgets are not matched, so this says only that nothing was obviously
+lost, not that anything was gained.
+
+**What every design here shares: no storey is connected.** The building
+fails `level 0/1 not connected`, and so does every stand-alone design: cold
+s1's ground floor has its circulation in four pieces on a 6 m strip. That is
+§39.159 at wing scale -- the search keeps a connected storey but does not
+make one -- and decomposition does nothing for it.
+
+**What decomposition needs that the plot format cannot say.** A side takes
+one label, and labels say "lit" and "a way in", not "there is an outdoor
+cell here" or "the corridor continues here". Both relations that crossed the
+cut are of exactly that kind. The next step is to give the stand-alone plot
+fixed CONTEXT cells along its cut sides -- a strip of `O` where the court
+was, a `C` stub where the corridor joins -- that the search may not change,
+and then the test that decides it: solve each wing alone, put the wings back
+into the building, and score the whole.
