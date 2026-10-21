@@ -172,10 +172,36 @@ def mutate_undivide(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"undivide {li}/{n.id or 'root'}{aimed}"
 
 
+def _retype_kind() -> bool:
+    """homemaker-py-urzf.2 (DESIGN.md §39.154): label moves change only a cell's
+    KIND. Read per call, from the environment, for the workers' sake."""
+    return os.environ.get("HOMEMAKER_RETYPE_KIND", "") == "1"
+
+
+def _kind(code) -> str:
+    """A cell's kind: "room" for any programme code, else the generic type
+    itself (C, O, S, E). The scorer's relabelling (Fitness.collapse_global)
+    moves room codes among room cells and never touches a generic one, so a
+    change of kind is the part of a label edit it cannot undo."""
+    return code if dom.is_generic(code) else "room"
+
+
 def mutate_retype(root: dom.Node, rng: np.random.Generator,
                   types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
     child = copy.deepcopy(root)
     li, leaf = _pick_weighted_by_storey(rng, _leaves(child), base_p)
+    if _retype_kind():
+        # Under --retype-kind a room never becomes another room: that edit is
+        # the scorer's relabelling's to make, and it erased 28-70% of them
+        # (§39.154). Choose a different KIND; a cell that becomes a room takes
+        # a room code at random and the relabelling picks which room it is.
+        rooms = [t for t in types if not dom.is_generic(t)]
+        kinds = sorted({_kind(t) for t in types} - {_kind(leaf.type)})
+        if not kinds:
+            return _finalise(child), "retype noop"
+        k = str(_pick(rng, kinds))
+        leaf.type = str(_pick(rng, rooms)) if k == "room" else k
+        return _finalise(child), f"retype {li}/{leaf.id or 'root'}->{leaf.type}"
     leaf.type = str(_pick(rng, [t for t in types if t != leaf.type] or types))
     return _finalise(child), f"retype {li}/{leaf.id or 'root'}->{leaf.type}"
 
@@ -2370,6 +2396,12 @@ def mutate_level_retype(root: dom.Node, rng: np.random.Generator,
     other = [(li, lf) for li, lf in all_lv if li != li_a]
     if not other:
         return _finalise(child), "level_retype noop"
+    if _retype_kind():
+        # --retype-kind (§39.154): two rooms trading storeys is the scorer's
+        # relabelling's move, so swap only cells of different kinds.
+        other = [(li, lf) for li, lf in other if _kind(lf.type) != _kind(a.type)]
+        if not other:
+            return _finalise(child), "level_retype noop"
     li_b, b = _pick(rng, other)
     a.type, b.type = b.type, a.type
     return _finalise(child), f"level_retype {li_a}/{a.id or 'root'}<->{li_b}/{b.id or 'root'}"

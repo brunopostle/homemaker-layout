@@ -244,6 +244,15 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "reaches -- the owner's alley (DESIGN.md §39.125). "
                         "Changes what a search does; the A/B that decides it "
                         "has not been run (default: off)")
+    p.add_argument("--retype-kind", dest="retype_kind",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_RETYPE_KIND", False),
+                   help="homemaker-py-urzf.2 (DESIGN.md §39.154): retype and "
+                        "level_retype change only a cell's kind (a room, C or "
+                        "O), never one room into another, which is the "
+                        "scorer's relabelling's to choose and which it erased "
+                        "in 28-70%% of draws. Changes what a search does; the "
+                        "A/B has not been run (default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
@@ -430,6 +439,7 @@ def main(argv=None) -> int:
     operators.CORE_UNDIVIDE_REPAIRED = bool(args.core_undivide_repaired)
     # read by driver.search in every phase and by worker processes
     os.environ["HOMEMAKER_LIGHT_WELL"] = "1" if args.light_well else "0"
+    os.environ["HOMEMAKER_RETYPE_KIND"] = "1" if args.retype_kind else "0"
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
     driver.SEED_SOLVER = bool(args.seed_solver)
     os.environ["HOMEMAKER_LABEL_WRITEBACK"] = "1" if args.label_writeback else "0"
@@ -513,6 +523,7 @@ def main(argv=None) -> int:
     print(f"level add+migrate  : {args.level_add_migrate}", file=sys.stderr)
     print(f"repair shaft       : {args.repair_shaft}", file=sys.stderr)
     print(f"light well         : {args.light_well}", file=sys.stderr)
+    print(f"retype kind        : {args.retype_kind}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"seed solver        : {args.seed_solver}", file=sys.stderr)
