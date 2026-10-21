@@ -187,7 +187,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (266 of them, 18542 lines)
+## Every section of DESIGN.md (267 of them, 18593 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -504,4 +504,5 @@ below are the most recent work.
 - §39.158 · 18362-18397 · `--retype-kind`: label moves that the scorer's relabelling cannot erase (`homemaker-py-urzf.2`)
 - §39.159 · 18398-18431 · The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
 - §39.160 · 18432-18482 · A capacity-aware storey split stops storeys overflowing, and leaves the seeds' fail count where it was (`homemaker-py-2g7.13.1.8`)
-- §39.161 · 18483-18542 · Spine first: a corridor through every wing before rooms are placed connects 10 of 16 maple-court seeds outright, once two seeder bugs were found (`homemaker-py-2g7.13.1.7`)
+- §39.161 · 18483-18543 · Spine first: a corridor through every wing before rooms are placed connects 10 of 16 maple-court seeds outright, once two seeder bugs were found (`homemaker-py-2g7.13.1.7`)
+- §39.162 · 18544-18593 · Pivot: a grid of four quadrants turned on its other axis, every quadrant kept (`homemaker-py-mtfo`)

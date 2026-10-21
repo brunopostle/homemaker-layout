@@ -204,6 +204,184 @@ def mutate_rotate(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"rotate {li}/{n.id or 'root'}"
 
 
+def _is_grid(n: dom.Node) -> bool:
+    """``n`` is cut, and each half is cut across that: four quadrants."""
+    return (n.divided and n.left.divided and n.right.divided
+            and n.left.rotation % 2 == 1 and n.right.rotation % 2 == 1)
+
+
+def _pivotable(lvls: "list[dom.Node]", li: int, n: dom.Node) -> bool:
+    """A live grid whose counterpart on every storey above is a single cell
+    or a grid too: a storey above that keeps only the two halves (or one of
+    them) has no cell left to be once the halves run the other way."""
+    if n.below is not None or not _is_grid(n):
+        return False
+    for lvl in lvls[li + 1:]:
+        a = lvl.by_id(n.id)
+        if a is not None and a.divided and not (a.left.divided and a.right.divided):
+            return False
+    return True
+
+
+def _cut_pos(turn: int, f: float) -> float:
+    """Where a cut at ratio ``f`` falls, as a fraction of the grid node, on a
+    node whose corner 0 is the grid's corner ``turn``: along x (grid corner 0
+    to 1) for an even turn, along y (0 to 3) for an odd one. Exact on a
+    rectangle. Its own inverse."""
+    return f if turn % 4 < 2 else 1.0 - f
+
+
+def mutate_pivot(root: dom.Node, rng: np.random.Generator,
+                 types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
+    """Turn a grid of four quadrants on its other axis, keeping the quadrants.
+
+    A cell cut in two whose halves are each cut the other way is four
+    quadrants that two trees can draw: halves left and right, each cut across,
+    or halves top and bottom, each cut down. This swaps one for the other.
+    Each quadrant's subtree moves to the path of the corner it sits in, and
+    its ``rotation`` is turned by however much its parent's corner 0 has
+    turned, so it keeps its orientation and everything inside it is drawn as
+    before -- the only wall that can move is the primary one.
+
+    Where the halves' cross cuts are not in line (a jog), one straight line
+    cannot keep both: it goes at their area-weighted mean, which keeps each new
+    half's total area. With them in line the layout is unchanged on a
+    rectangle, and what the move changes is which wall is the long one -- the
+    one the next ``undivide``, ``rotate`` or ratio change acts on.
+
+    Every storey above whose counterpart is a grid gets the same relocation,
+    so paths -- and the stair shafts made of them -- stay aligned. Rotations
+    there are dead fields; they are turned by the same amounts, so they read
+    the same if the storey below ever stops being cut.
+    """
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+    cands = [(li, n) for li, n in _owned_branches(child) if _pivotable(lvls, li, n)]
+    if not cands:
+        return _finalise(child), "pivot noop"
+    li, n = _pick_weighted_by_storey(rng, cands, base_p)
+    _pivot(lvls, li, n, rng)
+    return _finalise(child), f"pivot {li}/{n.id or 'root'}"
+
+
+def _pivot(lvls: "list[dom.Node]", li: int, n: dom.Node,
+           rng: np.random.Generator) -> None:
+    """`mutate_pivot` on grid ``n`` of storey ``li``, in place; ``rng``
+    picks which of the equivalent trees to write (which half is ``l``)."""
+    L, R = n.left, n.right
+
+    # Turns are counted in n's own frame: n's corner 0 is corner 0. A node of
+    # turn T has its left child on corners {T, T+3}, its right on {T+1, T+2}.
+    def sides(turn: int, corners: "set[int]") -> "tuple[int, int]":
+        lo = ({turn % 4, (turn + 3) % 4} & corners).pop()
+        hi = ({(turn + 1) % 4, (turn + 2) % 4} & corners).pop()
+        return lo, hi
+
+    old = {}                     # grid corner -> (path under n, parent's turn)
+    for half, hp, corners in ((L, "l", {0, 3}), (R, "r", {1, 2})):
+        lo, hi = sides(half.rotation, corners)
+        old[lo] = (hp + "l", half.rotation)
+        old[hi] = (hp + "r", half.rotation)
+
+    walls = _walls(n)
+    s = _cut_pos(0, n.division[0])               # the old primary, along x
+    y = (s * _cut_pos(L.rotation, L.division[0])
+         + (1.0 - s) * _cut_pos(R.rotation, R.division[0]))
+
+    k = int(rng.choice((1, 3)))                  # n's turn, a quarter round
+    plan = {"": (k, _cut_pos(k, y))}             # path -> (rotation step, ratio)
+    new = {}                     # grid corner -> (new path under n, turn delta)
+    for hp, corners in (("l", {k % 4, (k + 3) % 4}),
+                        ("r", {(k + 1) % 4, (k + 2) % 4})):
+        j = int(rng.choice((1, 3)))
+        plan[hp] = (j, _cut_pos(k + j, s))
+        lo, hi = sides(k + j, corners)
+        for d, qp in ((lo, hp + "l"), (hi, hp + "r")):
+            new[d] = (qp, old[d][1] - (k + j))
+
+    for lvl in lvls[li:]:
+        a = lvl.by_id(n.id)
+        if a is None or not a.divided:
+            continue
+        quads = {d: a.by_id(old[d][0]) for d in range(4)}
+        for hp, (rot, f) in plan.items():
+            node = a.by_id(hp)
+            node.division = [f] * len(node.division)
+            node.rotation = (node.rotation + rot) % 4 if hp == "" else rot
+        for d, (qp, delta) in new.items():
+            q = quads[d]
+            q.rotation = (q.rotation + delta) % 4
+            half = a.left if qp[0] == "l" else a.right
+            if qp[1] == "l":
+                half.left = q
+            else:
+                half.right = q
+    if walls is not None:
+        _place_walls(lvls, li, n, walls, s)
+
+
+def _walls(n: dom.Node):
+    """The three walls of quad-tree grid ``n`` as ``(point, direction)``
+    lines -- its own cut and its halves' -- or None for a native tree, whose
+    ratios are positions on a rectangle and so already exact."""
+    from . import geometry
+    if geometry._native(n) is not None:
+        return None
+    geometry.clear_cache()
+    out = []
+    for x in (n, n.left, n.right):
+        a, b = geometry.coord_a(x), geometry.coord_b(x)
+        out.append((a, (b[0] - a[0], b[1] - a[1])))
+    return out
+
+
+def _line_param(p0, p1, q, d) -> "float | None":
+    """Where the line through ``q`` along ``d`` crosses segment ``p0``-``p1``,
+    as a fraction of it; None if it misses the segment's interior."""
+    ex, ey = p1[0] - p0[0], p1[1] - p0[1]
+    den = ex * d[1] - ey * d[0]
+    if abs(den) < 1e-12:
+        return None
+    t = ((q[0] - p0[0]) * d[1] - (q[1] - p0[1]) * d[0]) / den
+    return t if 0.0 < t < 1.0 else None
+
+
+def _place_walls(lvls, li, n, walls, s) -> None:
+    """Re-aim the pivoted grid's three cuts at walls rather than at ratios.
+
+    On a quad tree a ratio is a fraction along a node's own edge, and next to
+    a skew plot boundary that is not a fraction of the grid: `_cut_pos` alone
+    moves walls by up to 1.5 m on the corpus. So each half's cut is put on the
+    old primary wall's line, and the new primary on the line between the old
+    halves' walls, weighted as `_pivot` weights it. Each end of a cut is placed
+    on its own edge, so a skew cut (orthogonal division off) is kept too.
+    Storeys above draw these cuts from this one; their copies are dead fields,
+    written to match.
+    """
+    from . import geometry
+    (_qn, dn), (ql, dl), (qr, dr) = walls
+    if dl[0] * dr[0] + dl[1] * dr[1] < 0:
+        dr = (-dr[0], -dr[1])
+    ml = (ql[0] + dl[0] / 2, ql[1] + dl[1] / 2)
+    mr = (qr[0] + dr[0] / 2, qr[1] + dr[1] / 2)
+    primary = ((s * ml[0] + (1 - s) * mr[0], s * ml[1] + (1 - s) * mr[1]),
+               ((dl[0] + dr[0]) / 2, (dl[1] + dr[1]) / 2))
+    dom.link(lvls[0])
+    for x, (q, d) in ((n, primary), (n.left, walls[0]), (n.right, walls[0])):
+        geometry.clear_cache()
+        c = [geometry.coordinate(x, i) for i in range(4)]
+        for i, (p0, p1) in enumerate(((c[0], c[1]), (c[3], c[2]))[:len(x.division)]):
+            t = _line_param(p0, p1, q, d)
+            if t is not None:
+                x.division[i] = t
+    path = n.id
+    for lvl in lvls[li + 1:]:
+        a = lvl.by_id(path)
+        if a is not None and a.divided:
+            for hp in ("", "l", "r"):
+                a.by_id(hp).division = list(n.by_id(hp).division)
+
+
 def mutate_level_fix(root: dom.Node, rng: np.random.Generator,
                      types: list[str], reqs=None) -> tuple[dom.Node, str]:
     """Atomically move a level-constrained room to its required floor.
@@ -3306,6 +3484,7 @@ MUTATIONS = {
     "retype": mutate_retype,
     "swap": mutate_swap,
     "rotate": mutate_rotate,
+    "pivot": mutate_pivot,
     "reassociate": mutate_reassociate,
     "core_divide": mutate_core_divide,
     "core_undivide": mutate_core_undivide,
@@ -3333,7 +3512,7 @@ MUTATIONS = {
 # base storey for these via ``base_p`` (DESIGN.md §11.3). The repair op
 # ``place_missing`` is deliberately excluded — a missing base room must still be
 # repairable — as are the core_* ops, which exist to MAINTAIN the core.
-_BASE_P_OPS = ("divide", "undivide", "retype", "swap", "rotate")
+_BASE_P_OPS = ("divide", "undivide", "retype", "swap", "rotate", "pivot")
 
 
 def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],

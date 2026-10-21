@@ -18540,3 +18540,54 @@ Not yet addressed: two storeys of the traced plan picked up stray
 circulation late in the build -- a ground cell the assignment leaves as `C`,
 and a terrace a room is later built over, retyped to `C` -- both outside the
 spine and both reconnected only if `bridge_indoors` manages it.
+
+### 39.162 Pivot: a grid of four quadrants turned on its other axis, every quadrant kept (`homemaker-py-mtfo`)
+
+Owner's idea (2026-10-21): a cell cut in two whose halves are each cut the
+other way is four quadrants, and two trees can draw them -- halves left and
+right each cut across, or halves top and bottom each cut down. Only the first
+cut differs, and it is the one every move that removes or re-orients a cut
+acts on. `operators.mutate_pivot` rewrites one tree as the other.
+
+**How.** Each quadrant's subtree moves to the path of the grid corner it sits
+in, and its `rotation` turns by however much its new parent's corner 0 turned
+(`_pivot` counts turns in the grid's own frame: a node of turn T has its left
+child on corners {T, T+3}, its right on {T+1, T+2}). So a quadrant keeps its
+orientation and everything inside it is drawn as before, at any depth. On a
+quad tree a ratio is a fraction along the node's own edge, which beside a
+skew plot boundary is not a fraction of the grid -- placing the cuts by
+ratio alone moved walls by up to 1.5 m on the corpus -- so `_place_walls`
+puts each new cut on the old wall's LINE, intersecting each of its edges.
+A native tree's ratios are positions on a rectangle and need nothing.
+
+**Storeys above.** Every storey above whose counterpart is also a grid gets the
+same relocation, so paths, and the stair shafts made of them, stay aligned.
+Where a storey above keeps only the halves (or one of them) there is no cell
+it could be once the halves run the other way, and the grid is not offered.
+The rotations there are dead fields; they are turned by the same amounts so
+they still read correctly if the storey below stops being cut.
+
+**What it cannot keep: a jog.** If the halves' cross cuts are not in line, one
+straight primary cannot hold both. It goes at the area-weighted mean of the
+two (`s * y_left + (1 - s) * y_right`), which keeps each new half's total area.
+
+**Measured** on the twelve `1a24b6a+orth` artefacts: 52 grids, 156 of 208
+pivots also moving a grid on a storey above. With the cross cuts put in line
+first, every leaf corner on every storey is where it was to 1e-14 m -- on
+`+orth` quad trees, skew quad trees and native trees alike
+(`tests/test_pivot.py`, with a negative control: turning the grid's cut
+without moving the quadrants, which is `mutate_rotate`, must register). The
+only change is a label: a cell above spanning the whole grid takes the grid's
+corner numbering, so its corner 0 turns (4 leaves of 208 pivots).
+
+**But no evolved grid is in line.** 0 of 52 have their cross cuts within 1 cm;
+the jog is 1.38 m at the median and 10.6 m at most. Pivoted as they stand,
+before any inner loop, the child scores a median 3% of its parent (range 0 to
+2.0x). In practice, then, the move is a large step: what it keeps is the
+quadrants' contents and their adjacencies across the new long wall, and it
+leaves the inner loop to recover the sizes. Whether a search keeps such
+children is the A/B: default OFF (`--pivot` / `HOMEMAKER_PIVOT=1`, a
+`SEARCH_KNOBS` entry, and `flag_ab.py pivot`). **Expectation, before it
+runs**: null on fails, as most single-operator A/Bs have been; a move that
+mostly breaks sizes is unlikely to be kept unless the inner loop restores them
+within a child budget.
