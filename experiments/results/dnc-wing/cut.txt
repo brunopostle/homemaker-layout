@@ -1,0 +1,22 @@
+winner-total.dom: 8 fails in the building, 3 of them in wing 'l':
+    0/lrlrlrr size
+    0/lrrrr size
+    1/lrlllrl proportion
+    (and building-wide: ['1 inaccessible usable space', 'level 0 not connected', 'level 1 not connected'])
+  side a: plot side d (open)
+  side b: plot side a (private)
+  side c: internal, onto outdoor cells 84%/84% by storey -> open
+  side d: plot side c (open)
+  rooms: C 6, E 2, O 3, la1 1, li1 1, m 3, me1 1, n 1, of 1, r 6, st1 1, t 1, ut1 1, wc 1, ws1 1
+
+the wing as built, on its own plot under its own brief: 10 fails, score 0.0001655
+    0 inaccessible usable space
+    0/rllll (ws1) not adjacent to o
+    0/rlrlrr size
+    0/rrrr size
+    1 inaccessible usable space
+    1/l (li1) not adjacent to c
+    1/l access
+    1/rlllrl proportion
+    level 0 not connected
+    level 1 not connected
