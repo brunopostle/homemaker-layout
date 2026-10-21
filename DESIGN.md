@@ -18599,3 +18599,54 @@ default OFF (`--pivot` / `HOMEMAKER_PIVOT=1`, a `SEARCH_KNOBS` entry, and
 single-operator A/Bs have been; a move whose children start at 3% of their
 parent is kept only if the inner loop restores the shapes within a child
 budget.
+
+### 39.163 Re-baseline at `0d79403+orth`: four of §39.157's five expectations held, and the one missed is maple-court coming in below the last corpus's range (`homemaker-py-vpx5`)
+
+The twelve runs of §39.157 (search `4c0f28c`, config `bbbbf9b90b`, owner's
+desktop, `--slots 8`), started 2026-10-21 07:25, the last finished 22:16. All
+twelve rows re-score exactly from their artefacts (`verify_results_table.py`),
+and `decompose_coldstart.py`'s family census reproduces the rows.
+
+**Expectations** (`check_rebaseline_expectations.py --against 4428262+orth`):
+
+| | expectation | outcome | verdict |
+|---|---|---|---|
+| 1 | each programme's mean fails inside the last corpus's range | programme-house 0.3 (0-1), health-centre 5.3 (3-8), harbor-house 26.0 (24-37), **maple-court 56.0 (60-67)** | **MISSED**, downward |
+| 2 | programme-house median score >= 0.223 | 0.464 (0.204, 0.464, 0.478) | HELD |
+| 3 | `too few stairs` on at least 5 of 6 harbor/maple runs | 6 of 6 | HELD |
+| 4 | crinkliness the largest family | 116 of 263, 44% (49% before) | HELD |
+| 5 | run-hours within 10%, slightly lower | 102.9 h against 106.7 h (-3.6%) | HELD |
+
+**Per programme**, fails (hard/soft) by seed, old -> new:
+
+| | s0 | s1 | s2 |
+|---|---|---|---|
+| programme-house | 0 -> 1 | 1 -> 0 | 1 -> 0 |
+| health-centre | 7 -> 4 | 8 -> 4 | 3 -> 8 |
+| harbor-house | 28 (6/22) -> 21 (5/16) | 24 (8/16) -> 29 (5/24) | 37 (15/22) -> 28 (7/21) |
+| maple-court | 62 (14/48) -> 62 (16/46) | 67 (10/57) -> 54 (9/45) | 60 (8/52) -> 52 (12/40) |
+
+Paired over all twelve: fails 24.8 -> 21.9, 8 better / 3 worse / 1 tied,
+95% CI of the improvement [-0.6, +6.4], p = 0.10 -- **underpowered**: the
+margin (2.9) is below the 3.5 that N = 12 can resolve. No programme resolves
+alone (maple-court: +7.0, MDD 16.3 at N = 3).
+
+**Reading.** The miss is the good direction and is not a resolved effect: on
+maple-court the soft fails fell (52.3 -> 43.7 a run, mostly crinkliness) while
+the hard fails rose (10.7 -> 12.3). Nothing here can attribute it: one
+objective commit (stair separation, priced at zero on the last corpus) and
+three search changes (label write-back, `aim`, the height cap, inert at the
+default) landed together (§39.12 clause 3). The family census moved the same
+way: crinkliness 145 -> 116, `not adjacent to c` 21 -> 16, access 21 -> 15,
+while `level N not connected` (16) and proportion (21) entered the top four.
+
+**Family census** at `0d79403+orth`, 263 fails: crinkliness 116 (44.1%), size
+42 (16.0%), proportion 21 (8.0%), `not adjacent to c` 16 (6.1%), `level N not
+connected` 16 (6.1%), access 15 (5.7%), `too few stairs` 9 (3.4%), the rest
+under 3% each.
+
+This corpus is now the newest at the live objective, and the control any
+search A/B made at search commit `4c0f28c` can borrow (`prefill_control.py`).
+The merges queued behind the sweep (`help-strings`, `retype-kind`, `pivot`,
+`hand-curves`) move the search commit, so A/Bs begun after them borrow
+nothing from it.

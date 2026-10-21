@@ -95,6 +95,7 @@ index is how to get from a question to the section that answers it.
 | §39.155 | Successive halving on maple-court, the first programme the catalogue was not developed on: catalogue seed `halv-2` wins at 23 fails / 5 crinkliness after 252k, against cold 500k runs' 60-67 / 34-42. Cold candidates dropped at 4k; the winner keeps its seed's plan (0.965 vs 0.44-0.54 for cold finals). Expected <= 4 crinkliness: missed by one. Early stages predicted the winner here (not on harbor-house); stairs moved again. |
 | §39.156 | `aim` at 48 pairs on programme-house: score resolves in its favour (0.21 -> 0.27, margin 0.057 > MDD 0.052, p 0.033); fails 0.96 -> 0.73 no longer resolve (MDD 0.26, p 0.086) -- the 12 new pairs tie on fails. No cost in hard fails or time; `staircase volume` 8 -> 3. |
 | §39.157 | Re-baseline at `0d79403+orth` (stair separation; search: label write-back, `aim`, height cap), expectations before it runs: the objective change re-scores the last corpus unchanged, 12 of 12; no programme's mean fails leaves the last corpus's range; programme-house median score >= 0.22; crinkliness still the largest family. |
+| §39.163 | Re-baseline at `0d79403+orth`: 4 of §39.157's 5 expectations held; maple-court fell BELOW the last range (mean 56 vs 60-67), soft down and hard up; paired over 12, 21.9 vs 24.8 fails, underpowered (MDD 3.5). Crinkliness 44%. |
 | §39.158 | `--retype-kind` (branch, default off): `retype` / `level_retype` change only a cell's kind, because the scorer's relabelling moves room codes among room cells and never touches a generic one. Census: erased draws 28-70% -> 0% on all four programmes. Loses the room -> room edits that survived; maple-court A/B (n = 4, expected null) after the re-baseline. |
 | §39.159 | Connection is kept, not made: every cold run on maple-court, harbor-house and health-centre ends with every storey `not connected`; of 103 halving candidates five started connected (`hand2a` stayed so through all six stages), and no disconnected one was ever joined. The lever is the seeder (36 of 54 storeys disconnected); through-corridor or spine-first is the owner's choice. |
 | §39.160 | Capacity-aware storey split (`--split capacity`, default dealt): no storey overflows its built area (0 of 600 splits, against 46-147 of 200 per plan), size fails fall a fifth, but proportion/access/adjacency take them up and the 18 harbor seeds' fails do not move (median 84.5 -> 83.5, paired mean -0.06, p 0.24). |
@@ -142,6 +143,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Storey height is capped per project, default 3.9 m, and is a whole multiple of a 75 mm brick/block course | §39.153 |
 | Label write-back is the default search | §39.153 |
 | `aim` (undivide aimed at failing cells) is the default search | §39.156 |
+| The pivot move keeps each quadrant's plan AREA, not its walls: deterministic, a jog moves to the other axis | §39.162 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -187,7 +189,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (267 of them, 18601 lines)
+## Every section of DESIGN.md (268 of them, 18652 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -505,4 +507,5 @@ below are the most recent work.
 - §39.159 · 18398-18431 · The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
 - §39.160 · 18432-18482 · A capacity-aware storey split stops storeys overflowing, and leaves the seeds' fail count where it was (`homemaker-py-2g7.13.1.8`)
 - §39.161 · 18483-18543 · Spine first: a corridor through every wing before rooms are placed connects 10 of 16 maple-court seeds outright, once two seeder bugs were found (`homemaker-py-2g7.13.1.7`)
-- §39.162 · 18544-18601 · Pivot: a grid of four quadrants turned on its other axis, every quadrant kept (`homemaker-py-mtfo`)
+- §39.162 · 18544-18602 · Pivot: a grid of four quadrants turned on its other axis, every quadrant kept (`homemaker-py-mtfo`)
+- §39.163 · 18603-18652 · Re-baseline at `0d79403+orth`: four of §39.157's five expectations held, and the one missed is maple-court coming in below the last corpus's range (`homemaker-py-vpx5`)

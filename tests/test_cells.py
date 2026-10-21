@@ -217,9 +217,11 @@ def test_every_orthogonal_artefact_is_drawn_as_todays_geometry_draws_it(monkeypa
     # artefacts, and stage 1b's gate has to say which corpora it means.
     # The 4428262+orth re-baseline (§39.142, committed 2026-10-14) adds two:
     # a `t` and a `C` cell of harbor-house s2, both at 0.785 of the usable
-    # rectangle against SHAPE_FULL 0.85.
+    # rectangle against SHAPE_FULL 0.85. The 0d79403+orth re-baseline
+    # (§39.163, 2026-10-21) adds four, all harbor-house: a `C` and `ut1` of
+    # s1 at 0.811 and a `C` and `of` of s2 at 0.827.
     assert docked == {"coldstart-c836457+orth": 4, "coldstart-4428262+orth": 2,
-                      "e4r": 1, "e4r-tiers": 1}
+                      "coldstart-0d79403+orth": 4, "e4r": 1, "e4r-tiers": 1}
 
 
 @pytest.mark.skipif(not (REPO / "examples" / "maple-court").is_dir(),
