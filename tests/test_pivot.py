@@ -50,19 +50,26 @@ def _grids(root):
 
 
 def _align(n) -> None:
-    """Put the right half's cross cut on the left half's wall line."""
+    """Put the right half's cross cut in line with the left half's."""
+    from scipy.optimize import brentq
+
     operators._finalise(_top(n))
-    y = operators._cut_pos(n.left.rotation, n.left.division[0])
-    n.right.division = [operators._cut_pos(n.right.rotation, y)] * len(n.right.division)
-    operators._finalise(_top(n))
-    walls = operators._walls(n)
-    if walls is not None:                     # quad tree: ratios are not lines
-        q, d = walls[1]
+    if geometry._native(n) is not None:
+        want = geometry._native_cut(n.left)[1]
+
+        def gap(f):
+            n.right.division = [f] * len(n.right.division)
+            geometry.clear_cache()
+            return geometry._native_cut(n.right)[1] - want
+        brentq(gap, 1e-9, 1 - 1e-9, xtol=1e-15)
+    else:                                     # quad tree: put it on the line
+        a, b = geometry.coord_a(n.left), geometry.coord_b(n.left)
+        d = (b[0] - a[0], b[1] - a[1])
         c = [geometry.coordinate(n.right, i) for i in range(4)]
         for i, (p0, p1) in enumerate(((c[0], c[1]), (c[3], c[2]))):
-            t = operators._line_param(p0, p1, q, d)
-            if t is not None:
-                n.right.division[i] = t
+            ex, ey = p1[0] - p0[0], p1[1] - p0[1]
+            n.right.division[i] = (((a[0] - p0[0]) * d[1] - (a[1] - p0[1]) * d[0])
+                                   / (ex * d[1] - ey * d[0]))
     operators._finalise(_top(n))
 
 
@@ -112,23 +119,27 @@ def mode(request, monkeypatch):
     return request.param
 
 
-def test_pivot_keeps_every_cell(mode, tmp_path):
+def test_in_line_the_plan_is_unchanged(mode, tmp_path):
+    """Cross cuts in line: keeping the quadrants' areas keeps every wall.
+    (On a skew quad tree a skew cut comes back straightened, so not there.)"""
+    if mode == "skew":
+        pytest.skip("cuts are straightened")
     tested = above = 0
     for path in _artefacts():
         root = _load(path, mode, tmp_path)
         for li, nid in _grids(root):
-            for seed in range(4):                 # every choice of which half is `l`
+            for _ in range(1):
                 r = operators._finalise(copy.deepcopy(root))
                 lvls = dom.levels(r)
                 n = lvls[li].by_id(nid)
                 _align(n)
                 _tag(r)
                 before = _corners(r)
-                operators._pivot(lvls, li, n, np.random.default_rng(seed))
+                operators._pivot(lvls, li, n)
                 operators._finalise(r)
                 assert n.rotation % 2 != dom.levels(root)[li].by_id(nid).rotation % 2
                 worst, turned = _shift(before, _corners(r))
-                assert worst < 1e-9, (path, li, nid, seed, worst)
+                assert worst < 1e-6, (path, li, nid, worst)
                 # only a cell above spanning the whole grid takes the grid's
                 # (turned) corner numbering; no quadrant's numbering moves
                 assert turned <= len(lvls) - 1 - li
@@ -153,9 +164,9 @@ def test_the_comparison_catches_a_moved_cell(mode, tmp_path):
     assert _shift(before, _corners(root))[0] > 0.1
 
 
-def test_a_jog_goes_at_the_area_weighted_line(monkeypatch):
-    """Cross cuts out of line cannot both survive one straight primary: each
-    new half keeps the area of the two quadrants it is made of."""
+def test_a_jog_moves_to_the_other_axis(monkeypatch):
+    """Cross cuts out of line: every quadrant keeps its area, so the new
+    halves' cuts are out of line instead."""
     monkeypatch.setattr(geometry, "ORTHOGONAL_DIVISION", True)
     root = dom.Node(node=[list(p) for p in RECT], node_file=[list(p) for p in RECT],
                     height=3.0, elevation=0.0, wall_inner=0.0, wall_outer=0.0)
@@ -165,14 +176,33 @@ def test_a_jog_goes_at_the_area_weighted_line(monkeypatch):
     for half in (root.left, root.right):
         half.left, half.right = dom.Node(type="a"), dom.Node(type="b")
     operators._finalise(root)
-    for seed in range(4):
-        r = copy.deepcopy(root)
-        before = {id(q): (q.type, geometry.area(q)) for q in r.leaves()}
-        operators._pivot([r], 0, r, np.random.default_rng(seed))
-        operators._finalise(r)
-        for half in (r.left, r.right):
-            old = sum(before[id(q)][1] for q in (half.left, half.right))
-            assert geometry.area(half) == pytest.approx(old, rel=1e-12)
+    before = {id(q): geometry.area(q) for q in root.leaves()}
+    operators._pivot([root], 0, root)
+    operators._finalise(root)
+    for q in root.leaves():
+        assert geometry.area(q) == pytest.approx(before[id(q)], rel=1e-9)
+    xs = [geometry.coord_a(h)[0] for h in (root.left, root.right)]
+    assert abs(xs[0] - xs[1]) > 0.5, xs
+
+
+def test_pivot_keeps_every_quadrant_area(mode, tmp_path):
+    """As the corpus stands -- no grid in line -- on every geometry."""
+    tested = 0
+    for path in _artefacts():
+        root = _load(path, mode, tmp_path)
+        for li, nid in _grids(root):
+            r = operators._finalise(copy.deepcopy(root))
+            lvls = dom.levels(r)
+            n = lvls[li].by_id(nid)
+            quads = [h.left for h in (n.left, n.right)] + [h.right for h in (n.left, n.right)]
+            geometry.clear_cache()
+            before = [geometry.area(q) for q in quads]
+            operators._pivot(lvls, li, n)
+            operators._finalise(r)
+            after = [geometry.area(q) for q in quads]
+            assert after == pytest.approx(before, rel=1e-6, abs=1e-9), (path, nid)
+            tested += 1
+    assert tested
 
 
 def test_refused_where_a_storey_above_keeps_only_the_halves():
