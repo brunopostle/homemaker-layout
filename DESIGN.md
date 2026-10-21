@@ -18540,3 +18540,62 @@ Not yet addressed: two storeys of the traced plan picked up stray
 circulation late in the build -- a ground cell the assignment leaves as `C`,
 and a terrace a room is later built over, retyped to `C` -- both outside the
 spine and both reconnected only if `bridge_indoors` manages it.
+
+### 39.162 Pivot: a grid of four quadrants turned on its other axis, every quadrant kept (`homemaker-py-mtfo`)
+
+Owner's idea (2026-10-21): a cell cut in two whose halves are each cut the
+other way is four quadrants, and two trees can draw them -- halves left and
+right each cut across, or halves top and bottom each cut down. Only the first
+cut differs, and it is the one every move that removes or re-orients a cut
+acts on. `operators.mutate_pivot` rewrites one tree as the other.
+
+**How.** Each quadrant's subtree moves to the path of the grid corner it sits
+in, and its `rotation` turns by however much its new parent's corner 0 turned
+(`_pivot` counts turns in the grid's own frame: a node of turn T has its left
+child on corners {T, T+3}, its right on {T+1, T+2}). So a quadrant keeps its
+orientation and everything inside it is drawn the same way, at any depth.
+
+**The cuts keep each quadrant's plan AREA, not its walls** (owner,
+2026-10-21: "should not try to align the division lines, but should keep the
+plan area of the previous cells, this would be deterministic"). The new
+primary splits the grid into the areas of its two new halves; each half's cut
+then gives each quadrant its old area back. With the old cross cuts in line
+that is the same plan; with a jog, the jog moves to the other axis. Each ratio
+is SOLVED against `geometry.area` (`_cut_for_area`), because only on a
+rectangle is a ratio a fraction of the area -- not beside a skew plot
+boundary, nor cropped to a native plot. Nothing is random but the choice of
+grid: turning by three instead of one would only spell the same plan with
+`l` and `r` swapped. A first version put a jog's primary at the area-weighted
+mean and both new cross cuts on the old primary's line, which kept the halves'
+areas and moved all four quadrants'; it was replaced the same day.
+
+**Storeys above.** Every storey above whose counterpart is also a grid gets the
+same relocation, so paths, and the stair shafts made of them, stay aligned.
+Where a storey above keeps only the halves (or one of them) there is no cell
+it could be once the halves run the other way, and the grid is not offered.
+Rotations and ratios there are dead fields; they are turned and copied to
+match, so they still read correctly if the storey below stops being cut.
+
+**Measured** on the twelve `1a24b6a+orth` artefacts: 52 grids, 39 of them with
+a grid on a storey above as well. Every quadrant's area is kept to 1e-6
+relative on `+orth` quad, skew quad and native trees. With the cross cuts put
+in line first, every leaf corner on every storey is where it was (`+orth` and
+native; on a skew quad tree a skew cut comes back straightened) --
+`tests/test_pivot.py`, with a negative control: turning the grid's cut
+without moving the quadrants, which is `mutate_rotate`, must register. The
+only change is a label: a cell above spanning the whole grid takes the grid's
+corner numbering, so its corner 0 turns.
+
+**But no evolved grid is in line.** 0 of 52 have their cross cuts within 1 cm;
+the jog is 1.38 m at the median and 10.6 m at most. Pivoted as they stand,
+before any inner loop, the child scores a median 3% of its parent (quartiles
+0.1%-49%; 5 of 52 better, the best 2.0x) with a median 4 more fails (-1 to
++27): the areas are kept, but a jog moved to the other axis changes every
+quadrant's proportions and which cells meet across the cuts. In practice the
+move is a large step that keeps the quadrants' contents and sizes and leaves
+the inner loop the shapes. Whether a search keeps such children is the A/B:
+default OFF (`--pivot` / `HOMEMAKER_PIVOT=1`, a `SEARCH_KNOBS` entry, and
+`flag_ab.py pivot`). **Expectation, before it runs**: null on fails, as most
+single-operator A/Bs have been; a move whose children start at 3% of their
+parent is kept only if the inner loop restores the shapes within a child
+budget.

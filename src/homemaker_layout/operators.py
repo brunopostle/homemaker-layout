@@ -230,6 +230,146 @@ def mutate_rotate(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"rotate {li}/{n.id or 'root'}"
 
 
+def _is_grid(n: dom.Node) -> bool:
+    """``n`` is cut, and each half is cut across that: four quadrants."""
+    return (n.divided and n.left.divided and n.right.divided
+            and n.left.rotation % 2 == 1 and n.right.rotation % 2 == 1)
+
+
+def _pivotable(lvls: "list[dom.Node]", li: int, n: dom.Node) -> bool:
+    """A live grid whose counterpart on every storey above is a single cell
+    or a grid too: a storey above that keeps only the two halves (or one of
+    them) has no cell left to be once the halves run the other way."""
+    if n.below is not None or not _is_grid(n):
+        return False
+    for lvl in lvls[li + 1:]:
+        a = lvl.by_id(n.id)
+        if a is not None and a.divided and not (a.left.divided and a.right.divided):
+            return False
+    return True
+
+
+def mutate_pivot(root: dom.Node, rng: np.random.Generator,
+                 types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
+    """Turn a grid of four quadrants on its other axis, keeping the quadrants.
+
+    A cell cut in two whose halves are each cut the other way is four
+    quadrants that two trees can draw: halves left and right, each cut across,
+    or halves top and bottom, each cut down. This swaps one for the other.
+    Each quadrant's subtree moves to the path of the corner it sits in, and
+    its ``rotation`` is turned by however much its parent's corner 0 has
+    turned, so it keeps its orientation and everything inside it is drawn the
+    same way.
+
+    The cuts keep every quadrant's plan AREA, not its walls (owner,
+    2026-10-21): the new primary splits the grid into the areas of its two new
+    halves, and each half's cut then gives each quadrant its old area back.
+    Where the old cross cuts are in line that is the same plan; where they
+    jog, the jog moves to the other axis. Only the choice of grid is random.
+
+    Every storey above whose counterpart is a grid gets the same relocation,
+    so paths -- and the stair shafts made of them -- stay aligned. Rotations
+    and ratios there are dead fields; they are turned and copied to match, so
+    they still read correctly if the storey below ever stops being cut.
+    """
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+    cands = [(li, n) for li, n in _owned_branches(child) if _pivotable(lvls, li, n)]
+    if not cands:
+        return _finalise(child), "pivot noop"
+    li, n = _pick_weighted_by_storey(rng, cands, base_p)
+    _pivot(lvls, li, n)
+    return _finalise(child), f"pivot {li}/{n.id or 'root'}"
+
+
+def _pivot(lvls: "list[dom.Node]", li: int, n: dom.Node) -> None:
+    """`mutate_pivot` on grid ``n`` of storey ``li``, in place."""
+    from . import geometry
+
+    L, R = n.left, n.right
+    dom.link(lvls[0])
+    geometry.clear_cache()
+
+    # Turns are counted in n's own frame: n's corner 0 is corner 0. A node of
+    # turn T has its left child on corners {T, T+3}, its right on {T+1, T+2}.
+    def sides(turn: int, corners: "set[int]") -> "tuple[int, int]":
+        lo = ({turn % 4, (turn + 3) % 4} & corners).pop()
+        hi = ({(turn + 1) % 4, (turn + 2) % 4} & corners).pop()
+        return lo, hi
+
+    old = {}            # grid corner -> (path under n, parent's turn, area)
+    for half, hp, corners in ((L, "l", {0, 3}), (R, "r", {1, 2})):
+        lo, hi = sides(half.rotation, corners)
+        old[lo] = (hp + "l", half.rotation, geometry.area(half.left))
+        old[hi] = (hp + "r", half.rotation, geometry.area(half.right))
+
+    # n turns a quarter round; each new half is cut a quarter round from it.
+    # (Turning by three, or cutting by three, is the same plan spelt with
+    # `l` and `r` the other way: it would change labels, never a wall.)
+    k = j = 1
+    new = {}            # grid corner -> (new path under n, turn delta)
+    for hp, corners in (("l", {k % 4, (k + 3) % 4}),
+                        ("r", {(k + 1) % 4, (k + 2) % 4})):
+        lo, hi = sides(k + j, corners)
+        for d, qp in ((lo, hp + "l"), (hi, hp + "r")):
+            new[d] = (qp, old[d][1] - (k + j))
+
+    for lvl in lvls[li:]:
+        a = lvl.by_id(n.id)
+        if a is None or not a.divided:
+            continue
+        quads = {d: a.by_id(old[d][0]) for d in range(4)}
+        a.rotation = (a.rotation + k) % 4
+        a.left.rotation = a.right.rotation = j
+        for d, (qp, delta) in new.items():
+            q = quads[d]
+            q.rotation = (q.rotation + delta) % 4
+            half = a.left if qp[0] == "l" else a.right
+            if qp[1] == "l":
+                half.left = q
+            else:
+                half.right = q
+
+    # the cuts: primary first, since the halves are drawn inside it
+    dom.link(lvls[0])
+    area = {qp: old[d][2] for d, (qp, _) in new.items()}
+    _cut_for_area(n, area["ll"] + area["lr"])
+    _cut_for_area(n.left, area["ll"])
+    _cut_for_area(n.right, area["rl"])
+    for lvl in lvls[li + 1:]:
+        a = lvl.by_id(n.id)
+        if a is not None and a.divided:
+            for hp in ("", "l", "r"):
+                a.by_id(hp).division = list(n.by_id(hp).division)
+    geometry.clear_cache()
+
+
+def _cut_for_area(x: dom.Node, target: float) -> None:
+    """Set ``x``'s ratio so its left child has area ``target``.
+
+    Solved against `geometry.area` rather than worked out, because only on a
+    rectangle is a ratio a fraction of the area: beside a skew plot boundary,
+    or cropped to a native plot, it is not. A skew cut is straightened (both
+    ends at the same ratio). Where no ratio reaches the target, the nearer end
+    of the range is the closest the cut can come.
+    """
+    from scipy.optimize import brentq
+    from . import geometry
+
+    def gap(t: float) -> float:
+        x.division = [t] * len(x.division)
+        geometry.clear_cache()
+        return geometry.area(x.left) - target
+
+    lo, hi = 1e-9, 1.0 - 1e-9
+    g_lo, g_hi = gap(lo), gap(hi)
+    if g_lo * g_hi < 0:
+        t = brentq(gap, lo, hi, xtol=1e-15)
+    else:
+        t = lo if abs(g_lo) <= abs(g_hi) else hi
+    gap(t)
+
+
 def mutate_level_fix(root: dom.Node, rng: np.random.Generator,
                      types: list[str], reqs=None) -> tuple[dom.Node, str]:
     """Atomically move a level-constrained room to its required floor.
@@ -3338,6 +3478,7 @@ MUTATIONS = {
     "retype": mutate_retype,
     "swap": mutate_swap,
     "rotate": mutate_rotate,
+    "pivot": mutate_pivot,
     "reassociate": mutate_reassociate,
     "core_divide": mutate_core_divide,
     "core_undivide": mutate_core_undivide,
@@ -3365,7 +3506,7 @@ MUTATIONS = {
 # base storey for these via ``base_p`` (DESIGN.md §11.3). The repair op
 # ``place_missing`` is deliberately excluded — a missing base room must still be
 # repairable — as are the core_* ops, which exist to MAINTAIN the core.
-_BASE_P_OPS = ("divide", "undivide", "retype", "swap", "rotate")
+_BASE_P_OPS = ("divide", "undivide", "retype", "swap", "rotate", "pivot")
 
 
 def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
