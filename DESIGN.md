@@ -18347,6 +18347,9 @@ resolves nothing paired, so the expectations are about distributions:
 4. Crinkliness remains the largest fail family.
 5. Total run-hours within 10% of the last sweep's, slightly lower (write-back).
 
+`experiments/check_rebaseline_expectations.py --objective 0d79403+orth
+--against 4428262+orth` checks these five; `decompose_coldstart.py` has the rest.
+
 ### 39.158 `--retype-kind`: label moves that the scorer's relabelling cannot erase (`homemaker-py-urzf.2`)
 
 §39.154 found that under label write-back the scorer's relabelling erases
