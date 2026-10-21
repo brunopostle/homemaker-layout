@@ -116,7 +116,7 @@ def buckets(reqs, n_storeys: int, rng, caps: "list[float] | None" = None) -> lis
 
     With ``caps`` (each storey's built area) the rest go largest first, each to
     the storey it leaves least full relative to its area, ties at random: the
-    round-robin overflows a storey in up to 53 of 200 splits (§39.149, §39.161)."""
+    round-robin overflows a storey in up to 53 of 200 splits (§39.149, §39.160)."""
     prog = operators._programme_codes(reqs)
     out: list[list[str]] = [[] for _ in range(n_storeys)]
     free = []
@@ -529,7 +529,7 @@ SPINE_HOLD = "_wing"  # a wing's placeholder type while spines are laid: not cir
 
 
 def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.Node]:
-    """`homemaker-py-2g7.13.1.7` (DESIGN.md §39.159-§39.160): lay a corridor
+    """`homemaker-py-2g7.13.1.7` (DESIGN.md §39.159, §39.161): lay a corridor
     through every wing BEFORE any room is placed, so that no room ever has
     to be crossed to join the storey, as the owner's hand2a does.
 
@@ -635,7 +635,7 @@ def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
             spines = [lf for w in wings if w.divided for lf in w.leaves()
                       if lf.type == "C" and lf not in parts]
             # the spine IS the storey's circulation: cells the assignment adds
-            # beside it were cut loose by sizing (§39.160), so it adds none
+            # beside it were cut loose by sizing (§39.161), so it adds none
             n_circ = 0 if spines else n_circ
         # +1: the assignment always places one O in scope, on the most
         # landlocked cell. On the ground it goes back to C (the footprint
@@ -847,11 +847,11 @@ def main(argv=None) -> int:
                          "(DESIGN.md §39.151), so these vary the start, not the end")
     ap.add_argument("--spine", action="store_true",
                     help="lay a corridor through every wing before rooms are placed "
-                         "(homemaker-py-2g7.13.1.7, DESIGN.md §39.160)")
+                         "(homemaker-py-2g7.13.1.7, DESIGN.md §39.161)")
     ap.add_argument("--split", choices=("dealt", "capacity"), default="dealt",
                     help="how rooms are shared over storeys: dealt round-robin, or by "
                          "area against each storey's built area (homemaker-py-2g7.13.1.8, "
-                         "DESIGN.md §39.161)")
+                         "DESIGN.md §39.160)")
     ap.add_argument("--prefix", default="wings", help="written seeds are <prefix>-<rank>.dom")
     ap.add_argument("--out-dir", default=None,
                     help="where --write saves (default: the programme's directory)")

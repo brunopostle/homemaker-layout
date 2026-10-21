@@ -18428,3 +18428,54 @@ walls away from the corners.
    reserve a circulation strip across each wing junction BEFORE rooms are
    allocated, so no room is ever crossed. A larger change to the seeder, and
    no room loses area to a corridor after the fact.
+
+### 39.160 A capacity-aware storey split stops storeys overflowing, and leaves the seeds' fail count where it was (`homemaker-py-2g7.13.1.8`)
+
+§39.149 found `seed_from_catalogue.buckets` -- rooms dealt to storeys
+round-robin over a shuffled order -- overflowing a storey's built area in up
+to 53 of 200 splits. `--split capacity` (default `dealt`, 4289587) keeps the
+level-bound rooms where they are and sends the rest largest first, each to the
+storey it leaves least full relative to that storey's built area (its cells
+less courts and stair cores), ties at random.
+
+**What it fixes.** Harbor-house's three §39.149 plans, 200 splits each,
+the fullest storey's summed minimum room area over its built area:
+
+| plan | dealt: median / max / overflowing | capacity: every split |
+|---|---|---|
+| `H(B V(B H(O B) O))` | 94% / 118% / 46 | 66% |
+| `H(B V(B H(O B)) O)` | 97% / 122% / 46 | 69% |
+| `H(V(B H(O V(O B))) B)` | 100% / 126% / 147 | 71% |
+
+The dealt figures are higher than §39.149's (85-90%, 4 / 4 / 53) because the
+capacity here is what the seeder actually has after it cuts the stair cores,
+not the wings' rectangles. The capacity split's spread is zero: with distinct
+room sizes the greedy is deterministic up to swapping equal-sized rooms, so it
+removes a dimension of seed variety -- one the search can still move.
+
+**What it does to seeds: nothing measurable.** The 18 harbor-house seeds of
+§39.147, built both ways, 200 inner-loop evaluations each, paired by plan:
+
+| | dealt | capacity |
+|---|---|---|
+| tuned fails, median | 84.5 | 83.5 |
+| paired difference (capacity - dealt) | | mean -0.06; 12 better, 6 worse (sign test p = 0.24) |
+| storeys `not connected` (of 48) | 40 | 34 |
+| missing rooms | 0 | 0 |
+| `size` fails | 375 | 299 |
+| `proportion` / `access` / `not adjacent to c` | 141 / 226 / 226 | 175 / 244 / 247 |
+| all fails | 1518 | 1517 |
+
+The split does what it was built for -- size fails fall by a fifth -- and the
+fails move elsewhere: rooms that now fit their storey's area are squeezed into
+cells of the wrong shape (proportion), and a fuller ground floor loses access
+and corridor adjacency. Paired differences run from -23 to +38; the median
+seed improves by 3, the worst loses 38 (`H(V(B O) B)`, 70 -> 108).
+
+**Reading.** Not a seed-quality lever on its own, and §39.155 showed seed
+fail counts do not predict a halving's winner anyway. It is kept as an
+option, default `dealt`, because an overflowing storey is a defect a search
+has to undo, and whether a race prefers seeds without it is a box question:
+the expectation, written before any race, is **no difference in the winner's
+fails** (within the halving's seed-to-seed spread), with the capacity arm's
+winner carrying fewer `size` fails.

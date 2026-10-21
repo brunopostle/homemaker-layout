@@ -97,6 +97,7 @@ index is how to get from a question to the section that answers it.
 | §39.157 | Re-baseline at `0d79403+orth` (stair separation; search: label write-back, `aim`, height cap), expectations before it runs: the objective change re-scores the last corpus unchanged, 12 of 12; no programme's mean fails leaves the last corpus's range; programme-house median score >= 0.22; crinkliness still the largest family. |
 | §39.158 | `--retype-kind` (branch, default off): `retype` / `level_retype` change only a cell's kind, because the scorer's relabelling moves room codes among room cells and never touches a generic one. Census: erased draws 28-70% -> 0% on all four programmes. Loses the room -> room edits that survived; maple-court A/B (n = 4, expected null) after the re-baseline. |
 | §39.159 | Connection is kept, not made: every cold run on maple-court, harbor-house and health-centre ends with every storey `not connected`; of 103 halving candidates five started connected (`hand2a` stayed so through all six stages), and no disconnected one was ever joined. The lever is the seeder (36 of 54 storeys disconnected); through-corridor or spine-first is the owner's choice. |
+| §39.160 | Capacity-aware storey split (`--split capacity`, default dealt): no storey overflows its built area (0 of 600 splits, against 46-147 of 200 per plan), size fails fall a fifth, but proportion/access/adjacency take them up and the 18 harbor seeds' fails do not move (median 84.5 -> 83.5, paired mean -0.06, p 0.24). |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -173,6 +174,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | `--light-well` on harbor-house | §39.152 | null at n = 4; crinkliness 44 -> 39 over four designs, size 15 -> 23 |
 | Pruning the catalogue filter by a tree's capacity (on the plot, or on the scale-free ladder) | §39.148 | not lossless: the capacity hill-climb under-finds, losing 45 of 199 and 218 of 1,172 health-centre outlines; and the filter was never the slow part |
 | `shapecurve` exact feasibility as a filter on room-to-wing allocations | §39.149 | prunes none of 540 CP-SAT bins; area capacity does all the work |
+| capacity-aware storey split, on seed fail counts | §39.160 | paired mean -0.06 fails over 18 harbor seeds; size fails move to proportion, access and adjacency |
 | A child budget that depends on the move; supporting a terrace without shrinking a room | §39.122 | both SET ASIDE unbuilt, not measured negative; the section says what would bring each back |
 
 ## Where the current state is
@@ -184,7 +186,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (264 of them, 18430 lines)
+## Every section of DESIGN.md (265 of them, 18481 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -499,4 +501,5 @@ below are the most recent work.
 - §39.156 · 18300-18327 · `aim` at 48 pairs: the score resolves in its favour, the fail count does not (`homemaker-py-iplo`)
 - §39.157 · 18328-18361 · Re-baseline at `0d79403+orth`: what it is expected to show, written before it runs
 - §39.158 · 18362-18397 · `--retype-kind`: label moves that the scorer's relabelling cannot erase (`homemaker-py-urzf.2`)
-- §39.159 · 18398-18430 · The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
+- §39.159 · 18398-18431 · The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
+- §39.160 · 18432-18481 · A capacity-aware storey split stops storeys overflowing, and leaves the seeds' fail count where it was (`homemaker-py-2g7.13.1.8`)

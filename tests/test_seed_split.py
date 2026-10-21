@@ -1,4 +1,4 @@
-"""The seeder's storey split (experiments/seed_from_catalogue.buckets, DESIGN.md §39.161)."""
+"""The seeder's storey split (experiments/seed_from_catalogue.buckets, DESIGN.md §39.160)."""
 import sys
 from collections import Counter
 from pathlib import Path
