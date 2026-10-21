@@ -231,19 +231,20 @@ def _parse_args(argv=None) -> argparse.Namespace:
                    help="homemaker-py-y4p4.2 (DESIGN.md §39.128), owner's "
                         "ruling: let the inner loop tune each storey's "
                         "floor-to-floor height with the walls, so a deep room "
-                        "can earn its daylight by a higher ceiling. Never "
-                        "below 2.7 m; no ceiling, the cost of the walls is "
-                        "what holds it down. Changes what a search does; the "
-                        "A/B that decides the default has not been run "
-                        "(default: off)")
+                        "can earn its daylight by a higher ceiling. Within the "
+                        "brief's storey_height_min / storey_height_max "
+                        "(default 2.7-3.9 m) in whole storey_height_module "
+                        "courses (default 75 mm), §39.153. Its A/B "
+                        "(§39.152, before the cap) was worse on "
+                        "programme-house hard fails (default: off)")
     p.add_argument("--light-well", dest="light_well",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_LIGHT_WELL", False),
                    help="homemaker-py-evxm: a move that cuts a well of outdoor "
                         "space, open to the sky, beside a cell no daylight "
                         "reaches -- the owner's alley (DESIGN.md §39.125). "
-                        "Changes what a search does; the A/B that decides it "
-                        "has not been run (default: off)")
+                        "Its A/B on harbor-house (§39.152, n = 4) was null "
+                        "(default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
