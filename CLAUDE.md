@@ -462,6 +462,19 @@ Three consequences that bite:
   CPU milliseconds (wall-clock on a busy box swung 2x), `--self-test` for the
   control (§39.105). Profile before choosing what to optimise: the bead that
   prompted it named the wrong hot spot.
+- **The catalogue pipeline** (§39.145-§39.155), the route that beat cold search
+  on harbor-house and maple-court: `wings_catalogue.py` enumerates the generic
+  partis and filters them for daylight, `seed_from_catalogue.py` builds seeds
+  from them with several stair placements each, and `successive_halving.py`
+  races the seeds (each stage continues the last; put a few copies of
+  `init.dom` in the field as its own cold control). `run_halving_maple.sh` is
+  the worked example; `diag_halving_stairs.py` and `diag_halving_carry.py`
+  say whether the winner's stairs moved and whether it kept its seed's plan.
+- `experiments/prefill_control.py` — give a new A/B the control arm of an
+  earlier one instead of re-running it. It refuses unless every row it would
+  copy was made at TODAY's objective stamp and search commit, and that refusal
+  is right: a default that changed since means the old control is no longer
+  the default search.
 - `experiments/trace_harbor_house.py` — reads an architectural SVG, and asks whose
   it is FIRST. §39.77 is the write-up of not doing that.
 
@@ -809,7 +822,7 @@ validated by "Urb did it this way" — several defects found in §39 were carrie
 straight over from the Perl.
 
 
-### Running the re-baseline (NOT running now — re-read this before starting it)
+### Running the re-baseline (check whether one is running first — see *Current state*)
 
 ```bash
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1

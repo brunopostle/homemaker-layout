@@ -103,10 +103,14 @@ EXPERIMENTS = {
                 env="HOMEMAKER_CORE_UNDIVIDE_REPAIRED",
                 bead="homemaker-py-w4e, DESIGN.md §39.106",
                 what="core_undivide repaired against the shipped operator"),
+    # RUN (§39.152): worse on programme-house hard fails, null on harbor-house
+    # but with 5-11 m storeys; default OFF. The storey cap and 75 mm courses
+    # (§39.153) landed since, so a re-run is a new measurement, not an extension.
     "heights": dict(arms=("fixed", "heights"), flag="--tune-heights",
                     env="HOMEMAKER_TUNE_HEIGHTS",
                     bead="homemaker-py-y4p4.2, DESIGN.md §39.128",
                     what="storey heights tuned by the search against fixed at 3.0 m"),
+    # RUN (§39.152, harbor-house n = 4): null; default OFF.
     "well": dict(arms=("nowell", "well"), flag="--light-well",
                  env="HOMEMAKER_LIGHT_WELL",
                  bead="homemaker-py-evxm",
