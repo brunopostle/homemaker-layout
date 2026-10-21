@@ -18315,3 +18315,34 @@ on the objective, on one programme; the owner decides the default.
 re-baseline, so that the re-baseline measures it on all four programmes.
 `--no-aim-undivide` / `HOMEMAKER_AIM_UNDIVIDE=0` turns it off; `flag_ab.py
 aim`'s `random` arm now needs that to be a control.
+
+### 39.157 Re-baseline at `0d79403+orth`: what it is expected to show, written before it runs
+
+Since `4428262+orth` (§39.137's corpus), four things landed:
+
+- **`stair-separation` (objective, §39.143):** two stairs count as two only if
+  half the building's diagonal apart. Re-scored with today's code, all twelve
+  `4428262+orth` designs keep their fail count and score to the digit: every
+  one with a stair fail already had too few stairs, so no close pair arose.
+  The objective change is therefore priced at zero on the last corpus; it
+  bites only where a search builds two stairs close together.
+- **label write-back on (search, §39.153):** null in fails on
+  programme-house, 4% faster.
+- **`aim` on (search, §39.156):** score better on programme-house, fails
+  unresolved.
+- **height cap and 75 mm courses (search, §39.153):** inert at the default,
+  since `--tune-heights` stays off.
+
+Search commit `4c0f28c`, config `bbbbf9b90b`. **Expected:** n = 3 a programme
+resolves nothing paired, so the expectations are about distributions:
+
+1. No programme's mean fails moves outside the previous corpus's range
+   (programme-house 0-1, health-centre 3-8, harbor-house 24-37, maple-court
+   60-67).
+2. Programme-house scores are at least as high on median (0.22 before), the
+   one place §39.156 resolved.
+3. `too few stairs` appears on at least as many harbor-house and maple-court
+   runs as before (5 of 6): cold runs rarely build a second stair, so the new
+   rule rarely meets a close pair, and where one does appear it counts as one.
+4. Crinkliness remains the largest fail family.
+5. Total run-hours within 10% of the last sweep's, slightly lower (write-back).
