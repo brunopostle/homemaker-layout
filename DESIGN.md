@@ -18479,3 +18479,64 @@ has to undo, and whether a race prefers seeds without it is a box question:
 the expectation, written before any race, is **no difference in the winner's
 fails** (within the halving's seed-to-seed spread), with the capacity arm's
 winner carrying fewer `size` fails.
+
+### 39.161 Spine first: a corridor through every wing before rooms are placed connects 10 of 16 maple-court seeds outright, once two seeder bugs were found (`homemaker-py-2g7.13.1.7`)
+
+§39.159 found that the search keeps a connected storey but never makes one,
+and that `seed_from_catalogue.py` leaves most storeys disconnected. The
+bead's two options were a corridor cut through a room after the fact, or
+**spine first**, the owner's `hand2a` pattern: give each wing a 1.6 m strip
+of circulation -- along an edge, or (two cuts) through its middle -- BEFORE
+any room exists, so no room is ever crossed. `--spine` (default off) does
+that: each wing's strip is chosen from 8 edge and 96 through placements to
+leave the storey's circulation (strips and stairs) in the fewest pieces, two
+greedy rounds over the wings; the rest of each wing is the scope rooms grow
+into, and the room assignment adds no circulation of its own beside a spine
+(sizing cut those cells loose).
+
+**The first census was worse than no spine**, and the reason was two bugs:
+
+1. **The tie-break.** Placements were ranked (pieces, strip area). Where no
+   single strip could join the storey, the smallest strip won: a 1.6 x 1.6 m
+   stub beside each stair that joined nothing. Placements are now ranked by
+   pieces, then by how far the pieces are from a door's width of shared wall
+   (`_gap`; two strips meeting at a corner are 0 m apart and still not
+   joined), then area.
+2. **Upstairs geometry.** `dom.link(lvl)` links a storey and those above it,
+   never the storey to the one below. Every placement chosen upstairs -- the
+   spine's, and `bridge_indoors` / `bridge_strip`'s -- was scored with its
+   cuts read as the storey's own; when the building was next linked they
+   inherited the different cut beneath them and the strip moved, on one
+   traced storey to a 0.1 m sliver. `_relink` links the whole building. The
+   no-spine seeds below are identical before and after this fix, so the
+   older bridging happened not to be affected on these plans.
+
+Maple-court, the 16 catalogue plans, one stair placement each, 200 inner-loop
+evaluations, paired by plan:
+
+| | no spine | spine, first | spine, fixed |
+|---|---|---|---|
+| storeys `not connected` (of 61) | 57 | 59 | **11** |
+| plans with every storey connected | 0 | 1 | **10** |
+| tuned fails, median | 120 | 137.5 | 116.5 |
+| tuned fails, best seed | 97 | 120 | **90** |
+| paired difference, fixed spine - none | | | mean -1.75; 10 better, 6 worse |
+
+The fail count barely moves, because connection is few fails and the strips
+cost others: the earlier single-plan trace showed access, proportion and
+adjacency rising as rooms away from a spine lose their way in and an extra
+cut costs a room its shape. Paired differences run from -45 to +38.
+
+**Reading.** What a seed carries into a search that the search cannot make
+for itself is now there in most seeds: §39.159 found connection kept and
+never created. Seed fail counts did not predict §39.155's winner, so the test
+is a race. **Expectation, before it runs**: a maple-court successive halving
+with the spine seeds beside the no-spine ones (same plans, same budget) is
+won by a spine seed, its winner ends with 0 `not connected` fails (§39.155's
+winner carried 3), and the winner's total fails are no worse than the
+no-spine field's winner's. Needs the box.
+
+Not yet addressed: two storeys of the traced plan picked up stray
+circulation late in the build -- a ground cell the assignment leaves as `C`,
+and a terrace a room is later built over, retyped to `C` -- both outside the
+spine and both reconnected only if `bridge_indoors` manages it.

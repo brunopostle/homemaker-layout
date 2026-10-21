@@ -98,6 +98,7 @@ index is how to get from a question to the section that answers it.
 | §39.158 | `--retype-kind` (branch, default off): `retype` / `level_retype` change only a cell's kind, because the scorer's relabelling moves room codes among room cells and never touches a generic one. Census: erased draws 28-70% -> 0% on all four programmes. Loses the room -> room edits that survived; maple-court A/B (n = 4, expected null) after the re-baseline. |
 | §39.159 | Connection is kept, not made: every cold run on maple-court, harbor-house and health-centre ends with every storey `not connected`; of 103 halving candidates five started connected (`hand2a` stayed so through all six stages), and no disconnected one was ever joined. The lever is the seeder (36 of 54 storeys disconnected); through-corridor or spine-first is the owner's choice. |
 | §39.160 | Capacity-aware storey split (`--split capacity`, default dealt): no storey overflows its built area (0 of 600 splits, against 46-147 of 200 per plan), size fails fall a fifth, but proportion/access/adjacency take them up and the 18 harbor seeds' fails do not move (median 84.5 -> 83.5, paired mean -0.06, p 0.24). |
+| §39.161 | Spine first (`--spine`, default off): a strip of circulation through every wing before rooms are placed. After two seeder bugs (a tie-break that chose 1.6 m stubs; upstairs cuts scored before being linked to the storey below), disconnected storeys fall 57 -> 11 of 61 and 10 of 16 maple seeds are fully connected (none before); fails barely move (median 120 -> 116.5). A halving race is the test. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -186,7 +187,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (265 of them, 18481 lines)
+## Every section of DESIGN.md (266 of them, 18542 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -502,4 +503,5 @@ below are the most recent work.
 - §39.157 · 18328-18361 · Re-baseline at `0d79403+orth`: what it is expected to show, written before it runs
 - §39.158 · 18362-18397 · `--retype-kind`: label moves that the scorer's relabelling cannot erase (`homemaker-py-urzf.2`)
 - §39.159 · 18398-18431 · The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
-- §39.160 · 18432-18481 · A capacity-aware storey split stops storeys overflowing, and leaves the seeds' fail count where it was (`homemaker-py-2g7.13.1.8`)
+- §39.160 · 18432-18482 · A capacity-aware storey split stops storeys overflowing, and leaves the seeds' fail count where it was (`homemaker-py-2g7.13.1.8`)
+- §39.161 · 18483-18542 · Spine first: a corridor through every wing before rooms are placed connects 10 of 16 maple-court seeds outright, once two seeder bugs were found (`homemaker-py-2g7.13.1.7`)
