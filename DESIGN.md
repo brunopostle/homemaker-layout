@@ -17226,6 +17226,17 @@ score result stands on its own), so it is filed, not built
 fit; with `too few stairs` it means no stair. Count the second when
 counting stairless designs.
 
+**Addendum, 2026-10-21: built** (`homemaker-py-4ln3.1`). `_stair_path`'s
+fallback now takes only an address that is a circulation leaf on every
+existing storey -- one that becomes a column when typed `E` -- and the move
+declines on a multi-storey parent with no such address. The census
+(`--from-broken`, 8 draws a design): parents with no shaft moved 104 times
+and got a stair in 59 (all 58 health-centre single-storey moves, and 1 of 46
+multi-storey); now 61 times with a stair in all 61 (programme-house 3 of 3,
+harbor-house now declining its 15; maple-court never moved either way). Parents with a shaft are unchanged
+(185 moves, 0 lost). `tests/test_level_add_migrate.py` holds both cases and
+fails on the old operator.
+
 ### 39.141 `--seed-solver` buys a head start that is gone inside a thousand evaluations; it stays off (`homemaker-py-8b2u.21`)
 
 The A/B §39.118 owed: `seedsolve` in the flag A/B tool, 500k, objective
