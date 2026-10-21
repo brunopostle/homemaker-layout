@@ -18711,3 +18711,24 @@ fixed CONTEXT cells along its cut sides -- a strip of `O` where the court
 was, a `C` stub where the corridor joins -- that the search may not change,
 and then the test that decides it: solve each wing alone, put the wings back
 into the building, and score the whole.
+
+**Reassembled, the same day.** Each stand-alone wing pasted back over the
+original at path `l` (its root is drawn in the wing's own frame, so its cuts
+transfer as they are), the whole building scored:
+
+| wing pasted back | building fails | in the wing | what else broke |
+|---|---|---|---|
+| as built (the control) | 8 | 3 | nothing: the winner's 8, exactly |
+| cold s1 | 11 | 3 | the next wing's `n` loses its corridor (`not adjacent to c`, `access`); `too few stairs (1, min 2)` |
+| cold s2 | 14 | 4 | the next wing's `n` and `t` lose their corridor (4 fails) |
+| cold s0 | 23 | 13 | the same, and its own poorer wing |
+
+Inside the wing the cold designs are as good as the original; what they lose
+is outside it, in BOTH directions -- the neighbouring wing's rooms reached
+circulation across the cut, and a wing that moves its stair can leave the
+building one short (two stairs count only if far enough apart, §39.143). So
+the pilot's answer: decomposition loses exactly the relations that cross a
+cut, and nothing else measurable here. Context cells along each cut -- the
+corridor's continuation and the stair's place fixed, as well as the court --
+are the precondition for going further. Freezing a cell is a search-side
+change (no operator respects a fixed cell today).
