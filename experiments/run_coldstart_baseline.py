@@ -166,7 +166,8 @@ SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
                 "multi_use", "pop", "repair_shaft", "ruin_recreate", "seed_solver",
                 "shapecurve_prune", "shapecurve_warmstart", "superpose",
                 "support_outside", "use_tiers", "anneal_grain", "polish_budget",
-                "tune_heights", "light_well", "label_writeback", "aim_undivide")
+                "tune_heights", "light_well", "label_writeback", "aim_undivide",
+                "retype_kind")
 
 
 def search_commit() -> str:
