@@ -18346,3 +18346,39 @@ resolves nothing paired, so the expectations are about distributions:
    rule rarely meets a close pair, and where one does appear it counts as one.
 4. Crinkliness remains the largest fail family.
 5. Total run-hours within 10% of the last sweep's, slightly lower (write-back).
+
+### 39.158 `--retype-kind`: label moves that the scorer's relabelling cannot erase (`homemaker-py-urzf.2`)
+
+§39.154 found that under label write-back the scorer's relabelling erases
+28-70% of `retype` and `level_retype` draws. The reason is in
+`Fitness.collapse_global`: it reassigns room codes among the cells that
+already hold one, and never touches a generic cell (`C`, `O`, `S`, `E`). So
+the part of a label edit the relabelling can undo is exactly a room becoming
+another room; a change of KIND (room <-> `C` <-> `O`) survives it.
+
+Built on branch `retype-kind` (f61a8fc, search-side, default OFF):
+`--retype-kind` / `HOMEMAKER_RETYPE_KIND=1` makes `retype` choose a different
+kind (a cell that becomes a room takes a room code at random, and the
+relabelling chooses which room), and `level_retype` swap only cells of
+different kinds. `swap` is untouched: it moves walls' children, not labels
+alone. `tests/test_retype_kind.py` holds both, each with the default as its
+negative control (room -> room is over a quarter of default draws).
+
+**The census re-run with the flag** (`diag_urzf_label_moves.py`, same 20 draws
+per design at `4428262+orth`): `undone` falls to **0%** for `retype` and
+`level_retype` on all four programmes (from 38/65/47/70% and 28/-/47/55%).
+`swap` reads as before. As on finished designs before, a surviving edit is
+almost never better (1 better in 413, harbor-house) -- §39.75's reading
+again: this says the moves now do what they are drawn as, not that they help.
+
+**What it costs:** the room -> room retypes that DID survive the relabelling
+(30-62% of draws) are gone too. Whether those were useful mid-run is the
+question the census cannot answer and the A/B must.
+
+**A/B, expected before it runs:** maple-court (the largest erased share, 10%
+of all draws), n = 4 a side, `flag_ab.py kind`, ~17 h for one wave of 8 runs,
+after the re-baseline and the branch's merge. Expected: **null** on total
+fails at n = 4 (the MDD on maple-court is ~10 fails, and the lever is 10% of
+draws); a resolved change in either direction would be a surprise. Worth
+running only because a null here closes `urzf.2` cheaply; a positive result
+would need harbor-house before a default.
