@@ -439,3 +439,37 @@ def test_eligible_admits_sharing_but_still_excludes_superpose():
     assert shapecurve.eligible(None, leaf_sharing=True, max_share=4, multi_use=True)
     assert not shapecurve.eligible(None, superpose=True)
     assert not shapecurve.eligible(None, leaf_sharing=True, superpose=True)
+
+
+# homemaker-py-3kp (DESIGN.md §39.164): the DP realised each storey at ONE point,
+# the middle of every split's interval, before looking at the storey above. On
+# programme-house s1 that point leaves the first floor unfittable, though the
+# design's own ratios are shape-fail-free -- a witness. Now a storey whose own
+# ratios pass is tried at them first.
+PH_S1 = (Path(__file__).parent.parent / "examples" / "programme-house"
+         / "coldstart-c836457+orth-500000-s1.dom")
+
+
+@pytest.mark.skipif(not PH_S1.is_file(), reason="corpus artefact absent")
+def test_a_storey_keeps_its_own_ratios_when_the_storey_above_needs_them(monkeypatch):
+    monkeypatch.setattr(geometry, "ORTHOGONAL_DIVISION", True)
+    geometry.clear_cache()
+    fit = fit_mod.Fitness(*fit_mod.load_config(str(PH_S1.parent)))
+    root = dom.load(str(PH_S1))
+    _score, fails = fit.score_with_fails(copy.deepcopy(root))
+    assert not [f for f in fails if f.split()[-1] in ("size", "width", "proportion")]
+    assert shapecurve.is_feasible(root, fit)
+
+    # Control: give the ground floor the DP's own point as its ratios, which
+    # is what the old solve committed it to -- the storey above then fails,
+    # so the verdict above came from the backtrack and not from luck.
+    probe = copy.deepcopy(root)
+    dom.merge_divided(probe)
+    geometry.clear_cache()
+    for region in shapecurve._region_roots(dom.levels(probe)[0]):
+        if region.divided:
+            feas, curves, grid, w, h = shapecurve._check(region, fit, 150)
+            assert feas.feasible
+            shapecurve.realise(region, curves, grid, w, h)
+    geometry.clear_cache()
+    assert not shapecurve.is_feasible(probe, fit)

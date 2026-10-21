@@ -505,29 +505,60 @@ def _solve_all_levels(root: dom_mod.Node, fit, grid_n: int, *, commit: bool) -> 
     restores (``commit=False``), matching its pre-existing never-writes
     contract; ``solve`` keeps the writes only on overall success, the same
     all-or-nothing contract the single-storey version always had.
+
+    A storey's realised point is one of many, and the storey above depends on
+    which (homemaker-py-3kp). The DP's own point, the middle of every split's
+    interval, committed programme-house s1's ground floor to a point its first
+    floor could not fit, though the design's ratios were a witness that one
+    exists. So a storey below the top whose OWN ratios already pass every
+    leaf tries them first, and the DP's point only if the storeys above
+    cannot be fitted to them. Off-centre points (a quantile of every interval
+    instead of the middle) were tried too and rescued nothing, even at 19 of
+    them (DESIGN.md §39.164), so they are not offered.
     """
     levels = dom_mod.levels(root)
     snapshot = [(n, tuple(n.division)) for lvl in levels for n in _divided_nodes(lvl)]
+    own = [[(n, list(n.division)) for n in _divided_nodes(lvl)] for lvl in levels]
     w_plot, h_plot = _dims(levels[0])
+    stats = {"n_regions": 0, "attempts": 0}
 
-    feasible = True
-    n_regions = 0
-    for level_root in levels:
-        if not feasible:
-            break
-        for region_root in _region_roots(level_root):
+    def restore(i: int) -> None:
+        for n, d in own[i]:
+            n.division = list(d)
+        geometry.clear_cache()
+
+    def solve_from(i: int) -> bool:
+        if i == len(levels):
+            return True
+        restore(i)               # the tree's own ratios, whatever a retry left
+        free = []
+        for region_root in _region_roots(levels[i]):
             if not region_root.divided and region_root.below is not None:
                 if not _leaf_feasible(fit, region_root):
-                    feasible = False
-                    break
+                    return False
                 continue
-            n_regions += 1
+            stats["n_regions"] += 1
             feas, curves, grid, w, h = _check(region_root, fit, grid_n)
             if not feas.feasible:
-                feasible = False
-                break
-            realise(region_root, curves, grid, w, h)
-            geometry.clear_cache()
+                return False
+            free.append((region_root, curves, grid, w, h))
+        tries = ["dp"]
+        if i < len(levels) - 1 and all(_leaf_feasible(fit, leaf)
+                                       for r, *_ in free for leaf in r.leaves()):
+            tries.insert(0, "own")
+        for how in tries:
+            stats["attempts"] += 1
+            if how == "own":
+                restore(i)
+            else:
+                for region_root, curves, grid, w, h in free:
+                    realise(region_root, curves, grid, w, h)
+                geometry.clear_cache()
+            if solve_from(i + 1):
+                return True
+        return False
+
+    feasible = solve_from(0)
 
     if not commit or not feasible:
         for n, d in snapshot:
@@ -536,7 +567,8 @@ def _solve_all_levels(root: dom_mod.Node, fit, grid_n: int, *, commit: bool) -> 
 
     return feasible, {
         "w_plot": w_plot, "h_plot": h_plot,
-        "n_levels": len(levels), "n_regions": n_regions,
+        "n_levels": len(levels), "n_regions": stats["n_regions"],
+        "attempts": stats["attempts"],
     }
 
 

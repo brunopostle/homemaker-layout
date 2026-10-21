@@ -18650,3 +18650,37 @@ search A/B made at search commit `4c0f28c` can borrow (`prefill_control.py`).
 The merges queued behind the sweep (`help-strings`, `retype-kind`, `pivot`,
 `hand-curves`) move the search commit, so A/Bs begun after them borrow
 nothing from it.
+
+### 39.164 The shape-curve DP backtracks to a storey's own ratios: its last false negative goes (`homemaker-py-3kp`)
+
+§39.78 left one false negative in `shapecurve.is_feasible`, the verdict
+`--shapecurve-prune` would turn into a HARD prune: programme-house
+`c836457+orth` s1 is shape-fail-free as committed -- a witness -- and the DP
+called it infeasible. The cause was isolated there: `_solve_all_levels`
+realises each storey at ONE point, the middle of every split's feasible
+interval, before it can look at the storey above (whose boxes are read off the
+realised geometry), and that point leaves s1's first floor unfittable.
+
+**The fix.** A storey below the top whose own ratios already pass every leaf
+(`_leaf_feasible`, the DP's own test) tries them first, and the DP's point
+only if the storeys above cannot be fitted to them -- a depth-first
+backtrack, at most two attempts a storey. In the search the own ratios are
+the parent's, which is exactly the point a child is most likely to keep.
+
+**Measured.** False negatives 1 -> 0 on `c836457+orth`, and 0 on
+`4428262+orth` and `0d79403+orth`; feasible verdicts from `solve` 3 -> 4 of
+12, with no shape fail at any realised point (no false positive, before or
+after). Cost: 0.3 s of CPU for twelve designs.
+
+**What did not help.** The bead's "cheap version" was to carry several
+realised points per storey. Trying the same quantile of every split's
+interval instead of the middle -- 5 of them, then 19 -- rescued nothing on
+s1 with the own-ratio candidate switched off: a uniform shift does not find
+the point the storey above needs. Only the design's own ratios did, so they
+are the only extra candidate. The honest version -- composing the storeys'
+curves so the choice is made once with everything known -- is still unbuilt;
+a case where neither the own ratios nor the midpoint fits will still be
+called infeasible. Both flags stay off; nothing here changes a default.
+
+`tests/test_shapecurve.py` holds s1 feasible, with a control: give the ground
+floor the DP's point as its ratios and the verdict is infeasible again.
