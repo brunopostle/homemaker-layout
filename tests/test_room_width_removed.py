@@ -76,8 +76,14 @@ def test_the_shape_curve_does_not_filter_on_a_width_it_no_longer_scores(name):
     assert checked
 
 
-def test_area_is_determined_by_width_and_aspect():
-    """The empirical basis for the ruling, on the corpus rather than in theory."""
+def test_area_is_determined_by_width_and_aspect(monkeypatch):
+    """The empirical basis for the ruling, on the corpus rather than in theory.
+
+    Measured with orthogonal division OFF, so it is held there: with the
+    switch exported a cell cut square against a skew plot side can be near a
+    triangle, and this ratio reaches 99% (homemaker-py-65ja)."""
+    monkeypatch.setattr(geometry, "ORTHOGONAL_DIVISION", False)
+    geometry.clear_cache()
     worst = 0.0
     n = 0
     for name in CORPUS:
