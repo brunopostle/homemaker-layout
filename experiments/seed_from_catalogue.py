@@ -469,6 +469,118 @@ def _cut_normal(node: dom.Node):
     return v / (np.linalg.norm(v) or 1.0)
 
 
+SPINE_DEPTH = 1.6     # `width_circulation`'s 1.6 m, as `bridge_strip`
+SPINE_MIN_SPAN = 4.0  # a wing narrower than this across the strip keeps no room beside it
+
+
+def _strip_into(node: dom.Node, rot: int, side: int, lvl: dom.Node, keep_type):
+    """Divide leaf ``node`` into a SPINE_DEPTH strip (typed C) and the rest
+    (``keep_type``), the strip on ``side``; None if ``node`` is too narrow
+    that way. Returns (strip, rest)."""
+    node.type = None
+    node.rotation = rot
+    node.left, node.right = dom.Node(type="C"), dom.Node(type=keep_type)
+    node.division = [0.5, 0.5]
+    dom.link(lvl)
+    geometry.clear_cache()
+    span = extent(node, _cut_normal(node))
+    if span < SPINE_MIN_SPAN:
+        return None
+    f = float(SPINE_DEPTH / span)
+    f = f if side == 0 else 1 - f
+    node.division = [f, f]
+    strip, rest = (node.left, node.right) if side == 0 else (node.right, node.left)
+    strip.type, rest.type = "C", keep_type
+    dom.link(lvl)
+    geometry.clear_cache()
+    return strip, rest
+
+
+def _undo(node: dom.Node, typ, lvl: dom.Node) -> None:
+    node.type, node.division, node.left, node.right = typ, None, None, None
+    dom.link(lvl)
+    geometry.clear_cache()
+
+
+SPINE_HOLD = "_wing"  # a wing's placeholder type while spines are laid: not circulation
+
+
+def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.Node]:
+    """`homemaker-py-2g7.13.1.7` (DESIGN.md §39.159-§39.160): lay a corridor
+    through every wing BEFORE any room is placed, so that no room ever has
+    to be crossed to join the storey, as the owner's hand2a does.
+
+    Each wing takes one SPINE_DEPTH strip, at an edge or (two cuts) through
+    its middle -- possible here and nowhere later, because the wing is not a
+    room yet. Placements are chosen wing by wing to leave the storey's
+    circulation (the strips so far and the stairs) in the fewest pieces, then
+    with the least strip area, and a second round re-chooses each wing with
+    all the others in place. Returns the wings' room-holding parts (the scope
+    for growth); strips are circulation and left out of it."""
+    if len(wings) < 2:
+        return wings
+    typ = {id(w): w.type for w in wings}
+    for w in wings:
+        w.type = SPINE_HOLD
+    dom.link(lvl)
+
+    def candidates(w):
+        for rot in range(4):
+            for side in (0, 1):
+                yield ("edge", rot, side)
+        for rot in range(4):
+            for a in (0.35, 0.5, 0.65):
+                for rot2 in range(4):
+                    for side in (0, 1):
+                        yield ("through", rot, a, rot2, side)
+
+    def apply(w, c):
+        if c[0] == "edge":
+            r = _strip_into(w, c[1], c[2], lvl, SPINE_HOLD)
+            return None if r is None else r[0]
+        _, rot, a, rot2, side = c
+        w.type, w.rotation, w.division = None, rot, [a, a]
+        w.left, w.right = dom.Node(type=SPINE_HOLD), dom.Node(type=SPINE_HOLD)
+        dom.link(lvl)
+        r = _strip_into(w.right, rot2, side, lvl, SPINE_HOLD)
+        return None if r is None else r[0]
+
+    def score():
+        geometry.clear_cache()
+        G = geometry.leaf_graph(lvl, graph.DOOR_WIDTH)
+        H = G.subgraph([x for x in G if not dom.is_outside(x)])
+        circ = [x for x in H if dom.is_circulation(x)]
+        return (len(circ_pieces(H, stairs_join)),
+                sum(geometry.area(x) for x in circ if x.type == "C"))
+
+    chosen = {}
+    for _round in range(2):
+        for w in sorted(wings, key=lambda x: x.id or ""):
+            if id(w) in chosen:
+                _undo(w, SPINE_HOLD, lvl)
+            best = None
+            for c in candidates(w):
+                if apply(w, c) is not None:
+                    s = score()
+                    if best is None or s < best[0]:
+                        best = (s, c)
+                _undo(w, SPINE_HOLD, lvl)
+            if best is not None:
+                apply(w, best[1])
+                chosen[id(w)] = best[1]
+    scope = []
+    for w in wings:
+        for lf in (w.leaves() if w.divided else [w]):
+            if lf.type == SPINE_HOLD:
+                lf.type = typ[id(w)] if not w.divided else "C"
+                scope.append(lf)
+    dom.link(lvl)
+    return scope
+
+
+SPINE = False
+
+
 def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
                placement: "tuple | None" = None, stats: "Counter | None" = None,
                fit: "Fitness | None" = None) -> dom.Node:
@@ -492,14 +604,22 @@ def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
         wings = [lf for lf in lvl.leaves() if lf.type not in ("O", "E")]
         stairs = [lf for lf in lvl.leaves() if lf.type == "E"]
         n_circ = max(1, -(-len(rooms) // kw["circ_divisor"]))
+        parts, spines = wings, []
+        if SPINE:
+            parts = spine(lvl, wings, stairs_join=li > 0)
+            spines = [lf for w in wings if w.divided for lf in w.leaves()
+                      if lf.type == "C" and lf not in parts]
+            # the spine IS the storey's circulation: cells the assignment adds
+            # beside it were cut loose by sizing (§39.160), so it adds none
+            n_circ = 0 if spines else n_circ
         # +1: the assignment always places one O in scope, on the most
         # landlocked cell. On the ground it goes back to C (the footprint
         # keeps its own courts); upstairs it stays, a terrace over the
         # building below -- every level needs outdoor space of its own
         # (`force_roof_garden`), and a court below is a hole up here.
-        scope = grow(lvl, wings, len(rooms) + n_circ + 1, rng)
+        scope = grow(lvl, parts, len(rooms) + n_circ + 1, rng)
         operators._assign_adjacency_aware(
-            lvl, rooms, reqs, rng, fixed_circ=stairs or None,
+            lvl, rooms, reqs, rng, fixed_circ=(stairs + spines) or None,
             interior_outside=True, n_outside=1, scope=set(scope))
         for lf in scope:
             if lf.type == "O":
@@ -508,7 +628,9 @@ def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
                 else:
                     terraces.append(lf)
         dom.link(root)
-        for w in wings:
+        # sizing re-picks every cut's ratio and rotation below the node it is
+        # given, so with spines it is given only the parts beside them
+        for w in parts:
             if w.divided:
                 operators._size_divisions_from_targets(w, reqs)
         dom.link(root)
@@ -698,6 +820,9 @@ def main(argv=None) -> int:
                          "default, the rest separated first. No operator moves a shaft, "
                          "but a run can lose one and cut another 13-18 m away "
                          "(DESIGN.md §39.151), so these vary the start, not the end")
+    ap.add_argument("--spine", action="store_true",
+                    help="lay a corridor through every wing before rooms are placed "
+                         "(homemaker-py-2g7.13.1.7, DESIGN.md §39.160)")
     ap.add_argument("--prefix", default="wings", help="written seeds are <prefix>-<rank>.dom")
     ap.add_argument("--out-dir", default=None,
                     help="where --write saves (default: the programme's directory)")
@@ -717,6 +842,8 @@ def main(argv=None) -> int:
                          "capacity hill-climb under-finds, and on health-centre the prune "
                          "lost 45 of 199 and 218 of 1172 outlines (DESIGN.md §39.148)")
     args = ap.parse_args(argv)
+    global SPINE
+    SPINE = args.spine
     if not geometry.ORTHOGONAL_DIVISION:
         print("set HOMEMAKER_ORTHOGONAL_DIVISION=1", file=sys.stderr)
         return 2
@@ -794,8 +921,10 @@ def main(argv=None) -> int:
                      f"{crossed['left']} routed around")
             rows.append((len(fails), res.fitness, n, txt, outline, root, list(fails), raw,
                          frac, label))
+            nc = sum("not connected" in f for f in fails)
             print(f"  [{i + 1}/{len(plans)}] {n} storeys, {txt}, {label}: cover {frac:.0%}, "
-                  f"{raw} fails raw -> {len(fails)} tuned", flush=True)
+                  f"{raw} fails raw -> {len(fails)} tuned, {nc} storeys not connected",
+                  flush=True)
 
     rows.sort(key=lambda r: (r[0], -r[1]))
     print(f"\n{len(rows)} seeds, {args.budget} inner-loop evaluations each; "
