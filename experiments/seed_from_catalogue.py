@@ -369,7 +369,7 @@ def bridge_indoors(lvl: dom.Node, reqs, stairs_join: bool, max_bridges: int = 16
         undo = [(x, x.type) for x in best[1] if x not in rooms]
         for x, _t in undo:
             x.type = "C"
-        dom.link(lvl)
+        _relink(lvl)
         cut, failed = [], None
         for k, x in enumerate(rooms):
             code = x.type
@@ -382,13 +382,13 @@ def bridge_indoors(lvl: dom.Node, reqs, stairs_join: bool, max_bridges: int = 16
             else:
                 failed = x
                 break
-            dom.link(lvl)
+            _relink(lvl)
         if failed is not None:
             for x, code in cut:
                 x.type, x.division, x.left, x.right = code, None, None, None
             for x, t in undo:
                 x.type = t
-            dom.link(lvl)
+            _relink(lvl)
             blocked.add(failed)
             if stats is not None:
                 stats["left"] += 1
@@ -397,6 +397,17 @@ def bridge_indoors(lvl: dom.Node, reqs, stairs_join: bool, max_bridges: int = 16
         if stats is not None:
             stats["strip"] += len(cut)
     return made
+
+
+def _relink(lvl: dom.Node) -> None:
+    """Link the whole building from storey ``lvl``. `dom.link(lvl)` links
+    ``lvl`` and the storeys above it but never ``lvl`` to the storey below, so
+    a cut made upstairs reads as its own until the building is linked again,
+    when it inherits the cut beneath it -- every placement chosen upstairs was
+    being scored on geometry it did not have (§39.161)."""
+    while lvl.below is not None:
+        lvl = lvl.below
+    dom.link(lvl)
 
 
 def circ_pieces(H: nx.Graph, stairs_join: bool) -> list[list[dom.Node]]:
@@ -447,7 +458,7 @@ def bridge_strip(lvl: dom.Node, room: dom.Node, stairs_join: bool,
             room.rotation = rot
             room.left, room.right = dom.Node(type="C"), dom.Node(type="C")
             room.division = [0.5, 0.5]
-            dom.link(lvl)
+            _relink(lvl)
             geometry.clear_cache()
             whole = geometry.area(room)
             # the strip's depth is measured across the cut, on the left part
@@ -457,7 +468,7 @@ def bridge_strip(lvl: dom.Node, room: dom.Node, stairs_join: bool,
             room.division = [f, f]
             strip, rest = (room.left, room.right) if side == 0 else (room.right, room.left)
             strip.type, rest.type = "C", code
-            dom.link(lvl)
+            _relink(lvl)
             got = n_pieces(lvl, stairs_join)
             if fit is not None:
                 judge = -fit.score_with_fails(copy.deepcopy(building))[0]
@@ -473,14 +484,14 @@ def bridge_strip(lvl: dom.Node, room: dom.Node, stairs_join: bool,
         x.type = t
     if got >= before:
         room.type, room.division, room.left, room.right = code, None, None, None
-        dom.link(lvl)
+        _relink(lvl)
         geometry.clear_cache()
         return False
     room.type = None
     room.rotation, room.division = rot, [f, f]
     room.left, room.right = (dom.Node(type="C"), dom.Node(type=code)) if side == 0 \
         else (dom.Node(type=code), dom.Node(type="C"))
-    dom.link(lvl)
+    _relink(lvl)
     geometry.clear_cache()
     return True
 
@@ -506,7 +517,7 @@ def _strip_into(node: dom.Node, rot: int, side: int, lvl: dom.Node, keep_type):
     node.rotation = rot
     node.left, node.right = dom.Node(type="C"), dom.Node(type=keep_type)
     node.division = [0.5, 0.5]
-    dom.link(lvl)
+    _relink(lvl)
     geometry.clear_cache()
     span = extent(node, _cut_normal(node))
     if span < SPINE_MIN_SPAN:
@@ -516,14 +527,14 @@ def _strip_into(node: dom.Node, rot: int, side: int, lvl: dom.Node, keep_type):
     node.division = [f, f]
     strip, rest = (node.left, node.right) if side == 0 else (node.right, node.left)
     strip.type, rest.type = "C", keep_type
-    dom.link(lvl)
+    _relink(lvl)
     geometry.clear_cache()
     return strip, rest
 
 
 def _undo(node: dom.Node, typ, lvl: dom.Node) -> None:
     node.type, node.division, node.left, node.right = typ, None, None, None
-    dom.link(lvl)
+    _relink(lvl)
     geometry.clear_cache()
 
 
@@ -575,7 +586,7 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
     typ = {id(w): w.type for w in wings}
     for w in wings:
         w.type = SPINE_HOLD
-    dom.link(lvl)
+    _relink(lvl)
 
     def candidates(w):
         for rot in range(4):
@@ -594,7 +605,7 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
         _, rot, a, rot2, side = c
         w.type, w.rotation, w.division = None, rot, [a, a]
         w.left, w.right = dom.Node(type=SPINE_HOLD), dom.Node(type=SPINE_HOLD)
-        dom.link(lvl)
+        _relink(lvl)
         r = _strip_into(w.right, rot2, side, lvl, SPINE_HOLD)
         return None if r is None else r[0]
 
@@ -628,7 +639,7 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
             if lf.type == SPINE_HOLD:
                 lf.type = typ[id(w)] if not w.divided else "C"
                 scope.append(lf)
-    dom.link(lvl)
+    _relink(lvl)
     return scope
 
 
