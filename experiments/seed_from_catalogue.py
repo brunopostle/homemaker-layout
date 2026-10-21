@@ -110,9 +110,13 @@ def to_quad(t, sizes, lvl: dom.Node, root: dom.Node, axes) -> None:
     to_quad(kids[-1], sizes, node, root, axes)
 
 
-def buckets(reqs, n_storeys: int, rng) -> list[list[str]]:
+def buckets(reqs, n_storeys: int, rng, caps: "list[float] | None" = None) -> list[list[str]]:
     """The constructor's partition of rooms over storeys (level-bound rooms to
-    their storey, the rest round-robin over a shuffled order)."""
+    their storey, the rest round-robin over a shuffled order).
+
+    With ``caps`` (each storey's built area) the rest go largest first, each to
+    the storey it leaves least full relative to its area, ties at random: the
+    round-robin overflows a storey in up to 53 of 200 splits (§39.149, §39.161)."""
     prog = operators._programme_codes(reqs)
     out: list[list[str]] = [[] for _ in range(n_storeys)]
     free = []
@@ -123,9 +127,28 @@ def buckets(reqs, n_storeys: int, rng) -> list[list[str]]:
             else:
                 free.append(code)
     free = [free[i] for i in rng.permutation(len(free))]
-    for i, code in enumerate(free):
-        out[i % n_storeys].append(code)
+    if caps is None:
+        for i, code in enumerate(free):
+            out[i % n_storeys].append(code)
+        return out
+    size = {c: float(prog[c].size or 0) for c in prog}
+    load = [sum(size[c] for c in rooms) for rooms in out]
+    for code in sorted(free, key=lambda c: -size[c]):   # stable: the shuffle breaks ties
+        fill = [(load[i] + size[code]) / max(caps[i], 1e-9) for i in range(n_storeys)]
+        best = min(fill)
+        pick = [i for i in range(n_storeys) if fill[i] <= best + 1e-9]
+        i = pick[int(rng.integers(len(pick)))] if len(pick) > 1 else pick[0]
+        out[i].append(code)
+        load[i] += size[code]
     return out
+
+
+def built_area(lvl: dom.Node) -> float:
+    """What a storey has for rooms and corridors: its cells less courts and stairs."""
+    return sum(geometry.area(lf) for lf in lvl.leaves() if lf.type not in ("O", "E"))
+
+
+SPLIT = "dealt"
 
 
 def extent(leaf: dom.Node, axis) -> float:
@@ -599,8 +622,10 @@ def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
         dup.height = top.height
         top.above = dup
     dom.link(root)
+    geometry.clear_cache()
+    caps = [built_area(lvl) for lvl in dom.levels(root)] if SPLIT == "capacity" else None
     terraces = []
-    for li, (lvl, rooms) in enumerate(zip(dom.levels(root), buckets(reqs, n_storeys, rng))):
+    for li, (lvl, rooms) in enumerate(zip(dom.levels(root), buckets(reqs, n_storeys, rng, caps))):
         wings = [lf for lf in lvl.leaves() if lf.type not in ("O", "E")]
         stairs = [lf for lf in lvl.leaves() if lf.type == "E"]
         n_circ = max(1, -(-len(rooms) // kw["circ_divisor"]))
@@ -823,6 +848,10 @@ def main(argv=None) -> int:
     ap.add_argument("--spine", action="store_true",
                     help="lay a corridor through every wing before rooms are placed "
                          "(homemaker-py-2g7.13.1.7, DESIGN.md §39.160)")
+    ap.add_argument("--split", choices=("dealt", "capacity"), default="dealt",
+                    help="how rooms are shared over storeys: dealt round-robin, or by "
+                         "area against each storey's built area (homemaker-py-2g7.13.1.8, "
+                         "DESIGN.md §39.161)")
     ap.add_argument("--prefix", default="wings", help="written seeds are <prefix>-<rank>.dom")
     ap.add_argument("--out-dir", default=None,
                     help="where --write saves (default: the programme's directory)")
@@ -842,8 +871,8 @@ def main(argv=None) -> int:
                          "capacity hill-climb under-finds, and on health-centre the prune "
                          "lost 45 of 199 and 218 of 1172 outlines (DESIGN.md §39.148)")
     args = ap.parse_args(argv)
-    global SPINE
-    SPINE = args.spine
+    global SPINE, SPLIT
+    SPINE, SPLIT = args.spine, args.split
     if not geometry.ORTHOGONAL_DIVISION:
         print("set HOMEMAKER_ORTHOGONAL_DIVISION=1", file=sys.stderr)
         return 2
