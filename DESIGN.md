@@ -18686,7 +18686,7 @@ queue):
 
 | | fails | in cells | building-wide |
 |---|---|---|---|
-| the wing as built (252k, whole building, from a catalogue seed) | 10 | 7 | 3 |
+| the wing as built (252k, whole building, from a catalogue seed) | 10 | 6 | 4 |
 | cold s0 | 15 | 10 | 5 |
 | cold s1 | 6 | 3 | 3 |
 | cold s2 | 6 | 3 | 3 |
