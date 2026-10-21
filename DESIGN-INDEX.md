@@ -93,6 +93,7 @@ index is how to get from a question to the section that answers it.
 | §39.153 | Owner's rulings on queue 5: label write-back adopted (lands after `aim`); `aim` settled with 12 more pairs at its own search commit; storeys capped per brief (default 3.9 m) in whole 75 mm courses, search-side. Snapping leaves Nelder-Mead unable to move a height, so the height move gains one- and two-course steps. |
 | §39.154 | Label moves under write-back: the scorer's relabelling erases 28-70% of `retype` / `level_retype` draws and up to 35% of `swap`'s, 4% (programme-house) to 10% (maple-court) of all mutation draws; they act as re-tunes. Proposed: `retype` picks only the kind of cell and the collapse picks the room (`urzf.2`, needs an A/B). |
 | §39.155 | Successive halving on maple-court, the first programme the catalogue was not developed on: catalogue seed `halv-2` wins at 23 fails / 5 crinkliness after 252k, against cold 500k runs' 60-67 / 34-42. Cold candidates dropped at 4k; the winner keeps its seed's plan (0.965 vs 0.44-0.54 for cold finals). Expected <= 4 crinkliness: missed by one. Early stages predicted the winner here (not on harbor-house); stairs moved again. |
+| §39.156 | `aim` at 48 pairs on programme-house: score resolves in its favour (0.21 -> 0.27, margin 0.057 > MDD 0.052, p 0.033); fails 0.96 -> 0.73 no longer resolve (MDD 0.26, p 0.086) -- the 12 new pairs tie on fails. No cost in hard fails or time; `staircase volume` 8 -> 3. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -179,7 +180,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (260 of them, 18289 lines)
+## Every section of DESIGN.md (261 of them, 18312 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -490,4 +491,5 @@ below are the most recent work.
 - §39.152 · 18039-18147 · Queue 5's A/Bs: `labels` and `well` null as expected, `aim` at the edge of resolving, and `heights` on programme-house costs hard fails by moving the search, not the ceiling (`homemaker-py-urzf.1`, `iplo`, `y4p4.2`, `evxm`)
 - §39.153 · 18148-18183 · Owner's rulings on queue 5: label write-back adopted, `aim` to be settled, and storeys capped at 3.9 m in whole 75 mm courses (`homemaker-py-urzf.1`, `iplo`, `y4p4.2`)
 - §39.154 · 18184-18229 · Label moves under write-back: up to half of `retype` and `level_retype` draws vanish into the scorer's relabelling (`homemaker-py-urzf`)
-- §39.155 · 18230-18289 · Successive halving on maple-court: a catalogue seed wins with 23 fails against cold runs' 60-67, and crinkliness falls from 34-42 to 5 (`homemaker-py-2g7.13.1.9`)
+- §39.155 · 18230-18290 · Successive halving on maple-court: a catalogue seed wins with 23 fails against cold runs' 60-67, and crinkliness falls from 34-42 to 5 (`homemaker-py-2g7.13.1.9`)
+- §39.156 · 18291-18312 · `aim` at 48 pairs: the score resolves in its favour, the fail count does not (`homemaker-py-iplo`)

@@ -18287,3 +18287,26 @@ What it does not show is that the gain survives a fair budget for the cold
 arm: the cold candidates in the field had 4k, and the 500k references are
 separate runs. A cold arm continued to 252k inside the halving is the
 missing control, if that question matters.
+
+### 39.156 `aim` at 48 pairs: the score resolves in its favour, the fail count does not (`homemaker-py-iplo`)
+
+§39.152 left `aim` (`--aim-undivide`) at the edge on programme-house: fails
+0.92 -> 0.61 at exactly the MDD, p = 0.054, at 36 pairs. Twelve more (seeds
+36-47, both arms, at the same `4428262+orth` / `1db93d5`,
+`experiments/run_aim_extend.sh`) give 48:
+
+| metric | random | aimed | margin | MDD | p (t / Wilcoxon) | |
+|---|---|---|---|---|---|---|
+| fails | 0.96 | 0.73 | +0.23 | 0.26 | 0.086 / 0.086 | does not resolve |
+| hard fails | 0.15 | 0.12 | +0.02 | 0.13 | 0.74 | null |
+| score | 0.21 | 0.27 | aimed +0.057 | 0.052 | 0.033 / 0.036 | **resolves, aimed better** |
+| elapsed | 8915 s | 8989 s | 74 s | 293 s | 0.62 | null |
+
+`staircase volume` fails 8/48 -> 3/48 (7 cleared, 2 broken).
+
+The twelve new pairs alone tie on fails (1.08 each) and favour `aimed` on
+score (0.165 -> 0.201). So the fail margin at 36 was partly luck, and the
+extension moved the verdict from "fewer fails, nearly" to "better score,
+resolved; fails not". Score is what the search optimises, and nothing got
+worse: no cost in hard fails or in time. Recorded as a resolved improvement
+on the objective, on one programme; the owner decides the default.
