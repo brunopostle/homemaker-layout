@@ -18288,6 +18288,15 @@ arm: the cold candidates in the field had 4k, and the 500k references are
 separate runs. A cold arm continued to 252k inside the halving is the
 missing control, if that question matters.
 
+*Addendum, 2026-10-21, at `0d79403+orth`:* re-scored under the stair
+separation rule (§39.143, landed after this run), the winner gains `too few
+stairs (1, min 2)` -- 24 fails, score 7.29e-8 -> 3.65e-8. Its two shafts are the
+ones that moved to one place (above), so they now count as one stair. The rule
+was built because hand-seeded runs pulled their stairs together (§39.143); this
+is the same behaviour in a catalogue seed. The cold references already failed it,
+so the comparison above stands at 24 against 60-67. The same rule now
+applies to any halving run from here on.
+
 ### 39.156 `aim` at 48 pairs: the score resolves in its favour, the fail count does not (`homemaker-py-iplo`)
 
 §39.152 left `aim` (`--aim-undivide`) at the edge on programme-house: fails
