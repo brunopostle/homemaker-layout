@@ -18394,3 +18394,37 @@ fails at n = 4 (the MDD on maple-court is ~10 fails, and the lever is 10% of
 draws); a resolved change in either direction would be a surprise. Worth
 running only because a null here closes `urzf.2` cheaply; a positive result
 would need harbor-house before a default.
+
+### 39.159 The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
+
+Counted from the committed artefacts, re-scored at `0d79403+orth`:
+
+- **Cold 500k runs at `4428262+orth`:** every storey `not connected` on every
+  run with more than one wing -- maple-court 3 of 3 storeys on all three
+  seeds, harbor-house 2 of 2, health-centre 1 of 1. Programme-house, a single
+  block, has none.
+- **Through the halvings** (each stage's `out.dom`, `~/halving-*`): of the
+  103 catalogue and hand candidates, five started with every storey connected.
+  The owner's `hand2a` stayed connected through all six stages; harbor
+  `halv-10` lost a storey at 4k and had it back by 8k. No
+  candidate that started disconnected was ever joined: the two winners went
+  2 -> 2 (harbor `halv-1`) and 4 -> 3 (maple `halv-2`) and stayed there.
+
+So connection is something the search can KEEP and almost never CREATE --
+joining two circulation pieces through a building is many coordinated moves,
+none of which pays on its own. It is 3 of maple-court's 24 fails and 2 of
+harbor-house's 8. The lever is therefore the seed: `seed_from_catalogue.py`
+leaves 36 of 54 storeys disconnected (§39.147), because a 1.6 m strip cut off
+one edge of a room cannot join circulation that meets the room on opposite
+walls away from the corners.
+
+`2g7.13.1.7`'s two options both turn on a question for the owner:
+
+1. **A corridor through the room** (two cuts) splits the room in two, and a
+   room is one cell: the second part has to be something else -- circulation
+   (then the corridor is really an edge strip as deep as the second part), or
+   another room's code.
+2. **Spine first** (the bead's own preference, and what `hand2a` does):
+   reserve a circulation strip across each wing junction BEFORE rooms are
+   allocated, so no room is ever crossed. A larger change to the seeder, and
+   no room loses area to a corridor after the fact.

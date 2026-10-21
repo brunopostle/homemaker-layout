@@ -96,6 +96,7 @@ index is how to get from a question to the section that answers it.
 | §39.156 | `aim` at 48 pairs on programme-house: score resolves in its favour (0.21 -> 0.27, margin 0.057 > MDD 0.052, p 0.033); fails 0.96 -> 0.73 no longer resolve (MDD 0.26, p 0.086) -- the 12 new pairs tie on fails. No cost in hard fails or time; `staircase volume` 8 -> 3. |
 | §39.157 | Re-baseline at `0d79403+orth` (stair separation; search: label write-back, `aim`, height cap), expectations before it runs: the objective change re-scores the last corpus unchanged, 12 of 12; no programme's mean fails leaves the last corpus's range; programme-house median score >= 0.22; crinkliness still the largest family. |
 | §39.158 | `--retype-kind` (branch, default off): `retype` / `level_retype` change only a cell's kind, because the scorer's relabelling moves room codes among room cells and never touches a generic one. Census: erased draws 28-70% -> 0% on all four programmes. Loses the room -> room edits that survived; maple-court A/B (n = 4, expected null) after the re-baseline. |
+| §39.159 | Connection is kept, not made: every cold run on maple-court, harbor-house and health-centre ends with every storey `not connected`; of 103 halving candidates five started connected (`hand2a` stayed so through all six stages), and no disconnected one was ever joined. The lever is the seeder (36 of 54 storeys disconnected); through-corridor or spine-first is the owner's choice. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -183,7 +184,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (263 of them, 18396 lines)
+## Every section of DESIGN.md (264 of them, 18430 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -497,4 +498,5 @@ below are the most recent work.
 - §39.155 · 18230-18299 · Successive halving on maple-court: a catalogue seed wins with 23 fails against cold runs' 60-67, and crinkliness falls from 34-42 to 5 (`homemaker-py-2g7.13.1.9`)
 - §39.156 · 18300-18327 · `aim` at 48 pairs: the score resolves in its favour, the fail count does not (`homemaker-py-iplo`)
 - §39.157 · 18328-18361 · Re-baseline at `0d79403+orth`: what it is expected to show, written before it runs
-- §39.158 · 18362-18396 · `--retype-kind`: label moves that the scorer's relabelling cannot erase (`homemaker-py-urzf.2`)
+- §39.158 · 18362-18397 · `--retype-kind`: label moves that the scorer's relabelling cannot erase (`homemaker-py-urzf.2`)
+- §39.159 · 18398-18430 · The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
