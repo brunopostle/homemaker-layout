@@ -136,6 +136,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | Storey height is capped per project, default 3.9 m, and is a whole multiple of a 75 mm brick/block course | §39.153 |
 | Label write-back is the default search | §39.153 |
+| `aim` (undivide aimed at failing cells) is the default search | §39.156 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -180,7 +181,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (261 of them, 18312 lines)
+## Every section of DESIGN.md (261 of them, 18317 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -492,4 +493,4 @@ below are the most recent work.
 - §39.153 · 18148-18183 · Owner's rulings on queue 5: label write-back adopted, `aim` to be settled, and storeys capped at 3.9 m in whole 75 mm courses (`homemaker-py-urzf.1`, `iplo`, `y4p4.2`)
 - §39.154 · 18184-18229 · Label moves under write-back: up to half of `retype` and `level_retype` draws vanish into the scorer's relabelling (`homemaker-py-urzf`)
 - §39.155 · 18230-18290 · Successive halving on maple-court: a catalogue seed wins with 23 fails against cold runs' 60-67, and crinkliness falls from 34-42 to 5 (`homemaker-py-2g7.13.1.9`)
-- §39.156 · 18291-18312 · `aim` at 48 pairs: the score resolves in its favour, the fail count does not (`homemaker-py-iplo`)
+- §39.156 · 18291-18317 · `aim` at 48 pairs: the score resolves in its favour, the fail count does not (`homemaker-py-iplo`)

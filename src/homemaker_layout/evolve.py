@@ -211,12 +211,13 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "and ran 4%% faster; adopted (default: on)")
     p.add_argument("--aim-undivide", dest="aim_undivide",
                    action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_AIM_UNDIVIDE", False),
+                   default=_env_bool("HOMEMAKER_AIM_UNDIVIDE", True),
                    help="homemaker-py-iplo (DESIGN.md §39.123): half of "
                         "undivide's draws remove a wall beside a cell that is "
                         "FAILING, chosen from the parent's fail lines; the "
-                        "other half pick as before. Changes what a search "
-                        "does; the A/B has not been run (default: off)")
+                        "other half pick as before. At 48 pairs on "
+                        "programme-house the score resolved in its favour and "
+                        "fails did not (§39.156); adopted (default: on)")
     p.add_argument("--seed-solver", dest="seed_solver",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_SEED_SOLVER", False),

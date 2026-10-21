@@ -121,6 +121,9 @@ EXPERIMENTS = {
     # HOMEMAKER_LABEL_WRITEBACK=0 / --no-label-writeback. And every OTHER
     # entry's control now writes labels back: an A/B begun before 2026-10-20
     # (aim, heights, well) is extended only at its own search commit.
+    # RUN AND JUDGED (§39.156, 48 pairs: score better, fails unresolved) and
+    # the default since 2026-10-21, so its `random` arm is no longer the
+    # default search: to run it again its control needs --no-aim-undivide.
     "aim": dict(arms=("random", "aimed"), flag="--aim-undivide",
                 env="HOMEMAKER_AIM_UNDIVIDE",
                 bead="homemaker-py-iplo, DESIGN.md §39.123",

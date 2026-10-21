@@ -18310,3 +18310,8 @@ extension moved the verdict from "fewer fails, nearly" to "better score,
 resolved; fails not". Score is what the search optimises, and nothing got
 worse: no cost in hard fails or in time. Recorded as a resolved improvement
 on the objective, on one programme; the owner decides the default.
+
+**Owner's ruling, 2026-10-21:** `aim` becomes the default search before the
+re-baseline, so that the re-baseline measures it on all four programmes.
+`--no-aim-undivide` / `HOMEMAKER_AIM_UNDIVIDE=0` turns it off; `flag_ab.py
+aim`'s `random` arm now needs that to be a control.

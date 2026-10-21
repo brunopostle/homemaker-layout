@@ -229,9 +229,10 @@ def write_labels_back(root: dom.Node, fit) -> int:
     after = [lf.type for lvl in dom.levels(root) for lf in lvl.leaves()]
     return sum(a != b for a, b in zip(before, after))
 # homemaker-py-iplo (DESIGN.md §39.123, §39.132): hand `undivide` its parent's
-# fail lines, so that half its draws are aimed at a failing cell. Default OFF
-# until its A/B; read from the environment for the workers' sake.
-AIM_UNDIVIDE = __import__("os").environ.get("HOMEMAKER_AIM_UNDIVIDE", "") == "1"
+# fail lines, so that half its draws are aimed at a failing cell. Default ON
+# since 2026-10-21 (owner, on §39.156); read from the environment for the
+# workers' sake.
+AIM_UNDIVIDE = __import__("os").environ.get("HOMEMAKER_AIM_UNDIVIDE", "1") != "0"
 # The solver has no time bound of its own (§39.109: one call ran past twenty
 # minutes at its default limit). Fifty function evaluations is where the seed
 # measurement was made.
