@@ -189,7 +189,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (269 of them, 18734 lines)
+## Every section of DESIGN.md (270 of them, 18802 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -509,4 +509,5 @@ below are the most recent work.
 - §39.161 · 18483-18543 · Spine first: a corridor through every wing before rooms are placed connects 10 of 16 maple-court seeds outright, once two seeder bugs were found (`homemaker-py-2g7.13.1.7`)
 - §39.162 · 18544-18602 · Pivot: a grid of four quadrants turned on its other axis, every quadrant kept (`homemaker-py-mtfo`)
 - §39.163 · 18603-18653 · Re-baseline at `0d79403+orth`: four of §39.157's five expectations held, and the one missed is maple-court coming in below the last corpus's range (`homemaker-py-vpx5`)
-- §39.165 · 18654-18734 · Divide-and-conquer pilot: a wing cut out of a building keeps its own fails exactly, loses the relations that crossed the cut, and is a cheap problem on its own (`homemaker-py-2g7.13.1.5`)
+- §39.165 · 18654-18735 · Divide-and-conquer pilot: a wing cut out of a building keeps its own fails exactly, loses the relations that crossed the cut, and is a cheap problem on its own (`homemaker-py-2g7.13.1.5`)
+- §39.166 · 18736-18802 · Divide and conquer with exact context: a wing searched inside the frozen building repairs what a stand-alone wing broke, as well as an unfrozen search does (`homemaker-py-2g7.13.1.5`)

@@ -18732,3 +18732,71 @@ cut, and nothing else measurable here. Context cells along each cut -- the
 corridor's continuation and the stair's place fixed, as well as the court --
 are the precondition for going further. Freezing a cell is a search-side
 change (no operator respects a fixed cell today).
+
+### 39.166 Divide and conquer with exact context: a wing searched inside the frozen building repairs what a stand-alone wing broke, as well as an unfrozen search does (`homemaker-py-2g7.13.1.5`)
+
+§39.165's next step was context cells along each cut. This takes the limit
+of that idea instead: keep the WHOLE rest of the building as the context.
+`experiments/dnc_frozen.py search DESIGN --region PATH` is the default
+`homemaker-evolve` with everything outside the region frozen -- topology,
+cut ratios, rotations and cell types on every storey (the region's
+ancestors included), and so the storey count. Every child is still scored
+as a whole building, so the relations across the cut are scored exactly. It
+is enforced from `experiments/`, nothing in `src/` changes: a mutation or
+crossover child that alters the outside is drawn again (up to 200 times,
+then the parent goes back unchanged), and the inner loop's free cuts
+(`solver.free_branches`, `innerloop.free_with_keys`) are filtered to the
+region. The one thing not frozen is the in-search room collapse with label
+write-back, which may relabel ROOM cells anywhere; `check` counts them.
+`tests/test_dnc_frozen.py` holds the freeze, each assertion with a control
+that fails without it. The cost of the freeze is small: about 1.8 draws per
+child, and no child gave up in 2,232.
+
+The scorer's cost does not argue for stand-alone wings either: a whole
+harbor-house evaluation and a wing's cost the same order (§39.165's wing ran
+50k in about an hour, the building runs 500k in 13-15 h), so what
+decomposition can buy is a smaller SEARCH space, not cheaper evaluations.
+
+**Run 1: repair.** The three stand-alone wings of §39.165, pasted back
+(`paste`, reproducing that table exactly), and the as-built wing as a
+control, each continued for 30k evaluations (plus the default 15k
+finishing polish) at seed 0, frozen to wing `l` against the same search
+unfrozen. All eight ran together at nice 10 beside queue 6, 8.7-8.9 h each.
+Re-scored from the written files:
+
+| start | fails at start | frozen to `l` | unfrozen | unfrozen changed outside `l` |
+|---|---|---|---|---|
+| as built (control) | 8 | 8 | 8 | 32 nodes |
+| pasted s1 | 11 | **8** | 8 | 36 nodes |
+| pasted s2 | 14 | **8** | 9 | 8 nodes |
+| pasted s0 | 23 | 20 | **14** | 36 nodes |
+
+Frozen outputs differ from their starts by 0 structural nodes outside `l`
+(3 room relabels by the collapse on s2, none elsewhere).
+
+- **Two of three broken wings are fully repaired in context**, to the
+  winner's 8, and freezing costs nothing there at equal evaluations: s1 ties,
+  s2 is one better frozen. Neither arm improved the as-built winner in 30k,
+  which says these 8 fails are not a local matter of wing `l`.
+- **The fail sets differ from the winner's**, not just the counts. s1 frozen
+  keeps `too few stairs (1, min 2)` (the stand-alone wing moved its stair,
+  §39.143's separation rule) and pays for it by removing other fails;
+  unfrozen does exactly the same. Neither 30k search moved a stair back.
+- **s0 is where the freeze binds.** Its frozen run keeps `n` and `t` of wing
+  `rr` without a corridor (`0/rrrl`, `0/rrrr`: 4 fails), and three upstairs
+  rooms of `l` without one. The corridor they used ran through the old wing;
+  the unfrozen search rebuilt access by changing 36 nodes outside `l`, which
+  the frozen one may not. A wing so far from its old self that its
+  NEIGHBOURS have to change is beyond what a single-region freeze can repair.
+
+So: exact context does what §39.165's side labels could not -- the relations
+across the cut are scored, and repaired, at no cost in evaluations -- but a
+repair pass over one region is not a decomposition. The decomposition is run
+2: two chains per catalogue seed, each a sequence of phases over the seed's
+regions (`dnc_frozen.py regions`, a subtree of at most 16 cells per storey,
+courts left out), each phase continuing the last; arm `dnc` freezes all but
+the phase's region and arm `whole` freezes nothing, so the restart from the
+best at every phase is common to both. Expected, written before it runs:
+no resolved difference at n = 3 seeds; `dnc` cannot change a storey count or
+a parti, so where the seed's storey count is wrong (halv-1 starts with three
+storeys, its halving descendant won with two) `whole` should win.
