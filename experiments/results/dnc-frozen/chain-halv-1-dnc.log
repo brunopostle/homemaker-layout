@@ -1,0 +1,12 @@
+15:37:35 halv-1 dnc phase 1 region 'l' budget 10000
+best         : 1.38194e-15 (48 fails) via core_undivide noop+collapse
+16:01:01 halv-1 dnc phase 2 region 'rl' budget 10000
+best         : 1.09063e-09 (29 fails) via retype 1/rlrlrlrr->me1+collapse
+16:19:18 halv-1 dnc phase 3 region 'rr' budget 10000
+best         : 2.22965e-09 (28 fails) via seed+collapse
+16:35:02 halv-1 dnc phase 4 region 'l' budget 10000
+best         : 2.39084e-09 (28 fails) via seed+collapse
+16:51:07 halv-1 dnc phase 5 region 'rl' budget 10000
+best         : 1.91723e-08 (25 fails) via swap 1/rlrlrll+collapse
+17:04:56 halv-1 dnc phase 6 region 'rr' budget 10000
+best         : 1.91867e-08 (25 fails) via seed+collapse

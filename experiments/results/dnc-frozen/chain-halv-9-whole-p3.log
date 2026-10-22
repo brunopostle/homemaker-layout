@@ -1,0 +1,80 @@
+frozen       : everything outside '' (0 nodes)
+WARNING: 413 m2 per storey needs ~85 m of daylit wall; the plot's non-private perimeter gives 53 m. Roughly 48 m2 of courtyard closes the gap. (DESIGN.md §38.3)
+WARNING: 332 m2 is pinned to level 0 by the programme and needs ~68 m of daylit wall, against the 53 m the plot perimeter gives. The ground floor cannot set itself back to buy more, so a square courtyard of roughly 15 m2 (3.8 m a side) is what closes it. (DESIGN.md §39.17)
+seed         : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-9-whole-p2.dom
+programme    : harbor-house
+budget       : 7500
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+support outside    : True
+level add+migrate  : False
+repair shaft       : True
+light well         : False
+retype kind        : False
+pivot              : False
+tune storey heights: False
+core_undivide repaired : True
+seed solver        : False
+label write-back   : True
+aim undivide       : True
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-9-whole-p3.dom
+[   200 evals] best 1.67824e-12 (fails 38) via seed
+[   760 evals] best 1.68066e-12 (fails 38) via retype 1/llrrrlrl->ut1
+[  1160 evals] best 1.68189e-12 (fails 38) via level_fix noop
+[  1560 evals] best 1.68249e-12 (fails 38) via crossover llrllrr<->llrllrl
+[  1880 evals] best 1.68364e-12 (fails 38) via place_missing noop
+[  3640 evals] best 3.46497e-12 (fails 37) via undivide 0/rrrll aimed
+[  4840 evals] best 3.47086e-12 (fails 37) via level_retype 0/llrlrllr<->2/rrrr
+[  6360 evals] best 3.4751e-12 (fails 37) via level_fix noop
+[  7160 evals] best 6.97294e-12 (fails 36) via swap 1/rrrll
+
+--- finishing (homemaker-py-3l6): unfold + polish 3750 evals ---
+[finish] unfold: materialised 0 shared-leaf copies
+[   200 evals] best 7.00197e-12 (fails 36) via seed
+[   600 evals] best 7.00716e-12 (fails 36) via crossover llrrlrrr<->llrlllr
+[  1800 evals] best 7.01003e-12 (fails 36) via place_missing noop
+[  2520 evals] best 7.01354e-12 (fails 36) via level_compound_fix noop
+[  3000 evals] best 7.01404e-12 (fails 36) via swap 0/llrllr
+[  3320 evals] best 7.01453e-12 (fails 36) via repair_shaft noop (shaft intact)
+[  3800 evals] best 1.40291e-11 (fails 35) via stair unmake lll (3 storeys)
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 35 → 35 fails (applied)
+
+--- done ---
+elapsed      : 870.4s
+evals        : 11360 across 139 topologies
+best         : 1.40291e-11 (35 fails) via stair unmake lll (3 storeys)+collapse
+
+improvement history:
+  [   200] 1.67824e-12  (share:seed)
+  [   760] 1.68066e-12  (share:retype 1/llrrrlrl->ut1)
+  [  1160] 1.68189e-12  (share:level_fix noop)
+  [  1560] 1.68249e-12  (share:crossover llrllrr<->llrllrl)
+  [  1880] 1.68364e-12  (share:place_missing noop)
+  [  3640] 3.46497e-12  (share:undivide 0/rrrll aimed)
+  [  4840] 3.47086e-12  (share:level_retype 0/llrlrllr<->2/rrrr)
+  [  6360] 3.4751e-12  (share:level_fix noop)
+  [  7160] 6.97294e-12  (share:swap 1/rrrll)
+  [  7760] 7.00197e-12  (polish:seed)
+  [  8160] 7.00716e-12  (polish:crossover llrrlrrr<->llrlllr)
+  [  9360] 7.01003e-12  (polish:place_missing noop)
+  [ 10080] 7.01354e-12  (polish:level_compound_fix noop)
+  [ 10560] 7.01404e-12  (polish:swap 0/llrllr)
+  [ 10880] 7.01453e-12  (polish:repair_shaft noop (shaft intact))
+  [ 11360] 1.40291e-11  (polish:stair unmake lll (3 storeys))
+written      : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-9-whole-p3.dom
+frozen draws : 137 for 137 children, 0 gave up
+outside '': 0 structural differences, 0 room cells relabelled

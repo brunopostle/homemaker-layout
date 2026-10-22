@@ -1,0 +1,16 @@
+15:37:35 halv-9 dnc phase 1 region 'lll' budget 7500
+best         : 1.10806e-17 (55 fails) via level_fix noop+collapse
+15:58:04 halv-9 dnc phase 2 region 'llrl' budget 7500
+best         : 1.44741e-15 (48 fails) via place_missing noop+collapse
+16:13:57 halv-9 dnc phase 3 region 'llrr' budget 7500
+best         : 3.12273e-15 (47 fails) via seed+collapse
+16:28:17 halv-9 dnc phase 4 region 'r' budget 7500
+best         : 3.6262e-12 (37 fails) via crossover llrrrrr<->llrlrrrl+collapse
+16:40:38 halv-9 dnc phase 5 region 'lll' budget 7500
+best         : 3.6262e-12 (37 fails) via seed+collapse
+16:50:03 halv-9 dnc phase 6 region 'llrl' budget 7500
+best         : 7.28355e-12 (36 fails) via seed+collapse
+16:59:33 halv-9 dnc phase 7 region 'llrr' budget 7500
+best         : 5.96833e-11 (33 fails) via level_fix noop+collapse
+17:13:58 halv-9 dnc phase 8 region 'r' budget 7500
+best         : 4.91375e-10 (30 fails) via repair_shaft noop (shaft intact)+collapse

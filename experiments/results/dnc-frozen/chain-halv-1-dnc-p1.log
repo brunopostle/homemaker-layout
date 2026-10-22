@@ -1,0 +1,84 @@
+frozen       : everything outside 'l' (72 nodes)
+WARNING: 413 m2 per storey needs ~85 m of daylit wall; the plot's non-private perimeter gives 53 m. Roughly 48 m2 of courtyard closes the gap. (DESIGN.md §38.3)
+WARNING: 332 m2 is pinned to level 0 by the programme and needs ~68 m of daylit wall, against the 53 m the plot perimeter gives. The ground floor cannot set itself back to buy more, so a square courtyard of roughly 15 m2 (3.8 m a side) is what closes it. (DESIGN.md §39.17)
+seed         : /home/bruno/src/homemaker-layout/experiments/results/halving-harbor/halv-1.dom
+programme    : harbor-house
+budget       : 10000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+support outside    : True
+level add+migrate  : False
+repair shaft       : True
+light well         : False
+retype kind        : False
+pivot              : False
+tune storey heights: False
+core_undivide repaired : True
+seed solver        : False
+label write-back   : True
+aim undivide       : True
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-1-dnc-p1.dom
+[   200 evals] best 1.20313e-18 (fails 58) via seed
+[   280 evals] best 1.2477e-18 (fails 58) via retype 1/lrlllrr->li1
+[   360 evals] best 4.98385e-18 (fails 56) via crossover rll<->rlrr
+[   920 evals] best 4.99753e-18 (fails 56) via level_fix noop
+[  1320 evals] best 1.00824e-17 (fails 55) via crossover lrllrr<->rrrr
+[  1720 evals] best 4.15747e-17 (fails 53) via core_undivide noop
+[  3880 evals] best 4.16897e-17 (fails 53) via crossover lrrll<->lrlrrl
+[  6440 evals] best 4.16986e-17 (fails 53) via place_missing noop
+[  6760 evals] best 4.17066e-17 (fails 53) via stair make ll (2 storeys)
+[  8040 evals] best 4.17195e-17 (fails 53) via level_compound_fix noop
+[  8920 evals] best 1.71541e-16 (fails 51) via retype 1/lrrll->C
+
+--- finishing (homemaker-py-3l6): unfold + polish 5000 evals ---
+[finish] unfold: materialised 0 shared-leaf copies
+[   200 evals] best 1.72255e-16 (fails 51) via seed
+[   280 evals] best 1.37911e-15 (fails 48) via retype 1/lrlllrr->li1
+[   520 evals] best 1.38039e-15 (fails 48) via level_fix noop
+[   760 evals] best 1.381e-15 (fails 48) via place_missing noop
+[   920 evals] best 1.3816e-15 (fails 48) via level_fix noop
+[  1080 evals] best 1.38183e-15 (fails 48) via core_undivide noop
+[  3960 evals] best 1.38194e-15 (fails 48) via core_undivide noop
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 48 → 48 fails (applied)
+
+--- done ---
+elapsed      : 1402.8s
+evals        : 15040 across 185 topologies
+best         : 1.38194e-15 (48 fails) via core_undivide noop+collapse
+
+improvement history:
+  [   200] 1.20313e-18  (share:seed)
+  [   280] 1.2477e-18  (share:retype 1/lrlllrr->li1)
+  [   360] 4.98385e-18  (share:crossover rll<->rlrr)
+  [   920] 4.99753e-18  (share:level_fix noop)
+  [  1320] 1.00824e-17  (share:crossover lrllrr<->rrrr)
+  [  1720] 4.15747e-17  (share:core_undivide noop)
+  [  3880] 4.16897e-17  (share:crossover lrrll<->lrlrrl)
+  [  6440] 4.16986e-17  (share:place_missing noop)
+  [  6760] 4.17066e-17  (share:stair make ll (2 storeys))
+  [  8040] 4.17195e-17  (share:level_compound_fix noop)
+  [  8920] 1.71541e-16  (share:retype 1/lrrll->C)
+  [ 10240] 1.72255e-16  (polish:seed)
+  [ 10320] 1.37911e-15  (polish:retype 1/lrlllrr->li1)
+  [ 10560] 1.38039e-15  (polish:level_fix noop)
+  [ 10800] 1.381e-15  (polish:place_missing noop)
+  [ 10960] 1.3816e-15  (polish:level_fix noop)
+  [ 11120] 1.38183e-15  (polish:core_undivide noop)
+  [ 14000] 1.38194e-15  (polish:core_undivide noop)
+written      : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-1-dnc-p1.dom
+frozen draws : 324 for 183 children, 0 gave up
+outside 'l': 0 structural differences, 14 room cells relabelled

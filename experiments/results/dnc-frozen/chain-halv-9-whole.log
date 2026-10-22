@@ -1,0 +1,16 @@
+15:37:35 halv-9 whole phase 1 region '' budget 7500
+best         : 3.84713e-13 (40 fails) via level_retype 0/llrlrllr<->1/rrrllr+collapse
+15:57:00 halv-9 whole phase 2 region '' budget 7500
+best         : 1.67375e-12 (38 fails) via undivide 0/llrrrlr aimed+collapse
+16:12:07 halv-9 whole phase 3 region '' budget 7500
+best         : 1.40291e-11 (35 fails) via stair unmake lll (3 storeys)+collapse
+16:26:39 halv-9 whole phase 4 region '' budget 7500
+best         : 2.80558e-11 (34 fails) via retype 1/rrrrlr->ut1+collapse
+16:40:52 halv-9 whole phase 5 region '' budget 7500
+best         : 2.80881e-11 (34 fails) via core_undivide noop+collapse
+16:55:07 halv-9 whole phase 6 region '' budget 7500
+best         : 2.81084e-11 (34 fails) via seed+collapse
+17:09:19 halv-9 whole phase 7 region '' budget 7500
+best         : 1.20592e-10 (32 fails) via level_retype 0/llrlrlll<->1/rrrllr+collapse
+17:21:29 halv-9 whole phase 8 region '' budget 7500
+best         : 4.06511e-09 (27 fails) via divide 1/rrrrlr+collapse

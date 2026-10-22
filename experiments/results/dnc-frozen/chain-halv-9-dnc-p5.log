@@ -1,0 +1,52 @@
+frozen       : everything outside 'lll' (142 nodes)
+WARNING: 413 m2 per storey needs ~85 m of daylit wall; the plot's non-private perimeter gives 53 m. Roughly 48 m2 of courtyard closes the gap. (DESIGN.md §38.3)
+WARNING: 332 m2 is pinned to level 0 by the programme and needs ~68 m of daylit wall, against the 53 m the plot perimeter gives. The ground floor cannot set itself back to buy more, so a square courtyard of roughly 15 m2 (3.8 m a side) is what closes it. (DESIGN.md §39.17)
+seed         : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-9-dnc-p4.dom
+programme    : harbor-house
+budget       : 7500
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+support outside    : True
+level add+migrate  : False
+repair shaft       : True
+light well         : False
+retype kind        : False
+pivot              : False
+tune storey heights: False
+core_undivide repaired : True
+seed solver        : False
+label write-back   : True
+aim undivide       : True
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-9-dnc-p5.dom
+[     1 evals] best 3.6262e-12 (fails 37) via seed
+
+--- finishing (homemaker-py-3l6): unfold + polish 3750 evals ---
+[finish] unfold: materialised 0 shared-leaf copies
+[     1 evals] best 3.6262e-12 (fails 37) via seed
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 37 → 37 fails (applied)
+
+--- done ---
+elapsed      : 563.9s
+evals        : 11369 across 309 topologies
+best         : 3.6262e-12 (37 fails) via seed+collapse
+
+improvement history:
+  [     1] 3.6262e-12  (share:seed)
+  [  7545] 3.6262e-12  (polish:seed)
+written      : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-9-dnc-p5.dom
+frozen draws : 884 for 307 children, 0 gave up
+outside 'lll': 0 structural differences, 0 room cells relabelled

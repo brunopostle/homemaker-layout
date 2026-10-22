@@ -1,0 +1,12 @@
+15:37:35 halv-1 whole phase 1 region '' budget 10000
+best         : 2.53282e-12 (37 fails) via undivide 1/lrlllr aimed+collapse
+16:00:22 halv-1 whole phase 2 region '' budget 10000
+best         : 9.96309e-11 (32 fails) via level_retype 0/lrrll<->1/lrllll+collapse
+16:19:14 halv-1 whole phase 3 region '' budget 10000
+best         : 4.27726e-10 (30 fails) via swap 0/lrlll+collapse
+16:36:31 halv-1 whole phase 4 region '' budget 10000
+best         : 2.85354e-08 (24 fails) via undivide 0/lrlrr aimed+collapse
+16:54:48 halv-1 whole phase 5 region '' budget 10000
+best         : 1.94084e-06 (18 fails) via place_missing noop+collapse
+17:12:53 halv-1 whole phase 6 region '' budget 10000
+best         : 9.17959e-06 (16 fails) via level_fix noop+collapse

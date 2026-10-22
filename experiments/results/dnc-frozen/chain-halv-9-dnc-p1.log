@@ -1,0 +1,56 @@
+frozen       : everything outside 'lll' (144 nodes)
+WARNING: 413 m2 per storey needs ~85 m of daylit wall; the plot's non-private perimeter gives 53 m. Roughly 48 m2 of courtyard closes the gap. (DESIGN.md §38.3)
+WARNING: 332 m2 is pinned to level 0 by the programme and needs ~68 m of daylit wall, against the 53 m the plot perimeter gives. The ground floor cannot set itself back to buy more, so a square courtyard of roughly 15 m2 (3.8 m a side) is what closes it. (DESIGN.md §39.17)
+seed         : /home/bruno/src/homemaker-layout/experiments/results/halving-harbor/halv-9.dom
+programme    : harbor-house
+budget       : 7500
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 0
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+bridge circulation : False
+ruin recreate      : False
+support outside    : True
+level add+migrate  : False
+repair shaft       : True
+light well         : False
+retype kind        : False
+pivot              : False
+tune storey heights: False
+core_undivide repaired : True
+seed solver        : False
+label write-back   : True
+aim undivide       : True
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-9-dnc-p1.dom
+[     1 evals] best 2.79671e-18 (fails 57) via seed
+[   162 evals] best 5.54571e-18 (fails 56) via level_fix noop
+
+--- finishing (homemaker-py-3l6): unfold + polish 3750 evals ---
+[finish] unfold: materialised 0 shared-leaf copies
+[     1 evals] best 2.78663e-18 (fails 57) via seed
+[   162 evals] best 5.54571e-18 (fails 56) via level_fix noop
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 56 → 55 fails (applied)
+
+--- done ---
+elapsed      : 1226.1s
+evals        : 11398 across 575 topologies
+best         : 1.10806e-17 (55 fails) via level_fix noop+collapse
+
+improvement history:
+  [     1] 2.79671e-18  (share:seed)
+  [   162] 5.54571e-18  (share:level_fix noop)
+  [  7576] 2.78663e-18  (polish:seed)
+  [  7737] 5.54571e-18  (polish:level_fix noop)
+written      : /home/bruno/src/homemaker-layout/experiments/results/dnc-frozen/chain-halv-9-dnc-p1.dom
+frozen draws : 1742 for 573 children, 0 gave up
+outside 'lll': 0 structural differences, 28 room cells relabelled

@@ -18800,3 +18800,41 @@ best at every phase is common to both. Expected, written before it runs:
 no resolved difference at n = 3 seeds; `dnc` cannot change a storey count or
 a parti, so where the seed's storey count is wrong (halv-1 starts with three
 storeys, its halving descendant won with two) `whole` should win.
+
+**Run 2: wing by wing loses to the whole building, on all three seeds.**
+Finished the same day (1.6 h a chain, far quicker than run 1's
+continuations -- 15-20 minutes a phase). Re-scored from the final files;
+`dnc` changed nothing outside the union of its regions (0 differences on all
+three, so the courts and the parti held), `whole` changed 4-8 such nodes:
+
+| seed | fails at start | regions | `dnc` by phase | `whole` by phase | final dnc / whole |
+|---|---|---|---|---|---|
+| halv-1 | 66 | l rl rr | 48 29 28 28 25 25 | 37 32 30 24 18 16 | 25 / **16** |
+| halv-9 | 74 | lll llrl llrr r | 55 48 47 37 37 36 33 30 | 40 38 35 34 34 34 32 27 | 30 / **27** |
+| halv-13 | 76 | ll lr r | 47 40 31 26 26 26 | 37 28 23 21 21 21 | 26 / **21** |
+
+The expectation is half met. "No resolved difference at n = 3" holds in the
+letter -- three of three one way is p = 0.25 by a sign test -- but the
+direction is unanimous and the gap is 3-9 fails. Its stated reason was
+wrong: halv-1 has two storeys as committed (the build log's three-storey
+line is another candidate), so no seed here needed a storey count changed.
+
+Where the gap opens says why. `whole` leads after the FIRST phase on every
+seed (37/48, 40/55, 37/47): a catalogue seed's fails are spread over the
+whole building, and a phase that may touch only one wing leaves the rest
+untouched for its whole budget, while the unfrozen phase spends the same
+evaluations wherever the gain is largest. The later rounds do not close the
+gap: the fails that remain are the ones across a region's edge (`not
+adjacent to c` + `access` 4+4 on halv-1's `dnc` against 1+1), which a
+single-region freeze cannot reach -- run 1's s0 result again.
+
+So, at harbor-house scale and equal evaluations, **freezing the outside does
+not make the search better, and on the evidence here makes it worse**. What
+it buys is a guarantee (the parti and every other wing stay as they were),
+which is useful as a repair tool on a finished design (run 1), not as a
+route to a design. Since an evaluation costs much the same either way, the
+search space that decomposition shrinks was not what limited the search.
+What would still be worth a test is the reverse order -- whole-building
+search first, then frozen per-wing passes as a finishing polish -- and a
+budget large enough (the halving race's 252k) for the `whole` arm to
+plateau; neither is run.
