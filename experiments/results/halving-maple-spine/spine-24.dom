@@ -1,0 +1,612 @@
+node:
+- - 0.0
+  - 0.0
+- - 30.0
+  - 1.5
+- - 29.0
+  - 28.0
+- - 0.0
+  - 27.0
+perimeter:
+  a: private
+  b: private
+  c: null
+  d: null
+rotation: 0
+division:
+- 0.30427928087926925
+- 0.30427928087926925
+height: 3.0
+elevation: 0.0
+wall_inner: 0.08
+wall_outer: 0.25
+l:
+  rotation: 3
+  division:
+  - 0.09696409227534741
+  - 0.09696409227534741
+  l:
+    type: E
+    rotation: 0
+  r:
+    rotation: 3
+    division:
+    - 0.17739334383954586
+    - 0.17739334383954586
+    l:
+      type: C
+      rotation: 0
+    r:
+      rotation: 1
+      division:
+      - 0.41802255861430204
+      - 0.41802255861430204
+      l:
+        rotation: 0
+        division:
+        - 0.23440015226690447
+        - 0.23440015226690447
+        l:
+          rotation: 1
+          division:
+          - 0.7750533656717571
+          - 0.7750533656717571
+          l:
+            type: me1
+            rotation: 0
+          r:
+            type: t
+            rotation: 0
+        r:
+          rotation: 0
+          division:
+          - 0.13680495624923716
+          - 0.13680495624923716
+          l:
+            type: rc1
+            rotation: 0
+          r:
+            rotation: 1
+            division:
+            - 0.6653143810162367
+            - 0.6653143810162367
+            l:
+              type: da1
+              rotation: 0
+            r:
+              type: k1
+              rotation: 0
+      r:
+        rotation: 0
+        division:
+        - 0.23908314990866764
+        - 0.23908314990866764
+        l:
+          rotation: 1
+          division:
+          - 0.5918155927720239
+          - 0.5918155927720239
+          l:
+            type: gh1
+            rotation: 0
+          r:
+            rotation: 1
+            division:
+            - 0.3816495400024663
+            - 0.3816495400024663
+            l:
+              type: t
+              rotation: 0
+            r:
+              type: m
+              rotation: 0
+        r:
+          rotation: 0
+          division:
+          - 0.33283684215980114
+          - 0.33283684215980114
+          l:
+            rotation: 1
+            division:
+            - 0.13188636747658689
+            - 0.13188636747658689
+            l:
+              type: t
+              rotation: 0
+            r:
+              type: ws1
+              rotation: 0
+          r:
+            rotation: 1
+            division:
+            - 0.8109995886844352
+            - 0.8109995886844352
+            l:
+              type: lr1
+              rotation: 0
+            r:
+              type: C
+              rotation: 0
+r:
+  rotation: 1
+  division:
+  - 0.8471625199133124
+  - 0.8471625199133124
+  l:
+    rotation: 3
+    division:
+    - 0.7932623898579771
+    - 0.7932623898579771
+    l:
+      type: O
+      rotation: 0
+    r:
+      rotation: 1
+      division:
+      - 0.11687745771743024
+      - 0.11687745771743024
+      l:
+        type: E
+        rotation: 0
+      r:
+        rotation: 3
+        division:
+        - 0.3388008195913448
+        - 0.3388008195913448
+        l:
+          type: C
+          rotation: 0
+        r:
+          rotation: 1
+          division:
+          - 0.6825909904706948
+          - 0.6825909904706948
+          l:
+            rotation: 0
+            division:
+            - 0.48213725879235225
+            - 0.48213725879235225
+            l:
+              type: ph1
+              rotation: 0
+            r:
+              type: la1
+              rotation: 0
+          r:
+            rotation: 0
+            division:
+            - 0.3728285487752365
+            - 0.3728285487752365
+            l:
+              type: t
+              rotation: 0
+            r:
+              type: m
+              rotation: 0
+  r:
+    rotation: 0
+    division:
+    - 0.3377102162744017
+    - 0.3377102162744017
+    l:
+      type: C
+      rotation: 0
+    r:
+      rotation: 1
+      division:
+      - 0.37126284810783705
+      - 0.37126284810783705
+      l:
+        rotation: 0
+        division:
+        - 0.6201185182068816
+        - 0.6201185182068816
+        l:
+          type: m
+          rotation: 0
+        r:
+          type: t
+          rotation: 0
+      r:
+        rotation: 0
+        division:
+        - 0.7731088675921778
+        - 0.7731088675921778
+        l:
+          type: ur1
+          rotation: 0
+        r:
+          type: t
+          rotation: 0
+above:
+  rotation: 0
+  division:
+  - 0.3125
+  - 0.3125
+  height: 3.0
+  l:
+    rotation: 3
+    division:
+    - 0.09825186431660655
+    - 0.09825186431660655
+    l:
+      type: E
+      rotation: 0
+    r:
+      rotation: 0
+      division:
+      - 0.173396471472647
+      - 0.173396471472647
+      l:
+        type: C
+        rotation: 0
+      r:
+        rotation: 0
+        division:
+        - 0.2729988416753033
+        - 0.2729988416753033
+        l:
+          rotation: 0
+          division:
+          - 0.758820902188477
+          - 0.758820902188477
+          l:
+            rotation: 0
+            division:
+            - 0.794585050029429
+            - 0.794585050029429
+            l:
+              type: lo1
+              rotation: 0
+            r:
+              type: C
+              rotation: 0
+          r:
+            rotation: 0
+            division:
+            - 0.5
+            - 0.5
+            l:
+              type: tn
+              rotation: 0
+            r:
+              type: tn
+              rotation: 0
+        r:
+          rotation: 0
+          division:
+          - 0.13962264150943396
+          - 0.13962264150943396
+          l:
+            rotation: 0
+            division:
+            - 0.32432432432432434
+            - 0.32432432432432434
+            l:
+              type: tn
+              rotation: 0
+            r:
+              type: em
+              rotation: 0
+          r:
+            rotation: 0
+            division:
+            - 0.6666666666666666
+            - 0.6666666666666666
+            l:
+              rotation: 0
+              division:
+              - 0.7894736842105263
+              - 0.7894736842105263
+              l:
+                type: n
+                rotation: 0
+              r:
+                type: py
+                rotation: 0
+            r:
+              rotation: 0
+              division:
+              - 0.5263157894736842
+              - 0.5263157894736842
+              l:
+                type: li1
+                rotation: 0
+              r:
+                type: ur2
+                rotation: 0
+  r:
+    rotation: 1
+    division:
+    - 0.8275862068965517
+    - 0.8275862068965517
+    l:
+      rotation: 3
+      division:
+      - 0.7727272727272727
+      - 0.7727272727272727
+      l:
+        type: O
+        rotation: 0
+      r:
+        rotation: 1
+        division:
+        - 0.12073691007151455
+        - 0.12073691007151455
+        l:
+          type: E
+          rotation: 0
+        r:
+          rotation: 0
+          division:
+          - 0.35
+          - 0.35
+          l:
+            rotation: 0
+            division:
+            - 0.7218910341510725
+            - 0.7218910341510725
+            l:
+              type: py
+              rotation: 0
+            r:
+              type: tn
+              rotation: 0
+          r:
+            rotation: 0
+            division:
+            - 0.9155877494724973
+            - 0.9155877494724973
+            l:
+              rotation: 0
+              division:
+              - 0.8275862068965517
+              - 0.8275862068965517
+              l:
+                type: n
+                rotation: 0
+              r:
+                type: em
+                rotation: 0
+            r:
+              type: C
+              rotation: 0
+    r:
+      rotation: 0
+      division:
+      - 0.33294134775298934
+      - 0.33294134775298934
+      l:
+        type: C
+        rotation: 0
+      r:
+        rotation: 0
+        division:
+        - 0.4225352112676056
+        - 0.4225352112676056
+        l:
+          type: n
+          rotation: 0
+        r:
+          rotation: 0
+          division:
+          - 0.7317073170731707
+          - 0.7317073170731707
+          l:
+            type: n
+            rotation: 0
+          r:
+            type: en1
+            rotation: 0
+  above:
+    rotation: 0
+    division:
+    - 0.3125
+    - 0.3125
+    height: 3.0
+    l:
+      rotation: 3
+      division:
+      - 0.09825186431660655
+      - 0.09825186431660655
+      l:
+        type: E
+        rotation: 0
+      r:
+        rotation: 0
+        division:
+        - 0.173396471472647
+        - 0.173396471472647
+        l:
+          type: C
+          rotation: 0
+        r:
+          rotation: 0
+          division:
+          - 0.46731827895425143
+          - 0.46731827895425143
+          l:
+            rotation: 0
+            division:
+            - 0.1486785936122775
+            - 0.1486785936122775
+            l:
+              rotation: 0
+              division:
+              - 0.5
+              - 0.5
+              l:
+                type: tt
+                rotation: 0
+              r:
+                type: tt
+                rotation: 0
+            r:
+              rotation: 0
+              division:
+              - 0.8544629242486084
+              - 0.8544629242486084
+              l:
+                type: O
+                rotation: 0
+              r:
+                type: r
+                rotation: 0
+          r:
+            rotation: 0
+            division:
+            - 0.5
+            - 0.5
+            l:
+              rotation: 0
+              division:
+              - 0.43478260869565216
+              - 0.43478260869565216
+              l:
+                rotation: 0
+                division:
+                - 0.5027518566408617
+                - 0.5027518566408617
+                l:
+                  type: r
+                  rotation: 0
+                r:
+                  type: r
+                  rotation: 0
+              r:
+                rotation: 0
+                division:
+                - 0.39308865947852634
+                - 0.39308865947852634
+                l:
+                  type: r
+                  rotation: 0
+                r:
+                  type: ur3
+                  rotation: 0
+            r:
+              rotation: 0
+              division:
+              - 0.5217391304347826
+              - 0.5217391304347826
+              l:
+                rotation: 0
+                division:
+                - 0.4166666666666667
+                - 0.4166666666666667
+                l:
+                  type: r
+                  rotation: 0
+                r:
+                  type: ut1
+                  rotation: 0
+              r:
+                rotation: 0
+                division:
+                - 0.45454545454545453
+                - 0.45454545454545453
+                l:
+                  type: r
+                  rotation: 0
+                r:
+                  type: q1
+                  rotation: 0
+    r:
+      rotation: 1
+      division:
+      - 0.8275862068965517
+      - 0.8275862068965517
+      l:
+        rotation: 3
+        division:
+        - 0.7727272727272727
+        - 0.7727272727272727
+        l:
+          type: O
+          rotation: 0
+        r:
+          rotation: 1
+          division:
+          - 0.12073691007151455
+          - 0.12073691007151455
+          l:
+            type: E
+            rotation: 0
+          r:
+            rotation: 0
+            division:
+            - 0.35
+            - 0.35
+            l:
+              rotation: 0
+              division:
+              - 0.625
+              - 0.625
+              l:
+                type: r
+                rotation: 0
+              r:
+                type: tt
+                rotation: 0
+            r:
+              rotation: 0
+              division:
+              - 0.9155877494724973
+              - 0.9155877494724973
+              l:
+                rotation: 0
+                division:
+                - 0.6363636363636364
+                - 0.6363636363636364
+                l:
+                  type: gy1
+                  rotation: 0
+                r:
+                  rotation: 0
+                  division:
+                  - 0.38101297788678634
+                  - 0.38101297788678634
+                  l:
+                    type: tt
+                    rotation: 0
+                  r:
+                    type: r
+                    rotation: 0
+              r:
+                type: C
+                rotation: 0
+      r:
+        rotation: 0
+        division:
+        - 0.33294134775298934
+        - 0.33294134775298934
+        l:
+          type: C
+          rotation: 0
+        r:
+          rotation: 0
+          division:
+          - 0.5
+          - 0.5
+          l:
+            rotation: 0
+            division:
+            - 0.49856008189758194
+            - 0.49856008189758194
+            l:
+              type: r
+              rotation: 0
+            r:
+              type: r
+              rotation: 0
+          r:
+            rotation: 0
+            division:
+            - 0.5
+            - 0.5
+            l:
+              type: r
+              rotation: 0
+            r:
+              type: r
+              rotation: 0
