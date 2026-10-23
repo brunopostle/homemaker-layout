@@ -134,3 +134,59 @@ def test_it_clears_the_fail_the_hand_design_was_built_to_show():
     finally:
         geometry.ORTHOGONAL_DIVISION = False
         geometry.clear_cache()
+
+
+# homemaker-py-4ln3.1 (DESIGN.md §39.140): a multi-storey parent with NO shaft.
+# The fallback used to type the largest ground circulation leaf `E` whether or
+# not the storeys above had circulation at that address, which made a stair in
+# 1 of 46 such moves. Now it takes only an address that is a column of
+# circulation leaves, and declines where there is none.
+
+def _without_shaft(root, column: bool):
+    """Break every shaft: its ground leaves become `C` (a column of circulation
+    is still there to make one of) or, with ``column`` False, every upper
+    circulation leaf becomes a room (none is)."""
+    lvls = dom.levels(root)
+    paths = operators._shaft_paths(lvls)
+    assert paths, "the artefact has no shaft to break: a vacuous test"
+    room = next(lf.type for lf in lvls[0].leaves() if lf.type and not dom.is_generic(lf.type))
+    for lf in lvls[0].leaves():
+        if lf.type == dom.GENERIC_STAIR:
+            lf.type = "C"
+    if not column:
+        for lvl in lvls[1:]:
+            for lf in lvl.leaves():
+                if lf.type in dom.GENERIC_INDOOR_CIRCULATION:
+                    lf.type = room
+    root = operators._finalise(root)
+    assert not operators._shaft_paths(dom.levels(root))
+    return root
+
+
+def test_no_shaft_but_a_column_the_new_storey_gets_a_stair():
+    reqs = _reqs()
+    types = sorted(reqs) + ["C", "O"]
+    parent = _without_shaft(_parent(), column=True)
+    moved = 0
+    for seed in range(6):
+        child, desc = operators.mutate_level_add_migrate(
+            parent, np.random.default_rng(seed), types, reqs=reqs)
+        geometry.clear_cache()
+        if "noop" in desc:
+            continue
+        moved += 1
+        lvls = dom.levels(child)
+        assert operators._shaft_paths(lvls), desc
+        path = operators._shaft_paths(lvls)[0]
+        assert all(lvl.by_id(path).type == dom.GENERIC_STAIR for lvl in lvls), desc
+    assert moved, "the operator never moved: a vacuous test"
+
+
+def test_no_shaft_and_no_column_it_declines():
+    reqs = _reqs()
+    types = sorted(reqs) + ["C", "O"]
+    parent = _without_shaft(_parent(), column=False)
+    for seed in range(6):
+        _child, desc = operators.mutate_level_add_migrate(
+            parent, np.random.default_rng(seed), types, reqs=reqs)
+        assert desc == "level_add_migrate noop (no shaft, and no column for one)", desc

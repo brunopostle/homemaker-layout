@@ -2679,19 +2679,33 @@ def _shaft_feet(lvls: "list[dom.Node]") -> "list[dom.Node]":
 
 
 def _stair_path(lvls: "list[dom.Node]") -> "str | None":
-    """The largest shaft, or the largest ground ``C`` leaf when there is none.
+    """The largest shaft, or the largest ground ``E`` (else ``C``) leaf that
+    could become one, when there is none; None if nothing could.
 
     The fallback matters for a parent that has no intact shaft yet (a
     single-storey building has no stack at all), where a move that adds a storey
     still has to put the new landing somewhere. See `_shaft_paths` for the rule.
+    Only an address that is a circulation LEAF on every existing storey makes a
+    column when it is typed ``E``; anything else left a multi-storey building
+    with a landing on its new top storey and no stair to it -- 1 stair made in
+    46 moves on the census (homemaker-py-4ln3.1, DESIGN.md §39.140). On one
+    storey every ground leaf is such a column.
     """
     from . import geometry
 
     paths = _shaft_paths(lvls)
     if paths:
         return paths[0]
-    ground = ([lf for lf in lvls[0].leaves() if lf.type == dom.GENERIC_STAIR]
-              or [lf for lf in lvls[0].leaves() if lf.type == "C"])
+
+    def column(leaf: dom.Node) -> bool:
+        for lvl in lvls[1:]:
+            n = lvl.by_id(leaf.id)
+            if n is None or n.divided or n.type not in dom.GENERIC_INDOOR_CIRCULATION:
+                return False
+        return True
+
+    ground = ([lf for lf in lvls[0].leaves() if lf.type == dom.GENERIC_STAIR and column(lf)]
+              or [lf for lf in lvls[0].leaves() if lf.type == "C" and column(lf)])
     return max(ground, key=geometry.area).id if ground else None
 
 
@@ -3298,6 +3312,10 @@ def mutate_level_add_migrate(root: dom.Node, rng: np.random.Generator,
     core_paths = _shaft_paths(lvls)
     if not core_paths:
         fallback = _stair_path(lvls)      # no intact shaft yet: put one somewhere
+        if fallback is None and len(lvls) > 1:
+            # no column to make one of: a storey added now would have no way
+            # up. Leave the stair to `mutate_repair_shaft`, which cuts one
+            return child, "level_add_migrate noop (no shaft, and no column for one)"
         core_paths = [fallback] if fallback is not None else []
         for lvl in lvls:                  # ...and say so on the storeys below
             node = lvl.by_id(fallback) if fallback is not None else None
