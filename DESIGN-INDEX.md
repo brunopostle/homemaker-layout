@@ -193,7 +193,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (272 of them, 18994 lines)
+## Every section of DESIGN.md (273 of them, 19028 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -513,7 +513,8 @@ below are the most recent work.
 - §39.161 · 18499-18559 · Spine first: a corridor through every wing before rooms are placed connects 10 of 16 maple-court seeds outright, once two seeder bugs were found (`homemaker-py-2g7.13.1.7`)
 - §39.162 · 18560-18618 · Pivot: a grid of four quadrants turned on its other axis, every quadrant kept (`homemaker-py-mtfo`)
 - §39.163 · 18619-18669 · Re-baseline at `0d79403+orth`: four of §39.157's five expectations held, and the one missed is maple-court coming in below the last corpus's range (`homemaker-py-vpx5`)
-- §39.165 · 18670-18751 · Divide-and-conquer pilot: a wing cut out of a building keeps its own fails exactly, loses the relations that crossed the cut, and is a cheap problem on its own (`homemaker-py-2g7.13.1.5`)
-- §39.166 · 18752-18857 · Divide and conquer with exact context: a wing searched inside the frozen building repairs what a stand-alone wing broke, as well as an unfrozen search does (`homemaker-py-2g7.13.1.5`)
-- §39.167 · 18858-18952 · The spine race on maple-court: a spine seed wins with 13 fails, the best maple-court design yet, having given its connection away at 8k (`homemaker-py-2g7.13.1.7`)
-- §39.168 · 18953-18994 · The split race on harbor-house: dealt seeds win, 10 fails against the capacity arm's best of 12, as §39.160 expected (`homemaker-py-2g7.13.1.8`)
+- §39.164 · 18670-18703 · The shape-curve DP backtracks to a storey's own ratios: its last false negative goes (`homemaker-py-3kp`)
+- §39.165 · 18704-18785 · Divide-and-conquer pilot: a wing cut out of a building keeps its own fails exactly, loses the relations that crossed the cut, and is a cheap problem on its own (`homemaker-py-2g7.13.1.5`)
+- §39.166 · 18786-18891 · Divide and conquer with exact context: a wing searched inside the frozen building repairs what a stand-alone wing broke, as well as an unfrozen search does (`homemaker-py-2g7.13.1.5`)
+- §39.167 · 18892-18986 · The spine race on maple-court: a spine seed wins with 13 fails, the best maple-court design yet, having given its connection away at 8k (`homemaker-py-2g7.13.1.7`)
+- §39.168 · 18987-19028 · The split race on harbor-house: dealt seeds win, 10 fails against the capacity arm's best of 12, as §39.160 expected (`homemaker-py-2g7.13.1.8`)
