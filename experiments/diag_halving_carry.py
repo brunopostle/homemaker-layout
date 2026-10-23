@@ -44,12 +44,19 @@ ap = argparse.ArgumentParser()
 ap.add_argument("design")
 ap.add_argument("--programme", default="harbor-house")
 ap.add_argument("--cold", default="4428262+orth", help="stamp of the cold runs used as the control")
+ap.add_argument("--seeds-dir", help="the race's own seeds (every *.dom but cold-*/winner); "
+                "default the programme's first halving, experiments/results/halving-<short>/halv-*.dom")
 a = ap.parse_args()
 prog = a.programme
-halv = {"harbor-house": "halving-harbor", "maple-court": "halving-maple"}[prog]
+if a.seeds_dir:
+    seeds = sorted(f for f in glob.glob(f"{a.seeds_dir}/*.dom")
+                   if not os.path.basename(f).startswith(("cold-", "winner")))
+else:
+    halv = {"harbor-house": "halving-harbor", "maple-court": "halving-maple"}[prog]
+    seeds = sorted(glob.glob(f"experiments/results/{halv}/halv-*.dom"))
 W = raster(a.design)
 rows = []
-for p in sorted(glob.glob(f"experiments/results/{halv}/halv-*.dom")) + \
+for p in seeds + \
          sorted(glob.glob(f"examples/{prog}/footprint-s*.dom")) + \
          [f for f in [f"examples/{prog}/hand2a.dom"] if os.path.exists(f)] + \
          sorted(glob.glob(f"examples/{prog}/coldstart-{a.cold}-500000-s*.dom")):

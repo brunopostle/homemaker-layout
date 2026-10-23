@@ -21,7 +21,7 @@ index is how to get from a question to the section that answers it.
   §39.14 and §39.15 are corrected by §39.16; §39.28's reading by §39.29 and
   §39.30; §39.55's retraction of the adjacency defect is reversed by §39.56;
   §39.57's "inert" by §39.58; §39.112's "a gene outside the tree" by
-  §39.113.
+  §39.113; §39.159's "no disconnected candidate was ever joined" by §39.167.
 - **Every number carries the objective it was measured at** (`c836457+orth`,
   `59d8aa1+orth`, ...), from §39.32 on. Two numbers at different stamps are
   not comparable, and never across the `+orth` switch (§39.12 clause 3,
@@ -96,10 +96,12 @@ index is how to get from a question to the section that answers it.
 | §39.156 | `aim` at 48 pairs on programme-house: score resolves in its favour (0.21 -> 0.27, margin 0.057 > MDD 0.052, p 0.033); fails 0.96 -> 0.73 no longer resolve (MDD 0.26, p 0.086) -- the 12 new pairs tie on fails. No cost in hard fails or time; `staircase volume` 8 -> 3. |
 | §39.157 | Re-baseline at `0d79403+orth` (stair separation; search: label write-back, `aim`, height cap), expectations before it runs: the objective change re-scores the last corpus unchanged, 12 of 12; no programme's mean fails leaves the last corpus's range; programme-house median score >= 0.22; crinkliness still the largest family. |
 | §39.163 | Re-baseline at `0d79403+orth`: 4 of §39.157's 5 expectations held; maple-court fell BELOW the last range (mean 56 vs 60-67), soft down and hard up; paired over 12, 21.9 vs 24.8 fails, underpowered (MDD 3.5). Crinkliness 44%. |
-| §39.158 | `--retype-kind` (branch, default off): `retype` / `level_retype` change only a cell's kind, because the scorer's relabelling moves room codes among room cells and never touches a generic one. Census: erased draws 28-70% -> 0% on all four programmes. Loses the room -> room edits that survived; maple-court A/B (n = 4, expected null) after the re-baseline. |
+| §39.158 | `--retype-kind` (branch, default off): `retype` / `level_retype` change only a cell's kind, because the scorer's relabelling moves room codes among room cells and never touches a generic one. Census: erased draws 28-70% -> 0% on all four programmes. Loses the room -> room edits that survived. Maple-court A/B at `0d79403+orth` (addendum): null as expected, 54.75 vs 53.00 fails, MDD 19.2 at n = 4; default stays `anyroom`. |
 | §39.159 | Connection is kept, not made: every cold run on maple-court, harbor-house and health-centre ends with every storey `not connected`; of 103 halving candidates five started connected (`hand2a` stayed so through all six stages), and no disconnected one was ever joined. The lever is the seeder (36 of 54 storeys disconnected); through-corridor or spine-first is the owner's choice. |
 | §39.160 | Capacity-aware storey split (`--split capacity`, default dealt): no storey overflows its built area (0 of 600 splits, against 46-147 of 200 per plan), size fails fall a fifth, but proportion/access/adjacency take them up and the 18 harbor seeds' fails do not move (median 84.5 -> 83.5, paired mean -0.06, p 0.24). |
 | §39.161 | Spine first (`--spine`, default off): a strip of circulation through every wing before rooms are placed. After two seeder bugs (a tie-break that chose 1.6 m stubs; upstairs cuts scored before being linked to the storey below), disconnected storeys fall 57 -> 11 of 61 and 10 of 16 maple seeds are fully connected (none before); fails barely move (median 120 -> 116.5). A halving race is the test. |
+| §39.167 | The spine race (maple-court, 48 spine + 48 no-spine + 3 cold, 252k): spine-2 wins at 13 fails (cold 500k at the same stamp: 52-62); spine 3 of 4 finalists. Expectations 1 and 3 held, 2 MISSED: the winner started connected and sold all three storeys' connection at 8k, and outscores the one connected finalist. Corrects §39.159: the search does join storeys (31 times), and loses them as readily. Next: an owner ruling on its weight, or a search-side guard. |
+| §39.168 | The split race (harbor-house, 48 dealt + 48 capacity + 3 cold): dealt-1 wins at 10 fails, capacity's best 12, as §39.160 expected; the capacity arm thinned faster every round. `--split` stays `dealt`. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -178,6 +180,8 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Pruning the catalogue filter by a tree's capacity (on the plot, or on the scale-free ladder) | §39.148 | not lossless: the capacity hill-climb under-finds, losing 45 of 199 and 218 of 1,172 health-centre outlines; and the filter was never the slow part |
 | `shapecurve` exact feasibility as a filter on room-to-wing allocations | §39.149 | prunes none of 540 CP-SAT bins; area capacity does all the work |
 | capacity-aware storey split, on seed fail counts | §39.160 | paired mean -0.06 fails over 18 harbor seeds; size fails move to proportion, access and adjacency |
+| capacity-aware storey split, in a halving race | §39.168 | dealt wins 10 vs 12; capacity seeds thinned faster every round |
+| `--retype-kind` | §39.158 (addendum) | null at n = 4 on maple-court, as expected |
 | A child budget that depends on the move; supporting a terrace without shrinking a room | §39.122 | both SET ASIDE unbuilt, not measured negative; the section says what would bring each back |
 
 ## Where the current state is
@@ -189,7 +193,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (270 of them, 18840 lines)
+## Every section of DESIGN.md (272 of them, 18994 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -503,11 +507,13 @@ below are the most recent work.
 - §39.155 · 18230-18299 · Successive halving on maple-court: a catalogue seed wins with 23 fails against cold runs' 60-67, and crinkliness falls from 34-42 to 5 (`homemaker-py-2g7.13.1.9`)
 - §39.156 · 18300-18327 · `aim` at 48 pairs: the score resolves in its favour, the fail count does not (`homemaker-py-iplo`)
 - §39.157 · 18328-18361 · Re-baseline at `0d79403+orth`: what it is expected to show, written before it runs
-- §39.158 · 18362-18397 · `--retype-kind`: label moves that the scorer's relabelling cannot erase (`homemaker-py-urzf.2`)
-- §39.159 · 18398-18431 · The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
-- §39.160 · 18432-18482 · A capacity-aware storey split stops storeys overflowing, and leaves the seeds' fail count where it was (`homemaker-py-2g7.13.1.8`)
-- §39.161 · 18483-18543 · Spine first: a corridor through every wing before rooms are placed connects 10 of 16 maple-court seeds outright, once two seeder bugs were found (`homemaker-py-2g7.13.1.7`)
-- §39.162 · 18544-18602 · Pivot: a grid of four quadrants turned on its other axis, every quadrant kept (`homemaker-py-mtfo`)
-- §39.163 · 18603-18653 · Re-baseline at `0d79403+orth`: four of §39.157's five expectations held, and the one missed is maple-court coming in below the last corpus's range (`homemaker-py-vpx5`)
-- §39.165 · 18654-18735 · Divide-and-conquer pilot: a wing cut out of a building keeps its own fails exactly, loses the relations that crossed the cut, and is a cheap problem on its own (`homemaker-py-2g7.13.1.5`)
-- §39.166 · 18736-18840 · Divide and conquer with exact context: a wing searched inside the frozen building repairs what a stand-alone wing broke, as well as an unfrozen search does (`homemaker-py-2g7.13.1.5`)
+- §39.158 · 18362-18413 · `--retype-kind`: label moves that the scorer's relabelling cannot erase (`homemaker-py-urzf.2`)
+- §39.159 · 18414-18447 · The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
+- §39.160 · 18448-18498 · A capacity-aware storey split stops storeys overflowing, and leaves the seeds' fail count where it was (`homemaker-py-2g7.13.1.8`)
+- §39.161 · 18499-18559 · Spine first: a corridor through every wing before rooms are placed connects 10 of 16 maple-court seeds outright, once two seeder bugs were found (`homemaker-py-2g7.13.1.7`)
+- §39.162 · 18560-18618 · Pivot: a grid of four quadrants turned on its other axis, every quadrant kept (`homemaker-py-mtfo`)
+- §39.163 · 18619-18669 · Re-baseline at `0d79403+orth`: four of §39.157's five expectations held, and the one missed is maple-court coming in below the last corpus's range (`homemaker-py-vpx5`)
+- §39.165 · 18670-18751 · Divide-and-conquer pilot: a wing cut out of a building keeps its own fails exactly, loses the relations that crossed the cut, and is a cheap problem on its own (`homemaker-py-2g7.13.1.5`)
+- §39.166 · 18752-18857 · Divide and conquer with exact context: a wing searched inside the frozen building repairs what a stand-alone wing broke, as well as an unfrozen search does (`homemaker-py-2g7.13.1.5`)
+- §39.167 · 18858-18952 · The spine race on maple-court: a spine seed wins with 13 fails, the best maple-court design yet, having given its connection away at 8k (`homemaker-py-2g7.13.1.7`)
+- §39.168 · 18953-18994 · The split race on harbor-house: dealt seeds win, 10 fails against the capacity arm's best of 12, as §39.160 expected (`homemaker-py-2g7.13.1.8`)

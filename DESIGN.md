@@ -18395,6 +18395,22 @@ draws); a resolved change in either direction would be a surprise. Worth
 running only because a null here closes `urzf.2` cheaply; a positive result
 would need harbor-house before a default.
 
+**Addendum, 2026-10-24: the A/B, null as expected.** Queue 6 step 1
+(`flag_ab.py kind`, maple-court, 500k, 4 pairs, `0d79403+orth`, search
+`8aeda75`, config `12cf189647`; rows in `experiments/results/kind_ab.tsv`):
+
+| | `anyroom` (default) | `kind` |
+|---|---|---|
+| fails, by seed 0-3 | 62 / 54 / 52 / 51 | 44 / 51 / 62 / 55 |
+| mean fails | 54.75 | 53.00 |
+| mean hard | 11.50 | 11.00 |
+
+Paired difference +1.75 fails for `kind` (2 wins, 2 losses), 95% CI
+-17.4 to +20.9, MDD 19.2 at N = 4; hard +0.5, MDD 4.8. `too few stairs` 4/4
+against 3/4, one discordant pair. Not distinguishable from zero, which was the
+expectation; the default stays `anyroom` and `urzf.2` closes. `kind` ran
+2,400 s a run slower (0 wins of 4, p 0.13; also unresolved).
+
 ### 39.159 The search keeps a connected storey but does not make one: every cold run on a multi-wing programme ends with every storey `not connected` (`homemaker-py-2g7.13.1.7`)
 
 Counted from the committed artefacts, re-scored at `0d79403+orth`:
@@ -18838,3 +18854,141 @@ What would still be worth a test is the reverse order -- whole-building
 search first, then frozen per-wing passes as a finishing polish -- and a
 budget large enough (the halving race's 252k) for the `whole` arm to
 plateau; neither is run.
+
+### 39.167 The spine race on maple-court: a spine seed wins with 13 fails, the best maple-court design yet, having given its connection away at 8k (`homemaker-py-2g7.13.1.7`)
+
+§39.161's race, queue 6 step 2 (`run_ab_queue6.sh`; results and logs in
+`experiments/results/halving-maple-spine`). Objective `0d79403+orth`, search
+`8aeda75`, config `12cf189647`, HEAD `a213710`, `src/` untouched throughout.
+Both arms built at today's seeder from the same 16 plans x 3 stair placements:
+48 `nospine-*`, 48 `spine-*` (`--spine`), and 3 copies of `init.dom` as a cold
+control. Successive halving, `--rank total`, 4k doubling to 128k, each stage
+continuing the last (252k in all for a finalist), 8 slots, 14 h
+(17:33 -> 07:40).
+
+**Who survived each round** (cold candidates all went at 4k):
+
+| round | 4k | 8k | 16k | 32k | 64k | 128k |
+|---|---|---|---|---|---|---|
+| spine | 48 | 21 | 10 | 6 | 4 | 3 |
+| no spine | 48 | 29 | 15 | 7 | 3 | 1 |
+
+**Finalists at 252k:**
+
+| candidate | fails (structural) | `not connected` | score | seed fails |
+|---|---|---|---|---|
+| **spine-2** | **13** (6) | 3 | 7.7e-05 | 77 |
+| spine-5 | 19 (6) | 0 | 9.8e-07 | 103 |
+| nospine-9 | 22 (10) | 3 | 1.3e-07 | 110 |
+| spine-1 | 25 (9) | 3 | 1.5e-08 | 72 |
+
+The winner's 13 are 6 `size`, 3 crinkliness, 1 `width` and the three storeys'
+`not connected`; no access fail of any kind. At the same stamp the three cold
+500k runs end at 62, 54 and 52 (§39.163), and §39.155's maple winner was 23
+at an older stamp. The winner keeps its seed's plan: built/unbuilt agreement
+0.958 with `spine-2`, the highest of the 99, against 0.48-0.57 for the cold
+500k finals (`carry.txt`). Its stairs did not stay put: one shaft moved 23 m
+(`stairs.txt`), as on every race so far.
+
+**§39.161's three expectations:**
+
+| | expected | measured | |
+|---|---|---|---|
+| 1 | won by a spine seed | spine-2 | HELD |
+| 2 | the winner ends with 0 `not connected` | 3, every storey | **MISSED** |
+| 3 | winner no worse than the no-spine field's best | 13 against nospine-9's 22 | HELD |
+
+One race is one draw: (1) and (3) are the best of 48 against the best of 48,
+not a margin, and the arms' survival is mixed (fewer spine seeds through 4k,
+more at the end). What is not a matter of sampling is (2).
+
+**The winner gave its connection away.** `experiments/diag_halving_connect.py`
+(new) scores every candidate's seed and each stage's output for `level N not
+connected`. `spine-2` started with every storey connected, was still so at 4k
+(49 fails), and at 8k had all three disconnected and 43 fails; it never got
+them back. That is a priced trade, not an accident of ranking: the 252k
+`spine-2` beats `spine-5`, the one finalist that IS connected, on score
+(7.7e-05 against 9.8e-07) as well as on fails. Three soft `not connected`
+fails are cheaper to the objective than whatever a connected circulation cost
+the rooms around it.
+
+The census over the whole race:
+
+| | maple spine race | harbor split race (§39.168) |
+|---|---|---|
+| seeds with every storey connected | spine 28 of 48, no spine 1 of 48, cold 0 of 3 | 3 of 48 each arm |
+| ...still connected after 4k | 22 of 29 | -- |
+| candidates that lost a storey, by round | 19 / 3 / 4 / 0 / 0 / 0 | 35 / 7 / 0 / 1 / 0 / 0 |
+| candidates that joined one, by round | 12 / 13 / 5 / 1 / 0 / 0 | 1 / 3 / 1 / 0 / 0 / 0 |
+| fully connected after the last round | 1 of 4 (spine-5) | 0 of 4 |
+
+This corrects §39.159's "no disconnected candidate was ever joined": with
+spine seeds in the field the search does join storeys, 31 times on maple-court,
+and `spine-5` joined its last one at 32k. But it loses them as readily, mostly
+in the first round, and the race's pressure does not favour the connected.
+
+**Reading.** The spine does what §39.161 built it for -- most spine seeds start
+connected -- and a spine seed won by a wide margin, so `--spine` is worth
+keeping and worth trying as the seeder's default. But the property it was built
+to carry is not what carried the winner: under this objective a connected
+storey is worth three soft fails and no more, and the search sells it. Whether
+that is the right price is the owner's question, not the race's -- a building
+whose storeys are each in pieces, with every room still reached from some
+piece, is what `not connected` describes. Two ways on, neither built:
+
+- **An objective ruling** that `level N not connected` weighs more than a soft
+  fail (it is already one of `fitness._CONNECTIVITY_FAIL_MARKERS`). That is an
+  objective change and needs the owner.
+- **A search-side guard**, as `support_outside` and `level_add_migrate` guard a
+  shaft: a move that disconnects a connected storey is declined, or the
+  comparator ranks connection before total. That keeps the objective as it is
+  and makes the search honour what the seed brought.
+
+Also fixed on the way: `diag_halving_carry.py` compared every design with
+§39.151/§39.155's `halv-*` seeds whatever race it came from, so both of queue
+6's `carry.txt` files measured the winner against the wrong field. It takes
+`--seeds-dir` now, and both were re-run against their own seeds and the
+`0d79403+orth` cold runs.
+
+### 39.168 The split race on harbor-house: dealt seeds win, 10 fails against the capacity arm's best of 12, as §39.160 expected (`homemaker-py-2g7.13.1.8`)
+
+§39.160's race, queue 6 step 3 (`experiments/results/halving-harbor-split`).
+Same stamp, search, config and race settings as §39.167; 48 `dealt-*` seeds
+and 48 `cap-*` (`--split capacity`) from the same 16 plans x 3 stair
+placements, and 3 cold. 11.4 h (08:05 -> 19:28).
+
+| round | 4k | 8k | 16k | 32k | 64k | 128k |
+|---|---|---|---|---|---|---|
+| dealt | 48 | 31 | 17 | 10 | 6 | 3 |
+| capacity | 48 | 18 | 8 | 3 | 1 | 1 |
+| cold | 3 | 1 | 0 | | | |
+
+| candidate | fails (structural) | `size` | score |
+|---|---|---|---|
+| **dealt-1** | **10** (3) | 6 | 5.1e-04 |
+| dealt-2 | 11 (3) | 6 | 2.9e-04 |
+| cap-1 | 12 (8) | 4 | 3.5e-05 |
+| dealt-20 | 13 (4) | 7 | 7.1e-05 |
+
+After 4k the dealt arm's median was 52 fails against the capacity arm's 58
+(best 33 against 38). At the same stamp the cold 500k runs end at 21, 29 and
+28; §39.151's harbor winner was 8 at an older stamp. The winner has no
+crinkliness and two storeys `not connected`; its plan agreement with
+`dealt-1` is 0.723, third of 103, against 0.47-0.65 for the cold finals --
+lower than maple's, as §39.151 found on harbor-house before.
+
+**§39.160's expectations:** no difference in the winner's fails beyond the
+seed-to-seed spread -- HELD in the letter (10 against 12, inside the
+finalists' 10-13), though the capacity arm thinned faster in every round,
+18 of 48 through the first against 31; and the capacity winner carries fewer
+`size` fails -- HELD (4 against 6). The capacity finalist is also the only one
+to have lost a stair (2 shafts -> 1, `too few stairs`) and ends with 8
+structural fails against 3-4.
+
+**Reading.** A capacity split removes the overflowing storey it was built to
+remove, and the race shows nothing for it: if anything the dealt seeds' extra
+variety (§39.160: the capacity split is deterministic up to equal sizes) is
+worth more to a race than a storey that fits. `--split` stays `dealt` and
+`2g7.13.1.8` closes. Connection on harbor-house is §39.159's picture
+unchanged: 35 of 99 candidates lost a storey in the first round and one joined
+one.
