@@ -19061,3 +19061,50 @@ objective rewards, not what a search would do instead. At the end the
 weight does not change the order: spine-2 still outscores spine-5 at w = 3,
 narrowly. And the race itself ranks on `--rank total`, an unweighted count,
 so a ruling would have to reach the halving's ranking as well as the score.
+
+### 39.169 The connectivity race: `connectivity_weight=auto` against the default, over §39.167's spine seeds -- design and expectation (`homemaker-py-2g7.13.1.10`)
+
+The owner's box order (2026-10-24): after the pivot A/B, option (1) of
+§39.167 -- does pricing a connectivity fail at `auto` (3 at maple-court's
+value rates) make a race keep the connection its spine seeds bring? -- then
+option (2), the search-side guard.
+
+**Why a race and not `flag_ab`.** A cold run on a multi-wing programme ends
+with every storey disconnected (§39.159), and §39.167's joins and losses
+happened only in a field of spine seeds. A cold A/B would ask a weight to
+price a connection the search has not got.
+
+**Design.** `experiments/run_connectivity_race.sh`: two successive-halving
+races over the SAME 48 committed `spine-*` seeds of §39.167
+(`results/halving-maple-spine`), run side by side at 4 slots each, 4k
+doubling to 128k, no cold candidates (all three went at 4k last time):
+
+- `w1` -- the objective as shipped, the control;
+- `auto` -- `successive_halving.py --conf connectivity_weight=auto`, which
+  appends the key to every stage's copy of `patterns.config` (the
+  programme's own file is untouched) and gives the ranking scorer the same.
+
+Both rank `--rank weighted` -- new: total fails with each connectivity fail
+(`not connected` and `inaccessible usable space`, `fitness.is_connectivity_fail`)
+counted w times, then score. At w = 1 it is exactly `--rank total`, the
+ranking §39.167 used; under `auto` it ranks as the objective prices, which
+§39.167's addendum showed `--rank total` would not. Results go to
+`results/halving-maple-connect/{w1,auto}` with `connect.txt` from
+`diag_halving_connect.py` per arm. `w1` reruns §39.167's spine arm at today's
+search (`3049beb`), so it is also a check on that race.
+
+**Expectations, written before it runs:**
+
+1. the `auto` winner ends with **0** connectivity fails; the `w1` winner with
+   at least one (§39.167's three-storey trade recurring, but a single race);
+2. **fewer candidates lose a storey in the first round under `auto`** -- at
+   most half the `w1` arm's count -- because §39.167's addendum priced
+   spine-2's 4k->8k trade as a loss at w = 3;
+3. the `auto` winner's **total** fails are no better than the `w1` winner's,
+   and within about six of them (spine-5, the one connected finalist at w = 1,
+   was 19 against the winner's 13): connection costs the rooms around it, and
+   the weight only moves which side of that trade the search lands on.
+
+If (1) and (2) hold and (3) holds within its margin, the ruling is the owner's
+on a measured price; if `auto` loses (1), the weight cannot reach what a race
+does in 4k evaluations and option (2), the guard, is the lever.
