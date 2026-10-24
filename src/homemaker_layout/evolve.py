@@ -254,6 +254,13 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "scorer's relabelling's to choose and which it erased "
                         "in 28-70%% of draws. Changes what a search does; the "
                         "A/B has not been run (default: off)")
+    p.add_argument("--guard-connection", dest="guard_connection",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_GUARD_CONNECTION", False),
+                   help="homemaker-py-2g7.13.1.10 (DESIGN.md §39.167): decline "
+                        "a child that leaves a storey 'not connected' which "
+                        "its parent had connected; the objective is unchanged. "
+                        "The race that decides it has not been run (default: off)")
     p.add_argument("--pivot", dest="pivot",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_PIVOT", False),
@@ -452,6 +459,8 @@ def main(argv=None) -> int:
     os.environ["HOMEMAKER_LIGHT_WELL"] = "1" if args.light_well else "0"
     os.environ["HOMEMAKER_RETYPE_KIND"] = "1" if args.retype_kind else "0"
     os.environ["HOMEMAKER_PIVOT"] = "1" if args.pivot else "0"
+    os.environ["HOMEMAKER_GUARD_CONNECTION"] = "1" if args.guard_connection else "0"
+    driver.GUARD_CONNECTION = bool(args.guard_connection)
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
     driver.SEED_SOLVER = bool(args.seed_solver)
     os.environ["HOMEMAKER_LABEL_WRITEBACK"] = "1" if args.label_writeback else "0"
@@ -537,6 +546,7 @@ def main(argv=None) -> int:
     print(f"light well         : {args.light_well}", file=sys.stderr)
     print(f"retype kind        : {args.retype_kind}", file=sys.stderr)
     print(f"pivot              : {args.pivot}", file=sys.stderr)
+    print(f"guard connection   : {args.guard_connection}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"seed solver        : {args.seed_solver}", file=sys.stderr)

@@ -233,6 +233,27 @@ def write_labels_back(root: dom.Node, fit) -> int:
 # since 2026-10-21 (owner, on §39.156); read from the environment for the
 # workers' sake.
 AIM_UNDIVIDE = __import__("os").environ.get("HOMEMAKER_AIM_UNDIVIDE", "1") != "0"
+# homemaker-py-2g7.13.1.10 (DESIGN.md §39.167): decline a bred child that
+# leaves a storey `not connected` which its parent had connected. The search
+# sold three storeys' connection in one 4k stage of the maple spine race for
+# a x73 gain; this keeps the objective as it is and makes the search honour
+# what the parent had. Default OFF until a race decides it; read from the
+# environment for the workers' sake.
+GUARD_CONNECTION = __import__("os").environ.get("HOMEMAKER_GUARD_CONNECTION", "0") == "1"
+
+
+def _unconnected_levels(fails) -> set:
+    """The storeys a fail list names as ``level N not connected``."""
+    return {f for f in fails if f.startswith("level ") and f.endswith(" not connected")}
+
+
+def disconnects(child_fails, parent_fails) -> bool:
+    """True when the child fails ``level N not connected`` for some storey N
+    its parent did not. A storey the parent already had in pieces may stay
+    so, and a child may join one; only a NEW disconnection counts."""
+    return bool(_unconnected_levels(child_fails) - _unconnected_levels(parent_fails))
+
+
 # The solver has no time bound of its own (§39.109: one call ran past twenty
 # minutes at its default limit). Fifty function evaluations is where the seed
 # measurement was made.
@@ -270,6 +291,7 @@ class SearchResult:
     diversity_history: list[tuple[int, int, int]] = field(default_factory=list)
     # (evals, distinct sigs in population, cumulative distinct sigs seen)
     n_restarts: int = 0  # §11.5 diversity restarts triggered
+    n_declined: int = 0  # children the connection guard turned away (2g7.13.1.10)
 
 
 def random_topology(seed_root: dom.Node, n_leaves: int,
@@ -832,6 +854,18 @@ def search(
         restart batches (construction invariants must survive)."""
         nonlocal n_evals
         mx = feasibility_max_shape_fails if (filter_on and feasibility_filter) else None
+
+        def _admit(ind: Individual, k: int) -> str:
+            # The guard reads the PRIMARY parent: a crossover child is judged
+            # against the parent whose ratios it inherits. A declined child's
+            # evaluations are spent; it is never ranked, bred from or best.
+            if (GUARD_CONNECTION and parents and parents[k] is not None
+                    and not ind.lineage.startswith("pruned/")
+                    and disconnects(ind.fails, parents[k][0].fails)):
+                result.n_declined += 1
+                return "declined"
+            return admit(ind, pop)
+
         best_nf = result.best.n_fails if result.best is not None else None
         full = [
             (root, programme_dir, x0, budget_, kw_, lin, use_grade,
@@ -855,7 +889,7 @@ def search(
                 n_evals += used
                 if child_probe is not None:
                     child_probe(ind)
-                status = admit(ind, pop)
+                status = _admit(ind, k)
                 if move_log is not None:
                     _record(ind, used, status, parents[k] if parents else None)
         else:
@@ -864,7 +898,7 @@ def search(
                 n_evals += used
                 if child_probe is not None:
                     child_probe(ind)
-                status = admit(ind, pop)
+                status = _admit(ind, k)
                 if move_log is not None:
                     _record(ind, used, status, parents[k] if parents else None)
 
@@ -1012,6 +1046,9 @@ def search(
             _pool.shutdown(wait=True)
 
     result.population = sorted(pop, key=_key, reverse=True)
+    if GUARD_CONNECTION:
+        _log(f"[{n_evals:6d} evals] connection guard declined "
+             f"{result.n_declined} children")
     result.n_evals = n_evals
     result.n_topologies = n_topologies
     result.n_distinct_signatures = len(seen_sigs)
