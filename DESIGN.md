@@ -19108,3 +19108,62 @@ search (`3049beb`), so it is also a check on that race.
 If (1) and (2) hold and (3) holds within its margin, the ruling is the owner's
 on a measured price; if `auto` loses (1), the weight cannot reach what a race
 does in 4k evaluations and option (2), the guard, is the lever.
+
+### 39.170 The connection guard, built and censused: a quarter of children disconnect a storey, the inner loop never reconnects one, and two in fourteen of the children a search would keep are the trade (`homemaker-py-2g7.13.1.10`)
+
+Option (2) of §39.167, on branch `guard-connection` (0d8c608), NOT merged:
+the pivot A/B has the box and merging is editing `src/`.
+`driver.GUARD_CONNECTION` (`homemaker-evolve --guard-connection`,
+`HOMEMAKER_GUARD_CONNECTION`, default off) declines a bred child that fails
+`level N not connected` for a storey its primary parent did not
+(`driver.disconnects`). The child's evaluations are spent, and it is never
+ranked, bred from or made best. Seeds and restart seeds have no parent and
+pass. `tests/test_guard_connection.py` makes every bred child fail a new
+storey: guard on, the population is all seeds; guard off (the negative
+control), bred children are kept.
+
+**Census** (`experiments/diag_guard_connection.py`, on the branch; its
+`--self-test` forces a storey apart and requires every child to count as
+declined). Parents: 12 of the 4k outputs of §39.167's spine race with a
+connected storey, the state in which `spine-2` sold its connection. Six
+children each from the search's mutation mix (pivot off), each scored at the
+parent's ratios (`raw`) and after an 80-evaluation inner loop (`tuned`), with
+the search's overrides. 577 s CPU, while the pivot A/B ran.
+
+| operator | n | disconnect raw | disconnect tuned | of those, beat the parent |
+|---|---|---|---|---|
+| divide | 11 | 4 | 4 | 0 |
+| level_retype | 10 | 2 | 2 | 0 |
+| undivide | 9 | 2 | 2 | 1 |
+| stair | 9 | 2 | 2 | 0 |
+| support_outside | 9 | 1 | 1 | 0 |
+| core_divide | 5 | 3 | 3 | 0 |
+| swap | 5 | 2 | 2 | 0 |
+| rotate | 5 | 2 | 2 | 1 |
+| retype, level_delete, core_undivide, level_add | 9 | 0 | 0 | 0 |
+| **all** | **72** | **18** | **18** | **2** |
+
+Three readings:
+
+- **The guard spends a quarter of the child budget for nothing** (18 of 72),
+  and on this sample needlessly: `raw` and `tuned` agree on every child, so the
+  inner loop never reconnected a storey. A guard checked at the parent's
+  ratios, before the inner loop, would decline the same children for one
+  evaluation instead of 80. Not built: 18 children is a small sample for
+  "never", and a pre-check changes which children a search sees, which is the
+  race's question too.
+- **What it blocks is rare and real.** 14 of 72 children beat their parent;
+  2 of the 14 disconnect a storey (`rotate` 86 -> 81 fails, `undivide` 81 -> 81
+  at a higher score). Those are §39.167's trade made one move at a time, and
+  the only children the guard changes anything for.
+- **Every family of move disconnects**, the guard-built `support_outside`
+  included (§39.74 guards the shaft, not circulation). So no single operator is
+  the cause, and a guard at admission is the place for the rule.
+
+Box order unchanged: the connectivity race (§39.169) after the pivot A/B, then
+a guard race -- the same 48 spine seeds, `--evolve-args --guard-connection`
+against §39.169's `w1` arm, which is its control at the same search if the
+branch is merged with no other `src/` change between them. Expectation, written
+now: the guarded winner ends with 0 `not connected` and more total fails than
+the `w1` winner -- the guard keeps the connection and gives up the two-in-
+fourteen trades that bought §39.167's winner its margin.
