@@ -18953,9 +18953,10 @@ connected`. `spine-2` started with every storey connected, was still so at 4k
 (49 fails), and at 8k had all three disconnected and 43 fails; it never got
 them back. That is a priced trade, not an accident of ranking: the 252k
 `spine-2` beats `spine-5`, the one finalist that IS connected, on score
-(7.7e-05 against 9.8e-07) as well as on fails. Three soft `not connected`
-fails are cheaper to the objective than whatever a connected circulation cost
-the rooms around it.
+(7.7e-05 against 9.8e-07) as well as on fails. Three `not connected` fails
+-- structural, but each costing x0.5 like any other at the default
+`connectivity_weight` of 1 (§39.8) -- are cheaper to the objective than
+whatever a connected circulation cost the rooms around it.
 
 The census over the whole race:
 
@@ -18974,16 +18975,18 @@ in the first round, and the race's pressure does not favour the connected.
 
 **Reading.** The spine does what §39.161 built it for -- most spine seeds start
 connected -- and a spine seed won by a wide margin, so `--spine` is worth
-keeping and worth trying as the seeder's default. But the property it was built
-to carry is not what carried the winner: under this objective a connected
-storey is worth three soft fails and no more, and the search sells it. Whether
+keeping. But the property it was built to carry is not what carried the
+winner: under this objective a connected storey is worth one x0.5 fail a
+storey and no more, and the search sells it. Whether
 that is the right price is the owner's question, not the race's -- a building
 whose storeys are each in pieces, with every room still reached from some
 piece, is what `not connected` describes. Two ways on, neither built:
 
-- **An objective ruling** that `level N not connected` weighs more than a soft
-  fail (it is already one of `fitness._CONNECTIVITY_FAIL_MARKERS`). That is an
-  objective change and needs the owner.
+- **An objective ruling** that `level N not connected` weighs more than one
+  fail. The lever exists: `connectivity_weight` (§39.8, `"auto"` = 3 at the
+  default rates) counts each connectivity fail as w fails, and was measured
+  null because none of §39.8's rewarded deletions changed the connectivity
+  count. This race has the case it lacked. An objective change, so the owner's.
 - **A search-side guard**, as `support_outside` and `level_add_migrate` guard a
   shaft: a move that disconnects a connected storey is declined, or the
   comparator ranks connection before total. That keeps the objective as it is
@@ -19037,3 +19040,24 @@ worth more to a race than a storey that fits. `--split` stays `dealt` and
 `2g7.13.1.8` closes. Connection on harbor-house is §39.159's picture
 unchanged: 35 of 99 candidates lost a storey in the first round and one joined
 one.
+
+**Addendum, 2026-10-24: what `connectivity_weight` would have done here**
+(exact re-scores, maple-court `patterns.config` with only the weight changed;
+"conn" counts both connectivity strings, `not connected` and `inaccessible
+usable space`):
+
+| design | fails | conn | w = 1 (default) | w = 2 | w = 3 (`auto`) |
+|---|---|---|---|---|---|
+| spine-2 after 4k | 49 | 2 | 9.6e-16 | 2.4e-16 | 6.0e-17 |
+| spine-2 after 8k | 43 | 6 | 7.0e-14 | 1.1e-15 | **1.7e-17** |
+| spine-2, final | 13 | 3 | 7.7e-05 | 9.7e-06 | 1.2e-06 |
+| spine-5, final | 19 | 0 | 9.8e-07 | 9.8e-07 | 9.8e-07 |
+
+The trade spine-2 made between 4k and 8k gained x73 at the default and x4.6 at
+w = 2, and would have LOST at w = 3 (x0.28). So this is the case §39.8 never
+found -- a gain that does change the connectivity count -- and `auto` prices
+it out. It is not one move but 4,000 evaluations' worth, so this says what the
+objective rewards, not what a search would do instead. At the end the
+weight does not change the order: spine-2 still outscores spine-5 at w = 3,
+narrowly. And the race itself ranks on `--rank total`, an unweighted count,
+so a ruling would have to reach the halving's ranking as well as the score.
