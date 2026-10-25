@@ -19202,3 +19202,72 @@ the connectivity work unless a programme with more grids makes the case.
 
 The 16-of-16 `too few stairs` is a health-centre fact, not a pivot one: both
 arms, every seed. Worth its own look (filed).
+
+### 39.172 The connectivity race: `auto` picks a connected winner (16 fails, the best connected maple-court design), but only at the race's ranking -- inside the search the weight is a tie-break (`homemaker-py-2g7.13.1.10`)
+
+§39.169's race, run by `run_connectivity_race.sh` 01:56 -> 13:57 on
+2026-10-25 (objective `0d79403+orth`, search `3049beb`, config `12cf189647`),
+two races of the same 48 spine seeds at 4 slots each. Results in
+`experiments/results/halving-maple-connect/{w1,auto}`.
+
+**Finalists at 252k** (re-scored; "conn" is `level N not connected`, no
+`inaccessible usable space` in any of them):
+
+| arm | candidate | fails | conn | score at w = 1 | score at w = 3 |
+|---|---|---|---|---|---|
+| w1 | **spine-5** (winner) | 19 | 0 | 9.8e-07 | 9.8e-07 |
+| w1 | spine-1 | 25 | 3 | 1.5e-08 | 2.4e-10 |
+| auto | **spine-6** (winner) | **16** | **0** | 8.2e-06 | 8.2e-06 |
+| auto | spine-2 | 15 | 3 | 2.1e-05 | 3.3e-07 |
+
+**A search here is deterministic.** Every `w1` stage result reproduces
+§39.167's spine candidates digit for digit (each stage's seed is a hash of
+name and stage). So `w1` is not a second draw of §39.167: it is the same
+runs in a smaller field. The only thing that changed is which candidates
+survived, and that alone changed the winner. In §39.167 the 32k round kept 8
+of 15 and `spine-2` went through at 31 fails, then fell to 13 at 128k. Here
+it kept 3 of 6, the cut fell at 30, and `spine-2` went out. Successive
+halving is sensitive to the size of its field at the margin, which is worth
+knowing before reading any one race's winner as the best a seed can do.
+
+**§39.169's expectations:**
+
+| | expected | measured | |
+|---|---|---|---|
+| 1a | `auto` winner 0 conn | spine-6, 0 | HELD |
+| 1b | `w1` winner >= 1 conn | spine-5, 0 -- because spine-2 was cut at 32k by field size, not by the weight | MISSED |
+| 2 | first-round losses under `auto` at most half of `w1`'s | 12 against 10; second round 8 against 3 | **MISSED** |
+| 3 | `auto` winner's fails no better than `w1`'s, within 6 | 16 against 19: better | MISSED (direction) |
+
+**Why (2) missed: the search does not rank on the score.** The default
+comparator (`driver.search`, `use_lex=True`, tiers off) is `(-n_fails,
+score)`: a raw fail count first, the score only among equals. A connectivity
+fail counted three times in the score is still one fail in `n_fails`. So
+inside a search a child that loses three storeys' connection and removes four
+other fails always wins, at any weight. `connectivity_weight` reaches only
+ties, and the race's own `--rank weighted`. That is very likely also why
+§39.8 measured the weight as null, although §39.8 gave a different reason
+(none of its rewarded deletions moved the connectivity count). The search
+lost connections as readily under `auto` as at `w1` (connect.txt: 12/8/0/1
+storeys lost by round, against 10/3/2/0).
+
+**What the weight did do is decide the final.** `spine-2` reached the end
+under `auto` the way it did in §39.167: 15 fails, having sold three
+storeys' connection. At w = 1 it outscores `spine-6` (2.1e-05 against
+8.2e-06) and has fewer fails, so `--rank total` would have crowned it. The
+weighted ranking put the connected `spine-6` first. That is a selection rule
+applied to the race's output, not a search that kept its connection.
+
+**Reading.** Read through the default comparator, the objective lever
+cannot do what §39.167 asked of it. A ruling that "not connected" weighs more
+would take effect only if `n_fails` counted it more, which changes the
+comparator, or as a ranking rule over finished designs. The admission guard
+(§39.170) acts where the comparator decides, so it is the next measurement:
+the guard race over the same 48 seeds, with `w1` as its control. `w1` stays
+a valid control because the search is deterministic and the guard is
+default off. Before anything is concluded, the merge must be shown to leave
+a default run byte-identical.
+
+The connected design is also a result in its own right: `auto/winner.dom`,
+spine-6, 16 fails with every storey connected. The previous best connected
+maple-court design was spine-5's 19.

@@ -193,7 +193,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (276 of them, 19204 lines)
+## Every section of DESIGN.md (277 of them, 19273 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -520,4 +520,5 @@ below are the most recent work.
 - §39.168 · 19001-19064 · The split race on harbor-house: dealt seeds win, 10 fails against the capacity arm's best of 12, as §39.160 expected (`homemaker-py-2g7.13.1.8`)
 - §39.169 · 19065-19111 · The connectivity race: `connectivity_weight=auto` against the default, over §39.167's spine seeds -- design and expectation (`homemaker-py-2g7.13.1.10`)
 - §39.170 · 19112-19170 · The connection guard, built and censused: a quarter of children disconnect a storey, the inner loop never reconnects one, and two in fourteen of the children a search would keep are the trade (`homemaker-py-2g7.13.1.10`)
-- §39.171 · 19171-19204 · The pivot A/B on health-centre: null on fails, as §39.162 expected; pivot stays off (`homemaker-py-mtfo`)
+- §39.171 · 19171-19205 · The pivot A/B on health-centre: null on fails, as §39.162 expected; pivot stays off (`homemaker-py-mtfo`)
+- §39.172 · 19206-19273 · The connectivity race: `auto` picks a connected winner (16 fails, the best connected maple-court design), but only at the race's ranking -- inside the search the weight is a tie-break (`homemaker-py-2g7.13.1.10`)
