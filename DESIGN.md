@@ -19167,3 +19167,38 @@ branch is merged with no other `src/` change between them. Expectation, written
 now: the guarded winner ends with 0 `not connected` and more total fails than
 the `w1` winner -- the guard keeps the connection and gives up the two-in-
 fourteen trades that bought §39.167's winner its margin.
+
+### 39.171 The pivot A/B on health-centre: null on fails, as §39.162 expected; pivot stays off (`homemaker-py-mtfo`)
+
+`flag_ab.py pivot --programme health-centre --seeds 8 --slots 8`, objective
+`0d79403+orth`, search `3049beb`, 500k a run, two waves of four pairs
+(09:00 2026-10-24 -> 01:55 2026-10-25). health-centre because a cold design
+there has 8-9 pivotable grids against 0-1 on programme-house. Rows and
+artefacts in `experiments/results/pivot_ab.tsv` / `pivot-ab/`.
+
+| seed | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | mean |
+|---|---|---|---|---|---|---|---|---|---|
+| fails, no pivot | 4 | 4 | 8 | 9 | 4 | 6 | 2 | 2 | 4.88 |
+| fails, pivot | 4 | 2 | 5 | 5 | 2 | 4 | 3 | 5 | 3.75 |
+| hard, no pivot | 2 | 3 | 2 | 4 | 4 | 3 | 2 | 2 | 2.75 |
+| hard, pivot | 2 | 2 | 2 | 3 | 2 | 3 | 2 | 2 | 2.25 |
+
+Paired (`ab_report`): fails 5W/2L/1T for pivot, mean diff +1.13, 95% CI
+[-0.79, +3.04], p 0.21, MDD 1.92 -- **underpowered, no winner**. Hard 3W/0L/5T,
++0.50, p 0.10, MDD 0.63. Score 3W/5L, p 0.69. Time no different (pivot 476 s
+slower of ~29,000, p n.s.). `too few stairs` on all 16 runs, both arms.
+
+**The first wave misled.** After four pairs pivot led by 2.25 fails (p 0.08,
+just under that sample's MDD); seeds 6 and 7 went the other way (2 -> 3 and
+2 -> 5) and halved the margin. Reading a half-finished A/B is how §38.19 and
+§39.47 reported margins their samples could not resolve, so the four-pair
+figure is recorded only to say it should not have been believed.
+
+**Against §39.162's expectation** ("null on fails"): HELD. The direction
+favours pivot on fails and hard fails and the opposite on score, and none of
+it resolves; about 19 pairs would be needed to resolve a 1.1-fail margin,
+36 h of box. **Pivot stays default off.** Not worth that box time ahead of
+the connectivity work unless a programme with more grids makes the case.
+
+The 16-of-16 `too few stairs` is a health-centre fact, not a pivot one: both
+arms, every seed. Worth its own look (filed).
