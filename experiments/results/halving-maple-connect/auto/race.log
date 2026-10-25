@@ -1,0 +1,105 @@
+objective overrides: {'connectivity_weight': 'auto'} (connectivity_weight in force: 3)
+maple-court: 48 candidates, budget 4000 rising x2 to 128000, ranked on weighted fails, 4 slots; at most 7 stages
+  stage 0 (4000): spine-12: 21 structural, 74 fails, score 9.45e-25, 556s
+  stage 0 (4000): spine-13: 29 structural, 83 fails, score 6.2e-28, 584s
+  stage 0 (4000): spine-11: 12 structural, 67 fails, score 3.78e-23, 602s
+  stage 0 (4000): spine-10: 11 structural, 85 fails, score 1.36e-28, 609s
+  stage 0 (4000): spine-16: 27 structural, 77 fails, score 5.72e-28, 548s
+  stage 0 (4000): spine-14: 22 structural, 75 fails, score 1.66e-25, 603s
+  stage 0 (4000): spine-15: 23 structural, 63 fails, score 2.52e-24, 579s
+  stage 0 (4000): spine-17: 31 structural, 83 fails, score 3.43e-29, 604s
+  stage 0 (4000): spine-1: 15 structural, 39 fails, score 7.72e-16, 550s
+  stage 0 (4000): spine-18: 27 structural, 84 fails, score 2.76e-28, 597s
+  stage 0 (4000): spine-19: 19 structural, 75 fails, score 3.28e-26, 599s
+  stage 0 (4000): spine-20: 26 structural, 86 fails, score 7.89e-29, 598s
+  stage 0 (4000): spine-21: 24 structural, 79 fails, score 2.61e-27, 615s
+  stage 0 (4000): spine-22: 8 structural, 81 fails, score 1.06e-26, 580s
+  stage 0 (4000): spine-24: 36 structural, 77 fails, score 2.74e-26, 554s
+  stage 0 (4000): spine-23: 34 structural, 85 fails, score 3.98e-29, 617s
+  stage 0 (4000): spine-26: 31 structural, 83 fails, score 2.67e-28, 540s
+  stage 0 (4000): spine-27: 19 structural, 88 fails, score 6.82e-29, 568s
+  stage 0 (4000): spine-28: 22 structural, 100 fails, score 3.44e-33, 560s
+  stage 0 (4000): spine-25: 24 structural, 90 fails, score 4.98e-30, 635s
+  stage 0 (4000): spine-29: 22 structural, 87 fails, score 3.61e-29, 588s
+  stage 0 (4000): spine-2: 10 structural, 49 fails, score 6.01e-17, 584s
+  stage 0 (4000): spine-30: 30 structural, 90 fails, score 1.83e-29, 593s
+  stage 0 (4000): spine-31: 20 structural, 93 fails, score 6.72e-33, 570s
+  stage 0 (4000): spine-32: 11 structural, 87 fails, score 1.85e-31, 592s
+  stage 0 (4000): spine-33: 21 structural, 105 fails, score 1.5e-36, 584s
+  stage 0 (4000): spine-34: 16 structural, 89 fails, score 2.22e-31, 592s
+  stage 0 (4000): spine-35: 18 structural, 103 fails, score 6.82e-34, 627s
+  stage 0 (4000): spine-36: 21 structural, 94 fails, score 1.9e-31, 541s
+  stage 0 (4000): spine-38: 21 structural, 104 fails, score 1.59e-35, 600s
+  stage 0 (4000): spine-37: 21 structural, 101 fails, score 2.3e-33, 643s
+  stage 0 (4000): spine-39: 30 structural, 98 fails, score 8.9e-32, 665s
+  stage 0 (4000): spine-3: 25 structural, 65 fails, score 6.66e-22, 610s
+  stage 0 (4000): spine-41: 26 structural, 114 fails, score 2.93e-39, 570s
+  stage 0 (4000): spine-40: 16 structural, 101 fails, score 2.46e-33, 617s
+  stage 0 (4000): spine-42: 34 structural, 111 fails, score 2.09e-38, 561s
+  stage 0 (4000): spine-43: 19 structural, 106 fails, score 5.67e-35, 601s
+  stage 0 (4000): spine-44: 24 structural, 118 fails, score 1.95e-40, 618s
+  stage 0 (4000): spine-45: 20 structural, 107 fails, score 5.29e-37, 630s
+  stage 0 (4000): spine-46: 29 structural, 99 fails, score 2.35e-33, 600s
+  stage 0 (4000): spine-47: 20 structural, 111 fails, score 7.48e-37, 647s
+  stage 0 (4000): spine-48: 23 structural, 118 fails, score 1.09e-38, 539s
+  stage 0 (4000): spine-5: 16 structural, 59 fails, score 4.35e-20, 594s
+  stage 0 (4000): spine-4: 14 structural, 52 fails, score 4.23e-19, 615s
+  stage 0 (4000): spine-6: 25 structural, 51 fails, score 1.12e-17, 568s
+  stage 0 (4000): spine-7: 26 structural, 74 fails, score 2.91e-25, 584s
+  stage 0 (4000): spine-8: 24 structural, 69 fails, score 2.3e-24, 530s
+  stage 0 (4000): spine-9: 19 structural, 71 fails, score 1.94e-25, 564s
+stage 0: keep spine-1, spine-2, spine-6, spine-4, spine-5, spine-3, spine-11, spine-15, spine-8, spine-12, spine-7, spine-9, spine-14, spine-19, spine-24, spine-22, spine-21, spine-13, spine-16, spine-26, spine-18, spine-10, spine-20, spine-27; drop spine-23, spine-29, spine-17, spine-30, spine-25, spine-34, spine-36, spine-32, spine-39, spine-31, spine-28, spine-40, spine-46, spine-37, spine-35, spine-43, spine-38, spine-33, spine-47, spine-45, spine-42, spine-48, spine-41, spine-44
+  stage 1 (8000): spine-1: 13 structural, 37 fails, score 3.17e-15, 1004s
+  stage 1 (8000): spine-6: 20 structural, 44 fails, score 2.73e-17, 1104s
+  stage 1 (8000): spine-2: 10 structural, 45 fails, score 1.6e-17, 1110s
+  stage 1 (8000): spine-4: 14 structural, 45 fails, score 5.79e-17, 1193s
+  stage 1 (8000): spine-5: 17 structural, 57 fails, score 1.82e-19, 1071s
+  stage 1 (8000): spine-11: 13 structural, 48 fails, score 1.43e-18, 1148s
+  stage 1 (8000): spine-3: 21 structural, 60 fails, score 2.27e-20, 1211s
+  stage 1 (8000): spine-15: 22 structural, 59 fails, score 1.63e-22, 1135s
+  stage 1 (8000): spine-8: 22 structural, 64 fails, score 8.43e-22, 1181s
+  stage 1 (8000): spine-12: 16 structural, 54 fails, score 2.84e-19, 1121s
+  stage 1 (8000): spine-7: 25 structural, 66 fails, score 7.84e-23, 1203s
+  stage 1 (8000): spine-9: 18 structural, 67 fails, score 3e-24, 1191s
+  stage 1 (8000): spine-14: 23 structural, 70 fails, score 5.55e-24, 1193s
+  stage 1 (8000): spine-19: 21 structural, 72 fails, score 1.43e-25, 1189s
+  stage 1 (8000): spine-22: 9 structural, 79 fails, score 4.41e-26, 1102s
+  stage 1 (8000): spine-24: 29 structural, 66 fails, score 6.98e-23, 1163s
+  stage 1 (8000): spine-16: 27 structural, 72 fails, score 1.96e-26, 1056s
+  stage 1 (8000): spine-21: 29 structural, 74 fails, score 2.81e-25, 1245s
+  stage 1 (8000): spine-13: 17 structural, 66 fails, score 7.08e-24, 1135s
+  stage 1 (8000): spine-26: 29 structural, 77 fails, score 1.2e-26, 1145s
+  stage 1 (8000): spine-18: 26 structural, 77 fails, score 2.54e-27, 1137s
+  stage 1 (8000): spine-10: 12 structural, 77 fails, score 1.5e-25, 1143s
+  stage 1 (8000): spine-27: 18 structural, 85 fails, score 5.14e-28, 1048s
+  stage 1 (8000): spine-20: 29 structural, 80 fails, score 2.47e-28, 1187s
+stage 1: keep spine-1, spine-4, spine-6, spine-2, spine-11, spine-12, spine-5, spine-3, spine-8, spine-15, spine-7, spine-24; drop spine-13, spine-14, spine-9, spine-21, spine-19, spine-10, spine-22, spine-26, spine-16, spine-18, spine-27, spine-20
+  stage 2 (16000): spine-1: 11 structural, 31 fails, score 8.62e-13, 2042s
+  stage 2 (16000): spine-6: 17 structural, 34 fails, score 1.16e-13, 2132s
+  stage 2 (16000): spine-4: 13 structural, 38 fails, score 3.05e-14, 2185s
+  stage 2 (16000): spine-2: 8 structural, 31 fails, score 2.88e-13, 2225s
+  stage 2 (16000): spine-5: 17 structural, 55 fails, score 7.6e-19, 2112s
+  stage 2 (16000): spine-11: 10 structural, 30 fails, score 1.25e-13, 2265s
+  stage 2 (16000): spine-12: 15 structural, 44 fails, score 3.55e-16, 2271s
+  stage 2 (16000): spine-3: 17 structural, 49 fails, score 4.64e-17, 2411s
+  stage 2 (16000): spine-15: 11 structural, 47 fails, score 6.83e-19, 2160s
+  stage 2 (16000): spine-8: 20 structural, 57 fails, score 1.49e-19, 2341s
+  stage 2 (16000): spine-7: 26 structural, 58 fails, score 2.24e-20, 2331s
+  stage 2 (16000): spine-24: 29 structural, 66 fails, score 7.05e-23, 2113s
+stage 2: keep spine-11, spine-1, spine-2, spine-6, spine-4, spine-12; drop spine-3, spine-5, spine-15, spine-8, spine-7, spine-24
+  stage 3 (32000): spine-1: 10 structural, 30 fails, score 1.79e-12, 4060s
+  stage 3 (32000): spine-6: 15 structural, 25 fails, score 6.3e-11, 4327s
+  stage 3 (32000): spine-11: 9 structural, 28 fails, score 4.97e-13, 4371s
+  stage 3 (32000): spine-2: 8 structural, 26 fails, score 9.48e-12, 4471s
+  stage 3 (32000): spine-4: 9 structural, 27 fails, score 6.17e-11, 2895s
+  stage 3 (32000): spine-12: 10 structural, 32 fails, score 1.76e-12, 2741s
+stage 3: keep spine-6, spine-4, spine-2; drop spine-11, spine-1, spine-12
+  stage 4 (64000): spine-4: 9 structural, 25 fails, score 2.52e-10, 6284s
+  stage 4 (64000): spine-6: 10 structural, 20 fails, score 4.89e-07, 7001s
+  stage 4 (64000): spine-2: 7 structural, 16 fails, score 1.69e-07, 7153s
+stage 4: keep spine-6, spine-2; drop spine-4
+  stage 5 (128000): spine-2: 7 structural, 15 fails, score 3.35e-07, 11325s
+  stage 5 (128000): spine-6: 7 structural, 16 fails, score 8.16e-06, 11821s
+
+winner spine-6: 7 structural, 16 fails, score 8.165e-06 (stage 5, budget 128000)
+wrote experiments/results/halving-maple-connect/auto/winner.dom
