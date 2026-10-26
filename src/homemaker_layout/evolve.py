@@ -254,14 +254,20 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "scorer's relabelling's to choose and which it erased "
                         "in 28-70%% of draws. Changes what a search does; the "
                         "A/B has not been run (default: off)")
-    p.add_argument("--guard-connection", dest="guard_connection",
-                   action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_GUARD_CONNECTION", True),
+    p.add_argument("--guard-connection", dest="guard_connection", nargs="?",
+                   const="connected", type=driver.guard_mode, metavar="MODE",
+                   default=driver.guard_mode(
+                       os.environ.get("HOMEMAKER_GUARD_CONNECTION", "connected")),
                    help="homemaker-py-2g7.13.1.10 (DESIGN.md §39.167): decline "
                         "a child that leaves a storey 'not connected' which "
                         "its parent had connected; the objective is unchanged. "
-                        "Default on since §39.174, the owner's call on slim "
-                        "evidence: one race (§39.173), no A/B (default: on)")
+                        "MODE 'connected' guards only a parent with every "
+                        "storey connected (owner's ruling, §39.179); 'any' "
+                        "guards every parent, as §39.173/§39.178 raced it; "
+                        "'off' is no guard (default: connected)")
+    p.add_argument("--no-guard-connection", dest="guard_connection",
+                   action="store_const", const="off",
+                   help="the same as --guard-connection=off")
     p.add_argument("--pivot", dest="pivot",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_PIVOT", False),
@@ -460,8 +466,8 @@ def main(argv=None) -> int:
     os.environ["HOMEMAKER_LIGHT_WELL"] = "1" if args.light_well else "0"
     os.environ["HOMEMAKER_RETYPE_KIND"] = "1" if args.retype_kind else "0"
     os.environ["HOMEMAKER_PIVOT"] = "1" if args.pivot else "0"
-    os.environ["HOMEMAKER_GUARD_CONNECTION"] = "1" if args.guard_connection else "0"
-    driver.GUARD_CONNECTION = bool(args.guard_connection)
+    os.environ["HOMEMAKER_GUARD_CONNECTION"] = args.guard_connection
+    driver.GUARD_CONNECTION = args.guard_connection
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
     driver.SEED_SOLVER = bool(args.seed_solver)
     os.environ["HOMEMAKER_LABEL_WRITEBACK"] = "1" if args.label_writeback else "0"

@@ -240,7 +240,26 @@ AIM_UNDIVIDE = __import__("os").environ.get("HOMEMAKER_AIM_UNDIVIDE", "1") != "0
 # what the parent had. Default ON since §39.174 -- the owner's call on slim
 # evidence (one race, §39.173; a cold A/B cannot measure it, since cold runs
 # never connect a storey). Read from the environment for the workers' sake.
-GUARD_CONNECTION = __import__("os").environ.get("HOMEMAKER_GUARD_CONNECTION", "1") == "1"
+# homemaker-py-1d5p (owner's ruling, §39.179): by default only a parent with
+# EVERY storey connected is guarded -- `connected`. `any` is the guard as
+# §39.173/§39.178 raced it (any parent, any new disconnection); `off` is none.
+GUARD_MODES = ("off", "any", "connected")
+
+
+def guard_mode(v: str) -> str:
+    """A guard mode from a flag or environment value; the booleans mean
+    `off` and the default (`connected`)."""
+    v = str(v).strip().lower()
+    if v in ("0", "false", "no"):
+        return "off"
+    if v in ("1", "true", "yes", "on"):
+        return "connected"
+    if v not in GUARD_MODES:
+        raise ValueError(f"connection guard mode {v!r} is not one of {GUARD_MODES}")
+    return v
+
+
+GUARD_CONNECTION = guard_mode(__import__("os").environ.get("HOMEMAKER_GUARD_CONNECTION", "connected"))
 
 
 def _unconnected_levels(fails) -> set:
@@ -253,6 +272,16 @@ def disconnects(child_fails, parent_fails) -> bool:
     its parent did not. A storey the parent already had in pieces may stay
     so, and a child may join one; only a NEW disconnection counts."""
     return bool(_unconnected_levels(child_fails) - _unconnected_levels(parent_fails))
+
+
+def guard_declines(child_fails, parent_fails, mode: str) -> bool:
+    """True when the connection guard in ``mode`` turns the child away. Under
+    `connected` a parent already partly disconnected breeds unguarded."""
+    if mode == "off":
+        return False
+    if mode == "connected" and _unconnected_levels(parent_fails):
+        return False
+    return disconnects(child_fails, parent_fails)
 
 
 # The solver has no time bound of its own (§39.109: one call ran past twenty
@@ -860,9 +889,9 @@ def search(
             # The guard reads the PRIMARY parent: a crossover child is judged
             # against the parent whose ratios it inherits. A declined child's
             # evaluations are spent; it is never ranked, bred from or best.
-            if (GUARD_CONNECTION and parents and parents[k] is not None
+            if (parents and parents[k] is not None
                     and not ind.lineage.startswith("pruned/")
-                    and disconnects(ind.fails, parents[k][0].fails)):
+                    and guard_declines(ind.fails, parents[k][0].fails, GUARD_CONNECTION)):
                 result.n_declined += 1
                 return "declined"
             return admit(ind, pop)
@@ -1047,8 +1076,8 @@ def search(
             _pool.shutdown(wait=True)
 
     result.population = sorted(pop, key=_key, reverse=True)
-    if GUARD_CONNECTION:
-        _log(f"[{n_evals:6d} evals] connection guard declined "
+    if GUARD_CONNECTION != "off":
+        _log(f"[{n_evals:6d} evals] connection guard ({GUARD_CONNECTION}) declined "
              f"{result.n_declined} children")
     result.n_evals = n_evals
     result.n_topologies = n_topologies

@@ -48,7 +48,7 @@ say "race guard: $n candidates"
 python -u experiments/successive_halving.py --programme harbor-house \
     --seeds $SEEDS/dealt-*.dom $SEEDS/cap-*.dom $SEEDS/cold-a.dom $SEEDS/cold-b.dom $SEEDS/cold-c.dom \
     --start 4000 --final 128000 --eta 2 --slots "$SLOTS" --rank total \
-    --evolve-args=--guard-connection \
+    --evolve-args=--guard-connection=any \
     --work "$W" --output "$R/winner.dom" > $R/race.log 2>&1
 say "race guard finished (rc=$?)"
 

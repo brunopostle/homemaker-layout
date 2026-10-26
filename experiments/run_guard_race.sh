@@ -51,7 +51,7 @@ race() {   # race <arm> [--conf ...]
         > $R/$arm/race.log 2>&1
     say "race $arm finished (rc=$?)"
 }
-race guard --evolve-args=--guard-connection
+race guard --evolve-args=--guard-connection=any
 
 for arm in guard; do
     W=$HOME/halving-connect-$arm

@@ -19573,3 +19573,33 @@ restricted guard, paired against §39.173 / §39.178 by `ab_report`:
 **expected**, harbor-house stage-0 cost within its MDD of zero (it was +0.91,
 MDD 0.68), and maple-court losing no storey that a fully connected parent had.
 `homemaker-py-3fmw` (an unguarded seed re-tune) is separate and still open.
+
+### 39.180 The restricted connection guard, built: `--guard-connection=connected` (`homemaker-py-1d5p`)
+
+§39.179's ruling, built. The guard is now a mode rather than a switch:
+
+| mode | declines a child that disconnects a storey ... | |
+|---|---|---|
+| `connected` | ... only when its primary parent has every storey connected | **default** |
+| `any` | ... from any parent (a NEW `level N not connected`) | §39.173 / §39.178 as raced |
+| `off` | never | `--no-guard-connection` |
+
+`driver.guard_declines(child_fails, parent_fails, mode)` is the predicate;
+`driver.disconnects` is unchanged and is still what `any` asks. A bare
+`--guard-connection` and `HOMEMAKER_GUARD_CONNECTION=1` now mean `connected`,
+so `run_guard_race.sh` and `run_guard_harbor.sh` were pinned to
+`--guard-connection=any` to keep replaying what they recorded. The search
+config hash moves to **`517acdbf88`** (`guard_connection: "connected"`,
+written to `results/search_configs/`). Search-side only: the objective stamp
+does not move.
+
+**Not yet measured.** `experiments/run_guard_1d5p.sh` is the check §39.179
+asked for, and it needs the box (about three hours at eight slots). It first
+replays one candidate per programme with `any` and stops unless the fail count
+matches the committed control row, since the pairs are clean only if it does.
+Then it runs stage 0 of both races with `connected` and pairs them with the new
+`experiments/pair_halving_stages.py`. That tool reproduces §39.178's figure
+from the committed tables (off vs any: −0.909, p 0.0096, MDD 0.683). The
+expectations stand as §39.179 wrote them: on harbor-house, stage-0 cost against
+`off` within its MDD of zero; on maple-court, no run loses a storey that its
+fully connected seed had (`connect.txt`).

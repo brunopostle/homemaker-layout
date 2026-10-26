@@ -693,7 +693,7 @@ def test_use_tiers_prefers_fewer_hard_over_fewer_total_fails(monkeypatch):
     monkeypatch.setattr(innerloop, "optimise", fake_optimise)
     # the child's hard fail is a disconnection, which the connection guard
     # (default on since §39.174) would decline before the comparator sees it
-    monkeypatch.setattr(driver, "GUARD_CONNECTION", False)
+    monkeypatch.setattr(driver, "GUARD_CONNECTION", "off")
 
     common_kw = dict(programme_dir=CORPUS, pop_size=1, seed_budget=50,
                      child_budget=50, budget=100, bootstrap=False, seed=0)
