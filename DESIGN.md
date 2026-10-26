@@ -19441,3 +19441,33 @@ to check `staircase_min` only on a multi-storey building, which moves the stamp
 and every health-centre score by x2. Alternatively, `staircase_min: 0` in the
 brief changes the brief only, but it also lets a two-storey design go without a
 stair. Not built; asked of the owner.
+
+### 39.177 Owner's ruling: a single-storey building needs no stair (`homemaker-py-esck`)
+
+The owner, 2026-10-26, choosing between §39.176's two fixes: "Definitely 1."
+So `fitness.py` checks `staircase_min` only on a building of more than one
+storey, like `staircase volume` beside it. The brief is unchanged:
+health-centre keeps `staircase_min: 1`, which now means "if it has an upper
+floor, a stair reaches it".
+
+**This is an objective change; it moves the stamp.** Priced before landing by
+scoring every committed `examples/*/*.dom` (183) against its own brief, before
+and after, with the switch off and on. 147 are bit-identical. 36 move, all of
+them single-storey, each losing exactly `too few stairs` and nothing else, at
+exactly x2. 25 are health-centre's; the other 11 are one-storey starters
+(`init.dom`, `generated.dom`) of programmes whose `storey_minimum` is 2 or 3.
+Those still pay `storey minimum`, now once instead of also paying a stair
+fail for the same fact.
+
+**What it does to comparisons:** every health-centre fail count before this
+section carries one fail that is now gone, so compare health-centre only
+within a stamp (the standing rule). No ranking among single-storey designs
+moves. What changes for a search is health-centre's second storey. It used to
+remove a x0.5; now it only costs (a shaft, `staircase volume`, connectivity),
+so a search should go two storeys even less often than the never it already
+did.
+
+`tests/test_single_storey_stairs.py` holds it: a one-storey health-centre
+design with no stair passes, and the control, a two-storey harbor-house design
+with no stair, still fails `too few stairs (0, min 2)`. Its first test fails
+on the old code.

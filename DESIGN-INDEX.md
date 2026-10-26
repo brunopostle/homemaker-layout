@@ -145,6 +145,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | Storey height is capped per project, default 3.9 m, and is a whole multiple of a 75 mm brick/block course | §39.153 |
 | The connection guard and spine seeding are default on -- "based on slim evidence" (one race each, no A/B): cite them as judgement, not as measured wins | §39.174 |
+| A single-storey building needs no stair: `staircase_min` applies only above one storey | §39.177 |
 | Label write-back is the default search | §39.153 |
 | `aim` (undivide aimed at failing cells) is the default search | §39.156 |
 | The pivot move keeps each quadrant's plan AREA, not its walls: deterministic, a jog moves to the other axis | §39.162 |
@@ -195,7 +196,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (281 of them, 19443 lines)
+## Every section of DESIGN.md (282 of them, 19473 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -527,4 +528,5 @@ below are the most recent work.
 - §39.173 · 19275-19348 · The guard race: no storey lost in 95 runs, and the winner is connected at 13 fails, the best maple-court design so far; one race, so the margin is not yet the guard's (`homemaker-py-2g7.13.1.10`)
 - §39.174 · 19349-19385 · Owner's ruling: the connection guard and spine seeding are default on -- on slim evidence (`homemaker-py-2g7.13.1.10`)
 - §39.175 · 19386-19419 · The guard on a second programme: harbor-house, §39.168's field with the guard on -- design and expectation (`homemaker-py-7bc2`)
-- §39.176 · 19420-19443 · health-centre's "too few stairs" is a single-storey building charged for having no stair (`homemaker-py-esck`)
+- §39.176 · 19420-19444 · health-centre's "too few stairs" is a single-storey building charged for having no stair (`homemaker-py-esck`)
+- §39.177 · 19445-19473 · Owner's ruling: a single-storey building needs no stair (`homemaker-py-esck`)

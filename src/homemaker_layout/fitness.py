@@ -2431,7 +2431,11 @@ class Fitness:
         if stair_min > 1 and stair_count > 1:
             separated = self._separated_stairs(root, stairs)
 
-        if separated < stair_min:
+        # Owner's ruling (DESIGN.md §39.177): a single-storey building needs no
+        # stair. This check used to run whatever the storey count, so every
+        # one-storey health-centre design paid `too few stairs (0, min 1)`
+        # (§39.176), while `staircase volume` above was already multi-level only.
+        if len(lvls) > 1 and separated < stair_min:
             tracking["_failures"].append(
                 f"too few stairs ({separated}, min {stair_min})"
             )
