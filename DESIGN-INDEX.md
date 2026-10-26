@@ -102,6 +102,7 @@ index is how to get from a question to the section that answers it.
 | §39.161 | Spine first (`--spine`, default off): a strip of circulation through every wing before rooms are placed. After two seeder bugs (a tie-break that chose 1.6 m stubs; upstairs cuts scored before being linked to the storey below), disconnected storeys fall 57 -> 11 of 61 and 10 of 16 maple seeds are fully connected (none before); fails barely move (median 120 -> 116.5). A halving race is the test. |
 | §39.167 | The spine race (maple-court, 48 spine + 48 no-spine + 3 cold, 252k): spine-2 wins at 13 fails (cold 500k at the same stamp: 52-62); spine 3 of 4 finalists. Expectations 1 and 3 held, 2 MISSED: the winner started connected and sold all three storeys' connection at 8k, and outscores the one connected finalist. Corrects §39.159: the search does join storeys (31 times), and loses them as readily. Next: an owner ruling on its weight, or a search-side guard. |
 | §39.168 | The split race (harbor-house, 48 dealt + 48 capacity + 3 cold): dealt-1 wins at 10 fails, capacity's best 12, as §39.160 expected; the capacity arm thinned faster every round. `--split` stays `dealt`. |
+| §39.169-§39.174 | Keeping a storey connected on maple-court's spine seeds. `connectivity_weight=auto` only breaks ties inside the search, because the comparator counts raw fails first (§39.172). An admission guard that declines a child disconnecting a storey its parent had connected loses no storey in 95 runs and wins at 13 fails, every storey connected: one race (§39.173). Guard and `--spine` made default on slim evidence (§39.174). |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -143,6 +144,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A common room opens onto PRIVATE outdoor space: a street wall is not "next to outdoors" | §39.138 |
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | Storey height is capped per project, default 3.9 m, and is a whole multiple of a 75 mm brick/block course | §39.153 |
+| The connection guard and spine seeding are default on -- "based on slim evidence" (one race each, no A/B): cite them as judgement, not as measured wins | §39.174 |
 | Label write-back is the default search | §39.153 |
 | `aim` (undivide aimed at failing cells) is the default search | §39.156 |
 | The pivot move keeps each quadrant's plan AREA, not its walls: deterministic, a jog moves to the other axis | §39.162 |
@@ -193,7 +195,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (278 of them, 19347 lines)
+## Every section of DESIGN.md (279 of them, 19384 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -522,4 +524,5 @@ below are the most recent work.
 - §39.170 · 19112-19170 · The connection guard, built and censused: a quarter of children disconnect a storey, the inner loop never reconnects one, and two in fourteen of the children a search would keep are the trade (`homemaker-py-2g7.13.1.10`)
 - §39.171 · 19171-19205 · The pivot A/B on health-centre: null on fails, as §39.162 expected; pivot stays off (`homemaker-py-mtfo`)
 - §39.172 · 19206-19274 · The connectivity race: `auto` picks a connected winner (16 fails, the best connected maple-court design), but only at the race's ranking -- inside the search the weight is a tie-break (`homemaker-py-2g7.13.1.10`)
-- §39.173 · 19275-19347 · The guard race: no storey lost in 95 runs, and the winner is connected at 13 fails, the best maple-court design so far; one race, so the margin is not yet the guard's (`homemaker-py-2g7.13.1.10`)
+- §39.173 · 19275-19348 · The guard race: no storey lost in 95 runs, and the winner is connected at 13 fails, the best maple-court design so far; one race, so the margin is not yet the guard's (`homemaker-py-2g7.13.1.10`)
+- §39.174 · 19349-19384 · Owner's ruling: the connection guard and spine seeding are default on -- on slim evidence (`homemaker-py-2g7.13.1.10`)

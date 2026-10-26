@@ -84,6 +84,26 @@ def test_search_sources_are_not_objective_sources():
         assert rel not in mod.OBJECTIVE_SOURCES
 
 
+def test_every_evolve_option_is_a_knob_or_a_run_option():
+    """A new `homemaker-evolve` flag must be recorded or declared not to be.
+
+    `--guard-connection` changes what a search does and was missing from
+    SEARCH_KNOBS, so a guarded and an unguarded sweep would have carried the
+    same `search_config` (§39.174). The module partition above catches a new
+    FILE; this catches a new FLAG.
+    """
+    mod = _runner()
+    from homemaker_layout import evolve
+    opts = set(vars(evolve._parse_args(["init.dom"])))
+    knobs, run = set(mod.SEARCH_KNOBS), set(mod.RUN_OPTIONS)
+    assert not (knobs & run), f"both a knob and a run option: {sorted(knobs & run)}"
+    loose = sorted(opts - knobs - run)
+    assert not loose, (
+        f"{loose}: no stamp records these. Add each to SEARCH_KNOBS (it changes "
+        "how the search moves) or RUN_OPTIONS (it is what to run, not how)")
+    assert not (knobs | run) - opts, f"not evolve options: {sorted((knobs | run) - opts)}"
+
+
 # --------------------------------------------------------------------------- #
 # the config hash
 # --------------------------------------------------------------------------- #

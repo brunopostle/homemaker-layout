@@ -19345,3 +19345,40 @@ should be a default is an A/B question that needs cold runs, and cold runs
 never connect a storey (§39.169), so a cold A/B would measure nothing. The
 evidence that bears on it is this race and §39.170's census. Both say the
 guard is cheap and does its job; neither resolves a margin.
+
+### 39.174 Owner's ruling: the connection guard and spine seeding are default on -- on slim evidence (`homemaker-py-2g7.13.1.10`)
+
+The owner, 2026-10-26, on §39.173's two open questions: "Probably they should
+both be default but remember that this is based on slim evidence." So:
+
+- **`homemaker-evolve --guard-connection` is default on** (`driver.GUARD_CONNECTION`
+  reads `HOMEMAKER_GUARD_CONNECTION`, now defaulting to `1`; `--no-guard-connection`
+  is the old search). The evidence is one race (§39.173) and one census (§39.170):
+  no storey lost in 95 runs against 15 and 21, no measurable cost per run, and a
+  connected 13-fail winner whose margin over `w1` is one lineage. There is no A/B,
+  and a cold one would measure nothing, because cold runs never connect a storey
+  (§39.159, §39.169).
+- **`seed_from_catalogue.py --spine` is default on** (`--no-spine` is the old
+  seeder). The evidence is §39.167's one race, won by a spine seed, with spine 3
+  of 4 finalists. That is a winner, not a margin. `run_ab_queue6.sh`'s no-spine arm
+  now passes `--no-spine`, so it rebuilds what it built.
+
+**What would reverse either:** a race or A/B in which the default loses. For the
+guard, the cheapest is the next halving race on another programme run once with
+and once without. For the spine, it is a spine-against-no-spine field on
+harbor-house or health-centre. Neither is queued; both are
+`homemaker-py-7bc2`. These are defaults chosen on
+the owner's judgement, not measured wins, and should be cited as such.
+
+**A recording defect, fixed with it.** `guard_connection` was never added to
+`run_coldstart_baseline.SEARCH_KNOBS` when the flag landed (cd0a8db), so a
+guarded and an unguarded search would have carried the same `search_config`. No
+sweep ran in between, and the guard race (§39.173) passed the flag explicitly,
+so no row is wrong. It is now a knob. The new `RUN_OPTIONS` lists the evolve
+options that are the run rather than the search, and
+`test_every_evolve_option_is_a_knob_or_a_run_option` fails on an option that is
+neither (shown to fire with the knob removed). Consequences for the hash: the
+default search is now `18a8e859eb`. With the guard off it is `333fcde9c0`, not the
+old `12cf189647`, because adding a key changes the hash. **So `12cf189647` rows
+are guard-off searches**, and `prefill_control.py` will rightly refuse to reuse
+them as a control for today's default.

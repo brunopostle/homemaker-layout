@@ -643,7 +643,7 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
     return scope
 
 
-SPINE = False
+SPINE = True
 
 
 def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
@@ -887,9 +887,11 @@ def main(argv=None) -> int:
                          "default, the rest separated first. No operator moves a shaft, "
                          "but a run can lose one and cut another 13-18 m away "
                          "(DESIGN.md §39.151), so these vary the start, not the end")
-    ap.add_argument("--spine", action="store_true",
+    ap.add_argument("--spine", action=argparse.BooleanOptionalAction, default=True,
                     help="lay a corridor through every wing before rooms are placed "
-                         "(homemaker-py-2g7.13.1.7, DESIGN.md §39.161)")
+                         "(homemaker-py-2g7.13.1.7, DESIGN.md §39.161). Default on "
+                         "since §39.174, owner's call on slim evidence: one race "
+                         "won by a spine seed, not a margin; --no-spine is the old seeder")
     ap.add_argument("--split", choices=("dealt", "capacity"), default="dealt",
                     help="how rooms are shared over storeys: dealt round-robin, or by "
                          "area against each storey's built area (homemaker-py-2g7.13.1.8, "

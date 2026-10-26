@@ -237,9 +237,10 @@ AIM_UNDIVIDE = __import__("os").environ.get("HOMEMAKER_AIM_UNDIVIDE", "1") != "0
 # leaves a storey `not connected` which its parent had connected. The search
 # sold three storeys' connection in one 4k stage of the maple spine race for
 # a x73 gain; this keeps the objective as it is and makes the search honour
-# what the parent had. Default OFF until a race decides it; read from the
-# environment for the workers' sake.
-GUARD_CONNECTION = __import__("os").environ.get("HOMEMAKER_GUARD_CONNECTION", "0") == "1"
+# what the parent had. Default ON since §39.174 -- the owner's call on slim
+# evidence (one race, §39.173; a cold A/B cannot measure it, since cold runs
+# never connect a storey). Read from the environment for the workers' sake.
+GUARD_CONNECTION = __import__("os").environ.get("HOMEMAKER_GUARD_CONNECTION", "1") == "1"
 
 
 def _unconnected_levels(fails) -> set:

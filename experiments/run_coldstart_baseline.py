@@ -167,7 +167,14 @@ SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
                 "shapecurve_prune", "shapecurve_warmstart", "superpose",
                 "support_outside", "use_tiers", "anneal_grain", "polish_budget",
                 "tune_heights", "light_well", "label_writeback", "aim_undivide",
-                "retype_kind", "pivot")
+                "retype_kind", "pivot", "guard_connection")
+# evolve's options that are the RUN, not the search: what to read, where to
+# write, how long, how parallel. `native` is a different representation, and
+# flag_ab passes it explicitly. Every other option is a knob, and
+# tests/test_search_config.py fails on one that is neither -- `guard_connection`
+# went unrecorded for two days because nothing asked (§39.174).
+RUN_OPTIONS = ("budget", "checkpoint_every", "native", "output", "programme_dir",
+               "seed", "seed_dom", "workers")
 
 
 def search_commit() -> str:

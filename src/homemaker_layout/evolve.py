@@ -256,11 +256,12 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "A/B has not been run (default: off)")
     p.add_argument("--guard-connection", dest="guard_connection",
                    action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_GUARD_CONNECTION", False),
+                   default=_env_bool("HOMEMAKER_GUARD_CONNECTION", True),
                    help="homemaker-py-2g7.13.1.10 (DESIGN.md §39.167): decline "
                         "a child that leaves a storey 'not connected' which "
                         "its parent had connected; the objective is unchanged. "
-                        "The race that decides it has not been run (default: off)")
+                        "Default on since §39.174, the owner's call on slim "
+                        "evidence: one race (§39.173), no A/B (default: on)")
     p.add_argument("--pivot", dest="pivot",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_PIVOT", False),

@@ -83,7 +83,7 @@ build() {   # build <programme> <dir> <prefix> [seeder flags...]
 # 2. the spine race on maple-court --------------------------------------------
 R=experiments/results/halving-maple-spine
 mkdir -p $R
-build maple-court $R nospine
+build maple-court $R nospine --no-spine
 build maple-court $R spine --spine
 race maple-court $R halving-maple-spine $R/nospine-*.dom $R/spine-*.dom
 publish "spine race on maple-court: 48 spine + 48 no-spine + 3 cold (homemaker-py-2g7.13.1.7, queue 6)" $R
