@@ -19471,3 +19471,83 @@ did.
 design with no stair passes, and the control, a two-storey harbor-house design
 with no stair, still fails `too few stairs (0, min 2)`. Its first test fails
 on the old code.
+
+### 39.178 The guard on harbor-house: it keeps the connections (1 run lost a storey, against 43) and the winner is level (9 against 10), but each run pays about a fail for it (`homemaker-py-7bc2`)
+
+§39.175's race, run by `run_guard_harbor.sh` 09:35 -> 20:45 on 2026-10-26
+(objective `0d79403+orth`, search `969543d`, config `18a8e859eb`), with
+§39.168 as the control. Results in `experiments/results/halving-harbor-guard`;
+no step raised. The stair ruling (§39.177) was merged to `origin/main` from
+its worktree while the race ran, but the main checkout was not pulled until
+the race's own publish step, so every run of the race used the code it
+started with.
+
+**Finalists at 252k:**
+
+| | candidate | fails | structural | conn | score |
+|---|---|---|---|---|---|
+| guard | **dealt-1** (winner) | **9** | 4 | 2 | 1.05e-03 |
+| guard | dealt-5 | 10 | 4 | 2 | 6.2e-04 |
+| guard | dealt-2 | 12 | 3 | 2 | 1.5e-04 |
+| guard | cap-17 | 13 | 5 | 2 | 6.4e-05 |
+| control | dealt-1 (winner) | 10 | 3 | 2 | 5.1e-04 |
+| control | dealt-2 | 11 | 3 | 2 | 2.9e-04 |
+| control | cap-1 | 12 | 8 | 3 | 3.5e-05 |
+| control | dealt-20 | 13 | 4 | 2 | 7.1e-05 |
+
+The winner is the same seed in both. Under the guard it is a different draw:
+a declined child changes the random stream. 9 fails is harbor-house's best so
+far, against 10 for §39.168's winner and 9 for the owner's drawing (§39.142).
+It still has two storeys unconnected, as its seed did.
+
+**Runs that lost a storey, by round:**
+
+| | s0 | s1 | s2 | s3 | s4 | s5 |
+|---|---|---|---|---|---|---|
+| control | 35 | 7 | 0 | 1 | 0 | 0 |
+| guard | 0 | **1** | 0 | 0 | 0 | 0 |
+
+**The one loss is a gap in what the guard covers.** `cap-6` at stage 1 went
+from 1 storey unconnected to 3. A replay with `HOMEMAKER_MOVE_LOG` (same seed,
+budget and rng seed, `out.dom` byte-identical) shows that every admitted child
+kept its parent's connection. The loss came from evaluating the finishing
+polish's seed: the main search's best (55 fails, `level 1` unconnected) is
+re-tuned for 200 evaluations from its own ratios with the exploratory sigmas,
+and comes back at 55 fails with all three storeys unconnected. A seed has no
+parent, so the guard never sees it. The same re-tune happens at the start of
+every run. Filed, not built: keep the untuned seed when the re-tune
+disconnects a storey.
+
+**What a run pays for the guard: about one fail, and this time it is
+measured.** Stage 0 is a clean pair: the same `seed.dom` and rng seed, with
+only the guard differing. Over 99 pairs (`ab_report`), the guarded run ends
++0.91 fails worse (22 better, 35 worse, 42 level), 95% CI [+0.23, +1.59],
+p 0.010, MDD 0.68: the margin is resolvable. Stage 1 (43 pairs, inputs no
+longer identical) is +1.95, p 0.003. The guard declined 958 children in
+stage 0, about 10 per 4k run, roughly a fifth of a run's ~50 children.
+
+**This corrects §39.173.** "No measurable cost per run" on maple-court was
+true but underpowered: +0.17 over 48 pairs, p 0.89, MDD 2.5. That sample could
+not have seen a one-fail cost. Harbor-house's larger, tighter field can.
+
+**Against §39.175's expectation:**
+
+| | expected | measured | |
+|---|---|---|---|
+| a | no run loses a connected storey | 1, against the control's 43 -- the polish seed re-tune | MISSED (narrowly; mechanism found) |
+| b | no finalist ends with more `not connected` than its seed | dealt-1/2/5 2 -> 2, cap-17 3 -> 2 | HELD |
+| c | winner at 10 +/- 3 | 9 | HELD |
+| d | fewer declines per run than maple-court at every stage | s0 level (9.7 against 9.6); fewer at s1-s5 (13/17/6/42/111 against 20/38/76/200/415) | MISSED at s0 |
+
+**Reading.** Across two programmes, the guard does what it is for: storeys
+are lost 1 time against 43 here and 0 against 15 on maple-court. Neither
+race's winner gets worse with it. But on harbor-house each run measurably
+pays about a fail for it, and the race result does not repay that. The
+connections it protects there are a partial set (no candidate is fully
+connected after stage 1, in either arm), so what it buys is a storey count
+that does not grow rather than a connected building. On maple-court, where
+seeds start fully connected, it bought one (§39.173). That is the case for
+keeping it on, and it is still one race. **For the owner:** keep the default
+(it protects a connected building, at about a fail a run), or restrict it to
+parents with every storey connected, which on this race's evidence would
+decline almost nothing on harbor-house and keep what it did on maple-court.
