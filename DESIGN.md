@@ -19271,3 +19271,77 @@ a default run byte-identical.
 The connected design is also a result in its own right: `auto/winner.dom`,
 spine-6, 16 fails with every storey connected. The previous best connected
 maple-court design was spine-5's 19.
+
+### 39.173 The guard race: no storey lost in 95 runs, and the winner is connected at 13 fails, the best maple-court design so far; one race, so the margin is not yet the guard's (`homemaker-py-2g7.13.1.10`)
+
+§39.170's guard race, run by `run_guard_race.sh` 23:35 2026-10-25 -> 07:34
+2026-10-26 (objective `0d79403+orth`, search `cd0a8db`, config `12cf189647`),
+the same 48 spine seeds, `--evolve-args=--guard-connection`, 8 slots.
+Control: §39.172's `w1` arm (the merge was shown to replay a `w1` run
+byte-identically with the guard off). Results in
+`experiments/results/halving-maple-connect/guard`; no step raised.
+
+**Finalists at 252k** (re-scored):
+
+| arm | candidate | fails | structural | conn | score |
+|---|---|---|---|---|---|
+| guard | **spine-3** (winner) | **13** | 3 | **0** | 6.7e-05 |
+| guard | spine-32 | 15 | 5 | 0 | 1.7e-05 |
+| w1 | spine-5 (winner) | 19 | 6 | 0 | 9.8e-07 |
+| auto | spine-6 (winner) | 16 | 7 | 0 | 8.2e-06 |
+
+The winner's 13: five `size`, two `not adjacent to`, one each of
+`proportion`, `crinkliness`, `access`, `inaccessible usable space`, `too few
+stairs (1, min 2)` and `too many spaces: ut1`. The guard reads only `level N
+not connected`, so the one `inaccessible usable space` is not something it
+was asked to stop.
+
+**Storeys lost, by round** (`connect.txt`, runs that lost a connected storey):
+
+| | s0 | s1 | s2 | s3 | s4 | s5 | connected candidates after s5 |
+|---|---|---|---|---|---|---|---|
+| w1 | 10 | 3 | 2 | 0 | 0 | 0 | 1 of 2 |
+| auto | 12 | 8 | 0 | 1 | 0 | 0 | 1 of 2 |
+| guard | 0 | 0 | 0 | 0 | 0 | 0 | 2 of 2 |
+
+The guard declined 3,271 children over the 95 runs, counting each run's main
+search and its finishing polish (each logs its own count): about 10 in a 4k
+run, rising to about 400 in a 128k one.
+
+**What it cost per run: nothing measurable.** Paired on the same seed at stage
+0, the only round every candidate ran in both arms, guard minus `w1` is +0.17
+fails (13 better, 15 worse, 20 level over 48 pairs) and -0.04 structural; at
+stage 1 (21 pairs) it is +1.0, 11 better and 9 worse. That is §39.170's census
+seen at scale: the children it blocks are mostly ones the search would not
+have kept, and the two-in-fourteen trades it gives up do not show at 4k.
+
+**Against §39.170's expectation:**
+
+| | expected | measured | |
+|---|---|---|---|
+| a | guarded winner 0 conn | spine-3, 0; the whole field kept every connection | HELD |
+| b | more total fails than the `w1` winner (19) | 13 | **MISSED (direction)** |
+
+**Why (b) missed, as far as one race can say.** The guard does not make a run
+better on its own: stage 0 is level. What it changes is the field. Under `w1`
+fifteen candidates lost a storey in the first three rounds and the `--rank
+weighted` cut then ranked them on fails that included the new `not connected`;
+under the guard none did, so the 28 connected seeds stayed connected and the
+cuts chose among them on everything else. `spine-3` shows how far a lineage
+can diverge: 63 -> 49 -> 47 -> 45 under `w1`, where it went out at 32k, and 60
+-> 37 -> 26 -> 19 -> 13 -> 13 guarded. The guard changes the run's random
+stream (a declined child is not a population member), so this is a different
+draw of `spine-3`, not the same run with some children removed. **So the
+margin over `w1` (19 -> 13) is one race and one lineage and cannot yet be
+credited to the guard.** What can be credited to it is the table above: zero
+runs that lost a storey out of 95, against fifteen and twenty-one.
+
+**Reading.** At admission is where the guard works, as §39.172 argued it
+would. The weight acts only on ties and on the race's final ranking. The guard
+costs nothing measurable per run and keeps the connection everywhere, and the
+best maple-court design so far came out of it: `guard/winner.dom`, spine-3, 13
+fails with every storey connected (§39.172's best was 16). Whether the guard
+should be a default is an A/B question that needs cold runs, and cold runs
+never connect a storey (§39.169), so a cold A/B would measure nothing. The
+evidence that bears on it is this race and §39.170's census. Both say the
+guard is cheap and does its job; neither resolves a margin.
