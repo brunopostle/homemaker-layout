@@ -19551,3 +19551,25 @@ keeping it on, and it is still one race. **For the owner:** keep the default
 (it protects a connected building, at about a fail a run), or restrict it to
 parents with every storey connected, which on this race's evidence would
 decline almost nothing on harbor-house and keep what it did on maple-court.
+
+### 39.179 Owner's ruling: restrict the connection guard to parents with every storey connected (`homemaker-py-7bc2`)
+
+Asked at the end of §39.178 whether to keep the guard as shipped or restrict
+it, the owner answered (2026-10-26): "I guess restricting the guard is ok."
+
+**The ruling:** `driver._admit` should decline a disconnecting child only when
+its primary parent has **every** storey connected (no `level N not connected`
+fail). A parent that is already partly disconnected breeds unguarded, as before
+§39.173. It stays default on.
+
+**Not built yet.** It is search-side (`driver.py`, outside `OBJECTIVE_SOURCES`)
+and changes `search_config`, so it is a recorded default change. It is
+inferred to keep what the guard bought on maple-court (28 of 48 seeds start
+fully connected; the winner was fully connected, §39.173) and to drop most of
+harbor-house's +0.91-fails-a-run cost, since no harbor-house candidate is fully
+connected after stage 1 (§39.178). Both halves are inference from two races,
+not measurement. The check is a replay of both races' stage 0 with the
+restricted guard, paired against §39.173 / §39.178 by `ab_report`:
+**expected**, harbor-house stage-0 cost within its MDD of zero (it was +0.91,
+MDD 0.68), and maple-court losing no storey that a fully connected parent had.
+`homemaker-py-3fmw` (an unguarded seed re-tune) is separate and still open.

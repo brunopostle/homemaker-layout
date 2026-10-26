@@ -102,7 +102,7 @@ index is how to get from a question to the section that answers it.
 | §39.161 | Spine first (`--spine`, default off): a strip of circulation through every wing before rooms are placed. After two seeder bugs (a tie-break that chose 1.6 m stubs; upstairs cuts scored before being linked to the storey below), disconnected storeys fall 57 -> 11 of 61 and 10 of 16 maple seeds are fully connected (none before); fails barely move (median 120 -> 116.5). A halving race is the test. |
 | §39.167 | The spine race (maple-court, 48 spine + 48 no-spine + 3 cold, 252k): spine-2 wins at 13 fails (cold 500k at the same stamp: 52-62); spine 3 of 4 finalists. Expectations 1 and 3 held, 2 MISSED: the winner started connected and sold all three storeys' connection at 8k, and outscores the one connected finalist. Corrects §39.159: the search does join storeys (31 times), and loses them as readily. Next: an owner ruling on its weight, or a search-side guard. |
 | §39.168 | The split race (harbor-house, 48 dealt + 48 capacity + 3 cold): dealt-1 wins at 10 fails, capacity's best 12, as §39.160 expected; the capacity arm thinned faster every round. `--split` stays `dealt`. |
-| §39.169-§39.178 | Keeping a storey connected on maple-court's spine seeds. `connectivity_weight=auto` only breaks ties inside the search, because the comparator counts raw fails first (§39.172). An admission guard that declines a child disconnecting a storey its parent had connected loses no storey in 95 runs and wins at 13 fails, every storey connected: one race (§39.173). Guard and `--spine` made default on slim evidence (§39.174). On harbor-house (§39.178) the guard keeps connections (1 loss against 43) and the winner is level (9 against 10), but each 4k run pays +0.91 fails (p 0.01); maple-court's "no cost" was underpowered. |
+| §39.169-§39.179 | Keeping a storey connected on maple-court's spine seeds. `connectivity_weight=auto` only breaks ties inside the search, because the comparator counts raw fails first (§39.172). An admission guard that declines a child disconnecting a storey its parent had connected loses no storey in 95 runs and wins at 13 fails, every storey connected: one race (§39.173). Guard and `--spine` made default on slim evidence (§39.174). On harbor-house (§39.178) the guard keeps connections (1 loss against 43) and the winner is level (9 against 10), but each 4k run pays +0.91 fails (p 0.01); maple-court's "no cost" was underpowered. Owner ruled to restrict the guard to fully connected parents (§39.179, not yet built). |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -146,6 +146,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Storey height is capped per project, default 3.9 m, and is a whole multiple of a 75 mm brick/block course | §39.153 |
 | The connection guard and spine seeding are default on -- "based on slim evidence" (one race each, no A/B): cite them as judgement, not as measured wins | §39.174 |
 | A single-storey building needs no stair: `staircase_min` applies only above one storey | §39.177 |
+| The connection guard applies only to a parent with every storey connected (not yet built) | §39.179 |
 | Label write-back is the default search | §39.153 |
 | `aim` (undivide aimed at failing cells) is the default search | §39.156 |
 | The pivot move keeps each quadrant's plan AREA, not its walls: deterministic, a jog moves to the other axis | §39.162 |
@@ -196,7 +197,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (283 of them, 19553 lines)
+## Every section of DESIGN.md (284 of them, 19575 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -530,4 +531,5 @@ below are the most recent work.
 - §39.175 · 19386-19419 · The guard on a second programme: harbor-house, §39.168's field with the guard on -- design and expectation (`homemaker-py-7bc2`)
 - §39.176 · 19420-19444 · health-centre's "too few stairs" is a single-storey building charged for having no stair (`homemaker-py-esck`)
 - §39.177 · 19445-19474 · Owner's ruling: a single-storey building needs no stair (`homemaker-py-esck`)
-- §39.178 · 19475-19553 · The guard on harbor-house: it keeps the connections (1 run lost a storey, against 43) and the winner is level (9 against 10), but each run pays about a fail for it (`homemaker-py-7bc2`)
+- §39.178 · 19475-19554 · The guard on harbor-house: it keeps the connections (1 run lost a storey, against 43) and the winner is level (9 against 10), but each run pays about a fail for it (`homemaker-py-7bc2`)
+- §39.179 · 19555-19575 · Owner's ruling: restrict the connection guard to parents with every storey connected (`homemaker-py-7bc2`)
