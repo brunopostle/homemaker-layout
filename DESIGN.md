@@ -19382,3 +19382,62 @@ default search is now `18a8e859eb`. With the guard off it is `333fcde9c0`, not t
 old `12cf189647`, because adding a key changes the hash. **So `12cf189647` rows
 are guard-off searches**, and `prefill_control.py` will rightly refuse to reuse
 them as a control for today's default.
+
+### 39.175 The guard on a second programme: harbor-house, §39.168's field with the guard on -- design and expectation (`homemaker-py-7bc2`)
+
+§39.174 made the connection guard default on, on one maple-court race. This
+race checks it on harbor-house. `run_guard_harbor.sh` re-races EXACTLY
+§39.168's field -- the 48 dealt, 48 capacity and 3 cold candidates committed in
+`results/halving-harbor-split`, under the same names, so every stage's seed hash
+is the same -- with `--guard-connection`, `--rank total`, 4k doubling to 128k,
+8 slots. Results go to `results/halving-harbor-guard`.
+
+**The control is §39.168 itself.** It ran at search `8aeda75`, before the guard
+existed. Today's code (`969543d`) with `--no-guard-connection` replays its
+stage-0 `dealt-1` run byte for byte (`out.dom` identical, 39 fails,
+7.31e-13), so the search has not moved under it and it need not be re-run.
+
+**What the guard has to work with here is less than on maple-court.** From
+§39.168's `connect.txt`: 6 of 99 seeds start with every storey connected (maple
+28 of 48), 34 start with none connected, and nothing is fully connected after
+stage 1. But 35 runs lost a storey in stage 0, 7 in stage 1 and 1 in stage 3,
+and the guard stops exactly those. The control's winner, `dealt-1` (10 fails),
+held `level ... not connected` at 2 from seed to final and never lost a storey,
+so the guard was not what it needed.
+
+**Expectation, written before the run:**
+
+| | expected |
+|---|---|
+| a | no run loses a connected storey (control: 35 / 7 / 0 / 1 / 0 / 0 by round) |
+| b | no finalist ends with more `not connected` than its seed had |
+| c | the winner at 10 +/- 3 fails: no margin either way. At 7 or fewer it is worth a repeat on a third field; at 14 or more the guard is costing something here |
+| d | fewer declines per run than maple-court at every stage (maple: about 10 per 4k run, counting the polish) |
+
+(a) and (b) are the guard working at all; (c) is the question the ruling left
+open; (d) checks the reading above, that harbor-house gives it less to do.
+
+### 39.176 health-centre's "too few stairs" is a single-storey building charged for having no stair (`homemaker-py-esck`)
+
+§39.171 found `too few stairs` on all 16 runs of the pivot A/B. Every committed
+health-centre design -- 40 of 40, cold corpora and A/B artefacts alike -- is
+ONE storey, with no `E` cell, and fails `too few stairs (0, min 1)`. The brief
+allows it: `storey_minimum: 1`, `storey_limit: 2`, `staircase_min: 1`.
+
+The cause is in `fitness.py`: the stair-count check (`separated < stair_min`)
+runs whatever the storey count, while `staircase volume` beside it is
+explicitly "multi-level only". A building with nothing upstairs is charged for
+not having a way up. §4's census noticed it in the earliest days ("single-storey
+artifact, constant across runs") and nothing was filed.
+
+**What it costs: one fail and x0.5 on every health-centre design**, identically.
+So it reorders nothing among single-storey designs, and every health-centre
+fail count in this history carries it. The incentive it leaves is to go to two
+storeys, where a stair removes it but adds a shaft, `staircase volume` and
+connectivity to satisfy. The search never takes it.
+
+**This is an objective change, so it waits for a ruling.** The candidate fix is
+to check `staircase_min` only on a multi-storey building, which moves the stamp
+and every health-centre score by x2. Alternatively, `staircase_min: 0` in the
+brief changes the brief only, but it also lets a two-storey design go without a
+stair. Not built; asked of the owner.

@@ -195,7 +195,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (279 of them, 19384 lines)
+## Every section of DESIGN.md (281 of them, 19443 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -525,4 +525,6 @@ below are the most recent work.
 - §39.171 · 19171-19205 · The pivot A/B on health-centre: null on fails, as §39.162 expected; pivot stays off (`homemaker-py-mtfo`)
 - §39.172 · 19206-19274 · The connectivity race: `auto` picks a connected winner (16 fails, the best connected maple-court design), but only at the race's ranking -- inside the search the weight is a tie-break (`homemaker-py-2g7.13.1.10`)
 - §39.173 · 19275-19348 · The guard race: no storey lost in 95 runs, and the winner is connected at 13 fails, the best maple-court design so far; one race, so the margin is not yet the guard's (`homemaker-py-2g7.13.1.10`)
-- §39.174 · 19349-19384 · Owner's ruling: the connection guard and spine seeding are default on -- on slim evidence (`homemaker-py-2g7.13.1.10`)
+- §39.174 · 19349-19385 · Owner's ruling: the connection guard and spine seeding are default on -- on slim evidence (`homemaker-py-2g7.13.1.10`)
+- §39.175 · 19386-19419 · The guard on a second programme: harbor-house, §39.168's field with the guard on -- design and expectation (`homemaker-py-7bc2`)
+- §39.176 · 19420-19443 · health-centre's "too few stairs" is a single-storey building charged for having no stair (`homemaker-py-esck`)
