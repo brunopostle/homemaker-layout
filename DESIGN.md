@@ -19603,3 +19603,29 @@ from the committed tables (off vs any: −0.909, p 0.0096, MDD 0.683). The
 expectations stand as §39.179 wrote them: on harbor-house, stage-0 cost against
 `off` within its MDD of zero; on maple-court, no run loses a storey that its
 fully connected seed had (`connect.txt`).
+
+### 39.181 The restricted guard replayed: harbor-house's cost is gone, maple-court keeps every connected seed (`homemaker-py-1d5p`)
+
+`run_guard_1d5p.sh` (results in `experiments/results/guard-1d5p/`), at
+`c73dfde+orth`, search config `517acdbf88`. Its preflight replayed one
+candidate per programme under `any` to the committed control row exactly
+(harbor-house dealt-17 42 = 42, maple-court spine-1 38 = 38), so the stage-0
+pairs are clean. Paired by `pair_halving_stages.py`:
+
+| programme | pair | N | mean diff (fails) | p | MDD |
+|---|---|---|---|---|---|
+| harbor-house | off vs connected | 99 | −0.10 (3W/4L/92T) | 0.34 | 0.21 |
+| harbor-house | any vs connected | 99 | **+0.81** for connected | 0.017 | 0.66 |
+| maple-court | any vs connected | 48 | +0.50 for connected | 0.18 | 0.73 |
+
+**Both expectations from §39.179 held.** On harbor-house the restricted guard
+costs nothing against no guard: 92 of 99 runs are identical, since only 6 seeds
+start fully connected. Against `any` it recovers the §39.178 cost (+0.81 of the
++0.91). On maple-court none of the 28 fully connected seeds lost a storey.
+Four runs lost one, all from parents that were already partly disconnected,
+which the ruling leaves unguarded.
+
+**What it gives up:** on harbor-house 30 of 99 runs lost a storey, against 1
+under `any` (§39.178). Every one of them came from a partly disconnected seed.
+That is the trade the ruling chose, and stage 0 cannot say whether a later
+stage would have joined those storeys again. The default stays `connected`.
