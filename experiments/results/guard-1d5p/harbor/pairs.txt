@@ -1,0 +1,37 @@
+stage 0: 99 candidates in both races
+
+fails:
+  N=99   off mean 55.80   connected mean 55.90   3W/4L/92T (for connected)
+  mean diff -0.101  sd 1.045  95% CI [-0.309, +0.107]
+  t=-0.962  p=0.3385  wilcoxon p=0.4974
+  minimum detectable difference at N=99: 0.208
+  ** UNDERPOWERED: the observed margin (0.101) is BELOW what N=99 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 414 would be needed for a margin this size.
+
+structural:
+  N=99   off mean 18.06   connected mean 17.96   5W/1L/93T (for connected)
+  mean diff +0.101  sd 0.631  95% CI [-0.025, +0.227]
+  t=1.593  p=0.1143  wilcoxon p=0.1138
+  minimum detectable difference at N=99: 0.126
+  ** UNDERPOWERED: the observed margin (0.101) is BELOW what N=99 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 153 would be needed for a margin this size.
+
+stage 0: 99 candidates in both races
+
+fails:
+  N=99   any mean 56.71   connected mean 55.90   31W/20L/48T (for connected)
+  mean diff +0.808  sd 3.309  95% CI [+0.148, +1.468]
+  t=2.429  p=0.0169  wilcoxon p=0.0135
+  minimum detectable difference at N=99: 0.660
+     margin exceeds the MDD -- the sample can support a verdict.
+
+structural:
+  N=99   any mean 18.01   connected mean 17.96   23W/20L/56T (for connected)
+  mean diff +0.051  sd 1.832  95% CI [-0.315, +0.416]
+  t=0.274  p=0.7844  wilcoxon p=0.9318
+  minimum detectable difference at N=99: 0.365
+  ** UNDERPOWERED: the observed margin (0.051) is BELOW what N=99 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 5055 would be needed for a margin this size.

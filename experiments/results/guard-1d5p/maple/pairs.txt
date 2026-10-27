@@ -1,0 +1,19 @@
+stage 0: 48 candidates in both races
+
+fails:
+  N=48   any mean 84.75   connected mean 84.25   4W/3L/41T (for connected)
+  mean diff +0.500  sd 2.518  95% CI [-0.231, +1.231]
+  t=1.376  p=0.1754  wilcoxon p=0.1755
+  minimum detectable difference at N=48: 0.731
+  ** UNDERPOWERED: the observed margin (0.500) is BELOW what N=48 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 100 would be needed for a margin this size.
+
+structural:
+  N=48   any mean 22.62   connected mean 22.25   6W/3L/39T (for connected)
+  mean diff +0.375  sd 2.349  95% CI [-0.307, +1.057]
+  t=1.106  p=0.2743  wilcoxon p=0.3127
+  minimum detectable difference at N=48: 0.682
+  ** UNDERPOWERED: the observed margin (0.375) is BELOW what N=48 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 154 would be needed for a margin this size.
