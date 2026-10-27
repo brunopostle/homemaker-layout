@@ -469,7 +469,12 @@ Three consequences that bite:
   races the seeds (each stage continues the last; put a few copies of
   `init.dom` in the field as its own cold control). `run_halving_maple.sh` is
   the worked example; `diag_halving_stairs.py` and `diag_halving_carry.py`
-  say whether the winner's stairs moved and whether it kept its seed's plan.
+  say whether the winner's stairs moved and whether it kept its seed's plan,
+  and `diag_halving_connect.py` which storeys each run joined or lost. Two races
+  over the same field differ only in what you changed at stage 0 (same seed
+  files, same rng seed per name), so `pair_halving_stages.py` pairs them there
+  through `ab_report`; replay one control row first, as `run_guard_1d5p.sh`
+  does, to show the pairs are clean (§39.181).
 - `experiments/prefill_control.py` — give a new A/B the control arm of an
   earlier one instead of re-running it. It refuses unless every row it would
   copy was made at TODAY's objective stamp and search commit, and that refusal
@@ -695,6 +700,10 @@ python -c "import importlib.util as u; s=u.spec_from_file_location('r','experime
 # the queue — bd if it is installed, otherwise the JSONL is the record
 bd ready 2>/dev/null || python -c "import json;[print(r['id'],'P%s'%r['priority'],r['title'][:80]) for r in sorted((json.loads(l) for l in open('.beads/issues.jsonl') if l.strip()), key=lambda r:(r.get('priority',9),r['id'])) if r['status']!='closed']"
 
+# an open bead is not proof of open work: before starting one, grep DESIGN.md
+# for its id and read its notes to the end. A triage on 2026-10-27 closed
+# ten that had been finished and written up weeks before
+
 # which corpora exist, newest last
 ls examples/*/coldstart-*.dom | sed 's/.*coldstart-//;s/-500000.*//' | sort -u
 ```
@@ -917,8 +926,8 @@ axes, and every off-axis edge is an exterior wall on a skew plot boundary. So
 the residual non-square corners are where square interior walls meet a skew
 outside wall -- unavoidable while the building follows the plot boundary.
 
-This corrects two older claims, both still in `homemaker-py-ao9` and
-`homemaker-py-bzv`: that "some internal walls still run a few degrees off"
+This corrects two older claims, made in `homemaker-py-ao9` and
+`homemaker-py-bzv` (both closed 2026-10-27): that "some internal walls still run a few degrees off"
 (ao9's 3.3 deg edges were exterior walls), and that Urb's lost `Straighten()`
 "moved corners rather than cuts" (it re-aimed each cut at its parent's, which
 orthogonal division already does). Changing the corners needs the building to

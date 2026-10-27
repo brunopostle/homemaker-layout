@@ -144,9 +144,9 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A common room opens onto PRIVATE outdoor space: a street wall is not "next to outdoors" | §39.138 |
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | Storey height is capped per project, default 3.9 m, and is a whole multiple of a 75 mm brick/block course | §39.153 |
-| The connection guard and spine seeding are default on -- "based on slim evidence" (one race each, no A/B): cite them as judgement, not as measured wins | §39.174 |
+| The connection guard and spine seeding are default on -- "based on slim evidence" (one race each, no A/B): cite them as judgement, not as measured wins. The guard has since been raced on harbor-house too (§39.178, §39.181); spine's second race is §39.182 | §39.174 |
 | A single-storey building needs no stair: `staircase_min` applies only above one storey | §39.177 |
-| The connection guard applies only to a parent with every storey connected (not yet built) | §39.179 |
+| The connection guard applies only to a parent with every storey connected: built as `--guard-connection=connected`, the default (§39.180, §39.181) | §39.179 |
 | Label write-back is the default search | §39.153 |
 | `aim` (undivide aimed at failing cells) is the default search | §39.156 |
 | The pivot move keeps each quadrant's plan AREA, not its walls: deterministic, a jog moves to the other axis | §39.162 |
@@ -186,6 +186,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | capacity-aware storey split, on seed fail counts | §39.160 | paired mean -0.06 fails over 18 harbor seeds; size fails move to proportion, access and adjacency |
 | capacity-aware storey split, in a halving race | §39.168 | dealt wins 10 vs 12; capacity seeds thinned faster every round |
 | `--retype-kind` | §39.158 (addendum) | null at n = 4 on maple-court, as expected |
+| Divide and conquer: a wing solved on its own, or searched inside the frozen rest of the building | §39.165, §39.166 | loses exactly the relations across the cut; frozen search lost to whole-building search on 3 of 3 seeds at equal budget -- a repair tool for a finished design, not a route to one. Untested: frozen passes as a polish after a whole search |
 | A child budget that depends on the move; supporting a terrace without shrinking a room | §39.122 | both SET ASIDE unbuilt, not measured negative; the section says what would bring each back |
 
 ## Where the current state is
