@@ -1,0 +1,111 @@
+  cold-a       1 -> 1
+  cold-b       1 -> 1 -> 1
+  cold-c       1 -> 1
+  nospine-1    2 -> 2 -> 2 -> 2 -> 2 -> 2 -> 2
+  nospine-10   3 -> 2 -> 3 -> 3 -> 3 -> 3
+  nospine-11   3 -> 3 -> 3 -> 3 -> 3 -> 3 -> 3
+  nospine-12   0 -> 0 -> 0
+  nospine-13   3 -> 3 -> 3 -> 3 -> 3
+  nospine-14   3 -> 3 -> 3 -> 3
+  nospine-15   3 -> 3 -> 3
+  nospine-16   3 -> 3 -> 3 -> 3 -> 3
+  nospine-17   3 -> 3 -> 3
+  nospine-18   1 -> 2
+  nospine-19   2 -> 2 -> 3
+  nospine-2    2 -> 2 -> 2 -> 2 -> 2 -> 2
+  nospine-20   2 -> 2
+  nospine-21   1 -> 1 -> 2
+  nospine-22   2 -> 2 -> 2
+  nospine-23   1 -> 3
+  nospine-24   3 -> 1 -> 3 -> 3 -> 3
+  nospine-25   2 -> 2
+  nospine-26   1 -> 3 -> 2
+  nospine-27   3 -> 3 -> 3
+  nospine-28   0 -> 0
+  nospine-29   1 -> 2
+  nospine-3    3 -> 3
+  nospine-30   0 -> 0
+  nospine-31   1 -> 3
+  nospine-32   3 -> 3 -> 3
+  nospine-33   1 -> 2
+  nospine-34   3 -> 3
+  nospine-35   1 -> 3
+  nospine-36   1 -> 1
+  nospine-37   1 -> 1
+  nospine-38   1 -> 2 -> 2
+  nospine-39   1 -> 2
+  nospine-4    3 -> 2 -> 3 -> 3
+  nospine-40   2 -> 2
+  nospine-41   1 -> 3
+  nospine-42   3 -> 3 -> 3
+  nospine-43   2 -> 2
+  nospine-44   1 -> 2
+  nospine-45   2 -> 1
+  nospine-46   3 -> 2
+  nospine-47   1 -> 2
+  nospine-48   3 -> 3
+  nospine-5    2 -> 2 -> 2 -> 2
+  nospine-6    1 -> 3 -> 3 -> 3
+  nospine-7    2 -> 2 -> 3 -> 3 -> 3 -> 3 -> 3
+  nospine-8    1 -> 1 -> 3 -> 3
+  nospine-9    1 -> 1 -> 1 -> 1
+  spine-1      0 -> 0 -> 0 -> 0
+  spine-10     0 -> 0 -> 0 -> 0 -> 0 -> 0
+  spine-11     0 -> 0 -> 0
+  spine-12     1 -> 1 -> 2 -> 3 -> 3
+  spine-13     0 -> 0
+  spine-14     0 -> 0 -> 0
+  spine-15     0 -> 0 -> 0 -> 0
+  spine-16     1 -> 3
+  spine-17     1 -> 1
+  spine-18     0 -> 0
+  spine-19     0 -> 0 -> 0
+  spine-2      1 -> 1 -> 1 -> 1
+  spine-20     1 -> 2 -> 1
+  spine-21     0 -> 0
+  spine-22     0 -> 0 -> 0
+  spine-23     0 -> 0 -> 0
+  spine-24     0 -> 0
+  spine-25     1 -> 2 -> 1
+  spine-26     1 -> 1 -> 1
+  spine-27     0 -> 0
+  spine-28     0 -> 0
+  spine-29     0 -> 0 -> 0
+  spine-3      0 -> 0 -> 0
+  spine-30     0 -> 0
+  spine-31     0 -> 0 -> 0
+  spine-32     1 -> 1
+  spine-33     0 -> 0
+  spine-34     0 -> 0
+  spine-35     3 -> 3
+  spine-36     1 -> 1 -> 1 -> 2
+  spine-37     0 -> 0
+  spine-38     1 -> 1
+  spine-39     3 -> 1
+  spine-4      2 -> 2 -> 2 -> 2
+  spine-40     0 -> 0
+  spine-41     0 -> 0 -> 0
+  spine-42     1 -> 1
+  spine-43     0 -> 0
+  spine-44     3 -> 3
+  spine-45     0 -> 0
+  spine-46     3 -> 3
+  spine-47     0 -> 0
+  spine-48     0 -> 0
+  spine-5      2 -> 2 -> 2 -> 2 -> 2
+  spine-6      0 -> 0 -> 0 -> 0
+  spine-7      0 -> 0 -> 0
+  spine-8      1 -> 3 -> 3 -> 3 -> 3 -> 3 -> 3
+  spine-9      0 -> 0 -> 0 -> 0 -> 0
+
+seed: candidates with every storey connected, by arm
+  nospine: 3 of 48
+  spine: 30 of 48
+
+stage: ran / joined a storey / lost a storey / all connected after
+  s0: 99 / 6 / 17 / 33
+  s1: 50 / 3 / 8 / 16
+  s2: 25 / 0 / 2 / 5
+  s3: 13 / 0 / 0 / 2
+  s4: 7 / 0 / 0 / 1
+  s5: 4 / 0 / 0 / 0
