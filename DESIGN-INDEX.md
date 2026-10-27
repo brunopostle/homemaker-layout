@@ -102,7 +102,7 @@ index is how to get from a question to the section that answers it.
 | §39.161 | Spine first (`--spine`, default off): a strip of circulation through every wing before rooms are placed. After two seeder bugs (a tie-break that chose 1.6 m stubs; upstairs cuts scored before being linked to the storey below), disconnected storeys fall 57 -> 11 of 61 and 10 of 16 maple seeds are fully connected (none before); fails barely move (median 120 -> 116.5). A halving race is the test. |
 | §39.167 | The spine race (maple-court, 48 spine + 48 no-spine + 3 cold, 252k): spine-2 wins at 13 fails (cold 500k at the same stamp: 52-62); spine 3 of 4 finalists. Expectations 1 and 3 held, 2 MISSED: the winner started connected and sold all three storeys' connection at 8k, and outscores the one connected finalist. Corrects §39.159: the search does join storeys (31 times), and loses them as readily. Next: an owner ruling on its weight, or a search-side guard. |
 | §39.168 | The split race (harbor-house, 48 dealt + 48 capacity + 3 cold): dealt-1 wins at 10 fails, capacity's best 12, as §39.160 expected; the capacity arm thinned faster every round. `--split` stays `dealt`. |
-| §39.169-§39.181 | Keeping a storey connected on maple-court's spine seeds. `connectivity_weight=auto` only breaks ties inside the search, because the comparator counts raw fails first (§39.172). An admission guard that declines a child disconnecting a storey its parent had connected loses no storey in 95 runs and wins at 13 fails, every storey connected: one race (§39.173). Guard and `--spine` made default on slim evidence (§39.174). On harbor-house (§39.178) the guard keeps connections (1 loss against 43) and the winner is level (9 against 10), but each 4k run pays +0.91 fails (p 0.01); maple-court's "no cost" was underpowered. Owner ruled to restrict the guard to fully connected parents (§39.179); built as the default `--guard-connection=connected` (§39.180); replayed at no cost on harbor-house against no guard, and no fully connected maple-court seed lost a storey (§39.181). |
+| §39.169-§39.183 | Keeping a storey connected on maple-court's spine seeds. `connectivity_weight=auto` only breaks ties inside the search, because the comparator counts raw fails first (§39.172). An admission guard that declines a child disconnecting a storey its parent had connected loses no storey in 95 runs and wins at 13 fails, every storey connected: one race (§39.173). Guard and `--spine` made default on slim evidence (§39.174). On harbor-house (§39.178) the guard keeps connections (1 loss against 43) and the winner is level (9 against 10), but each 4k run pays +0.91 fails (p 0.01); maple-court's "no cost" was underpowered. Owner ruled to restrict the guard to fully connected parents (§39.179); built as the default `--guard-connection=connected` (§39.180); replayed at no cost on harbor-house against no guard, and no fully connected maple-court seed lost a storey (§39.181). Spine on harbor-house (§39.182-§39.183): 30 of 48 seeds connected against 3, none lost a storey, but a no-spine seed won (9 fails against 14) and the arms are level at stage 0. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -144,7 +144,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A common room opens onto PRIVATE outdoor space: a street wall is not "next to outdoors" | §39.138 |
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | Storey height is capped per project, default 3.9 m, and is a whole multiple of a 75 mm brick/block course | §39.153 |
-| The connection guard and spine seeding are default on -- "based on slim evidence" (one race each, no A/B): cite them as judgement, not as measured wins. The guard has since been raced on harbor-house too (§39.178, §39.181); spine's second race is §39.182 | §39.174 |
+| The connection guard and spine seeding are default on -- "based on slim evidence" (one race each, no A/B): cite them as judgement, not as measured wins. The guard has since been raced on harbor-house too (§39.178, §39.181); spine's second race (§39.183) connected 30 of 48 seeds against 3 but was won by a no-spine seed, stage 0 level: one race each way | §39.174 |
 | A single-storey building needs no stair: `staircase_min` applies only above one storey | §39.177 |
 | The connection guard applies only to a parent with every storey connected: built as `--guard-connection=connected`, the default (§39.180, §39.181) | §39.179 |
 | Label write-back is the default search | §39.153 |
@@ -198,7 +198,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (287 of them, 19669 lines)
+## Every section of DESIGN.md (288 of them, 19735 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -536,4 +536,5 @@ below are the most recent work.
 - §39.179 · 19555-19576 · Owner's ruling: restrict the connection guard to parents with every storey connected (`homemaker-py-7bc2`)
 - §39.180 · 19577-19606 · The restricted connection guard, built: `--guard-connection=connected` (`homemaker-py-1d5p`)
 - §39.181 · 19607-19632 · The restricted guard replayed: harbor-house's cost is gone, maple-court keeps every connected seed (`homemaker-py-1d5p`)
-- §39.182 · 19633-19669 · The spine race on harbor-house: design and expectation (`homemaker-py-7bc2`)
+- §39.182 · 19633-19670 · The spine race on harbor-house: design and expectation (`homemaker-py-7bc2`)
+- §39.183 · 19671-19735 · The spine race on harbor-house: spine connects the seeds, and a no-spine seed wins (`homemaker-py-7bc2`)

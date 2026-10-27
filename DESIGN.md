@@ -19667,3 +19667,69 @@ size in it.
 (harbor-house cap-6) re-tuned a seed that was already partly disconnected,
 which §39.179's ruling leaves unguarded, so under today's default it has no
 evidence left.
+
+### 39.183 The spine race on harbor-house: spine connects the seeds, and a no-spine seed wins (`homemaker-py-7bc2`)
+
+`run_spine_harbor.sh` as designed in §39.182, at `c73dfde+orth`, search
+commit `fefeb72`, config `517acdbf88`. It ran from 08:02 to 19:25 on
+2026-10-27. Results are in `experiments/results/halving-harbor-spine/`
+(`race.log`, `stages.tsv`, `connect.txt`, `stairs.txt`, `carry.txt`,
+`winner.dom`).
+
+**The race.** 99 candidates (48 + 48 + 3 cold), halved over 4k -> 128k. The
+three finalists that scored best were all no-spine:
+
+| candidate | seed's unconnected storeys | 128k fails | structural | score |
+|---|---|---|---|---|
+| **nospine-1** (winner) | 2 | **9** | 3 | 1.27e-3 |
+| nospine-11 | 3 | 11 | 5 | 3.27e-4 |
+| nospine-7 | 2 | 12 | 7 | 1.40e-4 |
+| spine-8 | 1 | 14 | 6 | 2.97e-5 |
+
+Every finalist still fails `level N not connected` 2-4 times. All three cold
+copies were out by stage 1.
+
+**Against the expectations:**
+
+1. **Held.** 30 of 48 spine seeds start with every storey connected. The
+   no-spine arm has 3 of 48.
+2. **Missed.** A no-spine seed won, and the spine arm's best finalist (spine-8,
+   14 fails) is behind three no-spine ones. That is best-of-48 against
+   best-of-48 in one race. The like-for-like comparison is stage 0, paired
+   seed for seed (`nospine-k` and `spine-k` are the same plan and stair
+   variant), and there **the two arms cannot be told apart**:
+
+   | stage 0, paired, N=48 | no-spine mean | spine mean | p | MDD |
+   |---|---|---|---|---|
+   | fails | 54.35 | 55.83 | 0.24 | 2.5 |
+   | structural fails | 16.88 | 16.27 | 0.52 | 1.9 |
+   | log10 score | -16.77 | -17.33 | 0.16 | 0.78 |
+   | the seeder's tuned fails | 82.4 | 80.9 | 0.48 | 4.2 |
+
+   A connected seed is no better at stage 0 either. The 30 connected spine
+   seeds have median 55.5 fails, and the 18 unconnected ones 56.
+3. **Missed as worded, but consistent with its condition.** The winner ends
+   with 2 storeys unconnected. Its seed also started with 2, so the
+   `connected` guard never applied to it. **No connected seed lost a storey at
+   any stage.** That covers all 33, spine and no-spine. The connected count
+   fell 33 -> 16 -> 5 -> 2 -> 1 -> 0 across the stages, and every step down
+   was a candidate dropped, never a candidate that lost a storey. The furthest
+   a connected seed got was spine-10, out at stage 4 (64k, 18 fails). spine-8
+   started with one unconnected storey and went to three, which the guard
+   leaves unguarded by ruling (§39.179).
+
+**Reading.** On harbor-house, spine does what it is for: it connects the
+seeds, and they stay connected. It costs nothing measurable at stage 0. But a
+connected seed is not what carries a harbor-house plan through the race. The
+three best results all came from plans the search left partly disconnected,
+and they spent their fails elsewhere: `size` 4-5 and `level` 2-3 at 128k.
+maple-court went the other way (§39.167, where spine won). So it is one race
+each way, and the stage-0 distributions here are level.
+
+§39.182's reversal test has two clauses. "Not more often connected" is
+clearly false. "Best clearly worse" happened in this race (14 against 9), but
+it is one draw and the distribution comparison does not back it. **No measured
+reason to reverse `--spine`, and none to call it a win.** The default stays a
+judgement (§39.174), now on two races that disagree. 7bc2 is closed with this
+section. Whether harbor-house's winners being partly disconnected matters is
+the ordinary `level N not connected` question, not a question about spine.
