@@ -19629,3 +19629,41 @@ which the ruling leaves unguarded.
 under `any` (§39.178). Every one of them came from a partly disconnected seed.
 That is the trade the ruling chose, and stage 0 cannot say whether a later
 stage would have joined those storeys again. The default stays `connected`.
+
+### 39.182 The spine race on harbor-house: design and expectation (`homemaker-py-7bc2`)
+
+The spine half of 7bc2. `--spine` became default on (§39.174) on the strength
+of one maple-court race (§39.167), and §39.181 settled the guard half. The
+harbor-house fields raced so far (§39.168, §39.178, §39.181) were all built
+before §39.174, so they are **no-spine** fields: 3 of 48 `dealt` seeds start
+with every storey connected.
+
+**Design** (`experiments/run_spine_harbor.sh`, results in
+`experiments/results/halving-harbor-spine`). This is §39.167's design on
+harbor-house. Both arms are built at today's seeder from the same 16 plans x 3
+stair placements (dealt split): 48 `nospine-*` and 48 `spine-*`, plus 3 copies
+of `init.dom` as a cold control. They run in one successive-halving race,
+`--rank total`, 4k doubling to 128k, under today's default search (config
+`517acdbf88`, guard `connected`).
+
+**Expected, before it runs:**
+
+1. Spine seeds start connected far more often than no-spine seeds. On maple-court
+   the share went from none to 10 of 16. Here, at least 20 of 48 against the no-spine arm's
+   handful.
+2. The race is won by a spine seed, and the spine arm's best is no worse than
+   the no-spine arm's best (§39.167's 1 and 3).
+3. The winner ends with every storey connected. On maple-court this missed
+   (§39.167) and was the reason the guard exists. Under `connected` the guard
+   should now hold it whenever the winner's seed started connected.
+
+**What would reverse the default:** a spine arm whose best is clearly worse
+than the no-spine arm's, or whose seeds are not more often connected. One race
+is one draw, so (2) is best-of-48 against best-of-48 and not a margin. The
+stage-0 distributions of the two arms are the only like-for-like comparison of
+size in it.
+
+`homemaker-py-3fmw` is closed with this section. The one case behind it
+(harbor-house cap-6) re-tuned a seed that was already partly disconnected,
+which §39.179's ruling leaves unguarded, so under today's default it has no
+evidence left.

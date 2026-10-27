@@ -197,7 +197,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (286 of them, 19631 lines)
+## Every section of DESIGN.md (287 of them, 19669 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -534,4 +534,5 @@ below are the most recent work.
 - §39.178 · 19475-19554 · The guard on harbor-house: it keeps the connections (1 run lost a storey, against 43) and the winner is level (9 against 10), but each run pays about a fail for it (`homemaker-py-7bc2`)
 - §39.179 · 19555-19576 · Owner's ruling: restrict the connection guard to parents with every storey connected (`homemaker-py-7bc2`)
 - §39.180 · 19577-19606 · The restricted connection guard, built: `--guard-connection=connected` (`homemaker-py-1d5p`)
-- §39.181 · 19607-19631 · The restricted guard replayed: harbor-house's cost is gone, maple-court keeps every connected seed (`homemaker-py-1d5p`)
+- §39.181 · 19607-19632 · The restricted guard replayed: harbor-house's cost is gone, maple-court keeps every connected seed (`homemaker-py-1d5p`)
+- §39.182 · 19633-19669 · The spine race on harbor-house: design and expectation (`homemaker-py-7bc2`)
