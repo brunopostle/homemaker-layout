@@ -19733,3 +19733,56 @@ reason to reverse `--spine`, and none to call it a win.** The default stays a
 judgement (§39.174), now on two races that disagree. 7bc2 is closed with this
 section. Whether harbor-house's winners being partly disconnected matters is
 the ordinary `level N not connected` question, not a question about spine.
+
+### 39.184 Storey heights on harbor-house, capped: a continuation A/B, design and expectation (`homemaker-py-y4p4.2`)
+
+`--tune-heights` has been measured twice, both times before the cap. On
+programme-house it cost hard fails, because the search changed what it did,
+not because of the height itself (§39.152). On harbor-house it was a null
+with n=4, and the storeys climbed to 5-11 m (§39.152 addendum). The owner then
+capped storeys per brief, 2.7-3.9 m in whole 75 mm courses (§39.153), and that
+is on main, default off. This is the first measurement with the cap.
+
+**Why not a race.** The obvious design was §39.182's field raced again with
+the flag, paired at stage 0 as §39.181 did. It cannot see this flag. The
+height move is one of 26 operators at the default weight of 1, so a 4k run
+(about 50 children) draws it about twice. Two 4k smoke runs with the flag
+(spine-1, nospine-10) moved no storey at all. Nelder-Mead does not move a
+snapped height either (§39.153), so stage 0 measures nothing about heights.
+
+**Design** (`experiments/run_heights_harbor.sh`, results in
+`experiments/results/halving-harbor-heights/`). The field is the 13
+candidates that reached stage 3 (32k) of the spine race (§39.183), as its
+`out.dom` files. A preflight requires each to re-score to the fails stage 3
+recorded, and all 13 do. Each candidate is continued for another 32k three
+times, named `-a`/`-b`/`-c` for three rng seeds. One arm runs today's default
+search (`fixed`), the other the same with `--tune-heights` (`heights`). Same
+file and same rng seed in both arms gives 39 clean pairs. The two arms run at
+the same time, half the slots each, at `c73dfde+orth`, search `fefeb72`,
+config `517acdbf88`. The field starts at 15-28 fails (mean 20.7), with
+crinkliness 0-9 per design (mean 3.6, the second-largest family after
+`size`, 5.6) and `level N not connected` 2.6. Over the same 32k, the spine
+race's own stage 4 took its seven survivors down by 2.4 fails each.
+
+**Expected, before it runs:**
+
+1. **The heights arm moves storeys; the fixed arm never does.**
+   `diag_halving_heights.py --expect-fixed` must pass on the fixed arm. In
+   the heights arm, at least half of the 39 runs end with a storey off
+   3.0 m, mostly upward, with storeys at the 2.7 m floor rare. If fewer than
+   half move a storey at all, the move is drawn too seldom for the flag to
+   matter, and that is the finding, whatever (3) and (4) show.
+2. **Fewer crinkliness fails with heights, paired.** About 0.5-1.5 fewer per
+   run. Most of the field's buried cells have no lit wall to deepen behind
+   (§39.128's cheap check: a taller storey cleared one daylight fail in seven
+   on evolved harbor-house designs), and the cap stops below the 3.5-5.1 m
+   that bought §39.132's two fails. N=39 may not resolve a margin that small.
+3. **Total fails within MDD of zero, and no rise in `level` or `too few
+   stairs` beyond MDD.** Programme-house's cost came through exactly those
+   two families (§39.152), so they are watched by name.
+
+**What would change the default:** (2) resolved in heights' favour with (3)
+not worse would be the case for `--tune-heights` on for briefs like
+harbor-house. That is the owner's decision, and it may be per brief, as the
+cap is. A resolved cost in (3), or in `level` / `too few stairs`, keeps it
+off. If (1) fails, the next step is the move's weight, not the default.
