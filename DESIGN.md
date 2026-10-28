@@ -19786,3 +19786,63 @@ not worse would be the case for `--tune-heights` on for briefs like
 harbor-house. That is the owner's decision, and it may be per brief, as the
 cap is. A resolved cost in (3), or in `level` / `too few stairs`, keeps it
 off. If (1) fails, the next step is the move's weight, not the default.
+
+### 39.185 Storey heights on harbor-house, capped: level on fails and score, and the owner's ruling that a lower storey is a fair saving (`homemaker-py-y4p4.2`)
+
+`run_heights_harbor.sh` as designed in §39.184. It ran from 23:18 to 08:48,
+and results are in `experiments/results/halving-harbor-heights/` (`pairs.txt`,
+`heights.txt`, `heights-fixed.txt`, `fixed.tsv`, `heights.tsv`). There are 39
+pairs, each a stage-3 design of the spine race continued 32k more with the
+same file and rng seed in both arms.
+
+| paired, N=39 | fixed | heights | mean diff | p | MDD |
+|---|---|---|---|---|---|
+| fails | 18.15 | 18.15 | 0.00 (15W/14L/10T) | 1.00 | 0.60 |
+| structural | 7.28 | 6.97 | +0.31 | 0.14 | 0.41 |
+| crinkliness | 3.05 | 2.90 | +0.15 | 0.40 | 0.37 |
+| `level` | 2.64 | 2.46 | +0.18 (5W/2L) | 0.15 | 0.25 |
+| too few stairs | 0.38 | 0.31 | +0.08 | 0.26 | 0.14 |
+| size | 5.46 | 5.62 | −0.15 | 0.31 | 0.30 |
+| −log10 score | 5.73 | 5.73 | 0.00 (21W/18L) | 0.99 | 0.18 |
+
+Family counts are re-scored from each `out.dom` (`pair_halving_stages.py
+--family`). Every re-score reproduced its row's fail count.
+
+**Against the expectations:**
+
+1. **Held on whether storeys move; missed on which way.** The fixed arm moved
+   no storey (`heights-fixed.txt`, the control). In the heights arm, 31 of 39
+   runs moved at least one storey: 35 storeys went up and 27 down. The
+   climbs were small, mostly 75-300 mm, with only spine-12 (3.6-3.8 m) and
+   nospine-16-c (3.5 m) going far. The drops were usually all the way: 20
+   of 109 storeys ended at the 2.7 m floor, and none at the 3.9 m cap. I had
+   expected "mostly upward, floor rare".
+2. **Missed.** Crinkliness is 0.15 lower, below the expected 0.5-1.5 and
+   inside the MDD. This is §39.128's cheap check again: the field's daylight
+   fails are buried cells, and height does not reach them.
+3. **Held.** Total fails are identical on average. No watched family rose:
+   `level` and `too few stairs` lean towards heights, and `size` leans
+   against. None resolves.
+
+**The score shows no cost and no gain.** A storey lowered to save wall cost
+moves the score, not the fail count, so the score is where to look for it.
+Over all 39 pairs the difference is 0.002 in log10. On the 10 pairs that end
+with the same fail count, where only cost and grades can differ, it is under
+1% of the score either way. The best design in each arm is the same seed,
+nospine-1-a: 8 fails at 2.86e-3 with heights (both storeys at 2.7 m, its
+`crinkliness` and `too few stairs` gone), and 10 fails at 6.50e-4 fixed. That
+is one draw.
+
+**Owner's ruling (2026-10-28), given on the provisional numbers:** "using
+heights to save on wall costs is fine as long as daylight and room depth is
+acceptable." So a search that lowers storeys is doing a legitimate thing, not
+gaming the cost, and lowering is not a mark against the flag. Here it costs
+no daylight: crinkliness does not rise.
+
+**Reading.** On harbor-house, with the cap, `--tune-heights` is harmless and
+inert: no measurable change in fails, families or score over 39 pairs. That is
+not enough to turn it on, and nothing argues for keeping it off except that
+it does nothing measurable. It stays off. `homemaker-py-y4p4.2` closes: the
+lever works and is used both ways, as the ruling allows. If a programme ever
+has deep single-aspect rooms with a lit wall, which is the hand design's case
+(§39.128, 31 -> 26) and not the evolved designs', it is a one-flag A/B.

@@ -104,6 +104,7 @@ index is how to get from a question to the section that answers it.
 | §39.168 | The split race (harbor-house, 48 dealt + 48 capacity + 3 cold): dealt-1 wins at 10 fails, capacity's best 12, as §39.160 expected; the capacity arm thinned faster every round. `--split` stays `dealt`. |
 | §39.169-§39.183 | Keeping a storey connected on maple-court's spine seeds. `connectivity_weight=auto` only breaks ties inside the search, because the comparator counts raw fails first (§39.172). An admission guard that declines a child disconnecting a storey its parent had connected loses no storey in 95 runs and wins at 13 fails, every storey connected: one race (§39.173). Guard and `--spine` made default on slim evidence (§39.174). On harbor-house (§39.178) the guard keeps connections (1 loss against 43) and the winner is level (9 against 10), but each 4k run pays +0.91 fails (p 0.01); maple-court's "no cost" was underpowered. Owner ruled to restrict the guard to fully connected parents (§39.179); built as the default `--guard-connection=connected` (§39.180); replayed at no cost on harbor-house against no guard, and no fully connected maple-court seed lost a storey (§39.181). Spine on harbor-house (§39.182-§39.183): 30 of 48 seeds connected against 3, none lost a storey, but a no-spine seed won (9 fails against 14) and the arms are level at stage 0. |
 | §39.184 | Storey heights, capped, on harbor-house: a continuation A/B (39 pairs, the spine race's 13 stage-3 designs continued 32k with and without `--tune-heights`), because a 4k stage-0 run draws the height move about twice and moves nothing. Design and expectation. |
+| §39.185 | Its result: 39 pairs level on fails (18.15 = 18.15), every family and the score; storeys move in 31 of 39 runs, down as often as up (20 at the 2.7 m floor, none at the cap). Owner: lowering a storey to save wall cost is fine if daylight and depth pass. Stays off; y4p4.2 closed. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -145,6 +146,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A common room opens onto PRIVATE outdoor space: a street wall is not "next to outdoors" | §39.138 |
 | A single-aspect room 5.7 m deep is fine if its ceiling height lets it pass the daylight check: the check stands | §39.138 |
 | Storey height is capped per project, default 3.9 m, and is a whole multiple of a 75 mm brick/block course | §39.153 |
+| Lowering a storey to save wall cost is legitimate, as long as daylight and room depth pass | §39.185 |
 | The connection guard and spine seeding are default on -- "based on slim evidence" (one race each, no A/B): cite them as judgement, not as measured wins. The guard has since been raced on harbor-house too (§39.178, §39.181); spine's second race (§39.183) connected 30 of 48 seeds against 3 but was won by a no-spine seed, stage 0 level: one race each way | §39.174 |
 | A single-storey building needs no stair: `staircase_min` applies only above one storey | §39.177 |
 | The connection guard applies only to a parent with every storey connected: built as `--guard-connection=connected`, the default (§39.180, §39.181) | §39.179 |
@@ -199,7 +201,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (289 of them, 19788 lines)
+## Every section of DESIGN.md (290 of them, 19848 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -539,4 +541,5 @@ below are the most recent work.
 - §39.181 · 19607-19632 · The restricted guard replayed: harbor-house's cost is gone, maple-court keeps every connected seed (`homemaker-py-1d5p`)
 - §39.182 · 19633-19670 · The spine race on harbor-house: design and expectation (`homemaker-py-7bc2`)
 - §39.183 · 19671-19736 · The spine race on harbor-house: spine connects the seeds, and a no-spine seed wins (`homemaker-py-7bc2`)
-- §39.184 · 19737-19788 · Storey heights on harbor-house, capped: a continuation A/B, design and expectation (`homemaker-py-y4p4.2`)
+- §39.184 · 19737-19789 · Storey heights on harbor-house, capped: a continuation A/B, design and expectation (`homemaker-py-y4p4.2`)
+- §39.185 · 19790-19848 · Storey heights on harbor-house, capped: level on fails and score, and the owner's ruling that a lower storey is a fair saving (`homemaker-py-y4p4.2`)
