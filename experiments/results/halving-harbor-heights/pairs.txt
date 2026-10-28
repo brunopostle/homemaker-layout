@@ -1,0 +1,54 @@
+stage 0: 39 candidates in both races
+
+fails:
+  N=39   fixed mean 18.15   heights mean 18.15   15W/14L/10T (for heights)
+  mean diff +0.000  sd 1.835  95% CI [-0.595, +0.595]
+  t=0.000  p=1.0000  wilcoxon p=0.8864
+  minimum detectable difference at N=39: 0.595
+  ** UNDERPOWERED: the observed margin (0.000) is BELOW what N=39 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+
+structural:
+  N=39   fixed mean 7.28   heights mean 6.97   11W/8L/20T (for heights)
+  mean diff +0.308  sd 1.260  95% CI [-0.101, +0.716]
+  t=1.525  p=0.1355  wilcoxon p=0.1099
+  minimum detectable difference at N=39: 0.408
+  ** UNDERPOWERED: the observed margin (0.308) is BELOW what N=39 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 67 would be needed for a margin this size.
+
+crinkliness fails:
+  N=39   fixed mean 3.05   heights mean 2.90   10W/9L/20T (for heights)
+  mean diff +0.154  sd 1.136  95% CI [-0.215, +0.522]
+  t=0.845  p=0.4032  wilcoxon p=0.4178
+  minimum detectable difference at N=39: 0.368
+  ** UNDERPOWERED: the observed margin (0.154) is BELOW what N=39 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 213 would be needed for a margin this size.
+
+level fails:
+  N=39   fixed mean 2.64   heights mean 2.46   5W/2L/32T (for heights)
+  mean diff +0.179  sd 0.756  95% CI [-0.066, +0.425]
+  t=1.482  p=0.1466  wilcoxon p=0.1597
+  minimum detectable difference at N=39: 0.245
+  ** UNDERPOWERED: the observed margin (0.179) is BELOW what N=39 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 71 would be needed for a margin this size.
+
+too few stairs fails:
+  N=39   fixed mean 0.38   heights mean 0.31   5W/2L/32T (for heights)
+  mean diff +0.077  sd 0.422  95% CI [-0.060, +0.214]
+  t=1.138  p=0.2622  wilcoxon p=0.2568
+  minimum detectable difference at N=39: 0.137
+  ** UNDERPOWERED: the observed margin (0.077) is BELOW what N=39 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 119 would be needed for a margin this size.
+
+size fails:
+  N=39   fixed mean 5.46   heights mean 5.62   7W/10L/22T (for heights)
+  mean diff -0.154  sd 0.933  95% CI [-0.456, +0.149]
+  t=-1.030  p=0.3096  wilcoxon p=0.3297
+  minimum detectable difference at N=39: 0.302
+  ** UNDERPOWERED: the observed margin (0.154) is BELOW what N=39 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 144 would be needed for a margin this size.
