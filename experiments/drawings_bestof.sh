@@ -32,7 +32,7 @@ PICKS="
 programme-house|experiments/results/seedsolve-ab/seedsolve-ab-programme-house-built-s3.dom|examples/programme-house|100|A2|
 harbor-house-handseed|examples/harbor-house/handseed-4428262+orth-500000-s2.dom|examples/harbor-house|200|A1|
 harbor-house-evolved|experiments/results/halving-harbor-heights/best-heights-nospine-1-a.dom|examples/harbor-house|200|A2|--no-gables
-maple-court|experiments/results/halving-maple-spine/winner.dom|examples/maple-court|200|A1|
+maple-court|experiments/results/halving-maple-connect/guard/winner.dom|examples/maple-court|200|A1|
 health-centre|experiments/results/pivot-ab/pivot-ab-health-centre-pivot-s4.dom|examples/health-centre|200|A2|
 "
 
