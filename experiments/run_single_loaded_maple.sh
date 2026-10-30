@@ -22,6 +22,9 @@
 # plan; which of the two carries any difference is a later question.
 #
 #   setsid nohup experiments/run_single_loaded_maple.sh > ~/homemaker-single-loaded-maple.log 2>&1 < /dev/null &
+#
+# After an interruption, RESUME=1 keeps the seeds and continues the race:
+#   RESUME=1 setsid nohup experiments/run_single_loaded_maple.sh >> ~/homemaker-single-loaded-maple.log 2>&1 < /dev/null &
 cd "$(dirname "$0")/.." || exit 1
 SLOTS=${SLOTS:-8}
 export HOMEMAKER_ORTHOGONAL_DIVISION=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
@@ -50,6 +53,7 @@ P=maple-court
 R=experiments/results/halving-maple-single
 W=$HOME/halving-maple-single
 mkdir -p $R
+[ -n "$RESUME" ] || : > $R/race.log
 build() {   # build <prefix> <plans> [seeder flags...]
     local prefix=$1 plans=$2; shift 2
     say "building $prefix seeds $*"
@@ -59,18 +63,20 @@ build() {   # build <prefix> <plans> [seeder flags...]
     local rc=$?
     say "built $(ls $R/$prefix-*.dom 2>/dev/null | wc -l) $prefix seeds (rc=$rc)"
 }
-build double 16 --storeys 3
-build single 16 --reach 1.25 --spine-at edge --storeys 3
-for c in a b c; do cp -f examples/$P/init.dom $R/cold-$c.dom; done
-python experiments/diag_double_loaded.py --summary $R/double-*.dom $R/single-*.dom > $R/double-loaded-seeds.txt 2>&1
+if [ -z "$RESUME" ]; then
+    build double 16 --storeys 3
+    build single 16 --reach 1.25 --spine-at edge --storeys 3
+    for c in a b c; do cp -f examples/$P/init.dom $R/cold-$c.dom; done
+    python experiments/diag_double_loaded.py --summary $R/double-*.dom $R/single-*.dom > $R/double-loaded-seeds.txt 2>&1
+fi
 n=$(ls $R/double-*.dom $R/single-*.dom $R/cold-?.dom | wc -l)
 [ "$n" = 99 ] || { echo "!!! expected 99 candidates, found $n"; exit 1; }
 
-say "race: $n candidates"
+say "race: $n candidates${RESUME:+ (resuming)}"
 python -u experiments/successive_halving.py --programme $P \
     --seeds $R/double-*.dom $R/single-*.dom $R/cold-a.dom $R/cold-b.dom $R/cold-c.dom \
     --start 4000 --final 128000 --eta 2 --slots "$SLOTS" --rank total \
-    --work "$W" --output "$R/winner.dom" > $R/race.log 2>&1
+    --work "$W" --output "$R/winner.dom" ${RESUME:+--resume} >> $R/race.log 2>&1
 say "race finished (rc=$?)"
 
 cp -f $W/stages.tsv $R/stages.tsv

@@ -41,6 +41,13 @@ hand-seeded runs started from the owner's drawing.
 
 Every stage's candidates go to ``<work>/stages.tsv`` as they finish; the
 winner is copied to ``--output``.
+
+**``--resume`` continues an interrupted race** (a power cut lost one five hours
+in). Give it the same arguments. Without it ``<work>`` is deleted at start-up.
+Every candidate with a row in the table keeps its result, re-scored from its
+``out.dom`` and refused if the row no longer reproduces: that catches a damaged
+file and an objective that moved. Everything else reruns from scratch under the
+same random seed, because ``homemaker-evolve`` writes nothing until it finishes.
 """
 
 from __future__ import annotations
@@ -119,6 +126,21 @@ def seed_int(*parts) -> int:
     return int.from_bytes(hashlib.sha1("|".join(map(str, parts)).encode()).digest()[:4], "big")
 
 
+def read_table(path: Path) -> dict:
+    """``stages.tsv`` as {(stage, candidate): (budget, structural, fails, score string)}."""
+    if not path.exists():
+        raise SystemExit(f"--resume: no {path}")
+    done = {}
+    for line in path.read_text().split("\n")[1:]:
+        if not line:
+            continue
+        row = line.split("\t")
+        if len(row) != 8:
+            raise SystemExit(f"--resume: damaged row in {path}: {line!r}")
+        done[int(row[0]), row[2]] = (int(row[1]), int(row[3]), int(row[4]), row[5])
+    return done
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--programme", default="harbor-house")
@@ -134,6 +156,8 @@ def main(argv=None) -> int:
                          "ranking (repeatable; VALUE is YAML)")
     ap.add_argument("--work", default=None, help="working directory (default /tmp/halving_<programme>)")
     ap.add_argument("--output", default=None, help="copy the winner here")
+    ap.add_argument("--resume", action="store_true",
+                    help="continue the race in --work instead of deleting it; same arguments")
     ap.add_argument("--evolve-args", default="", help="extra homemaker-evolve flags")
     args = ap.parse_args(argv)
     if not geometry.ORTHOGONAL_DIVISION:
@@ -148,10 +172,31 @@ def main(argv=None) -> int:
         print(f"objective overrides: {overrides} (connectivity_weight in force: "
               f"{fit._connectivity_weight:g})", flush=True)
     work = Path(args.work or f"/tmp/halving_{args.programme}")
-    shutil.rmtree(work, ignore_errors=True)
-    work.mkdir(parents=True)
-    table = (work / "stages.tsv").open("w")
-    table.write("stage\tbudget\tcandidate\tstructural\tfails\tscore\telapsed_s\tfamilies\n")
+    done = {}
+    if args.resume:
+        done = read_table(work / "stages.tsv")
+        print(f"resuming {work}: {len(done)} finished candidates in the table", flush=True)
+        table = (work / "stages.tsv").open("a")
+    else:
+        shutil.rmtree(work, ignore_errors=True)
+        work.mkdir(parents=True)
+        table = (work / "stages.tsv").open("w")
+        table.write("stage\tbudget\tcandidate\tstructural\tfails\tscore\telapsed_s\tfamilies\n")
+
+    def rate(d: Path):
+        """Score a finished candidate: (result tuple, its fails)."""
+        out = d / "out.dom"
+        cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            root = dom.load(str(out))
+            geometry.clear_cache()
+            sc, fails = fit.score_with_fails(root)
+        finally:
+            os.chdir(cwd)
+        fails = list(fails)
+        return (structural(fails), len(fails), sc, out,
+                weighted(fails, fit._connectivity_weight)), fails
 
     # candidate name -> its current best design
     alive = {Path(s).stem: Path(s).resolve() for s in args.seeds}
@@ -164,12 +209,28 @@ def main(argv=None) -> int:
           f"at most {n_stages} stages", flush=True)
 
     while True:
-        queue = list(alive.items())
-        running, results = {}, {}
+        queue, results = [], {}
+        for name, src in alive.items():
+            row = done.pop((stage, name), None)
+            if row is None:
+                queue.append((name, src))
+                continue
+            results[name] = rate(work / f"s{stage}" / name)[0]
+            now = (budget, *results[name][:2], f"{results[name][2]:.6g}")
+            if now != row:
+                raise SystemExit(f"--resume: stage {stage} {name} was {row}, now reproduces as {now}")
+        stray = sorted(k for k in done if k[0] <= stage)
+        if stray:
+            raise SystemExit(f"--resume: table rows for candidates not in this race: {stray}")
+        if results:
+            print(f"stage {stage}: {len(results)} restored, {len(queue)} to run", flush=True)
+        running = {}
         while queue or running:
             while queue and len(running) < args.slots:
                 name, src = queue.pop(0)
                 d = work / f"s{stage}" / name
+                if args.resume:
+                    shutil.rmtree(d, ignore_errors=True)  # what the interruption left
                 d.mkdir(parents=True)
                 shutil.copy(src, d / "seed.dom")
                 for f in ("patterns.config", "costs.config"):
@@ -190,22 +251,11 @@ def main(argv=None) -> int:
                 fh.close()
                 del running[pid]
                 el = time.monotonic() - t0
-                out = d / "out.dom"
-                if not out.exists():
+                if not (d / "out.dom").exists():
                     print(f"  !!! {name} wrote no design (rc {p.returncode}); dropped", flush=True)
                     continue
-                cwd = os.getcwd()
-                os.chdir(d)
-                try:
-                    root = dom.load(str(out))
-                    geometry.clear_cache()
-                    sc, fails = fit.score_with_fails(root)
-                finally:
-                    os.chdir(cwd)
-                fails = list(fails)
-                st = structural(fails)
-                results[name] = (st, len(fails), sc, out,
-                                 weighted(fails, fit._connectivity_weight))
+                results[name], fails = rate(d)
+                st, sc = results[name][0], results[name][2]
                 fam = Counter(family(f) for f in fails)
                 table.write(f"{stage}\t{budget}\t{name}\t{st}\t{len(fails)}\t{sc:.6g}\t{el:.0f}\t"
                             + "; ".join(f"{k} {v}" for k, v in fam.most_common(6)) + "\n")
