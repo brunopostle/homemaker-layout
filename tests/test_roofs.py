@@ -352,3 +352,32 @@ def test_real_designs_get_roofs_that_close(programme, monkeypatch):
         flat = rooms_export.document(path, prog, roof_pitch=None)
         assert "faces" not in flat and flat["rooms"] == doc["rooms"]
     geometry.clear_cache()
+
+
+DOUBLED_BACK = REPO / "experiments/results/halving-harbor-heights/best-heights-nospine-1-a.dom"
+
+
+@pytest.mark.skipif(not DOUBLED_BACK.is_file(), reason="artefact absent")
+@pytest.mark.xfail(strict=True, reason="homemaker-py-gc0g: a gable on a party wall "
+                   "with a 0.17 mm kink leaves a sliver of the other edge's slope")
+def test_a_sliver_welded_flat_is_not_written_as_a_face(monkeypatch):
+    """harbor-house's best evolved design has a party wall in two edges that
+    meet at a corner 0.17 mm off the straight line (a room corner on a skew
+    plot; `_straighten` rightly keeps it). One edge's hip end becomes a gable
+    and the other edge's slope is left as a sliver, which corner-sharing then
+    folds into a face that runs out along a line and back -- no area, and
+    homemaker-addon's CellComplex.ByFaces() refuses the whole building over
+    it (`homemaker-py-m1mv`)."""
+    from homemaker_layout import geometry, rooms_export
+
+    monkeypatch.setattr(geometry, "ORTHOGONAL_DIVISION", True)
+    geometry.clear_cache()
+    doc = rooms_export.document(DOUBLED_BACK, REPO / "examples" / "harbor-house")
+    geometry.clear_cache()
+    eave = next(r for r in doc["rooms"] if r["roofed"])
+    eave = eave["elevation"] + eave["height"]
+    for f in doc["faces"]:
+        corners = [tuple(p) for p in f["vertices"]]
+        assert len(set(corners)) == len(corners), "a face that doubles back"
+    loose, flatness, _ = _closure({"faces": [f["vertices"] for f in doc["faces"]]}, None, eave)
+    assert not loose and flatness < 2e-7
