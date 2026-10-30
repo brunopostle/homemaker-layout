@@ -592,6 +592,8 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
         for rot in range(4):
             for side in (0, 1):
                 yield ("edge", rot, side)
+        if SPINE_AT == "edge":
+            return
         for rot in range(4):
             for a in (0.35, 0.5, 0.65):
                 for rot2 in range(4):
@@ -615,8 +617,14 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
         H = G.subgraph([x for x in G if not dom.is_outside(x)])
         circ = [x for x in H if dom.is_circulation(x)]
         pieces = circ_pieces(H, stairs_join)
-        return (len(pieces), _gap(pieces),
-                sum(geometry.area(x) for x in circ if x.type == "C"))
+        strips = sum(geometry.area(x) for x in circ if x.type == "C")
+        if SPINE_AT == "edge":
+            # a corridor along one edge leaves the rooms the OTHER: prefer
+            # the edge that leaves them the most daylight, so a wing on a
+            # party wall keeps its corridor there and its rooms on the court
+            lit = sum(operators._lit_wall(x, G) for x in H if x.type == SPINE_HOLD)
+            return (len(pieces), _gap(pieces), -round(lit, 1), strips)
+        return (len(pieces), _gap(pieces), strips)
 
     chosen = {}
     for _round in range(2):
@@ -644,6 +652,10 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
 
 
 SPINE = True
+# "any": a spine may run along a wing's edge or through its middle, which
+# makes a double-loaded corridor. "edge": along an edge only, so every wing
+# is single-loaded, its rooms on the far side (homemaker-py-sp11)
+SPINE_AT = "any"
 
 
 def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
@@ -892,6 +904,16 @@ def main(argv=None) -> int:
                          "(homemaker-py-2g7.13.1.7, DESIGN.md §39.161). Default on "
                          "since §39.174, owner's call on slim evidence: one race "
                          "won by a spine seed, not a margin; --no-spine is the old seeder")
+    ap.add_argument("--spine-at", choices=("any", "edge"), default="any",
+                    help="where a wing's spine may run: along an edge or through the "
+                         "middle (any, a double-loaded corridor allowed), or along an "
+                         "edge only (edge: every wing single-loaded)")
+    ap.add_argument("--reach", type=float, default=wc.K_LIT,
+                    help="the filter's daylight reach in storey heights: every built "
+                         "point within this of a lit wall. The default is the scorer's "
+                         "crinkliness edge, 1.62 h, which passes a wing about 9.7 m deep "
+                         "lit both sides -- deep enough for a double-loaded corridor; "
+                         "1.25 caps a wing at about 7.5 m on a 3 m storey")
     ap.add_argument("--split", choices=("dealt", "capacity"), default="dealt",
                     help="how rooms are shared over storeys: dealt round-robin, or by "
                          "area against each storey's built area (homemaker-py-2g7.13.1.8, "
@@ -915,8 +937,9 @@ def main(argv=None) -> int:
                          "capacity hill-climb under-finds, and on health-centre the prune "
                          "lost 45 of 199 and 218 of 1172 outlines (DESIGN.md §39.148)")
     args = ap.parse_args(argv)
-    global SPINE, SPLIT
-    SPINE, SPLIT = args.spine, args.split
+    global SPINE, SPLIT, SPINE_AT
+    SPINE, SPLIT, SPINE_AT = args.spine, args.split, args.spine_at
+    wc.K_LIT = args.reach
     if not geometry.ORTHOGONAL_DIVISION:
         print("set HOMEMAKER_ORTHOGONAL_DIVISION=1", file=sys.stderr)
         return 2

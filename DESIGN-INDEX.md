@@ -201,7 +201,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (290 of them, 19848 lines)
+## Every section of DESIGN.md (291 of them, 19949 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -542,4 +542,5 @@ below are the most recent work.
 - §39.182 · 19633-19670 · The spine race on harbor-house: design and expectation (`homemaker-py-7bc2`)
 - §39.183 · 19671-19736 · The spine race on harbor-house: spine connects the seeds, and a no-spine seed wins (`homemaker-py-7bc2`)
 - §39.184 · 19737-19789 · Storey heights on harbor-house, capped: a continuation A/B, design and expectation (`homemaker-py-y4p4.2`)
-- §39.185 · 19790-19848 · Storey heights on harbor-house, capped: level on fails and score, and the owner's ruling that a lower storey is a fair saving (`homemaker-py-y4p4.2`)
+- §39.185 · 19790-19849 · Storey heights on harbor-house, capped: level on fails and score, and the owner's ruling that a lower storey is a fair saving (`homemaker-py-y4p4.2`)
+- §39.186 · 19850-19949 · Single-loaded wings on maple-court: a race, design and expectation (`homemaker-py-sp11`)

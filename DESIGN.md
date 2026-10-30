@@ -19846,3 +19846,104 @@ it does nothing measurable. It stays off. `homemaker-py-y4p4.2` closes: the
 lever works and is used both ways, as the ruling allows. If a programme ever
 has deep single-aspect rooms with a lit wall, which is the hand design's case
 (§39.128, 31 -> 26) and not the evolved designs', it is a one-flag A/B.
+
+### 39.186 Single-loaded wings on maple-court: a race, design and expectation (`homemaker-py-sp11`)
+
+**The question (owner, 2026-10-30).** The redrawn maple-court GA (the guard
+race's winner, §39.173) has a double-loaded corridor down its east stem on
+every storey: 1.2 m wide, 19.6 m long, rooms on both sides. That is typical
+of the building type, but against *Wings of Light* (107), *Light on Two
+Sides of Every Room* (159) and *Short Passages* (132). The owner's guess was
+that a single-loaded plan that fits the brief needs two wings or more
+storeys. On a 29 x 26 m plot with ~1,300 m2 gross over three storeys, a U or C
+of ~6-7 m ranges round a court is about the right area (~430 m2 a floor
+against today's ~290 m2 footprint). More storeys are not available: every
+maple-court room has a `level:` of 0, 1 or 2, so a fourth storey holds
+nothing.
+
+**Why the seeder lays double-loaded wings.** Two places:
+
+- the catalogue's filter (`wings_catalogue.check`) passes a wing if every
+  built point is within `K_LIT` = 1.62 h of a lit wall. That is the scorer's
+  crinkliness edge, and it passes a wing about 9.7 m deep when lit on both
+  sides: deep enough for two rows of rooms and a corridor;
+- `seed_from_catalogue.spine` may run a wing's corridor THROUGH its middle
+  (two cuts), ranked only on circulation pieces, gap and strip area. Nothing
+  asks where the rooms' light comes from.
+
+**A census first** (`experiments/diag_double_loaded.py`, new). A corridor is
+double-loaded when its aspect is at least 4 and more than half of each long
+wall is lined with rooms; `--self-test` is the negative control (a corridor
+between two rows of rooms fires, the same corridor with outdoor space on one
+side does not). On the earlier maple races:
+
+| design | double-loaded corridors |
+|---|---|
+| guard-race winner (§39.173) | 3, 58.7 m (the east stem, every storey) |
+| spine-race winner (§39.167) | 3, 56.5 m (the T's stem, every storey) |
+| spine-race seeds, `--spine` | 17 of 48 seeds have one, 28 in all |
+| spine-race seeds, `--no-spine` | 25 of 48, 51 in all |
+| spine-2, the spine winner's seed | 6, 78.4 m: it started double-loaded |
+| spine-3, the guard winner's seed | 1, 8.1 m: the search built the 19.6 m stem |
+
+So the search builds them as well as inheriting them.
+
+**What changed in the seeder (search-side, `experiments/` only).** Two
+options, both default off, so today's seeder is unchanged:
+
+- `--reach H`: the filter's daylight reach in storey heights (sets
+  `wc.K_LIT`). 1.25 caps a wing lit both sides at about 7.5 m on a 3 m
+  storey. At 1.25 maple-court's best capacity falls from 83% to 73%, still
+  above the 56% cover three storeys need; 79 outlines pass at three storeys
+  (463 at four);
+- `--spine-at edge`: a spine runs along a wing's edge only, never through
+  it, and among edges the one that leaves the rooms the most lit wall
+  (`operators._lit_wall`) is preferred after connection. A wing on a party
+  wall then keeps its corridor on the blind side and its rooms on the court.
+
+**Design** (`experiments/run_single_loaded_maple.sh`, results to
+`experiments/results/halving-maple-single/`). One successive-halving race,
+`--rank total`, 4k doubling to 128k, today's default search (guard
+`connected`, spine on), 99 candidates:
+
+- `double-1..48`: the default seeder at `--storeys 3`, 16 plans x 3 stair
+  placements;
+- `single-1..48`: `--reach 1.25 --spine-at edge --storeys 3`, the same
+  counts;
+- `cold-a/b/c`: init.dom three times.
+
+Two changes in one arm, deliberately: together they are the single-loaded
+plan, and which of the two carries a difference is a later question. The
+arms are NOT paired: different reaches pass different plans, so `double-k`
+and `single-k` are not the same outline, and stage 0 compares two
+distributions of 48. The census runs on the seeds, on every stage's outputs
+and on the winner.
+
+**Expected, before it runs:**
+
+1. **The seeds differ as designed, but not to zero.** A two-seed smoke
+   build at three storeys gave one C round a court with none, and one with a
+   7.1 m double-loaded corridor on each storey, cut by `bridge_indoors` to
+   join the storey, not by the spine. So: the single arm's double-loaded
+   metres, summed over its 48 seeds, are under half the double arm's, and
+   its longest is under 10 m, where the double arm has 15 m+ stems (12-30
+   of its 48 seeds with one).
+2. **Stage 0 (4k) is close, single slightly worse.** Narrower wings hold the
+   80 m2 living room and 60 m2 dining area less easily, so more `size` and
+   `proportion` fails; fewer `crinkliness`. Median total fails for single
+   0-5 above double's. More than 5 worse would say the 7.5 m wing costs the
+   brief real fails; better would say the deep wings were costing light.
+3. **The search re-makes double-loaded corridors.** At least one single
+   candidate that reaches stage 3 (32k) has one by then. spine-3 did exactly
+   this in §39.173.
+4. **The winner: no confident call.** The best single finalist ends within 3
+   fails of the best double one; both maple races so far won at 13. If a
+   single seed wins with no double-loaded corridor, that is the plan the
+   owner asked for, at no cost in fails.
+5. All three cold copies are out by stage 1, as in every catalogue race.
+
+**What the answers would mean.** If (3) holds widely, seeding alone cannot
+keep a plan single-loaded: the objective does not price a double-loaded
+corridor beyond crinkliness on the corridor, which the search will pay. That
+points at the owner's next question, how the wings are seeded and what keeps
+them, and possibly at a ruling on whether a buried corridor should cost more.
