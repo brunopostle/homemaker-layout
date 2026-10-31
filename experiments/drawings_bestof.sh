@@ -25,13 +25,11 @@ export HOMEMAKER_ORTHOGONAL_DIVISION=1
 # name | .dom | programme directory | scale | sheet | homemaker-rooms options
 # The recipe does not fit the views to the sheet: at 1:100 everything bigger
 # than programme-house overflows A2, and at 1:200 so do the buildings with
-# eight or more views. harbor-house-evolved is hipped
-# all round until homemaker-py-gc0g: its party wall's gable leaves a sliver
-# that homemaker-addon refuses
+# eight or more views.
 PICKS="
 programme-house|experiments/results/seedsolve-ab/seedsolve-ab-programme-house-built-s3.dom|examples/programme-house|100|A2|
 harbor-house-handseed|examples/harbor-house/handseed-4428262+orth-500000-s2.dom|examples/harbor-house|200|A1|
-harbor-house-evolved|experiments/results/halving-harbor-heights/best-heights-nospine-1-a.dom|examples/harbor-house|200|A2|--no-gables
+harbor-house-evolved|experiments/results/halving-harbor-heights/best-heights-nospine-1-a.dom|examples/harbor-house|200|A2|
 maple-court|experiments/results/halving-maple-connect/guard/winner.dom|examples/maple-court|200|A1|
 health-centre|experiments/results/pivot-ab/pivot-ab-health-centre-pivot-s4.dom|examples/health-centre|200|A2|
 "

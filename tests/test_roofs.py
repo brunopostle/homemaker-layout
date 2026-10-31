@@ -286,6 +286,41 @@ def test_a_roof_that_ends_at_a_party_wall_gets_a_gable():
         >= {(0.0, 2.5), (8.0, 2.5)}
 
 
+def test_a_party_wall_with_a_hairs_kink_is_one_gable():
+    """`homemaker-py-gc0g`: a room corner 0.17 mm off the line of a party wall.
+    Gabling one part alone left a sliver of the other's slope, rising to 9 m."""
+    kinked = Polygon([(0, 0), (8, 0), (8.00017, 2.2), (8, 5), (0, 5)])
+    wall = lambda a, b: a[0] > 7.9 and b[0] > 7.9  # noqa: E731
+    made = roofs.roof(kinked, 45.0, is_gable=wall)
+    assert (made["gables"], made["hipped"]) == (1, 0)
+    loose, flatness, area = _closure(made, kinked)
+    assert not loose
+    assert flatness < 2e-7
+    assert area == pytest.approx(kinked.area, rel=1e-4)
+    assert max(p[2] for f in made["faces"] for p in f) == pytest.approx(2.5, abs=1e-2)
+    walls = [f for f in made["faces"] if max(p[0] for p in f) - min(p[0] for p in f) < 1e-3]
+    assert len(walls) == 2                 # one flat face each side of the kink
+
+
+def test_a_long_thin_dust_tile_is_not_a_face():
+    """`homemaker-py-gc0g` as harbor-house met it: a vertex under a micron off a
+    6 m party wall, so the wall is one straight side, and a tile 0.3 microns
+    wide with more than `MIN_AREA` of area, on the plane of the far slope."""
+    real = Polygon([(-26.872275, 14.6647), (-1.423975, 14.6647), (-1.665202, 17.680046),
+                    (-1.889051, 20.478153), (-26.872275, 20.478153)])
+    made = roofs.roof(real, 35.0, is_gable=lambda a, b: a[0] > -2 and b[0] > -2)
+    assert (made["gables"], made["hipped"]) == (1, 0)
+    assert not _closure(made, real)[0]
+    assert max(p[2] for f in made["faces"] for p in f) < 2.1   # was 4.07: the far slope
+
+
+def test_control_two_walls_at_a_real_corner_are_not_one_gable():
+    bent = Polygon([(0, 0), (8, 0), (8.5, 2.5), (8, 5), (0, 5)])
+    made = roofs.roof(bent, 45.0, is_gable=lambda a, b: a[0] > 7.9 and b[0] > 7.9)
+    assert len(roofs._gable_runs(roofs._edges(bent, lambda a, b: a[0] > 7.9 and b[0] > 7.9))) == 2
+    assert not _closure(made, bent)[0]
+
+
 def test_a_party_wall_along_the_side_of_a_roof_keeps_its_slope():
     made = roofs.roof(RECT, 45.0, is_gable=lambda a, b: abs(a[1] - b[1]) < 1e-9 and a[1] < 1)
     assert (made["gables"], made["hipped"]) == (0, 1)

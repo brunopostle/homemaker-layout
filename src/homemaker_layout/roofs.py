@@ -277,7 +277,10 @@ def _tiling(poly: Polygon, edges: "list[_Edge]") -> "list[tuple[_Edge, Polygon]]
             if lower is not None:
                 face = _minus(face, _and(region[id(j)], lower))
         for piece in _polygons(face):
-            if piece.area > MIN_AREA:
+            # by width as well as area: a tile between a straight side and a
+            # vertex a micron off it can be metres long, so have the area of a
+            # face and the width of nothing (homemaker-py-gc0g)
+            if piece.area > MIN_AREA and 2 * piece.area / piece.length > WELD:
                 out.append((e, piece))
     covered = sum(p.area for _, p in out)
     if abs(covered - poly.area) > 1e-4 * max(1.0, poly.area):
@@ -354,6 +357,34 @@ def _near(p, q, tol: float = 5e-6) -> bool:
     return abs(p[0] - q[0]) <= tol and abs(p[1] - q[1]) <= tol
 
 
+def _gable_runs(edges) -> "list[list[_Edge]]":
+    """Gable edges in order, with neighbours that are one wall in all but a
+    hair's breadth joined into a run: two parts of a party wall on a skew plot
+    can meet at a room corner a fraction of a millimetre off the straight line,
+    which `_straighten` rightly keeps. Off the line by less than `SHAPE`, the
+    same test `_corners` uses to read a hip end as a triangle."""
+    runs = []
+    for ring in sorted({e.ring for e in edges}):
+        sides = sorted((e for e in edges if e.ring == ring), key=lambda e: e.k)
+
+        def joined(p, q):
+            cross = ((p.b[0] - p.a[0]) * (q.b[1] - p.a[1])
+                     - (p.b[1] - p.a[1]) * (q.b[0] - p.a[0]))
+            return (p.gable and q.gable and abs(cross)
+                    <= SHAPE * math.hypot(q.b[0] - p.a[0], q.b[1] - p.a[1]))
+
+        n = len(sides)
+        starts = [i for i in range(n) if not joined(sides[i - 1], sides[i])]
+        for i in starts or [0]:
+            if not sides[i].gable:
+                continue
+            run = [sides[i]]
+            while len(run) < n and joined(run[-1], sides[(i + len(run)) % n]):
+                run.append(sides[(i + len(run)) % n])
+            runs.append(run)
+    return runs
+
+
 def _gable_ends(tiles, edges):
     """Turn hip ends into gables where an edge marked ``gable`` allows it.
 
@@ -364,64 +395,87 @@ def _gable_ends(tiles, edges):
     Nothing else about the roof moves, and N' is on both neighbours' planes
     by construction, so the surface stays closed.
 
+    A wall with a hair's kink (`_gable_runs`) is one end of the roof: its parts'
+    tiles together make the hip end, and the neighbouring slopes run over the
+    kink corner, which keeps the two sides of the wall exact.
+
     An edge marked ``gable`` whose face is NOT such a triangle -- a party wall
     along the side of a roof, not across its end -- stays a slope. Returns
-    ``(tiles, walls, left)``: the new tiling, the gable walls as ``(edge, N')``,
-    and how many gable edges were left hipped.
+    ``(tiles, walls, left)``: the new tiling, the gable walls as ``(run, N',
+    slope before N', slope after N')``, and how many gable runs were left hipped.
     """
     tiles = list(tiles)
     walls, left = [], 0
-    for g in (e for e in edges if e.gable):
-        mine = [(i, p) for i, (e, p) in enumerate(tiles) if e is g and p is not None]
-        if len(mine) != 1:
+    for run in _gable_runs(edges):
+        start, end = run[0].a, run[-1].b
+        mine = [(i, p) for i, (e, p) in enumerate(tiles)
+                if any(e is g for g in run) and p is not None]
+        whole = _polygons(_or([p for _, p in mine])) if mine else []
+        if len(whole) != 1 or (len(run) == 1 and len(mine) != 1) or whole[0].interiors:
             left += 1
             continue
-        index, face = mine[0]
-        ring = _corners(list(orient(face, 1.0).exterior.coords)[:-1])
-        if len(ring) != 3 or face.interiors:
+        ring = _corners(list(orient(whole[0], 1.0).exterior.coords)[:-1])
+        if len(ring) != 3:
             left += 1
             continue
-        apex = [q for q in ring if not _near(q, g.a) and not _near(q, g.b)]
+        apex = [q for q in ring if not _near(q, start) and not _near(q, end)]
         if len(apex) != 1:
             left += 1
             continue
         n = apex[0]
         side = {}
-        for end in (g.a, g.b):
-            hip = LineString([end, n])
+        for corner in (start, end):
+            # a kink bends the hip by a few hundredths of a millimetre
+            hip = LineString([corner, n]).buffer(2e-6 if len(run) == 1 else SHAPE)
             share = [(i, e) for i, (e, p) in enumerate(tiles)
-                     if e is not g and p is not None
-                     and p.intersection(hip.buffer(2e-6)).area > 0
-                     and p.exterior.intersection(hip.buffer(2e-6)).length > 0.5 * hip.length]
+                     if not any(e is g for g in run) and p is not None
+                     and p.intersection(hip).area > 0
+                     and p.exterior.intersection(hip).length
+                     > 0.5 * math.dist(corner, n)]
             if len(share) != 1:
                 break
-            side[end] = share[0]
+            side[corner] = share[0]
         if len(side) != 2:
             left += 1
             continue
-        (ia, ea), (ib, eb) = side[g.a], side[g.b]
-        # the ridge: where the two neighbours' planes are equal, through N
+        (ia, ea), (ib, eb) = side[start], side[end]
+        # the ridge: where the two neighbours' planes are equal, through N. It
+        # meets the wall on the part of the wall it reaches first.
         nx, ny = ea.n[0] - eb.n[0], ea.n[1] - eb.n[1]
         dx, dy = -ny, nx
-        denom = dx * g.n[0] + dy * g.n[1]
-        if abs(denom) < 1e-9:
+        foot = at = None
+        for k, g in enumerate(run):
+            denom = dx * g.n[0] + dy * g.n[1]
+            if abs(denom) < 1e-9:
+                continue
+            t = -g.rise(n) / denom
+            q = (n[0] + t * dx, n[1] + t * dy)
+            along = (q[0] - g.a[0]) * g.t[0] + (q[1] - g.a[1]) * g.t[1]
+            if -1e-9 <= along <= g.length + 1e-9:
+                foot, at = q, k
+                break
+        if (foot is None or min(math.dist(foot, start), math.dist(foot, end)) <= 1e-4
+                or min(ea.rise(foot), eb.rise(foot)) <= 0):
             left += 1
             continue
-        t = -g.rise(n) / denom
-        foot = (n[0] + t * dx, n[1] + t * dy)
-        along = (foot[0] - g.a[0]) * g.t[0] + (foot[1] - g.a[1]) * g.t[1]
-        if not 1e-4 < along < g.length - 1e-4 or min(ea.rise(foot), eb.rise(foot)) <= 0:
-            left += 1
-            continue
-        gain_a, gain_b = Polygon([g.a, foot, n]), Polygon([foot, g.b, n])
+        # the hip end cut along the ridge, so each neighbour's gain shares its
+        # boundary with it vertex for vertex, kink and all
+        size = math.hypot(dx, dy)
+        cut = (dy / size, -dx / size)
+        if cut[0] * (start[0] - n[0]) + cut[1] * (start[1] - n[1]) < 0:
+            cut = (-cut[0], -cut[1])
+        reach = 2 * (whole[0].length + 1.0)
+        gain_a = _and(whole[0], _halfplane(n, cut, reach))
+        gain_b = _and(whole[0], _halfplane(n, (-cut[0], -cut[1]), reach))
         new_a = _polygons(_or([tiles[ia][1], gain_a]))
         new_b = _polygons(_or([tiles[ib][1], gain_b]))
         if len(new_a) != 1 or len(new_b) != 1:
             left += 1
             continue
         tiles[ia], tiles[ib] = (ea, new_a[0]), (eb, new_b[0])
-        tiles[index] = (g, None)
-        walls.append((g, foot, min(ea.rise(foot), eb.rise(foot))))
+        for i, _ in mine:
+            tiles[i] = (tiles[i][0], None)
+        walls.append((run, foot, ea, eb, at))
     return [(e, p) for e, p in tiles if p is not None], walls, left
 
 
@@ -450,7 +504,7 @@ def roof(outline: Polygon, pitch_degrees: float = 35.0, eave: float = 0.0,
     faces, apex = [], (0.0, 0.0, -1.0)
     height: dict = {}
     for e, ring, holes in _with_shared_vertices(
-            tiles, [foot for _, foot, _ in walls]
+            tiles, [w[1] for w in walls]
             + [c for r in (outline.exterior, *outline.interiors) for c in r.coords]):
         if holes:                       # a face with a hole in it: not expected of a roof
             raise RoofError("a roof face has a hole")
@@ -470,14 +524,47 @@ def roof(outline: Polygon, pitch_degrees: float = 35.0, eave: float = 0.0,
             if h > apex[2]:
                 apex = (x, y, h)
         faces.append(_dedupe(face))
-    for g, foot, rise in walls:
-        a, b = [round(c, 6) for c in g.a], [round(c, 6) for c in g.b]
-        # anticlockwise seen from outside (the inside is on the left of a -> b)
-        top = next((k for k in height if _near(k, foot, WELD)), None)
-        z = height[top] if top is not None else tan * rise
-        fx, fy = top if top is not None else (round(foot[0], 6), round(foot[1], 6))
-        faces.append([[a[0], a[1], round(eave, 6)], [b[0], b[1], round(eave, 6)],
-                      [fx, fy, round(eave + z, 6)]])
+    def wall_top(p, slope):
+        """A wall's top at plan point ``p``, on the slope above it: the plan
+        corner and height that slope's face already has there."""
+        top = next((k for k in height if _near(k, p, WELD)), None)
+        if top is not None:
+            return [top[0], top[1], round(eave + height[top], 6)]
+        return [round(p[0], 6), round(p[1], 6), round(eave + tan * slope.rise(p), 6)]
+
+    for run, foot, ea, eb, at in walls:
+        # one flat face per part of the wall, meeting on the vertical line at
+        # each kink; anticlockwise seen from outside (the inside is on the left
+        # of a -> b)
+        for k, g in enumerate(run):
+            a, b = [round(c, 6) for c in g.a], [round(c, 6) for c in g.b]
+            face = [[a[0], a[1], round(eave, 6)], [b[0], b[1], round(eave, 6)]]
+            if k < len(run) - 1:        # the far end is a kink, under its slope
+                face.append(wall_top(g.b, ea if k < at else eb))
+            if k == at:
+                face.append(wall_top(foot, ea))
+            if k > 0:                   # the near end is a kink too
+                face.append(wall_top(g.a, ea if k <= at else eb))
+            # A vertex part-way along the wall is on the slope above it (the
+            # slope's edge lists every outline corner it passes), so the wall's
+            # top lists it too, or the edge belongs to one face only.
+            ring = face[:2]
+            for p, q in zip(face[1:], face[2:] + face[:1]):
+                length2 = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2
+                slope = next((s for s in (ea, eb)
+                              if abs(eave + tan * s.rise(p) - p[2]) < 1e-5
+                              and abs(eave + tan * s.rise(q) - q[2]) < 1e-5), None)
+                if length2 > 1e-12 and slope is not None:
+                    on = []
+                    for c in height:
+                        t = ((c[0] - p[0]) * (q[0] - p[0]) + (c[1] - p[1]) * (q[1] - p[1])) / length2
+                        off = abs((c[0] - p[0]) * (q[1] - p[1]) - (c[1] - p[1]) * (q[0] - p[0]))
+                        if 1e-9 < t < 1 - 1e-9 and off < WELD * math.sqrt(length2):
+                            on.append((t, [c[0], c[1], round(eave + height[c], 6)]))
+                    ring += [v for _, v in sorted(on)]
+                if q is not face[0]:
+                    ring.append(q)
+            faces.append(ring)
     return {"faces": [f for f in faces if len(f) >= 3],
             "apex": (apex[0], apex[1], round(eave + apex[2], 6)),
             "gables": len(walls), "hipped": left}
