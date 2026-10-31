@@ -1,0 +1,236 @@
+maple-court: plot 29.0 x 26.3 m, storey 3 m -> 9.6757h x 8.76861h ppoo; cover needed 3 storeys 56%
+  3 storeys: 79 outlines pass the filter
+  [1/16] 3 storeys, H(O B V(B H(O B))), cores rll rrll (v0, sep 0.85), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 56%, 123 fails raw -> 94 tuned, 3 storeys not connected
+  [1/16] 3 storeys, H(O B V(B H(O B))), cores rll rrrrl (v1, sep 0.84), bridged rooms 2 cut / 0 retyped / 1 routed around: cover 56%, 134 fails raw -> 118 tuned, 3 storeys not connected
+  [1/16] 3 storeys, H(O B V(B H(O B))), cores rrll rrrrl (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 1 routed around: cover 56%, 110 fails raw -> 84 tuned, 3 storeys not connected
+  [2/16] 3 storeys, H(O B V(B O) B), cores rll rrrl (v0, sep 0.84), bridged rooms 3 cut / 0 retyped / 0 routed around: cover 56%, 109 fails raw -> 102 tuned, 0 storeys not connected
+  [2/16] 3 storeys, H(O B V(B O) B), cores rrlll rrrl (v1, sep 0.76), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 56%, 141 fails raw -> 129 tuned, 3 storeys not connected
+  [2/16] 3 storeys, H(O B V(B O) B), cores rll rrlll (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 2 routed around: cover 56%, 114 fails raw -> 95 tuned, 3 storeys not connected
+  [3/16] 3 storeys, H(O V(B H(B O B))), cores rll rrll (v0, sep 0.84), bridged rooms 1 cut / 0 retyped / 3 routed around: cover 57%, 136 fails raw -> 133 tuned, 3 storeys not connected
+  [3/16] 3 storeys, H(O V(B H(B O B))), cores rll rrrrl (v1, sep 0.85), bridged rooms 0 cut / 0 retyped / 2 routed around: cover 57%, 123 fails raw -> 120 tuned, 3 storeys not connected
+  [3/16] 3 storeys, H(O V(B H(B O B))), cores rrll rrrrl (v2, sep 0.74), bridged rooms 1 cut / 0 retyped / 1 routed around: cover 57%, 137 fails raw -> 132 tuned, 3 storeys not connected
+  [4/16] 3 storeys, H(O V(B H(B O)) B), cores rlll rrl (v0, sep 0.85), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 55%, 135 fails raw -> 107 tuned, 3 storeys not connected
+  [4/16] 3 storeys, H(O V(B H(B O)) B), cores rlrll rrl (v1, sep 0.82), bridged rooms 2 cut / 0 retyped / 1 routed around: cover 55%, 103 fails raw -> 94 tuned, 3 storeys not connected
+  [4/16] 3 storeys, H(O V(B H(B O)) B), cores rlll rlrll (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 1 routed around: cover 55%, 125 fails raw -> 92 tuned, 3 storeys not connected
+  [5/16] 3 storeys, H(V(B H(O B O)) B), cores lll rl (v0, sep 0.87), bridged rooms 0 cut / 0 retyped / 3 routed around: cover 55%, 130 fails raw -> 111 tuned, 3 storeys not connected
+  [5/16] 3 storeys, H(V(B H(O B O)) B), cores lll lrrll (v1, sep 0.74), bridged rooms 7 cut / 0 retyped / 2 routed around: cover 55%, 147 fails raw -> 132 tuned, 3 storeys not connected
+  [5/16] 3 storeys, H(V(B H(O B O)) B), cores lrrll rl (v2, sep 0.70), bridged rooms 3 cut / 0 retyped / 3 routed around: cover 55%, 120 fails raw -> 110 tuned, 3 storeys not connected
+  [6/16] 3 storeys, H(V(B O B O) B), cores lll rl (v0, sep 0.84), bridged rooms 1 cut / 0 retyped / 4 routed around: cover 57%, 130 fails raw -> 121 tuned, 3 storeys not connected
+  [6/16] 3 storeys, H(V(B O B O) B), cores lrrll rl (v1, sep 0.68), bridged rooms 10 cut / 0 retyped / 4 routed around: cover 57%, 135 fails raw -> 131 tuned, 3 storeys not connected
+  [6/16] 3 storeys, H(V(B O B O) B), cores lll lrrll (v2, sep 0.57), bridged rooms 6 cut / 0 retyped / 4 routed around: cover 57%, 124 fails raw -> 117 tuned, 2 storeys not connected
+  [7/16] 3 storeys, V(B H(O B O B)), cores ll rrrrl (v0, sep 0.87), bridged rooms 1 cut / 0 retyped / 4 routed around: cover 55%, 145 fails raw -> 133 tuned, 3 storeys not connected
+  [7/16] 3 storeys, V(B H(O B O B)), cores ll rrll (v1, sep 0.78), bridged rooms 3 cut / 0 retyped / 5 routed around: cover 55%, 126 fails raw -> 124 tuned, 3 storeys not connected
+  [7/16] 3 storeys, V(B H(O B O B)), cores rrll rrrrl (v2, sep 0.70), bridged rooms 1 cut / 0 retyped / 2 routed around: cover 55%, 124 fails raw -> 119 tuned, 3 storeys not connected
+  [8/16] 3 storeys, V(B H(O B) B O), cores ll rrll (v0, sep 0.52), bridged rooms 5 cut / 0 retyped / 1 routed around: cover 56%, 127 fails raw -> 124 tuned, 3 storeys not connected
+  [8/16] 3 storeys, V(B H(O B) B O), cores rlrl rrll (v1, sep 0.73), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 56%, 130 fails raw -> 127 tuned, 3 storeys not connected
+  [8/16] 3 storeys, V(B H(O B) B O), cores ll rlrl (v2, sep 0.74), bridged rooms 0 cut / 0 retyped / 2 routed around: cover 56%, 111 fails raw -> 102 tuned, 3 storeys not connected
+  [9/16] 3 storeys, V(B H(V(O B O) B)), cores ll rlrll (v0, sep 0.77), bridged rooms 6 cut / 0 retyped / 6 routed around: cover 57%, 117 fails raw -> 109 tuned, 3 storeys not connected
+  [9/16] 3 storeys, V(B H(V(O B O) B)), cores ll rrl (v1, sep 0.86), bridged rooms 1 cut / 0 retyped / 3 routed around: cover 57%, 126 fails raw -> 119 tuned, 3 storeys not connected
+  [9/16] 3 storeys, V(B H(V(O B O) B)), cores rlrll rrl (v2, sep 0.69), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 57%, 135 fails raw -> 128 tuned, 3 storeys not connected
+  [10/16] 3 storeys, V(B H(V(O B) B) O), cores ll rllrl (v0, sep 0.81), bridged rooms 3 cut / 0 retyped / 3 routed around: cover 54%, 120 fails raw -> 110 tuned, 3 storeys not connected
+  [10/16] 3 storeys, V(B H(V(O B) B) O), cores ll rlrl (v1, sep 0.84), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 54%, 126 fails raw -> 120 tuned, 3 storeys not connected
+  [10/16] 3 storeys, V(B H(V(O B) B) O), cores rllrl rlrl (v2, sep 0.73), bridged rooms 0 cut / 0 retyped / 2 routed around: cover 54%, 106 fails raw -> 90 tuned, 3 storeys not connected
+  [11/16] 3 storeys, V(H(V(B O) B) B O), cores llll rll (v0, sep 0.82), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 55%, 134 fails raw -> 128 tuned, 3 storeys not connected
+  [11/16] 3 storeys, V(H(V(B O) B) B O), cores lrl rll (v1, sep 0.84), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 55%, 123 fails raw -> 104 tuned, 3 storeys not connected
+  [11/16] 3 storeys, V(H(V(B O) B) B O), cores llll lrl (v2, sep 0.72), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 55%, 126 fails raw -> 121 tuned, 3 storeys not connected
+  [12/16] 3 storeys, H(O B V(B H(O B)) B), cores rll rrrl (v0, sep 0.86), bridged rooms 2 cut / 0 retyped / 0 routed around: cover 56%, 112 fails raw -> 105 tuned, 0 storeys not connected
+  [12/16] 3 storeys, H(O B V(B H(O B)) B), cores rll rrlrrl (v1, sep 0.82), bridged rooms 5 cut / 0 retyped / 0 routed around: cover 56%, 95 fails raw -> 88 tuned, 0 storeys not connected
+  [12/16] 3 storeys, H(O B V(B H(O B)) B), cores rll rrlll (v2, sep 0.79), bridged rooms 7 cut / 0 retyped / 4 routed around: cover 56%, 80 fails raw -> 76 tuned, 2 storeys not connected
+  [13/16] 3 storeys, H(O B V(B O) B O), cores rrlll rrrll (v0, sep 0.80), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 57%, 101 fails raw -> 100 tuned, 3 storeys not connected
+  [13/16] 3 storeys, H(O B V(B O) B O), cores rll rrrll (v1, sep 0.84), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 57%, 132 fails raw -> 127 tuned, 3 storeys not connected
+  [13/16] 3 storeys, H(O B V(B O) B O), cores rll rrlll (v2, sep 0.79), bridged rooms 2 cut / 0 retyped / 2 routed around: cover 57%, 133 fails raw -> 127 tuned, 3 storeys not connected
+  [14/16] 3 storeys, H(O B V(B O) V(B O)), cores rll rrlll (v0, sep 0.81), bridged rooms 1 cut / 0 retyped / 5 routed around: cover 54%, 117 fails raw -> 115 tuned, 3 storeys not connected
+  [14/16] 3 storeys, H(O B V(B O) V(B O)), cores rll rrrll (v1, sep 0.84), bridged rooms 1 cut / 0 retyped / 1 routed around: cover 54%, 114 fails raw -> 110 tuned, 3 storeys not connected
+  [14/16] 3 storeys, H(O B V(B O) V(B O)), cores rrlll rrrll (v2, sep 0.74), bridged rooms 0 cut / 0 retyped / 3 routed around: cover 54%, 134 fails raw -> 128 tuned, 3 storeys not connected
+  [15/16] 3 storeys, H(O B V(B O) V(O B)), cores rrlll rrrrl (v0, sep 0.76), bridged rooms 1 cut / 0 retyped / 0 routed around: cover 55%, 134 fails raw -> 128 tuned, 3 storeys not connected
+  [15/16] 3 storeys, H(O B V(B O) V(O B)), cores rll rrrrl (v1, sep 0.83), bridged rooms 3 cut / 0 retyped / 0 routed around: cover 55%, 118 fails raw -> 112 tuned, 3 storeys not connected
+  [15/16] 3 storeys, H(O B V(B O) V(O B)), cores rll rrlll (v2, sep 0.76), bridged rooms 0 cut / 0 retyped / 1 routed around: cover 55%, 123 fails raw -> 119 tuned, 3 storeys not connected
+  [16/16] 3 storeys, H(O V(B H(B O B O))), cores rll rrll (v0, sep 0.86), bridged rooms 1 cut / 0 retyped / 5 routed around: cover 56%, 119 fails raw -> 116 tuned, 3 storeys not connected
+  [16/16] 3 storeys, H(O V(B H(B O B O))), cores rll rrrrll (v1, sep 0.82), bridged rooms 3 cut / 0 retyped / 3 routed around: cover 56%, 133 fails raw -> 126 tuned, 3 storeys not connected
+  [16/16] 3 storeys, H(O V(B H(B O B O))), cores rrll rrrrll (v2, sep 0.71), bridged rooms 1 cut / 0 retyped / 3 routed around: cover 56%, 147 fails raw -> 140 tuned, 3 storeys not connected
+
+48 seeds, 200 inner-loop evaluations each; tuned fails median 118.5
+  #1: 76 fails, score 4.07e-24, 3 storeys, H(O B V(B H(O B)) B), cover 56%, cores rll rrlll (v2, sep 0.79), bridged rooms 7 cut / 0 retyped / 4 routed around
+      size 22, not adjacent to 19, access 12, crinkliness 9, proportion 8, level 3
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ################
+        ################
+        ################
+        ................
+        ................
+        ................
+  #2: 84 fails, score 1.73e-26, 3 storeys, H(O B V(B H(O B))), cover 56%, cores rrll rrrrl (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 1 routed around
+      not adjacent to 30, access 22, size 21, level 4, inaccessible usable space 3, proportion 3
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ################
+        ################
+        ################
+        ................
+        ................
+  #3: 88 fails, score 9.56e-28, 3 storeys, H(O B V(B H(O B)) B), cover 56%, cores rll rrlrrl (v1, sep 0.82), bridged rooms 5 cut / 0 retyped / 0 routed around
+      not adjacent to 26, size 23, access 18, crinkliness 11, proportion 6, inaccessible usable space 3
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ################
+        ################
+        ################
+        ................
+        ................
+        ................
+  #4: 90 fails, score 2.36e-28, 3 storeys, V(B H(V(O B) B) O), cover 54%, cores rllrl rlrl (v2, sep 0.73), bridged rooms 0 cut / 0 retyped / 2 routed around
+      not adjacent to 23, size 23, access 18, crinkliness 14, proportion 5, level 4
+        #############...
+        #############...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+  #5: 92 fails, score 5.67e-29, 3 storeys, H(O V(B H(B O)) B), cover 55%, cores rlll rlrll (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 1 routed around
+      not adjacent to 26, size 23, access 21, proportion 10, crinkliness 5, level 4
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ################
+        ################
+        ################
+        ################
+        ................
+        ................
+        ................
+  #6: 94 fails, score 1.29e-29, 3 storeys, H(O V(B H(B O)) B), cover 55%, cores rlrll rrl (v1, sep 0.82), bridged rooms 2 cut / 0 retyped / 1 routed around
+      size 27, not adjacent to 22, access 20, crinkliness 10, proportion 7, level 4
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ################
+        ################
+        ################
+        ################
+        ................
+        ................
+        ................
+  #7: 94 fails, score 1.28e-29, 3 storeys, H(O B V(B H(O B))), cover 56%, cores rll rrll (v0, sep 0.85), bridged rooms 0 cut / 0 retyped / 1 routed around
+      not adjacent to 29, size 26, access 21, crinkliness 6, proportion 4, level 4
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ################
+        ################
+        ################
+        ................
+        ................
+  #8: 95 fails, score 6.82e-30, 3 storeys, H(O B V(B O) B), cover 56%, cores rll rrlll (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 2 routed around
+      size 31, not adjacent to 26, access 22, proportion 6, level 4, inaccessible usable space 3
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ################
+        ################
+        ################
+        ################
+        ................
+        ................
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-1.dom  (H(O B V(B H(O B)) B), cores rll rrlll (v2, sep 0.79), bridged rooms 7 cut / 0 retyped / 4 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-2.dom  (H(O B V(B H(O B))), cores rrll rrrrl (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-3.dom  (H(O B V(B H(O B)) B), cores rll rrlrrl (v1, sep 0.82), bridged rooms 5 cut / 0 retyped / 0 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-4.dom  (V(B H(V(O B) B) O), cores rllrl rlrl (v2, sep 0.73), bridged rooms 0 cut / 0 retyped / 2 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-5.dom  (H(O V(B H(B O)) B), cores rlll rlrll (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-6.dom  (H(O V(B H(B O)) B), cores rlrll rrl (v1, sep 0.82), bridged rooms 2 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-7.dom  (H(O B V(B H(O B))), cores rll rrll (v0, sep 0.85), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-8.dom  (H(O B V(B O) B), cores rll rrlll (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 2 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-9.dom  (H(O B V(B O) B O), cores rrlll rrrll (v0, sep 0.80), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-10.dom  (V(B H(O B) B O), cores ll rlrl (v2, sep 0.74), bridged rooms 0 cut / 0 retyped / 2 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-11.dom  (H(O B V(B O) B), cores rll rrrl (v0, sep 0.84), bridged rooms 3 cut / 0 retyped / 0 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-12.dom  (V(H(V(B O) B) B O), cores lrl rll (v1, sep 0.84), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-13.dom  (H(O B V(B H(O B)) B), cores rll rrrl (v0, sep 0.86), bridged rooms 2 cut / 0 retyped / 0 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-14.dom  (H(O V(B H(B O)) B), cores rlll rrl (v0, sep 0.85), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-15.dom  (V(B H(V(O B O) B)), cores ll rlrll (v0, sep 0.77), bridged rooms 6 cut / 0 retyped / 6 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-16.dom  (H(O B V(B O) V(B O)), cores rll rrrll (v1, sep 0.84), bridged rooms 1 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-17.dom  (V(B H(V(O B) B) O), cores ll rllrl (v0, sep 0.81), bridged rooms 3 cut / 0 retyped / 3 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-18.dom  (H(V(B H(O B O)) B), cores lrrll rl (v2, sep 0.70), bridged rooms 3 cut / 0 retyped / 3 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-19.dom  (H(V(B H(O B O)) B), cores lll rl (v0, sep 0.87), bridged rooms 0 cut / 0 retyped / 3 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-20.dom  (H(O B V(B O) V(O B)), cores rll rrrrl (v1, sep 0.83), bridged rooms 3 cut / 0 retyped / 0 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-21.dom  (H(O B V(B O) V(B O)), cores rll rrlll (v0, sep 0.81), bridged rooms 1 cut / 0 retyped / 5 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-22.dom  (H(O V(B H(B O B O))), cores rll rrll (v0, sep 0.86), bridged rooms 1 cut / 0 retyped / 5 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-23.dom  (H(V(B O B O) B), cores lll lrrll (v2, sep 0.57), bridged rooms 6 cut / 0 retyped / 4 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-24.dom  (H(O B V(B H(O B))), cores rll rrrrl (v1, sep 0.84), bridged rooms 2 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-25.dom  (H(O B V(B O) V(O B)), cores rll rrlll (v2, sep 0.76), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-26.dom  (V(B H(V(O B O) B)), cores ll rrl (v1, sep 0.86), bridged rooms 1 cut / 0 retyped / 3 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-27.dom  (V(B H(O B O B)), cores rrll rrrrl (v2, sep 0.70), bridged rooms 1 cut / 0 retyped / 2 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-28.dom  (V(B H(V(O B) B) O), cores ll rlrl (v1, sep 0.84), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-29.dom  (H(O V(B H(B O B))), cores rll rrrrl (v1, sep 0.85), bridged rooms 0 cut / 0 retyped / 2 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-30.dom  (V(H(V(B O) B) B O), cores llll lrl (v2, sep 0.72), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-31.dom  (H(V(B O B O) B), cores lll rl (v0, sep 0.84), bridged rooms 1 cut / 0 retyped / 4 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-32.dom  (V(B H(O B O B)), cores ll rrll (v1, sep 0.78), bridged rooms 3 cut / 0 retyped / 5 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-33.dom  (V(B H(O B) B O), cores ll rrll (v0, sep 0.52), bridged rooms 5 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-34.dom  (H(O V(B H(B O B O))), cores rll rrrrll (v1, sep 0.82), bridged rooms 3 cut / 0 retyped / 3 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-35.dom  (V(B H(O B) B O), cores rlrl rrll (v1, sep 0.73), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-36.dom  (H(O B V(B O) B O), cores rll rrrll (v1, sep 0.84), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-37.dom  (H(O B V(B O) B O), cores rll rrlll (v2, sep 0.79), bridged rooms 2 cut / 0 retyped / 2 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-38.dom  (V(B H(V(O B O) B)), cores rlrll rrl (v2, sep 0.69), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-39.dom  (V(H(V(B O) B) B O), cores llll rll (v0, sep 0.82), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-40.dom  (H(O B V(B O) V(B O)), cores rrlll rrrll (v2, sep 0.74), bridged rooms 0 cut / 0 retyped / 3 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-41.dom  (H(O B V(B O) V(O B)), cores rrlll rrrrl (v0, sep 0.76), bridged rooms 1 cut / 0 retyped / 0 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-42.dom  (H(O B V(B O) B), cores rrlll rrrl (v1, sep 0.76), bridged rooms 0 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-43.dom  (H(V(B O B O) B), cores lrrll rl (v1, sep 0.68), bridged rooms 10 cut / 0 retyped / 4 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-44.dom  (H(V(B H(O B O)) B), cores lll lrrll (v1, sep 0.74), bridged rooms 7 cut / 0 retyped / 2 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-45.dom  (H(O V(B H(B O B))), cores rrll rrrrl (v2, sep 0.74), bridged rooms 1 cut / 0 retyped / 1 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-46.dom  (V(B H(O B O B)), cores ll rrrrl (v0, sep 0.87), bridged rooms 1 cut / 0 retyped / 4 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-47.dom  (H(O V(B H(B O B))), cores rll rrll (v0, sep 0.84), bridged rooms 1 cut / 0 retyped / 3 routed around)
+wrote /tmp/claude-1001/-home-bruno-src-homemaker-layout/bd1fad7f-a289-403d-8a15-208760c6bc50/scratchpad/outer/outer-48.dom  (H(O V(B H(B O B O))), cores rrll rrrrll (v2, sep 0.71), bridged rooms 1 cut / 0 retyped / 3 routed around)
