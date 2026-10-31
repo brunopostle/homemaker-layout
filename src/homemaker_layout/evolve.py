@@ -268,6 +268,12 @@ def _parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--no-guard-connection", dest="guard_connection",
                    action="store_const", const="off",
                    help="the same as --guard-connection=off")
+    p.add_argument("--guard-double-loaded", dest="guard_double_loaded",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_GUARD_DOUBLE_LOADED", False),
+                   help="homemaker-py-srl0: decline a child with more metres "
+                        "of double-loaded corridor than its parent; the "
+                        "objective is unchanged (default: off)")
     p.add_argument("--pivot", dest="pivot",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_PIVOT", False),
@@ -468,6 +474,8 @@ def main(argv=None) -> int:
     os.environ["HOMEMAKER_PIVOT"] = "1" if args.pivot else "0"
     os.environ["HOMEMAKER_GUARD_CONNECTION"] = args.guard_connection
     driver.GUARD_CONNECTION = args.guard_connection
+    os.environ["HOMEMAKER_GUARD_DOUBLE_LOADED"] = "1" if args.guard_double_loaded else "0"
+    driver.GUARD_DOUBLE_LOADED = bool(args.guard_double_loaded)
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
     driver.SEED_SOLVER = bool(args.seed_solver)
     os.environ["HOMEMAKER_LABEL_WRITEBACK"] = "1" if args.label_writeback else "0"
@@ -554,6 +562,7 @@ def main(argv=None) -> int:
     print(f"retype kind        : {args.retype_kind}", file=sys.stderr)
     print(f"pivot              : {args.pivot}", file=sys.stderr)
     print(f"guard connection   : {args.guard_connection}", file=sys.stderr)
+    print(f"guard double-loaded: {args.guard_double_loaded}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"seed solver        : {args.seed_solver}", file=sys.stderr)

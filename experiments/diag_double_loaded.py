@@ -1,6 +1,7 @@
 """`homemaker-py-sp11`: count the double-loaded corridors in a design.
 
-A double-loaded corridor is a circulation cell at least ``--min-aspect``
+A double-loaded corridor is a run of indoor circulation cells (cells joined end
+to end count as one, `graph.double_loaded_corridors`) at least ``--min-aspect``
 times as long as it is wide whose two long walls are both lined with rooms --
 more than ``--lined`` of each wall's length shared with indoor cells that are
 not circulation. That is the plan Alexander argues against (Wings of Light,
@@ -23,43 +24,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from shapely.geometry import LineString, Polygon  # noqa: E402
-
-from homemaker_layout import dom, geometry  # noqa: E402
-
-
-def _poly(leaf) -> Polygon:
-    return Polygon([geometry.coordinate(leaf, i)[:2] for i in range(geometry.n_edges(leaf))])
+from homemaker_layout import dom, geometry, graph  # noqa: E402
 
 
 def corridors(root, min_aspect: float = 4.0, lined: float = 0.5) -> list[tuple]:
-    """(storey, id, length, width, lined_a, lined_b) for every double-loaded
-    corridor in ``root``."""
-    out = []
+    """``graph.double_loaded_corridors``, the rule the scorer uses, on ``root``."""
     geometry.clear_cache()
-    for li, lvl in enumerate(dom.levels(root)):
-        leaves = lvl.leaves()
-        rooms = [_poly(x) for x in leaves
-                 if not dom.is_circulation(x) and not dom.is_outside(x)]
-        for leaf in leaves:
-            if not dom.is_circulation(leaf):
-                continue
-            p = _poly(leaf)
-            r = p.minimum_rotated_rectangle
-            c = list(r.exterior.coords)[:4]
-            sides = [LineString([c[i], c[(i + 1) % 4]]) for i in range(4)]
-            sides.sort(key=lambda s: -s.length)
-            length, width = sides[0].length, sides[2].length
-            if width <= 0 or length / width < min_aspect:
-                continue
-            shares = []
-            for s in sides[:2]:
-                band = s.buffer(0.05, cap_style=2)
-                cover = sum(band.intersection(q.buffer(0.05)).area for q in rooms) / 0.1
-                shares.append(min(1.0, cover / s.length))
-            if min(shares) > lined:
-                out.append((li, leaf.id or "root", length, width, *shares))
-    return out
+    return graph.double_loaded_corridors(root, min_aspect, lined)
 
 
 def self_test() -> int:
@@ -103,13 +74,13 @@ def main(argv=None) -> int:
         return self_test()
     for f in args.files:
         found = corridors(dom.load(f), args.min_aspect, args.lined)
-        metres = sum(c[2] for c in found)
+        metres = sum(c[1] for c in found)
         if args.summary:
             print(f"{f}: {len(found)} double-loaded, {metres:.1f} m")
             continue
         print(f"{f}: {len(found)} double-loaded corridor(s), {metres:.1f} m")
-        for li, cid, length, width, a, b in found:
-            print(f"    storey {li} {cid}: {length:.1f} x {width:.1f} m, lined {a:.0%} / {b:.0%}")
+        for li, length, width, a, b in found:
+            print(f"    storey {li}: {length:.1f} x {width:.1f} m, lined {a:.0%} / {b:.0%}")
     return 0
 
 

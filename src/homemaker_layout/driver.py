@@ -36,7 +36,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import dom, fitness, genome, innerloop, operators, programme, shapecurve
+from . import dom, fitness, genome, graph, innerloop, operators, programme, shapecurve
 
 _CHILD_INNER_KW: dict = {}
 
@@ -282,6 +282,24 @@ def guard_declines(child_fails, parent_fails, mode: str) -> bool:
     if mode == "connected" and _unconnected_levels(parent_fails):
         return False
     return disconnects(child_fails, parent_fails)
+
+
+# homemaker-py-srl0: the alternative to pricing a double-loaded corridor in the
+# objective: decline a bred child with more metres of them than its parent.
+# Default off.
+GUARD_DOUBLE_LOADED = __import__("os").environ.get("HOMEMAKER_GUARD_DOUBLE_LOADED", "0") == "1"
+
+
+def double_loaded_metres(root: dom.Node) -> float:
+    from . import geometry
+
+    dom.link(root)
+    geometry.clear_cache()
+    return sum(c[1] for c in graph.double_loaded_corridors(root))
+
+
+def adds_double_loaded(child: dom.Node, parent: dom.Node) -> bool:
+    return double_loaded_metres(child) > double_loaded_metres(parent) + 0.01
 
 
 # The solver has no time bound of its own (§39.109: one call ran past twenty
@@ -892,6 +910,11 @@ def search(
             if (parents and parents[k] is not None
                     and not ind.lineage.startswith("pruned/")
                     and guard_declines(ind.fails, parents[k][0].fails, GUARD_CONNECTION)):
+                result.n_declined += 1
+                return "declined"
+            if (GUARD_DOUBLE_LOADED and parents and parents[k] is not None
+                    and not ind.lineage.startswith("pruned/")
+                    and adds_double_loaded(ind.root, parents[k][0].root)):
                 result.n_declined += 1
                 return "declined"
             return admit(ind, pop)

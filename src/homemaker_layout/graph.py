@@ -35,6 +35,79 @@ DOOR_WIDTH = 1.2  # Urb::Dom::Fitness::Base default_params door_width
 
 
 # --------------------------------------------------------------------------- #
+# Double-loaded corridors (homemaker-py-srl0)
+# --------------------------------------------------------------------------- #
+
+def _cell_polygon(leaf: Node):
+    from shapely.geometry import Polygon
+
+    return Polygon([geometry.coordinate(leaf, i)[:2] for i in range(geometry.n_edges(leaf))])
+
+
+def _corridor_runs(cells: list) -> list:
+    """Corridor cells joined end to end, as ``(polygon, area)``: a run is a set
+    of cells that together fill a rectangle. A wall across a corridor must not
+    make it two short ones, or a penalty could be dodged by building that wall.
+    Longest join first, so the answer does not depend on the order of the
+    cells, which is a label."""
+    from shapely.geometry import MultiPoint
+
+    def rect(p):
+        return MultiPoint(list(p.exterior.coords)).minimum_rotated_rectangle
+
+    runs = [(p, p.area) for p in cells]
+    while True:
+        best = None
+        for (i, (a, aa)), (j, (b, ab)) in itertools.combinations(enumerate(runs), 2):
+            if a.distance(b) > 0.01:
+                continue
+            r = MultiPoint(list(a.exterior.coords) + list(b.exterior.coords)).minimum_rotated_rectangle
+            if aa + ab < 0.98 * r.area:
+                continue
+            length = r.length
+            if best is None or length > best[0]:
+                best = (length, i, j, r)
+        if best is None:
+            return [(rect(p), area) for p, area in runs]
+        _, i, j, r = best
+        area = runs[i][1] + runs[j][1]
+        runs = [x for k, x in enumerate(runs) if k not in (i, j)] + [(r, area)]
+
+
+def double_loaded_corridors(root: Node, min_aspect: float = 4.0,
+                            lined: float = 0.5) -> list[tuple]:
+    """``(storey, length, width, lined_a, lined_b)`` for every double-loaded
+    corridor: a run of indoor circulation at least ``min_aspect`` times as long
+    as it is wide, with more than ``lined`` of each long wall shared with
+    indoor cells that are not circulation. Reads walls only: nothing here sees
+    a cell's name, its corner numbering or its place in the tree."""
+    from shapely.geometry import LineString
+
+    out = []
+    for li, lvl in enumerate(levels(root)):
+        leaves = lvl.leaves()
+        rooms = [_cell_polygon(x) for x in leaves
+                 if not dom.is_circulation(x) and not dom.is_outside(x)]
+        cells = [_cell_polygon(x) for x in leaves
+                 if x.type in dom.GENERIC_INDOOR_CIRCULATION]
+        for r, _ in _corridor_runs(cells):
+            c = list(r.exterior.coords)[:4]
+            sides = [LineString([c[i], c[(i + 1) % 4]]) for i in range(4)]
+            sides.sort(key=lambda s: -s.length)
+            length, width = sides[0].length, sides[2].length
+            if width <= 0 or length / width < min_aspect:
+                continue
+            shares = []
+            for s in sides[:2]:
+                band = s.buffer(0.05, cap_style=2)
+                cover = sum(band.intersection(q.buffer(0.05)).area for q in rooms) / 0.1
+                shares.append(min(1.0, cover / s.length))
+            if min(shares) > lined:
+                out.append((li, length, width, *shares))
+    return out
+
+
+# --------------------------------------------------------------------------- #
 # Graph build
 # --------------------------------------------------------------------------- #
 

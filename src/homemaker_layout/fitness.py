@@ -121,6 +121,7 @@ _SOFT_FAIL_MARKERS = (
     " shape",           # 8b2u.4/§39.103 -- a cell too far from a rectangle
     "staircase volume",
     "excess internal area",  # m3s/§39.58 -- internal area over `area_cap`
+    "double-loaded corridor",  # srl0 -- off unless a programme asks for it
 )
 
 
@@ -681,6 +682,13 @@ class Fitness:
                 float(self.conf("value_circulation")))
         else:
             self._connectivity_weight = float(cw)
+        # homemaker-py-srl0, EXPERIMENTAL and off by default: fails for a
+        # double-loaded corridor. They must be FAILS: the comparator ranks
+        # (-n_fails, score), so a score factor would only break ties (§39.172).
+        # `double_loaded_fails` is k per corridor; `double_loaded_metres` is
+        # instead one per that many metres of it, rounded up.
+        self._double_loaded_fails = int(self.conf("double_loaded_fails") or 0)
+        self._double_loaded_metres = float(self.conf("double_loaded_metres") or 0.0)
         self._crinkliness_mode = str(self.conf("crinkliness_mode") or "urb")
         if self._crinkliness_mode not in (
                 "urb", "floor", "compact_ok", "exempt_circulation"):
@@ -2611,6 +2619,12 @@ class Fitness:
 
         building_factor = self.evaluate_building(root, tracking)
         value *= building_factor
+
+        if self._double_loaded_fails or self._double_loaded_metres:
+            for li, length, *_ in graph_mod.double_loaded_corridors(root):
+                n = (math.ceil(length / self._double_loaded_metres)
+                     if self._double_loaded_metres else self._double_loaded_fails)
+                failures.extend([f"{li} double-loaded corridor"] * n)
 
         # 0.5^n failure penalty (programme-driven mode, not 0.1^n).
         #
