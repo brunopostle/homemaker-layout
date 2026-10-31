@@ -1,0 +1,191 @@
+== started double-loaded
+
+deep7
+  arm    runs with one median m  median base fails
+  off       6        6     29.5                1.0
+  k2        6        6     29.5                1.0
+  k5        6        5     29.5                1.0
+  k12       6        3     14.8                1.0
+  m5        6        5     29.5                1.0
+  m2        6        2      0.0                5.5
+  guard     6        6     29.5                1.0
+  base fails, k2 against off:
+    N=6   A mean 1.00   B mean 1.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, k5 against off:
+    N=6   A mean 1.00   B mean 1.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, k12 against off:
+    N=6   A mean 1.00   B mean 2.17   0W/2L/4T (for B)
+    mean diff -1.167  sd 1.835  95% CI [-3.092, +0.759]
+    t=-1.557  p=0.1801  wilcoxon p=0.5000
+    minimum detectable difference at N=6: 1.926
+    ** UNDERPOWERED: the observed margin (1.167) is BELOW what N=6 can resolve.
+       This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+       N ~= 12 would be needed for a margin this size.
+  base fails, m5 against off:
+    N=6   A mean 1.00   B mean 1.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, m2 against off:
+    N=6   A mean 1.00   B mean 7.00   0W/4L/2T (for B)
+    mean diff -6.000  sd 6.356  95% CI [-12.670, +0.670]
+    t=-2.312  p=0.0687  wilcoxon p=0.1250
+    minimum detectable difference at N=6: 6.670
+    ** UNDERPOWERED: the observed margin (6.000) is BELOW what N=6 can resolve.
+       This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+       N ~= 7 would be needed for a margin this size.
+  base fails, guard against off:
+    N=6   A mean 1.00   B mean 1.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+
+deep9
+  arm    runs with one median m  median base fails
+  off       6        6     29.5                1.5
+  k2        6        6     29.5                1.5
+  k5        6        6     29.5                1.5
+  k12       6        6     29.5                1.5
+  m5        6        6     29.5                1.0
+  m2        6        6     29.5                1.5
+  guard     6        6     29.5                1.5
+  base fails, k2 against off:
+    N=6   A mean 1.50   B mean 1.50   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, k5 against off:
+    N=6   A mean 1.50   B mean 1.50   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, k12 against off:
+    N=6   A mean 1.50   B mean 1.50   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, m5 against off:
+    N=6   A mean 1.50   B mean 1.33   1W/0L/5T (for B)
+    mean diff +0.167  sd 0.408  95% CI [-0.262, +0.595]
+    t=1.000  p=0.3632  wilcoxon p=1.0000
+    minimum detectable difference at N=6: 0.428
+    ** UNDERPOWERED: the observed margin (0.167) is BELOW what N=6 can resolve.
+       This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+       N ~= 26 would be needed for a margin this size.
+  base fails, m2 against off:
+    N=6   A mean 1.50   B mean 1.50   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, guard against off:
+    N=6   A mean 1.50   B mean 1.50   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+
+deep11
+  arm    runs with one median m  median base fails
+  off       6        6     29.5                1.0
+  k2        6        6     29.5                1.0
+  k5        6        6     29.5                1.0
+  k12       6        6     29.5                1.0
+  m5        6        6     29.5                1.0
+  m2        6        6     29.5                1.0
+  guard     6        6     29.5                1.0
+  base fails, k2 against off:
+    N=6   A mean 1.17   B mean 1.17   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, k5 against off:
+    N=6   A mean 1.17   B mean 1.17   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, k12 against off:
+    N=6   A mean 1.17   B mean 1.17   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, m5 against off:
+    N=6   A mean 1.17   B mean 1.17   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, m2 against off:
+    N=6   A mean 1.17   B mean 1.33   0W/1L/5T (for B)
+    mean diff -0.167  sd 0.408  95% CI [-0.595, +0.262]
+    t=-1.000  p=0.3632  wilcoxon p=1.0000
+    minimum detectable difference at N=6: 0.428
+    ** UNDERPOWERED: the observed margin (0.167) is BELOW what N=6 can resolve.
+       This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+       N ~= 26 would be needed for a margin this size.
+  base fails, guard against off:
+    N=6   A mean 1.17   B mean 1.17   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+
+deep13
+  arm    runs with one median m  median base fails
+  off       6        6     29.5                2.0
+  k2        6        6     29.5                2.0
+  k5        6        6     29.5                2.0
+  k12       6        6     29.5                2.0
+  m5        6        6     29.5                2.0
+  m2        6        6     29.5                2.0
+  guard     6        6     29.5                2.0
+  base fails, k2 against off:
+    N=6   A mean 2.00   B mean 2.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, k5 against off:
+    N=6   A mean 2.00   B mean 2.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, k12 against off:
+    N=6   A mean 2.00   B mean 2.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, m5 against off:
+    N=6   A mean 2.00   B mean 2.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, m2 against off:
+    N=6   A mean 2.00   B mean 2.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+  base fails, guard against off:
+    N=6   A mean 2.00   B mean 2.00   0W/0L/6T (for B)
+    mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+    ** NO DIFFERENCE: the two arms scored identically on every seed.
+       Nothing to test -- do not report a winner.
+
+== started single-loaded
+
+deep7
+  arm    runs with one median m  median base fails
+  off       6        0      0.0                0.0
+
+deep9
+  arm    runs with one median m  median base fails
+  off       6        0      0.0                7.0
+
+deep11
+  arm    runs with one median m  median base fails
+  off       6        3     14.8               19.0
+
+deep13
+  arm    runs with one median m  median base fails
+  off       6        0      0.0               36.0
