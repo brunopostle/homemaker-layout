@@ -19947,3 +19947,97 @@ keep a plan single-loaded: the objective does not price a double-loaded
 corridor beyond crinkliness on the corridor, which the search will pay. That
 points at the owner's next question, how the wings are seeded and what keeps
 them, and possibly at a ruling on whether a buried corridor should cost more.
+
+### 39.187 The single-loaded race's result: a single seed won, and it is double-loaded (`homemaker-py-sp11`)
+
+**Result** (§39.186's design, stamp `c73dfde+orth`, search `fefeb72`,
+`experiments/results/halving-maple-single/`). `single-2` wins at 13 fails, score
+6.81e-5, level with the two earlier maple winners on fails (§39.167, §39.173).
+All four finalists are from the single arm: `single-1`, `-2`, `-3` at 13 (three
+stair placements of ONE plan, 1/16) and `single-7` at 18 (plan 3/16). The race
+does not show that single-loaded plans win, because the plan that won is not
+one.
+
+| stage (budget) | double: n, median, best | single: n, median, best |
+|---|---|---|
+| 0 (4k) | 48, 86.5, 46 | 48, 79.5, 33 |
+| 1 (8k) | 19, 68, 36 | 31, 65, 29 |
+| 2 (16k) | 9, 50, 32 | 16, 47.5, 22 |
+| 3 (32k) | 4, 33, 30 | 9, 32, 13 |
+| 4 (64k) | 2, 27.5, 26 | 5, 21, 13 |
+| 5 (128k) | none | 4, 13, 13 |
+
+**The expectations, against what happened:**
+
+1. **Failed.** Expected the single arm under half the double arm's metres,
+   longest under 10 m. Measured 345.7 m against 247.6 m, 13 seeds of 48 in each
+   arm, longest seed total 90.8 m. One plan is most of that: 1/16's three seeds
+   hold 255.3 m. Without them the single arm has 90.4 m, longest seed total
+   21.2 m, so on 15 plans of 16 the options did about what was expected.
+2. **Failed, in the direction §39.186 said would mean the deep wings were
+   costing light.** Expected single 0-5 fails worse; it is 7 better at the
+   median. Crinkliness 14.3 against 18.7 per seed, as predicted, but size 9.5
+   against 11.5 and proportion 8.8 against 12.2, where the narrower wing was
+   expected to cost. **Resolve it at the level of plans:** the 48 candidates are
+   16 plans x 3 stair placements, so they are not 48 observations. Candidate
+   level gives Mann-Whitney p = 0.007; plan medians (80 against 85.5, n = 16 a
+   side) give p = 0.067, and p = 0.109 without plan 1/16. A likely advantage,
+   not a resolved one. The arms are unpaired.
+3. **Met as written, not by the mechanism expected.** Four single candidates at
+   stage 3 have a double-loaded corridor, but all four inherited it from their
+   seed. Of the five that started clean, none had made one by stage 3. The
+   double arm's clean seeds behave differently: 8 of 35 had made one at stage 0
+   and all 3 left at stage 3 had (19-66 m). Four others (`single-4`, `-10`,
+   `-41`, `-43`) did make one early and were eliminated, so this is a small,
+   survivor-filtered sample.
+   But §39.186's reading, that seeding alone cannot keep a plan clean, is not
+   what this race shows.
+4. **Failed.** Expected the best of each arm within 3 fails; at the last budget
+   both reached (64k) it is 13 against 26. That is one plan's lead, not an arm's:
+   the next plan at 64k, `single-7`'s, had 23.
+5. **Held, early:** all three cold copies went at stage 0 (106-124 fails).
+
+**Why a 7.5 m wing is double-loaded.** §39.186 assumed that capping the wing at
+about 7.5 m would leave no room for rooms-corridor-rooms. It leaves just enough.
+Plan 1/16's north range, in the winner, is rooms about 3.4 m deep, a 1.2 m
+corridor, rooms 2.85 m deep, about 7.5 m in all and lit both sides; the seed has
+the same section. So the filter passes it. Stopping this by depth alone would
+need a tighter cap, perhaps near 6 m (not measured), which the briefs' big rooms
+may not survive. Whether the spine or `bridge_indoors` cut that strip was not
+established; it belongs to `homemaker-py-4872`.
+
+**The winner is half of what the owner asked for.** On plan
+(`winner.plan.svg`) it is a C round a court, and only its north range is
+double-loaded, 28.7 m on each storey, which is the census's 86.2 m. Its south
+range has a 26.6 m corridor with rooms on one side and the court on the other, and
+the west link is a single row too. So the single-loaded south range is compatible
+with 13 fails. The census counts the corridors that fail; it does not say what
+share of the plan passes.
+
+**`single-7` is not the single-loaded plan either.** The earlier note on the
+bead read its 18 fails as the cost of a truly single-loaded plan, 5 fails. On plan
+(`final-single-7.plan.svg`) that does not hold. The census reads zero because
+its south range has no corridor at all: rooms stand side by side, with a
+38.8 m2 `E` cell in the middle of storey 1 that climbs nothing. It also has a 160 m2 `C` cell where the seed
+had outside space, four stairs (`too many stairs`), and `level 1 not connected`.
+**So this race does not price a single-loaded plan**: no finalist is one, and one
+plan at 18 fails could not price it anyway. **A zero from
+`diag_double_loaded.py` does not mean single-loaded**, only that no long corridor
+is lined on both sides.
+
+**A stair 28.7 m long.** In the winner the north corridor is labelled `E`: the
+strip is 28.7 x 1.2 m on all three storeys, and `single-7` has one 25.9 m long.
+`mutate_stair` makes any stacked `C` column a stair, and nothing limits a stair's
+shape beyond fitting a flight. The winner also has a ground-floor `E` that climbs
+nothing, as the first maple race's winner does (`halving-maple/winner.dom`), and
+the drawings hatch it as a stair. `single-1` and `single-3` reach 13 fails with that
+corridor spelt `C`, so the label is not what won. An `E` that long is arguably
+still a corridor with a flight in it. That is for the owner, not a defect fix.
+
+**What follows.** The two options appear to reduce double-loading on most plans
+(the arms are unpaired) and do not stop it, and the field's best plan got through the filter with the corridor
+intact. Next is `homemaker-py-4872`: who cut the strip, and whether a seed can be
+required to have no double-loaded corridor at all, which would be a filter on the
+built seed rather than on the outline. A race confined to clean seeds is the
+direct way to price a single-loaded plan, and §39.186's question stays open until
+one runs.
