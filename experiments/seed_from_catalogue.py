@@ -49,6 +49,8 @@ from shapely.ops import unary_union  # noqa: E402
 import wings_catalogue as wc  # noqa: E402
 from diag_2g713_seed_storeys import constructor_kwargs, family, rng_for  # noqa: E402
 from diag_2g7131_footprint import grow  # noqa: E402
+from diag_double_loaded import _poly  # noqa: E402
+from diag_double_loaded import corridors as double_loaded  # noqa: E402
 
 from homemaker_layout import dom, genome, geometry, graph, innerloop, operators, programme  # noqa: E402
 from homemaker_layout.fitness import Fitness  # noqa: E402
@@ -592,7 +594,7 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
         for rot in range(4):
             for side in (0, 1):
                 yield ("edge", rot, side)
-        if SPINE_AT == "edge":
+        if SPINE_AT in ("edge", "outer"):
             return
         for rot in range(4):
             for a in (0.35, 0.5, 0.65):
@@ -611,6 +613,21 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
         r = _strip_into(w.right, rot2, side, lvl, SPINE_HOLD)
         return None if r is None else r[0]
 
+    def shared_with_other_wings():
+        """Metres of this storey's strips' walls that a different wing has."""
+        band = 0.01
+        polys = {id(w): [_poly(x) for x in (w.leaves() if w.divided else [w])] for w in wings}
+        total = 0.0
+        for w in wings:
+            if not w.divided:
+                continue
+            for strip in (x for x in w.leaves() if x.type == "C"):
+                near = _poly(strip).buffer(band)
+                for other in wings:
+                    if other is not w:
+                        total += sum(near.intersection(q).area for q in polys[id(other)]) / band
+        return total
+
     def score():
         geometry.clear_cache()
         G = geometry.leaf_graph(lvl, graph.DOOR_WIDTH)
@@ -618,12 +635,16 @@ def spine(lvl: dom.Node, wings: list[dom.Node], stairs_join: bool) -> list[dom.N
         circ = [x for x in H if dom.is_circulation(x)]
         pieces = circ_pieces(H, stairs_join)
         strips = sum(geometry.area(x) for x in circ if x.type == "C")
-        if SPINE_AT == "edge":
+        if SPINE_AT in ("edge", "outer"):
             # a corridor along one edge leaves the rooms the OTHER: prefer
             # the edge that leaves them the most daylight, so a wing on a
             # party wall keeps its corridor there and its rooms on the court
             lit = sum(operators._lit_wall(x, G) for x in H if x.type == SPINE_HOLD)
-            return (len(pieces), _gap(pieces), -round(lit, 1), strips)
+            key = (len(pieces), _gap(pieces), -round(lit, 1), strips)
+            # §39.187: a wing's edge can be another wing's too, and a corridor
+            # there has rooms both sides however narrow the wings are. "outer"
+            # asks that before connection; bridge_indoors joins the storey later
+            return (round(shared_with_other_wings(), 1), *key) if SPINE_AT == "outer" else key
         return (len(pieces), _gap(pieces), strips)
 
     chosen = {}
@@ -904,10 +925,15 @@ def main(argv=None) -> int:
                          "(homemaker-py-2g7.13.1.7, DESIGN.md §39.161). Default on "
                          "since §39.174, owner's call on slim evidence: one race "
                          "won by a spine seed, not a margin; --no-spine is the old seeder")
-    ap.add_argument("--spine-at", choices=("any", "edge"), default="any",
+    ap.add_argument("--clean-seeds", action="store_true",
+                    help="drop any built seed that has a double-loaded corridor "
+                         "(diag_double_loaded, §39.187)")
+    ap.add_argument("--spine-at", choices=("any", "edge", "outer"), default="any",
                     help="where a wing's spine may run: along an edge or through the "
                          "middle (any, a double-loaded corridor allowed), or along an "
-                         "edge only (edge: every wing single-loaded)")
+                         "edge only (edge), or along an edge no other wing shares, where "
+                         "there is one (outer, §39.187: two abutting wings make a "
+                         "double-loaded corridor of an edge spine)")
     ap.add_argument("--reach", type=float, default=wc.K_LIT,
                     help="the filter's daylight reach in storey heights: every built "
                          "point within this of a lit wall. The default is the scorer's "
@@ -990,6 +1016,7 @@ def main(argv=None) -> int:
         plans = plans[:args.max_seeds]
 
     rows = []
+    dropped = Counter()
     for i, (n, nl, txt, tt, sizes, frac, outline) in enumerate(plans):
         placements = [None]
         if n > 1 and n_cores > 0 and args.core_variants > 1:
@@ -1015,13 +1042,20 @@ def main(argv=None) -> int:
             label = (f"cores {cores} (v{v}, sep {sep:.2f}), bridged rooms "
                      f"{crossed['strip']} cut / {crossed['retyped']} retyped / "
                      f"{crossed['left']} routed around")
-            rows.append((len(fails), res.fitness, n, txt, outline, root, list(fails), raw,
-                         frac, label))
+            n_double = len(double_loaded(root)) if args.clean_seeds else 0
+            if n_double:
+                dropped[txt] += 1
+            else:
+                rows.append((len(fails), res.fitness, n, txt, outline, root, list(fails), raw,
+                             frac, label))
             nc = sum("not connected" in f for f in fails)
             print(f"  [{i + 1}/{len(plans)}] {n} storeys, {txt}, {label}: cover {frac:.0%}, "
                   f"{raw} fails raw -> {len(fails)} tuned, {nc} storeys not connected",
                   flush=True)
 
+    if args.clean_seeds:
+        print(f"\n--clean-seeds dropped {sum(dropped.values())} with a double-loaded "
+              f"corridor: {dict(dropped)}")
     rows.sort(key=lambda r: (r[0], -r[1]))
     print(f"\n{len(rows)} seeds, {args.budget} inner-loop evaluations each; "
           f"tuned fails median {statistics.median(r[0] for r in rows) if rows else 0}")
