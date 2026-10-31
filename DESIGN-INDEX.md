@@ -206,7 +206,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (295 of them, 20236 lines)
+## Every section of DESIGN.md (295 of them, 20235 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -552,4 +552,4 @@ below are the most recent work.
 - §39.187 · 19951-20057 · The single-loaded race's result: a single seed won, and it is double-loaded (`homemaker-py-sp11`)
 - §39.188 · 20058-20148 · The double-loaded penalty on synthetic plots: no value tested buys a single-loaded plan, and the seed decides (`homemaker-py-srl0`)
 - §39.189 · 20149-20196 · Owner's answers: penalty dropped, a corridor-long stair doubted, clean seeds raced
-- §39.190 · 20197-20236 · Pivot on three cells: moving the T where they meet (`homemaker-py-hjc5`)
+- §39.190 · 20197-20235 · Pivot on three cells: moving the T where they meet (`homemaker-py-hjc5`)

@@ -20218,7 +20218,7 @@ programme-house --draws 15`: 360 applications, zero violations. Full suite 982 p
 **Measured before any search** (`experiments/diag_pivot3.py`, twelve designs, `c836457+orth`
 artefacts scored today; the tool picks the stamp by sort order, so these are not the newest):
 
-| programme | options | child/parent score, median | better | fails added, median (range) | after 400 NM, on 12: median added, none worse |
+| programme | options | child/parent score, median | better | fails added, median (range) | after 400 NM, 12 sampled: median added; children no worse than parent |
 |---|---|---|---|---|---|
 | programme-house | 14 | 0.001 | 0 | 8 (2 to 14) | 6.5, 0 |
 | harbor-house | 110 | 0.002 | 3 | 9 (-1 to 65) | 5.5, 0 |
@@ -20227,10 +20227,9 @@ artefacts scored today; the tool picks the stamp by sort order, so these are not
 
 So it is a large step, larger than the pivot's (median 3% of parent, 4 more fails), and
 it fires more widely: 374 options on twelve designs. Keeping areas turns a tall cell squat,
-as in the sketch, and 400 Nelder-Mead evaluations recover about half or less of the added
-fails. A search keeping such children is a question for an A/B.
+as in the sketch, and after 400 Nelder-Mead evaluations only 4 of 48 sampled children are no
+worse than their parent. Whether a search keeps such children is a question for an A/B.
 
 **Expectation, before any A/B:** null on fails, as §39.171 was for the pivot. Its better case
 is not the fail count but reach: §39.188 found no route from rooms-corridor-rooms to a single
 row, and this is a new one-step move between plans. Whether it helps there is untested.
-
