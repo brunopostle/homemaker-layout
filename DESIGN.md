@@ -20054,3 +20054,94 @@ required to have no double-loaded corridor at all, which would be a filter on th
 built seed rather than on the outline. A race confined to clean seeds is the
 direct way to price a single-loaded plan, and §39.186's question stays open until
 one runs.
+
+### 39.188 The double-loaded penalty on synthetic plots: no value tested buys a single-loaded plan, and the seed decides (`homemaker-py-srl0`)
+
+**The question (owner, 2026-10-30).** What value of penalty stops the search
+making double-loaded corridors, on synthetic models? `homemaker-py-srl0` adds a
+detector (`graph.double_loaded_corridors`, collinear cells joined), two penalties
+that act in `n_fails` (`double_loaded_fails: k` per corridor,
+`double_loaded_metres: L`, one fail per L m) and an admission guard
+(`--guard-double-loaded`), all off by default; 0 of 432 artefact scores move with
+them off. **That code stays on branch `srl0` and is not merged**: on this result
+there is no penalty to turn on, and merging would move the objective stamp for
+nothing. The results are in `experiments/results/srl0-penalty/` on main; the
+harness (`srl0_penalty_sweep.py`, `run_srl0_grid.sh`) needs the branch.
+
+**The pilot changed the question.** Cold, with the penalty off, 3 runs of 20 made
+a double-loaded corridor at 16k (none reaching 2 of 4 on a plot). There is too
+little to prevent, so the grid starts every arm from a seed that has one: a
+plot-long corridor with a row of rooms each side, one storey, 30 m long, party
+walls on the short ends, 12-24 rooms of 12 m2 wanting the corridor. Beside it, the
+same rooms single-loaded, off arm only. 6 seeds, 16k, 192 runs, 4 h at 8 slots.
+**So this measures what gets a plan OUT of a double-loaded corridor. It does not
+measure what stops one forming**, which is what the owner asked and remains
+untested.
+
+**Result.** Runs of 6 that end with the detector not firing, and the median of the
+fails other than the penalty's own:
+
+| plot depth | off | k2 | k5 | k12 | m5 | m2 | guard | off, double start: fails | off, single start: fails | single start ended with one |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 7 m | 0 | 0 | 1 | 3 | 1 | 4 | 0 | 1 | **0** | 0 of 6 |
+| 9 m | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1.5 | 7 | 0 of 6 |
+| 11 m | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 19 | 3 of 6 |
+| 13 m | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 36 | 0 of 6 |
+
+**The nine that "lost" it on deep7 are dodges, not single-loaded plans.** On plan
+(`plans/k12.svg`, `m2.svg`, `m2b.svg`) the 29.5 m corridor is still there in all
+nine. Seven read as double-loaded again with the lining threshold at 20% instead of
+50%: rooms were removed from one side until half its wall is bare, and two of those
+added a storey over the `storey_limit` to hold them (`m2.svg`). The other two (`m2`
+s2, s5, 14-15 fails) cut rooms off the corridor and pay 6 `not adjacent` and 6
+`access`. **Zero of 120 penalty runs reached a plan like the single-loaded
+control.** And the detector's threshold is what a penalty teaches the search to
+beat, at no cost at k5 and m5, where base fails stay 1.
+
+**Why no value works here: it is reach, not price.** Penalties above the price do
+not move the search. On deep9 the price of single-loading is about 5.5 fails (7
+against 1.5), and m2 charges 14 for this corridor, so a double-loaded run totals
+about 16 where the single-loaded control has 7. It stays anyway, 6 of 6. The likely reason,
+not separately measured, is that no short sequence of operators leads from
+rooms-corridor-rooms to a single row, because the steps in between strand rooms; if
+so, a larger value would change the total and not the route.
+
+**The seed decides.** Runs that start single-loaded stay so, 6 of 6 on deep7, 9
+and 13. On deep7 single-loading is the better plan outright, 0 fails against 1 and
+score 0.31 against 0.29, with no penalty, and the search from the double-loaded
+seed never finds it. So in this model double-loading is a local optimum the seed
+puts you in, whichever plan is better. That is the same shape as the race in
+§39.187, where the corridor came from the seed, and it says the lever is
+`homemaker-py-4872`, not the objective.
+
+**The price is real at depth.** On deep11 and deep13 a single row of 12 m2 rooms on
+30 m is narrow and deep and costs 18-34 fails. A single-loaded plan there would need
+more length, which is what the owner's guess in §39.186 said (more wings).
+
+**Against the expectations in `run_srl0_grid.sh`:**
+
+1. Off keeps the corridor on deep7, 9, 11: held, 18 of 18, and on deep13.
+2. k2, k5, m5 at most 1 of 6 per model, read how if not: held, and how is a dodge.
+3. k12 and m2 on deep7 only, under half: only deep7 held; 3 and 4 of 6, so the
+   count was not under half, though none of them is a real escape.
+4. Guard like off: held, 24 of 24 keep it.
+5. Single at least 5 above double on every model: **failed on deep7**, where single
+   is better. Held on the others. At most 2 of 6 making one on deep7, more on deep11:
+   held (0, then 3).
+
+**Limits.** One storey, equal rooms, 30 m, 16k, 6 seeds: this is a model of the
+mechanism, not of maple-court. The brief has more area than a corridor needs on
+deep13 (the "corridor" grew 4.2-4.5 m wide) and too little on deep7, where off-arm
+corridors squeezed to 0.06-0.24 m wide at the cost of one `width` fail. That sliver
+is not a defect seen in real designs: nine race and sweep winners' circulation cells
+are all 0.94 m wide or more. But deep7's 1 fail against 0 rests on it.
+
+**Ruling needed, and what was decided meanwhile.** The penalty stays unmerged. Before
+a penalty could be useful it would need a route, which means a seed or an operator,
+and then a test of whether it stops a corridor forming. Next is a race of clean
+seeds on maple-court (`--clean-seeds`, `--spine-at outer`, §39.187, needs the box
+about 9 h), since §39.186's question is still open. `--spine-at outer` on the seeds
+alone: double-loaded metres 96.3 against 345.7, longest seed total 13.7 m against
+90.8, but storeys not connected 133 of 144 against 62 and tuned fails 118.5 against
+114.5 (`experiments/results/seeding-outer/`). §39.159 says connection is kept, not
+made, so that cost may decide it.

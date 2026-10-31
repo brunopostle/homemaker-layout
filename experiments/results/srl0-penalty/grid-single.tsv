@@ -1,0 +1,25 @@
+model	arm	seed	fails	base_fails	score	corridors	metres	elapsed_s	families
+deep7	off	0	0	0	0.319646	0	0.0	372	
+deep7	off	1	0	0	0.3085	0	0.0	386	
+deep9	off	0	7	7	0.00151284	0	0.0	544	proportion 7
+deep9	off	1	7	7	0.00152647	0	0.0	550	proportion 7
+deep11	off	1	33	33	1.33157e-11	0	0.0	760	crinkliness 13; proportion 11; not adjacent to 4; access 4; inaccessible usable space 1
+deep11	off	0	35	35	2.76478e-12	0	0.0	769	crinkliness 15; proportion 15; not adjacent to 2; access 2; inaccessible usable space 1
+deep7	off	2	0	0	0.308495	0	0.0	433	
+deep9	off	2	4	4	0.0109084	0	0.0	587	proportion 4
+deep13	off	1	46	46	4.63995e-16	0	0.0	975	proportion 22; crinkliness 20; inaccessible usable space 1; width 1; not adjacent to 1; access 1
+deep13	off	0	43	43	4.16284e-15	0	0.0	997	proportion 22; crinkliness 16; width 3; not adjacent to 1; access 1
+deep7	off	3	0	0	0.311982	0	0.0	403	
+deep11	off	2	19	19	2.9947e-07	1	29.5	754	size 11; not adjacent to 2; access 2; crinkliness 2; inaccessible usable space 1; proportion 1
+deep9	off	3	7	7	0.00135585	0	0.0	557	proportion 7
+deep7	off	4	0	0	0.272449	0	0.0	379	
+deep11	off	3	19	19	1.69642e-07	1	29.5	707	size 14; proportion 3; crinkliness 1; no outside public access 1
+deep9	off	4	7	7	0.00136859	0	0.0	515	proportion 7
+deep13	off	2	46	46	4.67634e-16	0	0.0	966	proportion 21; crinkliness 20; inaccessible usable space 1; not adjacent to 1; access 1; size 1
+deep7	off	5	0	0	0.31932	0	0.0	299	
+deep9	off	5	2	2	0.0440783	0	0.0	421	proportion 1; size 1
+deep11	off	4	17	17	6.75265e-07	1	29.5	625	size 14; proportion 1; crinkliness 1; no outside public access 1
+deep13	off	3	29	29	1.07373e-10	0	0.0	834	size 21; crinkliness 3; not adjacent to 2; access 2; inaccessible usable space 1
+deep13	off	4	25	25	1.37055e-09	0	0.0	635	size 24; crinkliness 1
+deep11	off	5	17	17	6.4769e-07	0	0.0	441	size 16; crinkliness 1
+deep13	off	5	25	25	1.37072e-09	0	0.0	523	size 24; crinkliness 1

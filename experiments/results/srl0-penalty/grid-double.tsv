@@ -1,0 +1,169 @@
+model	arm	seed	fails	base_fails	score	corridors	metres	elapsed_s	families
+deep7	off	0	1	1	0.28743	1	29.5	280	width 1
+deep7	guard	0	1	1	0.28743	1	29.5	286	width 1
+deep7	k2	0	3	1	0.0718575	1	29.5	370	width 1
+deep7	m2	0	16	1	8.71745e-06	1	29.5	370	width 1
+deep7	k5	0	6	1	0.00898219	1	29.5	373	width 1
+deep7	m5	0	7	1	0.00449109	1	29.5	373	width 1
+deep7	k12	0	13	1	7.01733e-05	1	29.5	375	width 1
+deep9	off	0	2	2	0.133356	1	29.5	399	crinkliness 1; width 1
+deep9	guard	0	2	2	0.133356	1	29.5	422	crinkliness 1; width 1
+deep9	k2	0	4	2	0.0333391	1	29.5	531	crinkliness 1; width 1
+deep9	k5	0	7	2	0.00416739	1	29.5	535	crinkliness 1; width 1
+deep9	m2	0	17	2	4.06972e-06	1	29.5	527	crinkliness 1; width 1
+deep9	k12	0	14	2	3.25577e-05	1	29.5	537	crinkliness 1; width 1
+deep9	m5	0	8	2	0.0020837	1	29.5	541	crinkliness 1; width 1
+deep11	off	0	2	2	0.111182	1	29.5	547	crinkliness 1; no outside public access 1
+deep11	k2	0	4	2	0.0277956	1	29.5	693	crinkliness 1; no outside public access 1
+deep11	guard	0	2	2	0.111182	1	29.5	562	crinkliness 1; no outside public access 1
+deep11	k5	0	7	2	0.00347445	1	29.5	695	crinkliness 1; no outside public access 1
+deep11	k12	0	14	2	2.71441e-05	1	29.5	695	crinkliness 1; no outside public access 1
+deep11	m5	0	8	2	0.00173722	1	29.5	693	crinkliness 1; no outside public access 1
+deep11	m2	0	17	2	3.39302e-06	1	29.5	683	crinkliness 1; no outside public access 1
+deep13	off	0	2	2	0.088723	1	29.5	719	crinkliness 1; no outside public access 1
+deep13	k2	0	4	2	0.0221807	1	29.5	879	crinkliness 1; no outside public access 1
+deep7	off	1	1	1	0.285445	1	29.5	290	width 1
+deep13	k5	0	7	2	0.00277259	1	29.5	873	crinkliness 1; no outside public access 1
+deep7	k2	1	3	1	0.0713612	1	29.5	384	width 1
+deep7	k5	1	6	1	0.00892014	1	29.5	404	width 1
+deep13	guard	0	2	2	0.088723	1	29.5	719	crinkliness 1; no outside public access 1
+deep7	k12	1	13	1	6.96886e-05	1	29.5	404	width 1
+deep13	k12	0	14	2	2.16609e-05	1	29.5	875	crinkliness 1; no outside public access 1
+deep13	m5	0	8	2	0.0013863	1	29.5	877	crinkliness 1; no outside public access 1
+deep7	m5	1	7	1	0.00446007	1	29.5	405	width 1
+deep13	m2	0	17	2	2.70761e-06	1	29.5	871	crinkliness 1; no outside public access 1
+deep7	m2	1	8	8	0.00185903	0	0.0	395	not adjacent to 2; access 2; proportion 2; inaccessible usable space 1; width 1
+deep7	guard	1	1	1	0.285445	1	29.5	293	width 1
+deep9	off	1	2	2	0.132516	1	29.5	391	crinkliness 1; width 1
+deep9	k2	1	4	2	0.0331291	1	29.5	509	crinkliness 1; width 1
+deep9	guard	1	2	2	0.132516	1	29.5	396	crinkliness 1; width 1
+deep9	k5	1	7	2	0.00414114	1	29.5	507	crinkliness 1; width 1
+deep9	k12	1	14	2	3.23527e-05	1	29.5	503	crinkliness 1; width 1
+deep9	m5	1	7	1	0.0041491	1	29.5	503	width 1
+deep9	m2	1	17	2	4.07814e-06	1	29.5	497	crinkliness 1; width 1
+deep11	off	1	1	1	0.225476	1	29.5	527	crinkliness 1
+deep11	k2	1	3	1	0.0563689	1	29.5	699	crinkliness 1
+deep11	guard	1	1	1	0.225476	1	29.5	556	crinkliness 1
+deep11	k5	1	6	1	0.00704611	1	29.5	699	crinkliness 1
+deep11	k12	1	13	1	5.50478e-05	1	29.5	701	crinkliness 1
+deep11	m5	1	7	1	0.00352306	1	29.5	691	crinkliness 1
+deep13	off	1	2	2	0.0840121	1	29.5	691	crinkliness 1; no outside public access 1
+deep11	m2	1	16	1	6.88097e-06	1	29.5	699	crinkliness 1
+deep7	off	2	1	1	0.298813	1	29.5	276	width 1
+deep13	k2	1	4	2	0.021003	1	29.5	873	crinkliness 1; no outside public access 1
+deep7	k2	2	3	1	0.0747034	1	29.5	370	width 1
+deep13	k5	1	7	2	0.00262538	1	29.5	865	crinkliness 1; no outside public access 1
+deep7	k5	2	6	1	0.00933792	1	29.5	400	width 1
+deep13	guard	1	2	2	0.0840121	1	29.5	701	crinkliness 1; no outside public access 1
+deep13	k12	1	14	2	2.05108e-05	1	29.5	869	crinkliness 1; no outside public access 1
+deep7	k12	2	1	1	0.302326	0	0.0	407	width 1
+deep7	m5	2	7	1	0.00466896	1	29.5	395	width 1
+deep13	m5	1	8	2	0.00131269	1	29.5	881	crinkliness 1; no outside public access 1
+deep13	m2	1	17	2	2.56385e-06	1	29.5	871	crinkliness 1; no outside public access 1
+deep7	guard	2	1	1	0.298813	1	29.5	285	width 1
+deep7	m2	2	15	15	9.55332e-06	0	0.0	377	not adjacent to 6; access 6; width 2; no outside public access 1
+deep9	off	2	1	1	0.272442	1	29.5	405	width 1
+deep9	k2	2	3	1	0.0681105	1	29.5	523	width 1
+deep9	k5	2	6	1	0.00851381	1	29.5	525	width 1
+deep9	k12	2	13	1	6.65142e-05	1	29.5	521	width 1
+deep9	m5	2	7	1	0.00425691	1	29.5	517	width 1
+deep9	m2	2	16	1	8.31427e-06	1	29.5	525	width 1
+deep9	guard	2	1	1	0.272442	1	29.5	409	width 1
+deep11	off	2	1	1	0.2257	1	29.5	535	crinkliness 1
+deep11	k2	2	3	1	0.0564249	1	29.5	673	crinkliness 1
+deep11	guard	2	1	1	0.2257	1	29.5	544	crinkliness 1
+deep11	k5	2	6	1	0.00705311	1	29.5	677	crinkliness 1
+deep11	k12	2	13	1	5.51024e-05	1	29.5	685	crinkliness 1
+deep11	m5	2	7	1	0.00352656	1	29.5	673	crinkliness 1
+deep11	m2	2	16	1	6.8878e-06	1	29.5	669	crinkliness 1
+deep13	off	2	2	2	0.0887036	1	29.5	689	crinkliness 1; no outside public access 1
+deep7	off	3	1	1	0.292343	1	29.5	284	width 1
+deep13	k2	2	4	2	0.0221759	1	29.5	857	crinkliness 1; no outside public access 1
+deep7	k2	3	3	1	0.0730857	1	29.5	378	width 1
+deep13	k5	2	7	2	0.00277199	1	29.5	857	crinkliness 1; no outside public access 1
+deep13	guard	2	2	2	0.0887036	1	29.5	697	crinkliness 1; no outside public access 1
+deep13	k12	2	14	2	2.16561e-05	1	29.5	879	crinkliness 1; no outside public access 1
+deep13	m5	2	8	2	0.00138599	1	29.5	877	crinkliness 1; no outside public access 1
+deep7	k5	3	1	1	0.262186	0	0.0	563	width 1
+deep13	m2	2	17	2	2.70702e-06	1	29.5	891	crinkliness 1; no outside public access 1
+deep7	guard	3	1	1	0.292343	1	29.5	307	width 1
+deep7	k12	3	4	4	0.00218779	0	0.0	695	width 2; staircase volume 1; storey limit 1
+deep7	m5	3	1	1	0.247878	0	0.0	683	width 1
+deep9	off	3	1	1	0.265935	1	29.5	407	width 1
+deep7	m2	3	3	3	0.0588602	0	0.0	665	width 2; storey limit 1
+deep9	k2	3	3	1	0.0664837	1	29.5	525	width 1
+deep9	k5	3	6	1	0.00831046	1	29.5	527	width 1
+deep9	k12	3	13	1	6.49255e-05	1	29.5	529	width 1
+deep9	m5	3	7	1	0.00415523	1	29.5	523	width 1
+deep9	guard	3	1	1	0.265935	1	29.5	405	width 1
+deep9	m2	3	16	1	8.11569e-06	1	29.5	523	width 1
+deep11	off	3	1	1	0.226036	1	29.5	537	crinkliness 1
+deep11	k2	3	3	1	0.0565089	1	29.5	687	crinkliness 1
+deep11	k5	3	6	1	0.00706361	1	29.5	685	crinkliness 1
+deep11	k12	3	13	1	5.51845e-05	1	29.5	681	crinkliness 1
+deep11	m5	3	7	1	0.00353181	1	29.5	681	crinkliness 1
+deep11	guard	3	1	1	0.226036	1	29.5	543	crinkliness 1
+deep11	m2	3	16	1	6.89806e-06	1	29.5	681	crinkliness 1
+deep13	off	3	2	2	0.0839373	1	29.5	697	crinkliness 1; no outside public access 1
+deep7	off	4	1	1	0.286905	1	29.5	288	width 1
+deep13	k2	3	4	2	0.0209843	1	29.5	865	crinkliness 1; no outside public access 1
+deep7	k2	4	3	1	0.0717262	1	29.5	394	width 1
+deep13	guard	3	2	2	0.0839373	1	29.5	701	crinkliness 1; no outside public access 1
+deep13	k5	3	7	2	0.00262304	1	29.5	871	crinkliness 1; no outside public access 1
+deep7	k5	4	6	1	0.00896578	1	29.5	388	width 1
+deep13	m5	3	8	2	0.00131152	1	29.5	869	crinkliness 1; no outside public access 1
+deep7	k12	4	13	1	7.00451e-05	1	29.5	388	width 1
+deep13	k12	3	14	2	2.16606e-05	1	29.5	945	crinkliness 1; no outside public access 1
+deep13	m2	3	17	2	2.70758e-06	1	29.5	945	crinkliness 1; no outside public access 1
+deep7	m5	4	7	1	0.00448289	1	29.5	393	width 1
+deep7	guard	4	1	1	0.286905	1	29.5	291	width 1
+deep7	m2	4	16	1	8.75564e-06	1	29.5	391	width 1
+deep9	off	4	1	1	0.269029	1	29.5	383	width 1
+deep9	k2	4	3	1	0.0672571	1	29.5	503	width 1
+deep9	k5	4	6	1	0.00840714	1	29.5	503	width 1
+deep9	k12	4	13	1	6.56808e-05	1	29.5	497	width 1
+deep9	m5	4	7	1	0.00420357	1	29.5	501	width 1
+deep9	guard	4	1	1	0.269029	1	29.5	391	width 1
+deep9	m2	4	16	1	8.2101e-06	1	29.5	501	width 1
+deep11	off	4	1	1	0.222976	1	29.5	521	crinkliness 1
+deep11	k2	4	3	1	0.0557441	1	29.5	667	crinkliness 1
+deep11	guard	4	1	1	0.222976	1	29.5	524	crinkliness 1
+deep11	k5	4	6	1	0.00696801	1	29.5	659	crinkliness 1
+deep11	k12	4	13	1	5.44376e-05	1	29.5	659	crinkliness 1
+deep11	m5	4	7	1	0.00348401	1	29.5	663	crinkliness 1
+deep11	m2	4	17	2	3.6936e-06	1	29.5	671	crinkliness 1; no outside public access 1
+deep13	off	4	2	2	0.0840157	1	29.5	665	crinkliness 1; no outside public access 1
+deep7	off	5	1	1	0.287171	1	29.5	276	width 1
+deep13	k2	4	4	2	0.0210039	1	29.5	843	crinkliness 1; no outside public access 1
+deep7	k2	5	3	1	0.0717928	1	29.5	394	width 1
+deep13	k5	4	7	2	0.00262549	1	29.5	881	crinkliness 1; no outside public access 1
+deep13	guard	4	2	2	0.0840157	1	29.5	725	crinkliness 1; no outside public access 1
+deep7	k5	5	6	1	0.0089741	1	29.5	419	width 1
+deep7	k12	5	5	5	0.0163554	0	0.0	407	inaccessible usable space 1; width 1; not adjacent to 1; access 1; crinkliness 1
+deep13	k12	4	14	2	2.05129e-05	1	29.5	891	crinkliness 1; no outside public access 1
+deep13	m5	4	8	2	0.00131275	1	29.5	887	crinkliness 1; no outside public access 1
+deep13	m2	4	17	2	2.56048e-06	1	29.5	905	crinkliness 1; no outside public access 1
+deep7	m5	5	7	1	0.00448588	1	29.5	403	width 1
+deep7	guard	5	1	1	0.287171	1	29.5	281	width 1
+deep7	m2	5	14	14	1.95398e-05	0	0.0	371	not adjacent to 6; access 6; width 2
+deep9	off	5	2	2	0.132654	1	29.5	393	crinkliness 1; width 1
+deep9	k2	5	4	2	0.0331634	1	29.5	509	crinkliness 1; width 1
+deep9	k5	5	7	2	0.00414543	1	29.5	509	crinkliness 1; width 1
+deep9	k12	5	14	2	3.20837e-05	1	29.5	511	crinkliness 1; width 1
+deep9	guard	5	2	2	0.132654	1	29.5	397	crinkliness 1; width 1
+deep9	m5	5	8	2	0.00207271	1	29.5	509	crinkliness 1; width 1
+deep9	m2	5	17	2	4.01047e-06	1	29.5	513	crinkliness 1; width 1
+deep11	off	5	1	1	0.220137	1	29.5	537	crinkliness 1
+deep11	k2	5	3	1	0.0550343	1	29.5	675	crinkliness 1
+deep11	guard	5	1	1	0.220137	1	29.5	534	crinkliness 1
+deep11	k5	5	6	1	0.00687929	1	29.5	677	crinkliness 1
+deep11	k12	5	13	1	5.37444e-05	1	29.5	673	crinkliness 1
+deep11	m5	5	7	1	0.00343964	1	29.5	677	crinkliness 1
+deep11	m2	5	16	1	6.71805e-06	1	29.5	675	crinkliness 1
+deep13	off	5	2	2	0.0887399	1	29.5	687	crinkliness 1; no outside public access 1
+deep13	k2	5	4	2	0.022185	1	29.5	811	crinkliness 1; no outside public access 1
+deep13	k12	5	14	2	2.1665e-05	1	29.5	567	crinkliness 1; no outside public access 1
+deep13	k5	5	7	2	0.00277312	1	29.5	727	crinkliness 1; no outside public access 1
+deep13	guard	5	2	2	0.0887399	1	29.5	540	crinkliness 1; no outside public access 1
+deep13	m5	5	8	2	0.00138656	1	29.5	623	crinkliness 1; no outside public access 1
+deep13	m2	5	17	2	2.70813e-06	1	29.5	695	crinkliness 1; no outside public access 1
