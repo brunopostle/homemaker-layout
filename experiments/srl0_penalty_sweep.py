@@ -7,14 +7,23 @@ court allows single-loaded ranges. At 7 m single-loading is natural, at 11-13 m
 double-loading is the obvious fit. Every arm runs the same seeds:
 
     off   today's objective, the control
-    k1 k2 k3 k5   `double_loaded_fails: k`, k fails per corridor
-    m5    `double_loaded_metres: 5`, one fail per 5 m of corridor
+    k1 k2 k3 k5 k12   `double_loaded_fails: k`, k fails per corridor
+    m5 m2 `double_loaded_metres: L`, one fail per L m of corridor
     guard `--guard-double-loaded`: the objective unchanged, a child with more
           metres than its parent is declined
 
     HOMEMAKER_ORTHOGONAL_DIVISION=1 PYTHONPATH=src python experiments/srl0_penalty_sweep.py \\
         --work ~/srl0 --table experiments/results/srl0-penalty/sweep.tsv --seeds 8 --budget 16000
     ... --report experiments/results/srl0-penalty/sweep.tsv
+
+`--start double` begins every run from a seed that already HAS the corridor:
+one plot-long strip with a row of rooms on each side. The cold pilot
+(`--start cold`, the default) made one in 3 runs of 20, too few to prevent, so
+the seeded grid asks what makes the search GET RID of one. `--start single` is
+the same rooms in one row along a corridor on one long wall: its off arm is the
+price of single-loading on that plot, and whether the search keeps it clean.
+`--check-seeds` builds each model's seeds, requires the detector to fire on the
+double one and not on the single one, and runs nothing.
 
 A finished row is not run again, so an interrupted sweep continues from the
 table. ``base_fails`` leaves out the penalty's own fails, so arms compare on
@@ -60,9 +69,15 @@ ARMS = {
     "k2": ({"double_loaded_fails": 2}, []),
     "k3": ({"double_loaded_fails": 3}, []),
     "k5": ({"double_loaded_fails": 5}, []),
+    "k12": ({"double_loaded_fails": 12}, []),
     "m5": ({"double_loaded_metres": 5.0}, []),
+    "m2": ({"double_loaded_metres": 2.0}, []),
     "guard": ({}, ["--guard-double-loaded"]),
 }
+CORRIDOR = 1.2
+# which way a node's cut runs on these plots; --check-seeds holds them to it
+DEPTH_ROTATION = 0
+ROW_ROTATION = 1
 COLUMNS = ("model", "arm", "seed", "fails", "base_fails", "score", "corridors",
            "metres", "elapsed_s", "families")
 
@@ -78,15 +93,51 @@ def patterns(rooms: int, arm: dict) -> dict:
             "value_outside": 100.0, "value_supported": 120.0, **arm}
 
 
-def write_model(d: Path, model: str, arm: dict) -> None:
+def write_model(d: Path, model: str, arm: dict, start: str = "cold") -> None:
     x, y, rooms, per = MODELS[model]
     d.mkdir(parents=True, exist_ok=True)
     (d / "patterns.config").write_text(yaml.safe_dump(patterns(rooms, arm), sort_keys=False))
+    plan = {"cold": lambda: {"type": "O", "rotation": 0},
+            "double": lambda: double_loaded_seed(rooms, x),
+            "single": lambda: single_loaded_seed(rooms, x)}[start]()
     (d / "seed.dom").write_text(yaml.safe_dump(
         {"node": [[0.0, 0.0], [x, 0.0], [x, y], [0.0, y]],
-         "perimeter": dict(zip("abcd", per)), "type": "O", "rotation": 0,
+         "perimeter": dict(zip("abcd", per)), **plan,
          "height": 3, "elevation": 0.0, "wall_inner": 0.08, "wall_outer": 0.25},
         sort_keys=False))
+
+
+def _row(codes: list[str], rotation: int = ROW_ROTATION) -> dict:
+    """Rooms in equal cells along the plot's length, as a slicing subtree."""
+    if len(codes) == 1:
+        return {"type": codes[0], "rotation": 0}
+    k = len(codes) // 2
+    a = k / len(codes)
+    # rotation accumulates down the tree: quarter-turn once, then keep cutting
+    # the same way
+    return {"rotation": rotation, "division": [a, a],
+            "l": _row(codes[:k], 0), "r": _row(codes[k:], 0)}
+
+
+def double_loaded_seed(rooms: int, depth: float) -> dict:
+    """Rooms, a CORRIDOR m strip, rooms: the plan the penalty is meant to stop."""
+    codes = [f"r{i + 1}" for i in range(rooms)]
+    row = (depth - CORRIDOR) / 2
+    a, b = row / depth, CORRIDOR / (depth - row)
+    return {"rotation": DEPTH_ROTATION, "division": [a, a],
+            "l": _row(codes[:rooms // 2]),
+            "r": {"rotation": DEPTH_ROTATION, "division": [b, b],
+                      "l": {"type": "C", "rotation": 0},
+                      "r": _row(codes[rooms // 2:])}}
+
+
+def single_loaded_seed(rooms: int, depth: float) -> dict:
+    """A CORRIDOR m strip along one long wall, every room in one row on the other:
+    the same plot and brief, the plan a penalty is meant to send the search to."""
+    a = CORRIDOR / depth
+    return {"rotation": DEPTH_ROTATION, "division": [a, a],
+            "l": {"type": "C", "rotation": 0},
+            "r": _row([f"r{i + 1}" for i in range(rooms)])}
 
 
 def rate(d: Path) -> tuple:
@@ -128,7 +179,7 @@ def sweep(args) -> int:
             m, a, s = queue.pop(0)
             d = Path(args.work) / m / a / f"s{s}"
             shutil.rmtree(d, ignore_errors=True)
-            write_model(d, m, ARMS[a][0])
+            write_model(d, m, ARMS[a][0], args.start)
             cmd = [sys.executable, "-m", "homemaker_layout.evolve", "seed.dom",
                    "--budget", str(args.budget), "--workers", "1", "--seed", str(s),
                    "--output", "out.dom", *ARMS[a][1]]
@@ -179,6 +230,23 @@ def report(path: str) -> int:
     return 0
 
 
+def check_seeds(work: str) -> int:
+    """Every seed must be what it says: the detector fires once, about 30 m."""
+    bad = 0
+    for m in MODELS:
+        if m == "court":
+            continue
+        for start, want in (("double", 1), ("single", 0)):
+            d = Path(work) / "check" / m / start
+            shutil.rmtree(d, ignore_errors=True)
+            write_model(d, m, {}, start)
+            shutil.copy(d / "seed.dom", d / "out.dom")
+            _, nf, base, n, metres, fam = rate(d)
+            print(f"{m} {start}: {n} double-loaded, {metres:.1f} m; {base} fails: {fam}")
+            bad += not (n == want and (want == 0 or metres > 25))
+    return 1 if bad else 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--work", default=None)
@@ -189,10 +257,16 @@ def main(argv=None) -> int:
     ap.add_argument("--budget", type=int, default=16000)
     ap.add_argument("--slots", type=int, default=os.cpu_count() or 4)
     ap.add_argument("--report", default=None, metavar="TABLE")
+    ap.add_argument("--start", default="cold", choices=["cold", "double", "single"],
+                    help="start from an empty plot, a seed that has the corridor, "
+                         "or the same rooms single-loaded")
+    ap.add_argument("--check-seeds", default=None, metavar="WORK")
     args = ap.parse_args(argv)
     if not geometry.ORTHOGONAL_DIVISION:
         print("set HOMEMAKER_ORTHOGONAL_DIVISION=1", file=sys.stderr)
         return 2
+    if args.check_seeds:
+        return check_seeds(args.check_seeds)
     if args.report:
         return report(args.report)
     if not args.work or not args.table:
