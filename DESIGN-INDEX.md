@@ -107,6 +107,7 @@ index is how to get from a question to the section that answers it.
 | §39.185 | Its result: 39 pairs level on fails (18.15 = 18.15), every family and the score; storeys move in 31 of 39 runs, down as often as up (20 at the 2.7 m floor, none at the cap). Owner: lowering a storey to save wall cost is fine if daylight and depth pass. Stays off; y4p4.2 closed. |
 | §39.186-§39.187 | The single-loaded race on maple-court (48 single + 48 double + 3 cold): `single-2` wins at 13 fails, level with the earlier winners, but its plan has a 28.7 m double-loaded corridor on each storey, inherited from its seed. A 7.5 m wing still holds rooms-corridor-rooms. Its corridor is the spine, along the shared edge of two abutting wings. Stage 0 favours single by 7 fails (p = 0.016 on 16 plans a side). No finalist is a single-loaded plan, so the race does not price one; a zero from `diag_double_loaded.py` does not mean single-loaded. |
 | §39.188 | The double-loaded penalty on synthetic plots, 192 runs from seeded corridors: k up to 12 and one fail per 2 m get no run to a single-loaded plan. 9 of 120 penalty runs stop firing the detector, all dodges. A penalty above the price does not move the search: it is reach, not price. Single-loaded seeds stay so, and on 7 m are better outright. Code stays on branch `srl0`, not merged. Does not test what stops a corridor forming. |
+| §39.189 | Owner drops the double-loaded penalty for now and doubts a 28.7 m stair cell, with no bound ruled: 66 `E` cells, median 5.1 m, three shafts over 15 m and nothing from 9.6 to 18.8 m. Clean-seed race on maple-court launched, expectations written first, §39.187 as control. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -155,6 +156,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Label write-back is the default search | §39.153 |
 | `aim` (undivide aimed at failing cells) is the default search | §39.156 |
 | The pivot move keeps each quadrant's plan AREA, not its walls: deterministic, a jog moves to the other axis | §39.162 |
+| The double-loaded penalty is dropped "for now": branch `srl0`, unmerged. A 28.7 m stair cell "probably isn't any good": a doubt, no bound ruled | §39.189 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -203,7 +205,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (293 of them, 20147 lines)
+## Every section of DESIGN.md (294 of them, 20195 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -547,4 +549,5 @@ below are the most recent work.
 - §39.185 · 19790-19849 · Storey heights on harbor-house, capped: level on fails and score, and the owner's ruling that a lower storey is a fair saving (`homemaker-py-y4p4.2`)
 - §39.186 · 19850-19950 · Single-loaded wings on maple-court: a race, design and expectation (`homemaker-py-sp11`)
 - §39.187 · 19951-20057 · The single-loaded race's result: a single seed won, and it is double-loaded (`homemaker-py-sp11`)
-- §39.188 · 20058-20147 · The double-loaded penalty on synthetic plots: no value tested buys a single-loaded plan, and the seed decides (`homemaker-py-srl0`)
+- §39.188 · 20058-20148 · The double-loaded penalty on synthetic plots: no value tested buys a single-loaded plan, and the seed decides (`homemaker-py-srl0`)
+- §39.189 · 20149-20195 · Owner's answers: penalty dropped, a corridor-long stair doubted, clean seeds raced

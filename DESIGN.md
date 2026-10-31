@@ -20145,3 +20145,51 @@ alone: double-loaded metres 96.3 against 345.7, longest seed total 13.7 m agains
 90.8, but storeys not connected 133 of 144 against 62 and tuned fails 118.5 against
 114.5 (`experiments/results/seeding-outer/`). §39.159 says connection is kept, not
 made, so that cost may decide it.
+
+### 39.189 Owner's answers: penalty dropped, a corridor-long stair doubted, clean seeds raced
+
+**Owner, 2026-10-31, on §39.187-§39.188's three questions:** "Yes, drop it for now, a
+28.7m stair cell probably isn't any good."
+
+**The penalty is dropped for now** (`homemaker-py-srl0`, closed). Nothing merged, so the
+stamp did not move. Branch `srl0` stays on origin with the detector, the penalties,
+`--guard-double-loaded` and the harness. Its one open question is unchanged: whether a
+penalty stops a corridor forming from cold, which needs many runs because cold search
+made one in 3 of 20.
+
+**A corridor-long `E` is doubted, and no bound is ruled** (`homemaker-py-yd6t`, open). The
+word was "probably", and no length came with it. Measured across ten designs, 66 `E`
+cells (`experiments/diag_long_stairs.py`, the race winners and finalists on hand): median
+5.1 m, upper quartile 6.9 m. Eight cells are over 15 m and none lies between 9.6 and 18.8
+m, and those eight are three shafts: 28.7 m (`single-2`), 25.9 m (`single-7`), 18.8 m
+(maple-court's spine winner). So a bound anywhere from 10 to 18 m would catch those three
+and no other in this sample. Ten designs are too few to choose a number. The cheaper form
+is search-side: `mutate_stair` declining to label a long column, which moves no stamp and
+leaves a design free to carry the corridor as `C`. `single-1` and `single-3` show that
+costs nothing there, level at 13 fails with it spelt `C`. A scorer bound would be an
+objective change and waits for a plainer ruling. Not done yet, because the race below
+needs today's search commit to use §39.187 as its control.
+
+**The word to run was read from the same message.** "Yes" came first, and the first of the
+three questions was whether the desktop could take the race. If that reading is wrong, the
+race is stopped by PID with nothing lost.
+
+**The clean-seed race** (`experiments/run_clean_seed_maple.sh`, `homemaker-py-4872`): up to
+48 seeds at `--reach 1.25 --spine-at outer --clean-seeds --storeys 3`, plus 3 cold, 4k
+doubling to 128k. The field holds no double-loaded seeds, so clean seeds are not knocked out
+by the plan they are trying to price. The control is §39.187's race, at the same objective,
+search commit and config; the comparison is stage by stage and unpaired, since no seed is
+shared. Written before it ran:
+
+1. At least 40 seeds survive the filter, each reading 0 double-loaded.
+2. Stage 0 median above §39.187's single arm (79.5), because `outer` starts 133 of 144
+   storeys unconnected against 62.
+3. The winner is worse than 13 fails, at 15-25.
+4. At least half the finalists grow a double-loaded corridor over 8 m, since nothing keeps
+   them off one (spine-3 did). §39.188's synthetic plots say seeds stay single-loaded, so
+   this is the expectation most likely to fail, and the informative one if it does.
+5. The winner still has a storey not connected.
+6. At least one finalist has a stair cell over 15 m.
+
+A finalist reading 0 double-loaded is not yet a single-loaded plan: `single-7` read 0 with no
+south corridor at all (§39.187). It has to be read on the plan.
