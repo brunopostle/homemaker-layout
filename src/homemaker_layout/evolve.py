@@ -278,6 +278,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "Changes what a "
                         "search does; the A/B that decides it has not been "
                         "run (default: off)")
+    p.add_argument("--pivot3", dest="pivot3",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_PIVOT3", False),
+                   help="homemaker-py-hjc5: a move that shifts the T where three "
+                        "cells meet -- A beside B over C becomes A and B over C "
+                        "-- keeping every cell's plan area and what is inside it. "
+                        "Changes what a search does; the A/B that decides it has "
+                        "not been run (default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
@@ -466,6 +474,7 @@ def main(argv=None) -> int:
     os.environ["HOMEMAKER_LIGHT_WELL"] = "1" if args.light_well else "0"
     os.environ["HOMEMAKER_RETYPE_KIND"] = "1" if args.retype_kind else "0"
     os.environ["HOMEMAKER_PIVOT"] = "1" if args.pivot else "0"
+    os.environ["HOMEMAKER_PIVOT3"] = "1" if args.pivot3 else "0"
     os.environ["HOMEMAKER_GUARD_CONNECTION"] = args.guard_connection
     driver.GUARD_CONNECTION = args.guard_connection
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
@@ -553,6 +562,7 @@ def main(argv=None) -> int:
     print(f"light well         : {args.light_well}", file=sys.stderr)
     print(f"retype kind        : {args.retype_kind}", file=sys.stderr)
     print(f"pivot              : {args.pivot}", file=sys.stderr)
+    print(f"pivot3             : {args.pivot3}", file=sys.stderr)
     print(f"guard connection   : {args.guard_connection}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)

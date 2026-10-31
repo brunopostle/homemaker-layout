@@ -20193,3 +20193,44 @@ shared. Written before it ran:
 
 A finalist reading 0 double-loaded is not yet a single-loaded plan: `single-7` read 0 with no
 south corridor at all (§39.187). It has to be read on the plan.
+
+### 39.190 Pivot on three cells: moving the T where they meet (`homemaker-py-hjc5`)
+
+Owner's sketch, 2026-10-31: the pivot's idea on three cells. `A|(B/C)` becomes `(A|B)/C`:
+one long cell beside two short ones, rewritten so that a short cell is the long one. Neither
+existing move does it. `mutate_reassociate` regroups two PARALLEL cuts, and `mutate_pivot`
+needs both halves cut.
+
+**Built as `operators.mutate_pivot3`, default off** (`--pivot3` / `HOMEMAKER_PIVOT3=1`, a
+`SEARCH_KNOBS` entry, `flag_ab.py pivot3`). Decided by following §39.162, since the sketch
+does not say: the cuts keep every cell's plan AREA, what is inside each cell is drawn the same
+way, and a storey above with the same cut gets the same relocation. A storey above keeping
+only the first cut refuses the move. Either short cell may span, so a T offers two children,
+and the sketch's reverse is the same move. A half-cut cell also offers it when the other half
+is cut too, treating that half as one cell. So every pivot grid has this move as well.
+
+**Tested** (`tests/test_pivot3.py`): the sketch itself on all four cases, read from the plan;
+the move undoing itself; inner cuts kept; areas on `+orth` and skew quad trees to 1e-5 and
+total area on native, with shafts and types kept, on every option of four artefacts. Negative
+control: turning the cut alone registers. `diag_operator_invariants.py --programme
+programme-house --draws 15`: 360 applications, zero violations. Full suite 982 passed, 1 skipped.
+
+**Measured before any search** (`experiments/diag_pivot3.py`, twelve designs, `c836457+orth`
+artefacts scored today; the tool picks the stamp by sort order, so these are not the newest):
+
+| programme | options | child/parent score, median | better | fails added, median (range) | after 400 NM, on 12: median added, none worse |
+|---|---|---|---|---|---|
+| programme-house | 14 | 0.001 | 0 | 8 (2 to 14) | 6.5, 0 |
+| harbor-house | 110 | 0.002 | 3 | 9 (-1 to 65) | 5.5, 0 |
+| health-centre | 154 | 0.029 | 1 | 5 (-2 to 32) | 2, 2 |
+| maple-court | 96 | 0.002 | 1 | 9 (-2 to 57) | 11.5, 2 |
+
+So it is a large step, larger than the pivot's (median 3% of parent, 4 more fails), and
+it fires more widely: 374 options on twelve designs. Keeping areas turns a tall cell squat,
+as in the sketch, and 400 Nelder-Mead evaluations recover about half or less of the added
+fails. A search keeping such children is a question for an A/B.
+
+**Expectation, before any A/B:** null on fails, as §39.171 was for the pivot. Its better case
+is not the fail count but reach: §39.188 found no route from rooms-corridor-rooms to a single
+row, and this is a new one-step move between plans. Whether it helps there is untested.
+
