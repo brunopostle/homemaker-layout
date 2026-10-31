@@ -105,7 +105,7 @@ index is how to get from a question to the section that answers it.
 | §39.169-§39.183 | Keeping a storey connected on maple-court's spine seeds. `connectivity_weight=auto` only breaks ties inside the search, because the comparator counts raw fails first (§39.172). An admission guard that declines a child disconnecting a storey its parent had connected loses no storey in 95 runs and wins at 13 fails, every storey connected: one race (§39.173). Guard and `--spine` made default on slim evidence (§39.174). On harbor-house (§39.178) the guard keeps connections (1 loss against 43) and the winner is level (9 against 10), but each 4k run pays +0.91 fails (p 0.01); maple-court's "no cost" was underpowered. Owner ruled to restrict the guard to fully connected parents (§39.179); built as the default `--guard-connection=connected` (§39.180); replayed at no cost on harbor-house against no guard, and no fully connected maple-court seed lost a storey (§39.181). Spine on harbor-house (§39.182-§39.183): 30 of 48 seeds connected against 3, none lost a storey, but a no-spine seed won (9 fails against 14) and the arms are level at stage 0. |
 | §39.184 | Storey heights, capped, on harbor-house: a continuation A/B (39 pairs, the spine race's 13 stage-3 designs continued 32k with and without `--tune-heights`), because a 4k stage-0 run draws the height move about twice and moves nothing. Design and expectation. |
 | §39.185 | Its result: 39 pairs level on fails (18.15 = 18.15), every family and the score; storeys move in 31 of 39 runs, down as often as up (20 at the 2.7 m floor, none at the cap). Owner: lowering a storey to save wall cost is fine if daylight and depth pass. Stays off; y4p4.2 closed. |
-| §39.186-§39.187 | The single-loaded race on maple-court (48 single + 48 double + 3 cold): `single-2` wins at 13 fails, level with the earlier winners, but its plan has a 28.7 m double-loaded corridor on each storey, inherited from its seed. A 7.5 m wing still holds rooms-corridor-rooms. Stage 0 favours single by 7 fails (p = 0.067 on 16 plans, not 0.007 on 48 candidates). No finalist is a single-loaded plan, so the race does not price one; a zero from `diag_double_loaded.py` does not mean single-loaded. |
+| §39.186-§39.187 | The single-loaded race on maple-court (48 single + 48 double + 3 cold): `single-2` wins at 13 fails, level with the earlier winners, but its plan has a 28.7 m double-loaded corridor on each storey, inherited from its seed. A 7.5 m wing still holds rooms-corridor-rooms. Its corridor is the spine, along the shared edge of two abutting wings. Stage 0 favours single by 7 fails (p = 0.016 on 16 plans a side). No finalist is a single-loaded plan, so the race does not price one; a zero from `diag_double_loaded.py` does not mean single-loaded. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -202,7 +202,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (292 of them, 20043 lines)
+## Every section of DESIGN.md (292 of them, 20056 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -545,4 +545,4 @@ below are the most recent work.
 - §39.184 · 19737-19789 · Storey heights on harbor-house, capped: a continuation A/B, design and expectation (`homemaker-py-y4p4.2`)
 - §39.185 · 19790-19849 · Storey heights on harbor-house, capped: level on fails and score, and the owner's ruling that a lower storey is a fair saving (`homemaker-py-y4p4.2`)
 - §39.186 · 19850-19950 · Single-loaded wings on maple-court: a race, design and expectation (`homemaker-py-sp11`)
-- §39.187 · 19951-20043 · The single-loaded race's result: a single seed won, and it is double-loaded (`homemaker-py-sp11`)
+- §39.187 · 19951-20056 · The single-loaded race's result: a single seed won, and it is double-loaded (`homemaker-py-sp11`)

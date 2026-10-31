@@ -19954,8 +19954,9 @@ them, and possibly at a ruling on whether a buried corridor should cost more.
 `experiments/results/halving-maple-single/`). `single-2` wins at 13 fails, score
 6.81e-5, level with the two earlier maple winners on fails (§39.167, §39.173).
 All four finalists are from the single arm: `single-1`, `-2`, `-3` at 13 (three
-stair placements of ONE plan, 1/16) and `single-7` at 18 (plan 3/16). The race
-does not show that single-loaded plans win, because the plan that won is not
+stair placements of ONE outline, `H(O B V(B H(O B)) B)`) and `single-7` at 18
+(`H(O B V(B O) B)`). The first outline is not among the double arm's 16 plans.
+The race does not show that single-loaded plans win, because the plan that won is not
 one.
 
 | stage (budget) | double: n, median, best | single: n, median, best |
@@ -19971,18 +19972,21 @@ one.
 
 1. **Failed.** Expected the single arm under half the double arm's metres,
    longest under 10 m. Measured 345.7 m against 247.6 m, 13 seeds of 48 in each
-   arm, longest seed total 90.8 m. One plan is most of that: 1/16's three seeds
-   hold 255.3 m. Without them the single arm has 90.4 m, longest seed total
+   arm, longest seed total 90.8 m. One plan is most of that: the three seeds of
+   `H(O B V(B H(O B)) B)` hold 255.3 m. Without them the single arm has 90.4 m, longest seed total
    21.2 m, so on 15 plans of 16 the options did about what was expected.
 2. **Failed, in the direction §39.186 said would mean the deep wings were
    costing light.** Expected single 0-5 fails worse; it is 7 better at the
    median. Crinkliness 14.3 against 18.7 per seed, as predicted, but size 9.5
    against 11.5 and proportion 8.8 against 12.2, where the narrower wing was
    expected to cost. **Resolve it at the level of plans:** the 48 candidates are
-   16 plans x 3 stair placements, so they are not 48 observations. Candidate
-   level gives Mann-Whitney p = 0.007; plan medians (80 against 85.5, n = 16 a
-   side) give p = 0.067, and p = 0.109 without plan 1/16. A likely advantage,
-   not a resolved one. The arms are unpaired.
+   16 plans x 3 stair placements, so they are not 48 observations. (Seed numbers
+   are ranks, so a plan's seeds are not consecutive: group them by the outline
+   in `build-*.log`.) Candidate level gives Mann-Whitney p = 0.007; plan medians
+   (77.5 against 86, n = 16 a side) give p = 0.016, and 80 against 86, p = 0.027,
+   without `H(O B V(B H(O B)) B)`. So the arm's edge is not that one plan. It is
+   an edge of the plan set, not of paired plans, since the arms are unpaired and
+   their outlines mostly differ.
 3. **Met as written, not by the mechanism expected.** Four single candidates at
    stage 3 have a double-loaded corridor, but all four inherited it from their
    seed. Of the five that started clean, none had made one by stage 3. The
@@ -19999,12 +20003,21 @@ one.
 
 **Why a 7.5 m wing is double-loaded.** §39.186 assumed that capping the wing at
 about 7.5 m would leave no room for rooms-corridor-rooms. It leaves just enough.
-Plan 1/16's north range, in the winner, is rooms about 3.4 m deep, a 1.2 m
+The winning outline's north range, in the winner, is rooms about 3.4 m deep, a 1.2 m
 corridor, rooms 2.85 m deep, about 7.5 m in all and lit both sides; the seed has
 the same section. So the filter passes it. Stopping this by depth alone would
 need a tighter cap, perhaps near 6 m (not measured), which the briefs' big rooms
-may not survive. Whether the spine or `bridge_indoors` cut that strip was not
-established; it belongs to `homemaker-py-4872`.
+may not survive.
+
+**That corridor is the spine, along an edge the seeder called an outer one.**
+`H(O B V(B H(O B)) B)` has two wings touching: the last `B` (`rrr`) and the
+`B` of the inner `H(O B)` (`rrlrr`). The corridor `rrrl` is a full-width strip of
+wing `rrr` itself, so `spine` cut it and not `bridge_indoors`, which cuts inside a
+room. `--spine-at edge` forbids a corridor through a wing, but this one runs along
+wing `rrr`'s edge and that edge is the other wing's edge too: to the filter they
+are one 7.5 m block, to `spine` two wings. And `spine` ranks connection before
+daylight, and this strip joins both wings. What to do about it belongs to
+`homemaker-py-4872`.
 
 **The winner is half of what the owner asked for.** On plan
 (`winner.plan.svg`) it is a C round a court, and only its north range is
