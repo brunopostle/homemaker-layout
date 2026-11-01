@@ -1,0 +1,87 @@
+finished design: 21 fails, score 2.757e-07
+   size 5; not adjacent to c 3; access 3; level not connected 3; inaccessible usable space 2; not adjacent to o 2; level no outside space 1; too few stairs (1, min 2) 1; too many spaces 1
+0/rllrlr size
+   1 inaccessible usable space
+   1/rrlrl size
+   1/rrlrrr (tn) not adjacent to c
+   1/rrlrrr access
+   1/rrrrrrlll size
+   1/rrrrrrrll (lo1) not adjacent to o
+   1/rrrrrrrlr (n) not adjacent to c
+   1/rrrrrrrlr access
+   1/rrrrrrrlr size
+   1/rrrrrrrrr size
+   2 inaccessible usable space
+   2/rrlrrlr (gy1) not adjacent to o
+   2/rrrrrrlrl (tt) not adjacent to c
+   2/rrrrrrlrl access
+   level 0 not connected
+   level 1 no outside space
+   level 1 not connected
+   level 2 not connected
+   too few stairs (1, min 2)
+   too many spaces: ur3 (found 2, expected 1)
+  storey 0: pieces 4 -> 3, 1 cells changed
+  storey 1: pieces 2 -> 1, 1 cells changed
+  storey 2: pieces 2 -> 2, 0 cells changed
+  strips cut 2, routes abandoned 7
+joined, raw: 28 fails, score 2.062e-09
+   size 6; not adjacent to c 4; access 4; level not connected 3; crinkliness 2; inaccessible usable space 2; not adjacent to o 2; not adjacent to n 1; proportion 1; level no outside space 1; too few stairs (1, min 2) 1; too many spaces 1
+0/rllrlr size
+   0/rrrrrrllll crinkliness
+   0/rrrrrrllll size
+   1 inaccessible usable space
+   1/rrlrl size
+   1/rrlrrr (tn) not adjacent to c
+   1/rrlrrr access
+   1/rrrrrrllll crinkliness
+   1/rrrrrrlllr size
+   1/rrrrrrllr (tn) not adjacent to n
+   1/rrrrrrrll (lo1) not adjacent to o
+   1/rrrrrrrlr (n) not adjacent to c
+   1/rrrrrrrlr access
+   1/rrrrrrrlr size
+   1/rrrrrrrrr (n) not adjacent to c
+   1/rrrrrrrrr access
+   1/rrrrrrrrr size
+   2 inaccessible usable space
+   2/rrlrrlr (gy1) not adjacent to o
+   2/rrrrrrlrl (tt) not adjacent to c
+   2/rrrrrrlrl access
+   2/rrrrrrrllr proportion
+   level 0 not connected
+   level 1 no outside space
+   level 1 not connected
+   level 2 not connected
+   too few stairs (1, min 2)
+   too many spaces: ur3 (found 2, expected 1)
+joined, inner loop 2000: 27 fails, score 4.393e-09
+   size 5; not adjacent to c 4; access 4; level not connected 3; crinkliness 2; inaccessible usable space 2; not adjacent to o 2; not adjacent to n 1; proportion 1; level no outside space 1; too few stairs (1, min 2) 1; too many spaces 1
+0/rllrlr size
+   0/rrrrrrllll crinkliness
+   1 inaccessible usable space
+   1/rrlrl size
+   1/rrlrrr (tn) not adjacent to c
+   1/rrlrrr access
+   1/rrrrrrllll crinkliness
+   1/rrrrrrlllr size
+   1/rrrrrrllr (tn) not adjacent to n
+   1/rrrrrrrll (lo1) not adjacent to o
+   1/rrrrrrrlr (n) not adjacent to c
+   1/rrrrrrrlr access
+   1/rrrrrrrlr size
+   1/rrrrrrrrr (n) not adjacent to c
+   1/rrrrrrrrr access
+   1/rrrrrrrrr size
+   2 inaccessible usable space
+   2/rrlrrlr (gy1) not adjacent to o
+   2/rrrrrrlrl (tt) not adjacent to c
+   2/rrrrrrlrl access
+   2/rrrrrrrllr proportion
+   level 0 not connected
+   level 1 no outside space
+   level 1 not connected
+   level 2 not connected
+   too few stairs (1, min 2)
+   too many spaces: ur3 (found 2, expected 1)
+wrote experiments/results/join-finalists/maple-clean-1-bridged.dom

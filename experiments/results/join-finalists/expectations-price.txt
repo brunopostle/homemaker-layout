@@ -1,0 +1,17 @@
+homemaker-py-05k3, written 2026-11-01 before any repair was run on these designs.
+Finished finalists, as they stand:
+  harbor dealt-1 (guard race)    9 fails, 1.05e-3, 2 levels not connected
+  harbor nospine-1 (spine race)  9 fails, 1.27e-3, 2 levels not connected
+  maple clean-1                 21 fails, 2.76e-7, 3 levels not connected
+Expected of the repair plus 2000 inner-loop evaluations:
+  1. harbor designs end at 10-13 fails, each room crossed costing its size, gaining
+     back the 2 `not connected` and the `inaccessible usable space`;
+  2. at least one harbor design joins every storey; harbor's storeys may be the
+     opposite-walls case (section 39.159) and leave a route abandoned;
+  3. clean-1 ends at 19-24, still worse than joined-1's 14 at the same point,
+     because its 21 fails are not mostly connection;
+  4. no repair adds a stair fail.
+
+Result of the three: none joined every storey (23, 19, 27 fails; 1, 2, 3 levels still
+not connected). 1-3 wrong; 4 held. Before scanning every other 128k finalist, written
+2026-11-01: 0-2 of them join every storey, and those that do cost 5+ raw fails.

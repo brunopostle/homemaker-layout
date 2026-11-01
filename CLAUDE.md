@@ -477,7 +477,8 @@ Three consequences that bite:
   does, to show the pairs are clean (§39.181).
   `diag_join_clean9.py` joins a FINISHED design's storeys with the seeder's
   `bridge_indoors`, in about a minute, and `run_join_clean9.sh` continues from it
-  (§39.194-§39.195). Eight runs at 128k take about 5.6 h on the desktop.
+  (§39.194-§39.195). It has worked on one design of about twenty:
+  `diag_join_scan.py` says which, in seconds each (§39.197). Eight runs at 128k take about 5.6 h on the desktop.
 - `experiments/prefill_control.py` — give a new A/B the control arm of an
   earlier one instead of re-running it. It refuses unless every row it would
   copy was made at TODAY's objective stamp and search commit, and that refusal

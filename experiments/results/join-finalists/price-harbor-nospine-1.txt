@@ -1,0 +1,57 @@
+finished design: 9 fails, score 0.001272
+   size 5; level not connected 2; inaccessible usable space 1; too many spaces 1
+0/lrllllr size
+   0/lrlrrr size
+   0/lrrrr size
+   0/rlrlrlr size
+   1 inaccessible usable space
+   1/rrll size
+   level 0 not connected
+   level 1 not connected
+   too many spaces: ut1 (found 2, expected 1)
+  storey 0: pieces 7 -> 4, 3 cells changed
+  storey 1: pieces 6 -> 2, 6 cells changed
+  strips cut 9, routes abandoned 5
+joined, raw: 19 fails, score 1.138e-06
+   size 9; crinkliness 6; level not connected 2; not adjacent to n 1; too many spaces 1
+0/lrlllllll crinkliness
+   0/lrllllr size
+   0/lrlrrr size
+   0/lrrllrr crinkliness
+   0/lrrrr size
+   0/rlrlrllrl crinkliness
+   0/rlrlrlr size
+   1/rlrlrlllll crinkliness
+   1/rlrlrlllll size
+   1/rlrlrllrl crinkliness
+   1/rlrlrllrr size
+   1/rlrlrrrrlr (t) not adjacent to n
+   1/rrlll size
+   1/rrlrrrr size
+   1/rrrlr crinkliness
+   1/rrrlr size
+   level 0 not connected
+   level 1 not connected
+   too many spaces: ut1 (found 2, expected 1)
+joined, inner loop 2000: 19 fails, score 1.219e-06
+   size 9; crinkliness 6; level not connected 2; not adjacent to n 1; too many spaces 1
+0/lrlllllll crinkliness
+   0/lrllllr size
+   0/lrlrrr size
+   0/lrrllrr crinkliness
+   0/lrrrr size
+   0/rlrlrllrl crinkliness
+   0/rlrlrlr size
+   1/rlrlrlllll crinkliness
+   1/rlrlrlllll size
+   1/rlrlrllrl crinkliness
+   1/rlrlrllrr size
+   1/rlrlrrrrlr (t) not adjacent to n
+   1/rrlll size
+   1/rrlrrrr size
+   1/rrrlr crinkliness
+   1/rrrlr size
+   level 0 not connected
+   level 1 not connected
+   too many spaces: ut1 (found 2, expected 1)
+wrote experiments/results/join-finalists/harbor-nospine-1-bridged.dom

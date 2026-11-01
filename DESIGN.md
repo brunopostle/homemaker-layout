@@ -20502,3 +20502,45 @@ so it is no shaft and the move does not see it; the single-storey `E` is still u
 **Not measured:** whether a search keeps these children, and how often the move fires. On a design with
 no long shaft each draw is a wasted child, so its weight matters if it ever goes on by default.
 `flag_ab.py splitstair` is the A/B.
+
+### 39.197 Owner's ruling on the single-storey stair, the repair priced elsewhere, and the race with the split on (`homemaker-py-yd6t`, `homemaker-py-05k3`)
+
+The owner, 2026-11-01: **"A stair on a single storey makes no sense, but may be necessary to allow a
+design to go from one to two storeys. Switch it on for the next race."** So nothing changes in the
+scorer or the search: an `E` that climbs nothing is a stepping stone, and is not relabelled or charged.
+A finished design holding one still has a cell that makes no sense, so double-4's 26.5 m ground-floor
+`rlrr` is a flaw to read in the result, and §39.196's proposal to relabel it `C` is withdrawn. The
+"switch it on" is for the race and leaves `--split-stair` default off.
+
+**The repair does not generalise (`homemaker-py-05k3`).** That bead was to be the next race: repair other
+finalists as §39.194 did `clean-9`, then search. Priced first, as §39.194's was, with expectations written
+in `experiments/results/join-finalists/expectations-price.txt`:
+
+| finalist | before: fails, levels not connected | joined and 2000 inner-loop evaluations |
+|---|---|---|
+| harbor-house `dealt-1` (guard race) | 9, 2 | 23, 1 |
+| harbor-house `nospine-1` (spine race) | 9, 2 | 19, 2 |
+| maple-court `clean-1` | 21, 3 | 27, 3 |
+
+Expectations 1-3 failed: I expected 10-13 on harbor-house with a storey-complete join on at least one,
+and 19-24 on `clean-1`. Only the fourth, no new stair fail, held. `experiments/diag_join_scan.py` then ran
+the raw repair on 28 rows of 128k finalists (`scan.tsv`): 20 had a level not connected, and **only
+`clean-9` came out with every storey joined**. The others joined at most two levels and still
+had a level apart, at up to 31 fails' cost: `spine-8` joined two levels for 4 fails, `nospine-11` one for 4. (Two `halving-connect-w1` rows repeat `halving-maple-spine`'s
+numbers and may be the same runs.) `clean-9`'s two-fail price in §39.194 was the exception. A search from
+a part-joined design has not been measured; I have closed the bead on this: the guard does not protect a
+design with a level apart, so a search is free to undo the bridge.
+
+**So the race is a different one, `experiments/run_split_stair_race.sh`.** The finalists that
+might have seeded 05k3 have stairs of 8 m at most (five checked), so the move would have seen nothing there. It runs `double-1..4` from `single-2`,
+the same names, seed and rng as §39.195's double arm, so they pair at stage 0, and `best-1..4` from
+`joined-1`, where the move is idle. Its six expectations are in the script. Each field has its own move
+log, which answers what §39.196 could not: whether a search keeps these children.
+
+Two facts from a 4k run of each with the flag on. It fires: a real split on `rrrlr` was kept. And it
+costs when idle: 10 of 146 children were `split_stair`, 8 of those `noop`, and a noop still spends an
+inner loop (`used` 80) on what is mostly a duplicate. `--evolve-args --split-stair` is refused by argparse
+as a missing value; it has to be `--evolve-args=--split-stair`, as the script writes it. A 240 s replay of
+`double-1` with the flag off reached 4440 evaluations with no new best, which the control's log also shows
+(its next is at 11080): consistent with a clean pair, and not a proof of one.
+

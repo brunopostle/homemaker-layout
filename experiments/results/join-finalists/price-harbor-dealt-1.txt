@@ -1,0 +1,69 @@
+finished design: 9 fails, score 0.00105
+   size 3; level not connected 2; not adjacent to c 1; access 1; inaccessible usable space 1; crinkliness 1
+0/lrlrlrr (n) not adjacent to c
+   0/lrlrlrr access
+   0/lrlrlrr size
+   0/lrrr size
+   1 inaccessible usable space
+   1/rlrlrlll size
+   1/rlrlrrllr crinkliness
+   level 0 not connected
+   level 1 not connected
+  storey 0: pieces 6 -> 1, 9 cells changed
+  storey 1: pieces 5 -> 2, 5 cells changed
+  strips cut 14, routes abandoned 4
+joined, raw: 27 fails, score 3.143e-09
+   crinkliness 12; size 10; proportion 4; level not connected 1
+0/lrllrll size
+   0/lrllrlr crinkliness
+   0/lrlrllr crinkliness
+   0/lrlrlrr size
+   0/lrlrrll size
+   0/lrlrrlr crinkliness
+   0/lrrr size
+   0/rlrlrllll crinkliness
+   0/rlrlrlllr proportion
+   0/rlrlrlllr size
+   0/rlrlrllrl crinkliness
+   0/rlrlrrrllr crinkliness
+   0/rlrlrrrllr proportion
+   0/rlrlrrrllr size
+   0/rrlrr crinkliness
+   0/rrrl size
+   1/lrllrlr crinkliness
+   1/lrlrlll size
+   1/lrlrllr crinkliness
+   1/lrlrllr proportion
+   1/rlrlrllll crinkliness
+   1/rlrlrlllr proportion
+   1/rlrlrlllr size
+   1/rlrlrllrl crinkliness
+   1/rlrlrrllr crinkliness
+   1/rrlrl size
+   level 1 not connected
+joined, inner loop 2000: 23 fails, score 5.389e-08
+   crinkliness 12; size 6; proportion 4; level not connected 1
+0/lrllrlr crinkliness
+   0/lrlrllr crinkliness
+   0/lrlrlrr size
+   0/lrlrrll size
+   0/lrlrrlr crinkliness
+   0/lrrr size
+   0/rlrlrllll crinkliness
+   0/rlrlrlllr proportion
+   0/rlrlrlllr size
+   0/rlrlrllrl crinkliness
+   0/rlrlrrrllr crinkliness
+   0/rlrlrrrllr proportion
+   0/rlrlrrrllr size
+   0/rrlrr crinkliness
+   1/lrllrlr crinkliness
+   1/lrlrllr crinkliness
+   1/lrlrllr proportion
+   1/rlrlrllll crinkliness
+   1/rlrlrlllr proportion
+   1/rlrlrlllr size
+   1/rlrlrllrl crinkliness
+   1/rlrlrrllr crinkliness
+   level 1 not connected
+wrote experiments/results/join-finalists/harbor-dealt-1-bridged.dom
