@@ -702,6 +702,9 @@ def search(
     # homemaker-py-hjc5: the three-cell pivot, the same way
     if os.environ.get("HOMEMAKER_PIVOT3", "") != "1":
         mutation_weights["pivot3"] = 0.0
+    # homemaker-py-8wgz: swaps between neighbouring cells, the same way
+    if os.environ.get("HOMEMAKER_SWAP_CELLS", "") != "1":
+        mutation_weights["swap_cells"] = 0.0
     # the height move belongs to a search that tunes heights, and to no other
     if not (inner_kw or {}).get("heights"):
         mutation_weights["storey_height"] = 0.0

@@ -20233,3 +20233,53 @@ worse than their parent. Whether a search keeps such children is a question for 
 **Expectation, before any A/B:** null on fails, as §39.171 was for the pivot. Its better case
 is not the fail count but reach: §39.188 found no route from rooms-corridor-rooms to a single
 row, and this is a new one-step move between plans. Whether it helps there is untested.
+
+### 39.191 Swapping neighbouring cells: rooms for rooms is already the scorer's move (`homemaker-py-8wgz`)
+
+Owner, 2026-10-31: use the adjacency graph to find two neighbouring cells and swap them,
+rather than swapping random cells; then three, and so on. Today's `mutate_swap` swaps a cut's
+two sides, so whole subtrees, and `mutate_level_retype` swaps across storeys. No move swaps two
+cells on a storey, random or not, unless they are siblings, so this is a new move rather than a
+narrower one.
+
+**Measured first** (`experiments/diag_swap_cells.py`, §39.154's reading): `undone` means the
+scorer's relabelling returned the child to the parent's labels. Twelve `4428262+orth` designs,
+plus six mid-race designs from the clean-seed race's 8k stage:
+
+| what is swapped | undone | what survivors do |
+|---|---|---|
+| two neighbouring rooms | 100 of 104 (96%) | 4 survive, none better |
+| two rooms far apart, the control | 117 of 126 (93%) | 9 survive, none better |
+| neighbours of different kinds, or a mixed 3 or 4 | 0 | mostly worse, a few better |
+| far apart, different kinds, the control | 0 | mostly worse, a few better |
+
+So a swap between rooms is what the scorer does already, near or far, and neighbours add nothing
+there. The move is only a move where kinds differ: a room with `C` or `O`, or `C` with `O`.
+
+**Does being adjacent help there?** Not resolved, and small. Before any re-tune:
+
+| | fails added, median | better / draws |
+|---|---|---|
+| Finished designs, far apart, mixed (4 programmes) | 2, 5, 4.5, 4 | 3 / 114 |
+| Finished, neighbours room-`C` | 2, 5, 2.5, 5 | 0 / 40 |
+| Finished, neighbours room-`O` | 2, 6.5, 6, 5 | 0 / 52 |
+| Finished, mixed 3 / mixed 4 | 2-4.5 / 3-6 | 4 / 128, 1 / 134 |
+| Mid-race, far apart, mixed | 6 | 3 / 60 |
+| Mid-race, neighbours room-`C` | 3 | 4 / 24 |
+| Mid-race, neighbours room-`O` | 13 | 0 / 32 |
+| Mid-race, mixed 3 / mixed 4 | 8 / 10.5 | 7 / 87, 3 / 96 |
+
+Neighbouring room-`C` is the one reading that looks better than random, and it rests on 4 of 24 on
+one programme. Neighbouring room-`O` is worse. §39.75 says the finished designs are the wrong state
+to judge a move in, and neither table is a search. A short retune was run on samples, with too few
+per arm and without the search's own overrides, so it is left out.
+
+**Built as `operators.mutate_swap_cells`, default off** (`--swap-cells` / `HOMEMAKER_SWAP_CELLS=1`,
+a `SEARCH_KNOBS` entry, `flag_ab.py swapcells`). It draws two cells at 4/7, three at 2/7, four at 1/7,
+connected in `geometry.leaf_graph`, always starting from a cell that is not a room, so that every set
+holds more than one kind. All labels move one place on. No wall moves. Stair cells are left out,
+because a stair is the same cell on each storey. Decided here rather than asked: dropping all-room
+sets departs from the literal idea, on the measurement above. Four cells rather than "etc": mixed 4
+already adds more fails than mixed 3, and more would approach `ruin_recreate`.
+
+**Expectation, before any A/B:** null on fails, like most single-operator A/Bs.

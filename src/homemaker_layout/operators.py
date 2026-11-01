@@ -217,6 +217,62 @@ def mutate_swap(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"swap {li}/{n.id or 'root'}"
 
 
+def _adjacent_cells(lvl: dom.Node, start: dom.Node, k: int,
+                    rng: np.random.Generator) -> "list[dom.Node]":
+    """``k`` cells of storey ``lvl`` connected in its adjacency graph, grown at
+    random from ``start``, in the order they were reached; fewer if it runs out.
+    A stair cell is never one: a stair is the same cell on each storey it climbs."""
+    from . import geometry
+
+    graph = geometry.leaf_graph(lvl)
+    picked = [start]
+    while len(picked) < k:
+        fringe = sorted({m for c in picked for m in graph.neighbors(c)
+                         if m not in picked and m.type != dom.GENERIC_STAIR},
+                        key=lambda m: m.id)
+        if not fringe:
+            break
+        picked.append(_pick(rng, fringe))
+    return picked
+
+
+def mutate_swap_cells(root: dom.Node, rng: np.random.Generator,
+                      types: list[str], base_p: float = 1.0,
+                      k: "int | None" = None) -> tuple[dom.Node, str]:
+    """Swap the labels of two neighbouring cells, or cycle those of three or four.
+
+    Owner, 2026-10-31. Neighbours come from the storey's adjacency graph
+    (`geometry.leaf_graph`), so walls wide enough for a door. No wall moves.
+    `mutate_swap` swaps a cut's two sides and `mutate_level_retype` swaps across
+    storeys, so this is the only same-storey move between cells that need not be
+    siblings. Two cells swap with probability 4/7, three cycle with 2/7, four
+    with 1/7; ``k`` fixes it. Every label moves one place on along the order the
+    cells were reached, which in a star can take a label two walls away.
+
+    The set always holds more than one KIND of cell (room, `C`, `O`, `S`), so it
+    starts from a cell that is not a room. Rooms alone are the scorer's own
+    relabelling's move: it undid 96% of two-room swaps (§39.191).
+    """
+    child = _finalise(copy.deepcopy(root))
+    lvls = dom.levels(child)
+    if k is None:
+        k = int(rng.choice([2, 3, 4], p=[4 / 7, 2 / 7, 1 / 7]))
+    cands = [(li, lf) for li, lf in _leaves(child)
+             if lf.type != dom.GENERIC_STAIR and _kind(lf.type) != "room"]
+    if not cands:
+        return child, "swap_cells noop"
+    for _ in range(8):      # a draw may reach only cells of its start's kind
+        li, start = _pick_weighted_by_storey(rng, cands, base_p)
+        cells = _adjacent_cells(lvls[li], start, k, rng)
+        names = [c.type for c in cells]
+        if len(cells) == k and len({_kind(t) for t in names}) > 1:
+            for c, t in zip(cells, names[-1:] + names[:-1]):
+                c.type = t
+            return (_finalise(child),
+                    f"swap_cells {li}/" + ",".join(c.id or "root" for c in cells))
+    return child, "swap_cells noop"
+
+
 def mutate_rotate(root: dom.Node, rng: np.random.Generator,
                   types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
     # re-orient a live cut; live rotation = node without a below link (base
@@ -3603,6 +3659,7 @@ MUTATIONS = {
     "undivide": mutate_undivide,
     "retype": mutate_retype,
     "swap": mutate_swap,
+    "swap_cells": mutate_swap_cells,
     "rotate": mutate_rotate,
     "pivot": mutate_pivot,
     "pivot3": mutate_pivot3,
@@ -3633,7 +3690,7 @@ MUTATIONS = {
 # base storey for these via ``base_p`` (DESIGN.md §11.3). The repair op
 # ``place_missing`` is deliberately excluded — a missing base room must still be
 # repairable — as are the core_* ops, which exist to MAINTAIN the core.
-_BASE_P_OPS = ("divide", "undivide", "retype", "swap", "rotate", "pivot", "pivot3")
+_BASE_P_OPS = ("divide", "undivide", "retype", "swap", "swap_cells", "rotate", "pivot", "pivot3")
 
 
 def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
