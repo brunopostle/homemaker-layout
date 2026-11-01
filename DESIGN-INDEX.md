@@ -111,6 +111,7 @@ index is how to get from a question to the section that answers it.
 | §39.190 | Owner's sketch: the pivot on three cells, `A\|(B/C)` to `(A\|B)/C`. Built as `mutate_pivot3`, default off, unraced. A large step: child median 0.1-3% of parent, 5-9 more fails, 374 options on twelve designs. |
 | §39.191 | Swapping neighbouring cells: the scorer undoes 96% of two-room swaps near and 93% far, so it is only a move between kinds. Neighbouring room-`C` looks better than random mid-race (4 of 24 against 3 of 60), room-`O` worse. Built as `mutate_swap_cells`, default off, unraced. |
 | §39.192 | The clean-seed race: `clean-9` wins at 12 fails with a single-loaded north range on all storeys, the first in these races, and no long double-loaded corridor. Three of the twelve are `level N not connected`, so it is not yet a price. Expectations 2, 3, 4 and 6 failed. |
+| §39.193 | Owner's ruling: a long stair is doubling as a corridor, so split it into a stair and a circulation cell on every level. No cap. Not built. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -160,6 +161,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | `aim` (undivide aimed at failing cells) is the default search | §39.156 |
 | The pivot move keeps each quadrant's plan AREA, not its walls: deterministic, a jog moves to the other axis | §39.162 |
 | The double-loaded penalty is dropped "for now": branch `srl0`, unmerged. A 28.7 m stair cell "probably isn't any good": a doubt, no bound ruled | §39.189 |
+| A long stair is doubling as a corridor: split it into a stair and a circulation cell at every level, rather than capping its length | §39.193 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -208,7 +210,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (297 of them, 20332 lines)
+## Every section of DESIGN.md (298 of them, 20347 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -556,4 +558,5 @@ below are the most recent work.
 - §39.189 · 20149-20196 · Owner's answers: penalty dropped, a corridor-long stair doubted, clean seeds raced
 - §39.190 · 20197-20236 · Pivot on three cells: moving the T where they meet (`homemaker-py-hjc5`)
 - §39.191 · 20237-20286 · Swapping neighbouring cells: rooms for rooms is already the scorer's move (`homemaker-py-8wgz`)
-- §39.192 · 20287-20332 · The clean-seed race: a single-loaded north range at 12 fails, in a building that is not connected (`homemaker-py-4872`)
+- §39.192 · 20287-20333 · The clean-seed race: a single-loaded north range at 12 fails, in a building that is not connected (`homemaker-py-4872`)
+- §39.193 · 20334-20347 · Owner's ruling on the long stair: split it, do not cap it (`homemaker-py-yd6t`)

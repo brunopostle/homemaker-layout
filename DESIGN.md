@@ -20330,3 +20330,18 @@ they did so with no penalty and no guard. Next is joining `clean-9`'s wings, by 
 
 The moves in §39.190 and §39.191 were merged after this race ended, so the search commit and config
 hash move: this race and §39.187's stop being a control for anything run later.
+
+### 39.193 Owner's ruling on the long stair: split it, do not cap it (`homemaker-py-yd6t`)
+
+Owner, 2026-11-01: "A long stair is long because it is doubling as a corridor horizontal
+circulation, the solution would be to split such a long stair into a stair and circulation cell
+at every level."
+
+So §39.192's proposal, a length cap in `mutate_stair`, is withdrawn. A cap would stop the label
+and leave the corridor's stair nowhere; the ruling keeps both uses and gives each its own cell, with
+the cut on every storey the shaft climbs so that the shaft stays one cell on each (§39.72). Not
+built. `mutate_core_divide` already divides a shaft's cell at one path on every storey with the left
+part staying the stair, so it is where to start. Whether it types the other part circulation, and how
+a move would aim at long shafts, is unchecked. No length has been ruled for "long".
+
+Next session: join `clean-9`'s wings (§39.192), which comes first.
