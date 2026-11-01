@@ -1,0 +1,12 @@
+maple-court: 8 candidates, budget 128000 rising x2 to 128000, ranked on total fails, 8 slots; at most 4 stages
+  stage 0 (128000): double-1: 4 structural, 13 fails, score 6.89e-05, 19366s
+  stage 0 (128000): double-4: 4 structural, 13 fails, score 6.92e-05, 19560s
+  stage 0 (128000): double-2: 4 structural, 13 fails, score 6.88e-05, 19766s
+  stage 0 (128000): double-3: 4 structural, 13 fails, score 6.88e-05, 19842s
+  stage 0 (128000): joined-2: 5 structural, 13 fails, score 5.72e-05, 19914s
+  stage 0 (128000): joined-4: 5 structural, 14 fails, score 2.96e-05, 20134s
+  stage 0 (128000): joined-3: 5 structural, 13 fails, score 5.79e-05, 20289s
+  stage 0 (128000): joined-1: 5 structural, 11 fails, score 0.000237, 20301s
+
+winner joined-1: 5 structural, 11 fails, score 0.0002371 (stage 0, budget 128000)
+wrote experiments/results/join-clean9/winner.dom
