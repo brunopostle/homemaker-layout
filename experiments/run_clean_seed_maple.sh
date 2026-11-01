@@ -72,7 +72,7 @@ python experiments/diag_halving_carry.py $R/winner.dom --programme $P \
     --seeds-dir $R --cold "${STAMP%% *}" > $R/carry.txt 2>&1
 python experiments/diag_double_loaded.py $R/winner.dom > $R/double-loaded-winner.txt 2>&1
 python experiments/diag_double_loaded.py --summary $W/s*/*/out.dom > $R/double-loaded-stages.txt 2>&1
-last=$(ls -d $W/s* | sort -V | tail -1)
+last=$(ls -d $W/s[0-9]* | sort -V | tail -1)
 python experiments/diag_long_stairs.py --over 8 $last/*/out.dom > $R/long-stairs-finalists.txt 2>&1
 for f in $last/*/out.dom; do cp -f "$f" "$R/final-$(basename "$(dirname "$f")").dom"; done
 grep -l Traceback $R/*.txt $R/*.log && echo "!!! a step raised: read it before the results"
