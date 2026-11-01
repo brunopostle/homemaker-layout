@@ -20389,3 +20389,54 @@ route abandoned. Why is unmeasured, and this is one design.
 
 What is not known is whether a search keeps this plan and recovers the six. That takes a continuation
 from the joined design, with the guard on by default now that every storey is connected.
+
+### 39.195 A search from the joined design: one run reaches 11 fails, connected and single-loaded, and the arms' medians are level (`homemaker-py-73r9`)
+
+`experiments/run_join_clean9.sh`: four runs from §39.194's joined `clean-9` and four from `single-2`,
+128k and the finishing polish, at `c73dfde+orth`, search `1f5cf6a`, 09:00 to 14:38. Results in
+`experiments/results/join-clean9/`. Four rng seeds on one design each are replicates of the search on
+that design and not a sample of plans, so no test was run on them.
+
+| run | fails | score | fail families |
+|---|---|---|---|
+| `joined-1` | **11** | 2.4e-4 | size 6, crinkliness 5 |
+| `joined-2` | 13 | 5.7e-5 | size 6, crinkliness 5, not adjacent 2 |
+| `joined-3` | 13 | 5.8e-5 | crinkliness 5, size 5, not adjacent 2, proportion 1 |
+| `joined-4` | 14 | 3.0e-5 | crinkliness 5, size 5, not adjacent 4 |
+| `double-1` to `-4` | 13, 13, 13, 13 | 6.9e-5 | size 5, crinkliness 3, not adjacent 2, proportion 1, `too many spaces: ut1`, and `level 1 no outside space` or (`double-4`) `covered outside above ground` |
+
+**`joined-1` is the lowest fail count and the highest score in any maple-court race in
+`experiments/results/`, and it is connected.** Both adjacency fails it started with are gone and no
+programme-level fail remains: nothing is left but `size` and `crinkliness`. It is one run in four. The
+other three end at 13, 13 and 14, so the arms' medians are level at 13, and this does not show that
+the plan beats the double-loaded one. It shows the plan can get there, and that search has
+somewhere to go from it: `double-1` to `-4` moved no fail count in 128k.
+
+**On `joined-1`'s plan** the north range is still single-loaded on all storeys, with rooms on the street
+side and a corridor on the court side. The west wing keeps the strip from §39.194. The double-loaded
+reading is the 6.8 m stair `rlrllrl` on two storeys and no stair is longer, against `double`'s 28.7 m
+stair and 86.2 m of double-loaded corridor. What is still wrong with it: `ws1` the workshop is down to
+2.5 m2 and `lo1` the lounge to 7.5 m2, those being two of the six `size` fails, and storey 2 has a
+circulation cell of 43 m2 and storey 1 one of 19 m2, which no fail mentions.
+
+**The repair's crinkliness did not go.** Every joined run ends with 5, as it started, and in all four
+three of them are the column `rlrllrrlll`, a 5.9 m2 circulation cell on each storey in `joined-1`. Why a search
+does not clear them is not measured here; §39.68 is the standing history of this family.
+
+**Against the script's expectations:**
+
+1. No joined run loses a storey: held, 0 on all eight runs.
+2. Joined median 10-12: **failed**, 13. `crinkliness` stayed as expected, but `size` mostly stayed too.
+3. Double median 11-13: held only at the top of the range, with no movement at all.
+4. Medians within 2: held, level.
+5. At least 3 of 4 joined stay single-loaded: held, 4 of 4. Each run's only reading is the 6.8 m stair.
+6. Double keeps a stair over 15 m, joined does not: held.
+
+**A correction on cost.** §39.194's estimate of 3 h was read from §39.192's last stage, which had two
+runs on the box. Eight runs on 4 cores took 5 h 38 m, with the main search ending at about 3 h 45.
+
+**A stage's `log.txt` restarts its evaluation counter in the polish**, and it prints only improvements, so
+`[200 evals]` late in a run means the polish has begun. A progress reading here nearly went wrong on that.
+
+Repair then continue is cheap enough to apply to any finalist with an unjoined storey. Filed as a bead,
+to try beyond this one design.
