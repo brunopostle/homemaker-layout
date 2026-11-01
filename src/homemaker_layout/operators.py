@@ -217,6 +217,62 @@ def mutate_swap(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"swap {li}/{n.id or 'root'}"
 
 
+def _adjacent_cells(lvl: dom.Node, start: dom.Node, k: int,
+                    rng: np.random.Generator) -> "list[dom.Node]":
+    """``k`` cells of storey ``lvl`` connected in its adjacency graph, grown at
+    random from ``start``, in the order they were reached; fewer if it runs out.
+    A stair cell is never one: a stair is the same cell on each storey it climbs."""
+    from . import geometry
+
+    graph = geometry.leaf_graph(lvl)
+    picked = [start]
+    while len(picked) < k:
+        fringe = sorted({m for c in picked for m in graph.neighbors(c)
+                         if m not in picked and m.type != dom.GENERIC_STAIR},
+                        key=lambda m: m.id)
+        if not fringe:
+            break
+        picked.append(_pick(rng, fringe))
+    return picked
+
+
+def mutate_swap_cells(root: dom.Node, rng: np.random.Generator,
+                      types: list[str], base_p: float = 1.0,
+                      k: "int | None" = None) -> tuple[dom.Node, str]:
+    """Swap the labels of two neighbouring cells, or cycle those of three or four.
+
+    Owner, 2026-10-31. Neighbours come from the storey's adjacency graph
+    (`geometry.leaf_graph`), so walls wide enough for a door. No wall moves.
+    `mutate_swap` swaps a cut's two sides and `mutate_level_retype` swaps across
+    storeys, so this is the only same-storey move between cells that need not be
+    siblings. Two cells swap with probability 4/7, three cycle with 2/7, four
+    with 1/7; ``k`` fixes it. Every label moves one place on along the order the
+    cells were reached, which in a star can take a label two walls away.
+
+    The set always holds more than one KIND of cell (room, `C`, `O`, `S`), so it
+    starts from a cell that is not a room. Rooms alone are the scorer's own
+    relabelling's move: it undid 96% of two-room swaps (§39.191).
+    """
+    child = _finalise(copy.deepcopy(root))
+    lvls = dom.levels(child)
+    if k is None:
+        k = int(rng.choice([2, 3, 4], p=[4 / 7, 2 / 7, 1 / 7]))
+    cands = [(li, lf) for li, lf in _leaves(child)
+             if lf.type != dom.GENERIC_STAIR and _kind(lf.type) != "room"]
+    if not cands:
+        return child, "swap_cells noop"
+    for _ in range(8):      # a draw may reach only cells of its start's kind
+        li, start = _pick_weighted_by_storey(rng, cands, base_p)
+        cells = _adjacent_cells(lvls[li], start, k, rng)
+        names = [c.type for c in cells]
+        if len(cells) == k and len({_kind(t) for t in names}) > 1:
+            for c, t in zip(cells, names[-1:] + names[:-1]):
+                c.type = t
+            return (_finalise(child),
+                    f"swap_cells {li}/" + ",".join(c.id or "root" for c in cells))
+    return child, "swap_cells noop"
+
+
 def mutate_rotate(root: dom.Node, rng: np.random.Generator,
                   types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
     # re-orient a live cut; live rotation = node without a below link (base
@@ -341,6 +397,114 @@ def _pivot(lvls: "list[dom.Node]", li: int, n: dom.Node) -> None:
         if a is not None and a.divided:
             for hp in ("", "l", "r"):
                 a.by_id(hp).division = list(n.by_id(hp).division)
+    geometry.clear_cache()
+
+
+def _pivot3_options(lvls: "list[dom.Node]", li: int, n: dom.Node) -> "list[tuple[str, str]]":
+    """The ways ``mutate_pivot3`` can act on ``n``: (the half that is cut, the
+    part of it that comes to span the whole cell). ``n`` is live and cut in two,
+    with that half cut across: three cells meeting at a T. On every storey
+    above, the counterpart must be a single cell or hold that same half's cut:
+    a storey that keeps only the two halves has no cell to be once the first
+    cut runs the other way."""
+    if n.below is not None or not n.divided:
+        return []
+    above = [a for lvl in lvls[li + 1:] if (a := lvl.by_id(n.id)) is not None and a.divided]
+    out = []
+    for side, half in (("l", n.left), ("r", n.right)):
+        if half.divided and half.rotation % 2 == 1 and all(a.by_id(side).divided for a in above):
+            out += [(side, "l"), (side, "r")]
+    return out
+
+
+def mutate_pivot3(root: dom.Node, rng: np.random.Generator,
+                  types: list[str], base_p: float = 1.0) -> tuple[dom.Node, str]:
+    """Move the T where three cells meet: ``A|(B/C)`` becomes ``(A|B)/C``.
+
+    Owner's sketch, 2026-10-31: ``mutate_pivot``'s idea on three cells. A cell
+    cut in two, with one half cut across, is one long cell beside two short
+    ones. Rewritten, one of the short cells becomes the long one, across the
+    whole cell, and the old long cell shares the rest with the other short one.
+    The two that stay together keep their shared wall's direction; the third
+    pair still meet, on a wall that has turned.
+
+    It is not ``mutate_reassociate``, the Wong-Liu move, which regroups two
+    PARALLEL cuts; these are perpendicular. As in the pivot, the cuts keep every
+    cell's plan AREA and not its walls, what is inside each cell is drawn the
+    same way, and each storey above whose counterpart holds the same cut gets
+    the same relocation, so stair shafts stay aligned. The cell and which short
+    cell spans are the only random choices.
+    """
+    child = copy.deepcopy(root)
+    lvls = dom.levels(child)
+    cands = [(li, n) for li, n in _owned_branches(child) if _pivot3_options(lvls, li, n)]
+    if not cands:
+        return _finalise(child), "pivot3 noop"
+    li, n = _pick_weighted_by_storey(rng, cands, base_p)
+    side, span = _pick(rng, _pivot3_options(lvls, li, n))
+    _pivot3(lvls, li, n, side, span)
+    return _finalise(child), f"pivot3 {li}/{n.id or 'root'} {side}{span}"
+
+
+def _pivot3(lvls: "list[dom.Node]", li: int, n: dom.Node, side: str, span: str) -> None:
+    """`mutate_pivot3` in place: half ``side`` of ``n`` is cut, and its child
+    ``span`` comes to span ``n``. Corners and turns as in `_pivot`."""
+    from . import geometry
+
+    dom.link(lvls[0])
+    geometry.clear_cache()
+    half = n.by_id(side)
+    other = "r" if side == "l" else "l"
+    other_span = "r" if span == "l" else "l"
+    t = half.rotation
+    side_corners = {0, 3} if side == "l" else {1, 2}
+
+    def sides(turn: int, corners: "set[int]") -> "tuple[int, int]":
+        lo = ({turn % 4, (turn + 3) % 4} & corners).pop()
+        hi = ({(turn + 1) % 4, (turn + 2) % 4} & corners).pop()
+        return lo, hi
+
+    lo, hi = sides(t, side_corners)
+    at = {"l": lo, "r": hi}
+    span_corner, rest_corner = at[span], at[other_span]
+
+    # n turns a quarter round: a left half on corners {0, 1}, a right on {2, 3}.
+    # The spanning cell takes the half with its own corner; the old half's node
+    # becomes the rest, cut a quarter round from n, so at turn 2 in n's frame.
+    span_is_left = span_corner in {0, 1}
+    rest = {2, 3} if span_is_left else {0, 1}
+    rlo = sides(2, rest)[0]
+
+    areas = {"span": geometry.area(half.by_id(span)),
+             "rest": geometry.area(half.by_id(other_span)),
+             "solo": geometry.area(n.by_id(other))}
+
+    for lvl in lvls[li:]:
+        a = lvl.by_id(n.id)
+        if a is None or not a.divided:
+            continue
+        solo, h = a.by_id(other), a.by_id(side)
+        spanning, resting = h.by_id(span), h.by_id(other_span)
+        a.rotation = (a.rotation + 1) % 4
+        h.rotation = 1
+        spanning.rotation = (spanning.rotation + t - 1) % 4
+        resting.rotation = (resting.rotation + t - 2) % 4
+        solo.rotation = (solo.rotation - 2) % 4
+        a.left, a.right = (spanning, h) if span_is_left else (h, spanning)
+        h.left = resting if rlo == rest_corner else solo
+        h.right = solo if rlo == rest_corner else resting
+
+    dom.link(lvls[0])
+    h = n.left if not span_is_left else n.right
+    left_of_h = "rest" if rlo == rest_corner else "solo"
+    _cut_for_area(n, areas["span"] if span_is_left else areas["rest"] + areas["solo"])
+    _cut_for_area(h, areas[left_of_h])
+    hp = "r" if span_is_left else "l"
+    for lvl in lvls[li + 1:]:
+        a = lvl.by_id(n.id)
+        if a is not None and a.divided:
+            a.division = list(n.division)
+            a.by_id(hp).division = list(h.division)
     geometry.clear_cache()
 
 
@@ -3495,8 +3659,10 @@ MUTATIONS = {
     "undivide": mutate_undivide,
     "retype": mutate_retype,
     "swap": mutate_swap,
+    "swap_cells": mutate_swap_cells,
     "rotate": mutate_rotate,
     "pivot": mutate_pivot,
+    "pivot3": mutate_pivot3,
     "reassociate": mutate_reassociate,
     "core_divide": mutate_core_divide,
     "core_undivide": mutate_core_undivide,
@@ -3524,7 +3690,7 @@ MUTATIONS = {
 # base storey for these via ``base_p`` (DESIGN.md §11.3). The repair op
 # ``place_missing`` is deliberately excluded — a missing base room must still be
 # repairable — as are the core_* ops, which exist to MAINTAIN the core.
-_BASE_P_OPS = ("divide", "undivide", "retype", "swap", "rotate", "pivot")
+_BASE_P_OPS = ("divide", "undivide", "retype", "swap", "swap_cells", "rotate", "pivot", "pivot3")
 
 
 def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],

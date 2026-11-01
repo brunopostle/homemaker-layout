@@ -20193,3 +20193,93 @@ shared. Written before it ran:
 
 A finalist reading 0 double-loaded is not yet a single-loaded plan: `single-7` read 0 with no
 south corridor at all (§39.187). It has to be read on the plan.
+
+### 39.190 Pivot on three cells: moving the T where they meet (`homemaker-py-hjc5`)
+
+Owner's sketch, 2026-10-31: the pivot's idea on three cells. `A|(B/C)` becomes `(A|B)/C`:
+one long cell beside two short ones, rewritten so that a short cell is the long one. Neither
+existing move does it. `mutate_reassociate` regroups two PARALLEL cuts, and `mutate_pivot`
+needs both halves cut.
+
+**Built as `operators.mutate_pivot3`, default off** (`--pivot3` / `HOMEMAKER_PIVOT3=1`, a
+`SEARCH_KNOBS` entry, `flag_ab.py pivot3`). Decided by following §39.162, since the sketch
+does not say: the cuts keep every cell's plan AREA, what is inside each cell is drawn the same
+way, and a storey above with the same cut gets the same relocation. A storey above keeping
+only the first cut refuses the move. Either short cell may span, so a T offers two children,
+and the sketch's reverse is the same move. A half-cut cell also offers it when the other half
+is cut too, treating that half as one cell. So every pivot grid has this move as well.
+
+**Tested** (`tests/test_pivot3.py`): the sketch itself on all four cases, read from the plan;
+the move undoing itself; inner cuts kept; areas on `+orth` and skew quad trees to 1e-5 and
+total area on native, with shafts and types kept, on every option of four artefacts. Negative
+control: turning the cut alone registers. `diag_operator_invariants.py --programme
+programme-house --draws 15`: 360 applications, zero violations. Full suite 982 passed, 1 skipped.
+
+**Measured before any search** (`experiments/diag_pivot3.py`, twelve designs, `c836457+orth`
+artefacts scored today; the tool picks the stamp by sort order, so these are not the newest):
+
+| programme | options | child/parent score, median | better | fails added, median (range) | after 400 NM, 12 sampled: median added; children no worse than parent |
+|---|---|---|---|---|---|
+| programme-house | 14 | 0.001 | 0 | 8 (2 to 14) | 6.5, 0 |
+| harbor-house | 110 | 0.002 | 3 | 9 (-1 to 65) | 5.5, 0 |
+| health-centre | 154 | 0.029 | 1 | 5 (-2 to 32) | 2, 2 |
+| maple-court | 96 | 0.002 | 1 | 9 (-2 to 57) | 11.5, 2 |
+
+So it is a large step, larger than the pivot's (median 3% of parent, 4 more fails), and
+it fires more widely: 374 options on twelve designs. Keeping areas turns a tall cell squat,
+as in the sketch, and after 400 Nelder-Mead evaluations only 4 of 48 sampled children are no
+worse than their parent. Whether a search keeps such children is a question for an A/B.
+
+**Expectation, before any A/B:** null on fails, as §39.171 was for the pivot. Its better case
+is not the fail count but reach: §39.188 found no route from rooms-corridor-rooms to a single
+row, and this is a new one-step move between plans. Whether it helps there is untested.
+
+### 39.191 Swapping neighbouring cells: rooms for rooms is already the scorer's move (`homemaker-py-8wgz`)
+
+Owner, 2026-10-31: use the adjacency graph to find two neighbouring cells and swap them,
+rather than swapping random cells; then three, and so on. Today's `mutate_swap` swaps a cut's
+two sides, so whole subtrees, and `mutate_level_retype` swaps across storeys. No move swaps two
+cells on a storey, random or not, unless they are siblings, so this is a new move rather than a
+narrower one.
+
+**Measured first** (`experiments/diag_swap_cells.py`, §39.154's reading): `undone` means the
+scorer's relabelling returned the child to the parent's labels. Twelve `4428262+orth` designs,
+plus six mid-race designs from the clean-seed race's 8k stage:
+
+| what is swapped | undone | what survivors do |
+|---|---|---|
+| two neighbouring rooms | 100 of 104 (96%) | 4 survive, none better |
+| two rooms far apart, the control | 117 of 126 (93%) | 9 survive, none better |
+| neighbours of different kinds, or a mixed 3 or 4 | 0 | mostly worse, a few better |
+| far apart, different kinds, the control | 0 | mostly worse, a few better |
+
+So a swap between rooms is what the scorer does already, near or far, and neighbours add nothing
+there. The move is only a move where kinds differ: a room with `C` or `O`, or `C` with `O`.
+
+**Does being adjacent help there?** Not resolved, and small. Before any re-tune:
+
+| | fails added, median | better / draws |
+|---|---|---|
+| Finished designs, far apart, mixed (4 programmes) | 2, 5, 4.5, 4 | 3 / 114 |
+| Finished, neighbours room-`C` | 2, 5, 2.5, 5 | 0 / 40 |
+| Finished, neighbours room-`O` | 2, 6.5, 6, 5 | 0 / 52 |
+| Finished, mixed 3 / mixed 4 | 2-4.5 / 3-6 | 4 / 128, 1 / 134 |
+| Mid-race, far apart, mixed | 6 | 3 / 60 |
+| Mid-race, neighbours room-`C` | 3 | 4 / 24 |
+| Mid-race, neighbours room-`O` | 13 | 0 / 32 |
+| Mid-race, mixed 3 / mixed 4 | 8 / 10.5 | 7 / 87, 3 / 96 |
+
+Neighbouring room-`C` is the one reading that looks better than random, and it rests on 4 of 24 on
+one programme. Neighbouring room-`O` is worse. §39.75 says the finished designs are the wrong state
+to judge a move in, and neither table is a search. A short retune was run on samples, with too few
+per arm and without the search's own overrides, so it is left out.
+
+**Built as `operators.mutate_swap_cells`, default off** (`--swap-cells` / `HOMEMAKER_SWAP_CELLS=1`,
+a `SEARCH_KNOBS` entry, `flag_ab.py swapcells`). It draws two cells at 4/7, three at 2/7, four at 1/7,
+connected in `geometry.leaf_graph`, always starting from a cell that is not a room, so that every set
+holds more than one kind. All labels move one place on. No wall moves. Stair cells are left out,
+because a stair is the same cell on each storey. Decided here rather than asked: dropping all-room
+sets departs from the literal idea, on the measurement above. Four cells rather than "etc": mixed 4
+already adds more fails than mixed 3, and more would approach `ruin_recreate`.
+
+**Expectation, before any A/B:** null on fails, like most single-operator A/Bs.
