@@ -112,6 +112,7 @@ index is how to get from a question to the section that answers it.
 | §39.191 | Swapping neighbouring cells: the scorer undoes 96% of two-room swaps near and 93% far, so it is only a move between kinds. Neighbouring room-`C` looks better than random mid-race (4 of 24 against 3 of 60), room-`O` worse. Built as `mutate_swap_cells`, default off, unraced. |
 | §39.192 | The clean-seed race: `clean-9` wins at 12 fails with a single-loaded north range on all storeys, the first in these races, and no long double-loaded corridor. Three of the twelve are `level N not connected`, so it is not yet a price. Expectations 2, 3, 4 and 6 failed. |
 | §39.193 | Owner's ruling: a long stair is doubling as a corridor, so split it into a stair and a circulation cell on every level. No cap. Not built. |
+| §39.194 | Joining `clean-9`'s wings by `bridge_indoors` on the finished design: every storey connected at 14 fails, no search, against `single-2`'s 13; north range still single-loaded. Four fails went, six came (three `size`, three `crinkliness`). Whether a search keeps the plan and recovers them is unmeasured. |
 | §39.115-§39.117 | Outdoor value and the briefs; the kit for drawing a harbor-house design by hand; the terrace's value against three rulings, settled at 120. |
 | §39.105-§39.114 | A score at half the cost; closed-form sizing (good cold, harmful on a child); the child inner-loop budget; the 2x2 that closed the `support_outside` question; rulings on the stair shaft, incremental re-scoring and the canonical genome. |
 
@@ -210,7 +211,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (298 of them, 20347 lines)
+## Every section of DESIGN.md (299 of them, 20391 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -559,4 +560,5 @@ below are the most recent work.
 - §39.190 · 20197-20236 · Pivot on three cells: moving the T where they meet (`homemaker-py-hjc5`)
 - §39.191 · 20237-20286 · Swapping neighbouring cells: rooms for rooms is already the scorer's move (`homemaker-py-8wgz`)
 - §39.192 · 20287-20333 · The clean-seed race: a single-loaded north range at 12 fails, in a building that is not connected (`homemaker-py-4872`)
-- §39.193 · 20334-20347 · Owner's ruling on the long stair: split it, do not cap it (`homemaker-py-yd6t`)
+- §39.193 · 20334-20348 · Owner's ruling on the long stair: split it, do not cap it (`homemaker-py-yd6t`)
+- §39.194 · 20349-20391 · Joining `clean-9`'s wings costs two fails before any search: 14, connected, against `single-2`'s 13 (`homemaker-py-73r9`)

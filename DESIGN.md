@@ -20345,3 +20345,47 @@ part staying the stair, so it is where to start. Whether it types the other part
 a move would aim at long shafts, is unchecked. No length has been ruled for "long".
 
 Next session: join `clean-9`'s wings (§39.192), which comes first.
+
+### 39.194 Joining `clean-9`'s wings costs two fails before any search: 14, connected, against `single-2`'s 13 (`homemaker-py-73r9`)
+
+`experiments/diag_join_clean9.py` takes the finished design and runs the seeder's `bridge_indoors` on
+each storey from the ground up, then 2,000 inner-loop evaluations at the same topology. About a
+minute, no search, at `c73dfde+orth`. Results in `experiments/results/join-clean9/`. Its `--self-test`
+on `single-2`, already connected, leaves cells and score unmoved.
+
+| | fails | score | `not connected` |
+|---|---|---|---|
+| `clean-9` as finished | 12 | 1.3e-4 | 3 |
+| joined, raw | 14 | 2.3e-5 | 0 |
+| joined, inner loop | 14 | 2.5e-5 | 0 |
+| `single-2` (§39.187) | 13 | 6.8e-5 | 0 |
+
+**The repair cut 11 strips and took pieces per storey from 4, 3, 3 to 1, 1, 1.** The upstairs north
+corridor now reaches the west stair by a strip down the west wing, on all three storeys, with the
+wing's rooms kept on one side. The north range is unchanged and still single-loaded. The double-loaded
+reading is still only the 7.1 m stair `rlrllrl`, and no stair is over 7.1 m.
+
+**Four fails went and six came.** Gone: the three `not connected` and `2 inaccessible usable space`.
+New: three `size`, on the two west-wing rooms of the ground floor and one upper room in the south
+block, and three `crinkliness`, on corridor strips cut inside the south block, where they are buried.
+The upper west-wing rooms kept their size. The inner loop moved none of it.
+
+**Against the expectations in the tool's docstring, written before the first run:**
+
+1. Joins storeys 1 and 2, may not join storey 0: better than expected, all three joined.
+2. Raw fails 15-21: **failed**, 14. The upper rooms crossed did not all lose their `size`.
+3. Inner loop recovers 1-3, ending 14-18: recovered none, and 14 is the bottom of the range.
+4. Rooms keep their codes: held, no missing room and no `too few` or `too many`.
+
+**So a connected single-loaded plan is priced at 14 at most, against 13 for the double-loaded one,
+and one fail is not a difference on one design.** Neither figure says the plan is as good: `single-2`
+had 128k of search after its last change of plan and the joined design has had none, while 2.5e-5
+against 6.8e-5 runs the other way. §39.192's worry was that a single-loaded plan was cheap only
+because it left its wings unjoined. That is now answered for this design: joining it costs two fails.
+
+This also bears on §39.159. A strip off a room there could not join circulation meeting the room on
+opposite walls, and here every storey joined with no route abandoned. Corridors already running along
+the wings seem to be what makes the strips work, which is one design's evidence and unmeasured beyond it.
+
+What is not known is whether a search keeps this plan and recovers the six. That takes a continuation
+from the joined design, with the guard on by default now that every storey is connected.
