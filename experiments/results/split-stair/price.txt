@@ -1,0 +1,44 @@
+experiments/results/halving-maple-single/winner.dom: 13 fails, score 6.81e-05
+    size 5; crinkliness 3; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too many spaces 1
+  split_stair rrrll (3 storeys): raw 17 fails, 4.24e-06, not connected 0
+      crinkliness 6; size 5; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too few stairs (1, min 2) 1; too many spaces 1
+      tuned 1000: 17 fails, 4.33e-06
+      crinkliness 6; size 5; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too few stairs (1, min 2) 1; too many spaces 1
+  split_stair rrrlr (3 storeys): raw 13 fails, 6.81e-05, not connected 0
+      size 5; crinkliness 3; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too many spaces 1
+      tuned 1000: 13 fails, 6.93e-05
+      size 5; crinkliness 3; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too many spaces 1
+    wrote experiments/results/split-stair/halving-maple-single-winner-split.dom
+experiments/results/join-clean9/final-double-1.dom: 13 fails, score 6.89e-05
+    size 5; crinkliness 3; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too many spaces 1
+  split_stair rrrll (3 storeys): raw 17 fails, 4.29e-06, not connected 0
+      crinkliness 6; size 5; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too few stairs (1, min 2) 1; too many spaces 1
+      tuned 1000: 17 fails, 4.35e-06
+      crinkliness 6; size 5; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too few stairs (1, min 2) 1; too many spaces 1
+  split_stair rrrlr (3 storeys): raw 13 fails, 6.88e-05, not connected 0
+      size 5; crinkliness 3; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too many spaces 1
+      tuned 1000: 13 fails, 6.99e-05
+      size 5; crinkliness 3; not adjacent to n 1; not adjacent to o 1; proportion 1; level no outside space 1; too many spaces 1
+    wrote experiments/results/split-stair/join-clean9-final-double-1-split.dom
+experiments/results/join-clean9/final-double-4.dom: 13 fails, score 6.92e-05
+    size 5; crinkliness 3; covered outside above ground 1; not adjacent to n 1; not adjacent to o 1; proportion 1; too many spaces 1
+  split_stair rrrll (3 storeys): raw 17 fails, 4.3e-06, not connected 0
+      crinkliness 6; size 5; covered outside above ground 1; not adjacent to n 1; not adjacent to o 1; proportion 1; too few stairs (1, min 2) 1; too many spaces 1
+      tuned 1000: 17 fails, 4.39e-06
+      crinkliness 6; size 5; covered outside above ground 1; not adjacent to n 1; not adjacent to o 1; proportion 1; too few stairs (1, min 2) 1; too many spaces 1
+  split_stair rrrlr (3 storeys): raw 13 fails, 6.9e-05, not connected 0
+      size 5; crinkliness 3; covered outside above ground 1; not adjacent to n 1; not adjacent to o 1; proportion 1; too many spaces 1
+      tuned 1000: 13 fails, 7.01e-05
+      size 5; crinkliness 3; covered outside above ground 1; not adjacent to n 1; not adjacent to o 1; proportion 1; too many spaces 1
+    wrote experiments/results/split-stair/join-clean9-final-double-4-split.dom
+experiments/results/halving-maple-single/final-single-7.dom: 18 fails, score 1.73e-06
+    size 7; crinkliness 6; not adjacent to c 1; access 1; level not connected 1; too many spaces 1; too many stairs (4, max 2) 1
+  split_stair rrrrll (3 storeys): raw 18 fails, 1.73e-06, not connected 1
+      size 7; crinkliness 6; not adjacent to c 1; access 1; level not connected 1; too many spaces 1; too many stairs (4, max 2) 1
+      tuned 1000: 18 fails, 1.77e-06
+      size 7; crinkliness 6; not adjacent to c 1; access 1; level not connected 1; too many spaces 1; too many stairs (4, max 2) 1
+  split_stair rrrrlr (3 storeys): raw 18 fails, 1.73e-06, not connected 1
+      size 7; crinkliness 6; not adjacent to c 1; access 1; level not connected 1; too many spaces 1; too many stairs (4, max 2) 1
+      tuned 1000: 18 fails, 1.76e-06
+      size 7; crinkliness 6; not adjacent to c 1; access 1; level not connected 1; too many spaces 1; too many stairs (4, max 2) 1
+    wrote experiments/results/split-stair/halving-maple-single-final-single-7-split.dom

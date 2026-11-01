@@ -293,6 +293,13 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "neighbouring cells of different kinds, or cycles three or "
                         "four. Changes what a search does; the A/B that decides "
                         "it has not been run (default: off)")
+    p.add_argument("--split-stair", dest="split_stair",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_SPLIT_STAIR", False),
+                   help="homemaker-py-yd6t: a move that splits a long stair into a "
+                        "stair and a circulation cell on every storey it climbs. "
+                        "Changes what a search does; the A/B that decides it has "
+                        "not been run (default: off)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),
@@ -483,6 +490,7 @@ def main(argv=None) -> int:
     os.environ["HOMEMAKER_PIVOT"] = "1" if args.pivot else "0"
     os.environ["HOMEMAKER_PIVOT3"] = "1" if args.pivot3 else "0"
     os.environ["HOMEMAKER_SWAP_CELLS"] = "1" if args.swap_cells else "0"
+    os.environ["HOMEMAKER_SPLIT_STAIR"] = "1" if args.split_stair else "0"
     os.environ["HOMEMAKER_GUARD_CONNECTION"] = args.guard_connection
     driver.GUARD_CONNECTION = args.guard_connection
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
@@ -572,6 +580,7 @@ def main(argv=None) -> int:
     print(f"pivot              : {args.pivot}", file=sys.stderr)
     print(f"pivot3             : {args.pivot3}", file=sys.stderr)
     print(f"swap cells         : {args.swap_cells}", file=sys.stderr)
+    print(f"split stair        : {args.split_stair}", file=sys.stderr)
     print(f"guard connection   : {args.guard_connection}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)

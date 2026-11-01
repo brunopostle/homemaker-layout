@@ -1,0 +1,359 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2113" height="769" viewBox="0 0 2113 769" font-family="Helvetica, Arial, sans-serif">
+<defs><pattern id="stair" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#e0e0e0"/><path d="M0 6L6 0" stroke="#888" stroke-width="0.8"/></pattern></defs>
+<rect width="100%" height="100%" fill="white"/>
+<text x="28.0" y="24" font-size="16" font-weight="bold">maple-court: halving-maple-single-winner-split</text>
+<text x="28.0" y="42" font-size="11" fill="#555">experiments/results/split-stair/halving-maple-single-winner-split.dom -- score 6.935e-05, 13 fails</text>
+<text x="28.0" y="70.0" font-size="12" font-weight="bold">Storey 0 (elev 0.0 m)</text>
+<polygon points="672.7,393.7 617.6,393.7 617.6,501.3 671.4,501.3" fill="url(#stair)" stroke="#333" stroke-width="1"/>
+<line x1="671.4" y1="501.3" x2="672.7" y2="393.7" stroke="#000" stroke-width="4"/>
+<text x="644.8" y="445.3" font-size="10" text-anchor="middle" font-weight="bold">E</text>
+<text x="644.8" y="456.3" font-size="8" text-anchor="middle" fill="#333">stair</text>
+<text x="644.8" y="465.3" font-size="8" text-anchor="middle" fill="#666">12.1 m²</text>
+<polygon points="617.6,420.2 411.3,420.2 411.3,501.3 617.6,501.3" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="514.5" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">ws1</text>
+<text x="514.5" y="469.8" font-size="8" text-anchor="middle" fill="#333">Workshop Space</text>
+<text x="514.5" y="478.8" font-size="8" text-anchor="middle" fill="#666">34.6 m²</text>
+<polygon points="411.3,420.2 256.6,420.2 256.6,501.3 411.3,501.3" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="334.0" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">gh1</text>
+<text x="334.0" y="469.8" font-size="8" text-anchor="middle" fill="#333">Greenhouse</text>
+<text x="334.0" y="478.8" font-size="8" text-anchor="middle" fill="#666">25.9 m²</text>
+<polygon points="256.6,420.2 213.1,420.2 213.1,501.3 256.6,501.3" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="234.9" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">da1</text>
+<text x="234.9" y="469.8" font-size="8" text-anchor="middle" fill="#333">Dining Area</text>
+<text x="234.9" y="478.8" font-size="8" text-anchor="middle" fill="#666">7.3 m²</text>
+<polygon points="213.1,420.2 32.1,420.2 28.0,501.3 213.1,501.3" fill="#f2b880" stroke="#333" stroke-width="1"/>
+<text x="121.6" y="458.9" font-size="10" text-anchor="middle" font-weight="bold">k1</text>
+<text x="121.6" y="469.9" font-size="8" text-anchor="middle" fill="#333">Kitchen</text>
+<text x="121.6" y="478.9" font-size="8" text-anchor="middle" fill="#666">30.7 m²</text>
+<polygon points="617.6,420.2 617.6,393.7 33.4,393.7 32.1,420.2" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="325.2" y="405.0" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="325.2" y="416.0" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="325.2" y="425.0" font-size="8" text-anchor="middle" fill="#666">32.0 m²</text>
+<polygon points="43.5,191.1 40.9,243.1 121.2,243.1 121.2,191.1" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="81.7" y="215.3" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="81.7" y="226.3" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="81.7" y="235.3" font-size="8" text-anchor="middle" fill="#666">8.5 m²</text>
+<polygon points="36.9,324.2 85.1,324.2 85.1,243.1 40.9,243.1" fill="url(#stair)" stroke="#333" stroke-width="1"/>
+<text x="62.0" y="282.2" font-size="10" text-anchor="middle" font-weight="bold">E</text>
+<text x="62.0" y="293.2" font-size="8" text-anchor="middle" fill="#333">stair</text>
+<text x="62.0" y="302.2" font-size="8" text-anchor="middle" fill="#666">7.8 m²</text>
+<polygon points="85.1,324.2 121.2,324.2 121.2,243.1 85.1,243.1" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="103.2" y="281.6" font-size="10" text-anchor="middle" font-weight="bold">t</text>
+<text x="103.2" y="292.6" font-size="8" text-anchor="middle" fill="#333">Bathroom</text>
+<text x="103.2" y="301.6" font-size="8" text-anchor="middle" fill="#666">6.1 m²</text>
+<polygon points="35.3,355.4 98.5,355.4 98.5,324.2 36.9,324.2" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="67.3" y="337.8" font-size="8" text-anchor="middle" font-weight="bold">C</text>
+<text x="67.3" y="348.8" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="67.3" y="357.8" font-size="8" text-anchor="middle" fill="#666">4.0 m²</text>
+<polygon points="98.5,355.4 121.2,355.4 121.2,324.2 98.5,324.2" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="109.9" y="337.8" font-size="8" text-anchor="middle" font-weight="bold">lr1</text>
+<polygon points="35.3,355.4 33.4,393.7 121.2,393.7 121.2,355.4" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="77.8" y="372.6" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="77.8" y="383.6" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="77.8" y="392.6" font-size="8" text-anchor="middle" fill="#666">6.9 m²</text>
+<polygon points="121.2,253.3 186.5,253.3 186.5,191.1 121.2,191.1" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="153.9" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="153.9" y="231.2" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="153.9" y="240.2" font-size="8" text-anchor="middle" fill="#666">8.4 m²</text>
+<polygon points="675.2,191.1 615.8,191.1 615.8,253.3 674.4,253.3" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<line x1="674.4" y1="253.3" x2="675.2" y2="191.1" stroke="#000" stroke-width="4"/>
+<text x="645.3" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">t</text>
+<text x="645.3" y="231.2" font-size="8" text-anchor="middle" fill="#333">Bathroom</text>
+<text x="645.3" y="240.2" font-size="8" text-anchor="middle" fill="#666">7.6 m²</text>
+<polygon points="615.8,191.1 570.9,191.1 570.9,253.3 615.8,253.3" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="593.3" y="220.2" font-size="8" text-anchor="middle" font-weight="bold">t</text>
+<text x="593.3" y="231.2" font-size="8" text-anchor="middle" fill="#333">Bathroom</text>
+<text x="593.3" y="240.2" font-size="8" text-anchor="middle" fill="#666">5.8 m²</text>
+<polygon points="570.9,191.1 451.2,191.1 451.2,253.3 570.9,253.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="511.0" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">ph1</text>
+<text x="511.0" y="231.2" font-size="8" text-anchor="middle" fill="#333">Clinic Room</text>
+<text x="511.0" y="240.2" font-size="8" text-anchor="middle" fill="#666">15.4 m²</text>
+<polygon points="451.2,191.1 362.8,191.1 362.8,253.3 451.2,253.3" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="407.0" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">m</text>
+<text x="407.0" y="231.2" font-size="8" text-anchor="middle" fill="#333">Meeting Room</text>
+<text x="407.0" y="240.2" font-size="8" text-anchor="middle" fill="#666">11.4 m²</text>
+<polygon points="186.5,253.3 284.8,253.3 284.8,191.1 186.5,191.1" fill="#eeeeee" stroke="#333" stroke-width="1"/>
+<text x="235.6" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">rc1</text>
+<text x="235.6" y="231.2" font-size="8" text-anchor="middle" fill="#333">Reception Office</text>
+<text x="235.6" y="240.2" font-size="8" text-anchor="middle" fill="#666">12.6 m²</text>
+<polygon points="284.8,253.3 362.8,253.3 362.8,191.1 284.8,191.1" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="323.8" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">m</text>
+<text x="323.8" y="231.2" font-size="8" text-anchor="middle" fill="#333">Meeting Room</text>
+<text x="323.8" y="240.2" font-size="8" text-anchor="middle" fill="#666">10.0 m²</text>
+<polygon points="675.5,165.4 135.3,165.4 135.3,191.1 675.2,191.1" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<line x1="675.2" y1="191.1" x2="675.5" y2="165.4" stroke="#000" stroke-width="4"/>
+<text x="405.3" y="176.3" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="405.3" y="187.3" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="405.3" y="196.3" font-size="8" text-anchor="middle" fill="#666">28.8 m²</text>
+<polygon points="135.3,165.4 44.8,165.4 43.5,191.1 135.3,191.1" fill="url(#stair)" stroke="#333" stroke-width="1"/>
+<text x="89.7" y="176.3" font-size="8" text-anchor="middle" font-weight="bold">E</text>
+<text x="89.7" y="187.3" font-size="8" text-anchor="middle" fill="#333">stair</text>
+<text x="89.7" y="196.3" font-size="8" text-anchor="middle" fill="#666">4.9 m²</text>
+<polygon points="44.8,165.4 114.3,165.4 114.3,85.0 48.9,84.0" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="80.5" y="123.3" font-size="10" text-anchor="middle" font-weight="bold">m</text>
+<text x="80.5" y="134.3" font-size="8" text-anchor="middle" fill="#333">Meeting Room</text>
+<text x="80.5" y="143.3" font-size="8" text-anchor="middle" fill="#666">11.3 m²</text>
+<polygon points="114.3,165.4 232.3,165.4 232.3,86.8 114.3,85.0" fill="#d9d4c7" stroke="#333" stroke-width="1"/>
+<text x="173.1" y="123.7" font-size="10" text-anchor="middle" font-weight="bold">la1</text>
+<text x="173.1" y="134.7" font-size="8" text-anchor="middle" fill="#333">Laundry Room</text>
+<text x="173.1" y="143.7" font-size="8" text-anchor="middle" fill="#666">19.4 m²</text>
+<polygon points="232.3,165.4 394.9,165.4 394.9,89.4 232.3,86.8" fill="#d9d4c7" stroke="#333" stroke-width="1"/>
+<text x="313.1" y="124.7" font-size="10" text-anchor="middle" font-weight="bold">me1</text>
+<text x="313.1" y="135.7" font-size="8" text-anchor="middle" fill="#333">Mechanical/Electri</text>
+<text x="313.1" y="144.7" font-size="8" text-anchor="middle" fill="#666">26.0 m²</text>
+<polygon points="529.5,91.4 477.3,90.6 477.3,165.4 529.5,165.4" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="503.3" y="126.2" font-size="10" text-anchor="middle" font-weight="bold">t</text>
+<text x="503.3" y="137.2" font-size="8" text-anchor="middle" fill="#333">Bathroom</text>
+<text x="503.3" y="146.2" font-size="8" text-anchor="middle" fill="#666">8.0 m²</text>
+<polygon points="394.9,165.4 440.0,165.4 440.0,90.1 394.9,89.4" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="417.4" y="125.5" font-size="10" text-anchor="middle" font-weight="bold">t</text>
+<text x="417.4" y="136.5" font-size="8" text-anchor="middle" fill="#333">Bathroom</text>
+<text x="417.4" y="145.5" font-size="8" text-anchor="middle" fill="#666">7.1 m²</text>
+<polygon points="440.0,165.4 477.3,165.4 477.3,90.6 440.0,90.1" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="458.6" y="125.9" font-size="8" text-anchor="middle" font-weight="bold">t</text>
+<text x="458.6" y="136.9" font-size="8" text-anchor="middle" fill="#333">Bathroom</text>
+<text x="458.6" y="145.9" font-size="8" text-anchor="middle" fill="#666">5.8 m²</text>
+<polygon points="529.5,165.4 675.5,165.4 676.4,93.7 529.5,91.4" fill="#d9d4c7" stroke="#333" stroke-width="1"/>
+<line x1="675.5" y1="165.4" x2="676.4" y2="93.7" stroke="#000" stroke-width="4"/>
+<text x="602.3" y="126.9" font-size="10" text-anchor="middle" font-weight="bold">ur1</text>
+<text x="602.3" y="137.9" font-size="8" text-anchor="middle" fill="#333">Ground Floor Stora</text>
+<text x="602.3" y="146.9" font-size="8" text-anchor="middle" fill="#666">22.0 m²</text>
+<text x="732.3744300000001" y="70.0" font-size="12" font-weight="bold">Storey 1 (elev 3.0 m)</text>
+<polygon points="1377.1,393.7 1322.0,393.7 1322.0,501.3 1375.8,501.3" fill="url(#stair)" stroke="#333" stroke-width="1"/>
+<line x1="1375.8" y1="501.3" x2="1377.1" y2="393.7" stroke="#000" stroke-width="4"/>
+<text x="1349.2" y="445.3" font-size="10" text-anchor="middle" font-weight="bold">E</text>
+<text x="1349.2" y="456.3" font-size="8" text-anchor="middle" fill="#333">stair</text>
+<text x="1349.2" y="465.3" font-size="8" text-anchor="middle" fill="#666">12.1 m²</text>
+<polygon points="1322.0,420.2 1214.1,420.2 1214.1,501.3 1322.0,501.3" fill="#d9d4c7" stroke="#333" stroke-width="1"/>
+<text x="1268.1" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">ur2</text>
+<text x="1268.1" y="469.8" font-size="8" text-anchor="middle" fill="#333">First Floor Storag</text>
+<text x="1268.1" y="478.8" font-size="8" text-anchor="middle" fill="#666">18.1 m²</text>
+<polygon points="1214.1,420.2 1115.7,420.2 1115.7,501.3 1214.1,501.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1164.9" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">py</text>
+<text x="1164.9" y="469.8" font-size="8" text-anchor="middle" fill="#333">Therapy Room</text>
+<text x="1164.9" y="478.8" font-size="8" text-anchor="middle" fill="#666">16.5 m²</text>
+<polygon points="1115.7,420.2 961.0,420.2 961.0,501.3 1115.7,501.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1038.4" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">n</text>
+<text x="1038.4" y="469.8" font-size="8" text-anchor="middle" fill="#333">Neighborhood</text>
+<text x="1038.4" y="478.8" font-size="8" text-anchor="middle" fill="#666">25.9 m²</text>
+<polygon points="961.0,420.2 917.5,420.2 917.5,501.3 961.0,501.3" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="939.3" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">tn</text>
+<text x="939.3" y="469.8" font-size="8" text-anchor="middle" fill="#333">Neighborhood Bathr</text>
+<text x="939.3" y="478.8" font-size="8" text-anchor="middle" fill="#666">7.3 m²</text>
+<polygon points="917.5,420.2 860.2,420.2 860.2,501.3 917.5,501.3" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="888.9" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="888.9" y="469.8" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="888.9" y="478.8" font-size="8" text-anchor="middle" fill="#666">9.6 m²</text>
+<polygon points="860.2,420.2 820.8,420.2 820.8,501.3 860.2,501.3" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="840.5" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">tn</text>
+<text x="840.5" y="469.8" font-size="8" text-anchor="middle" fill="#333">Neighborhood Bathr</text>
+<text x="840.5" y="478.8" font-size="8" text-anchor="middle" fill="#666">6.6 m²</text>
+<polygon points="820.8,420.2 772.3,420.2 772.3,501.3 820.8,501.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="796.6" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">n</text>
+<text x="796.6" y="469.8" font-size="8" text-anchor="middle" fill="#333">Neighborhood</text>
+<text x="796.6" y="478.8" font-size="8" text-anchor="middle" fill="#666">8.1 m²</text>
+<polygon points="772.3,420.2 736.4,420.2 732.4,501.3 772.3,501.3" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="753.3" y="459.5" font-size="10" text-anchor="middle" font-weight="bold">tn</text>
+<text x="753.3" y="470.5" font-size="8" text-anchor="middle" fill="#333">Neighborhood Bathr</text>
+<text x="753.3" y="479.5" font-size="8" text-anchor="middle" fill="#666">6.4 m²</text>
+<polygon points="1322.0,420.2 1322.0,393.7 737.8,393.7 736.4,420.2" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="1029.6" y="405.0" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="1029.6" y="416.0" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="1029.6" y="425.0" font-size="8" text-anchor="middle" fill="#666">32.0 m²</text>
+<polygon points="747.9,191.1 745.3,243.1 825.6,243.1 825.6,191.1" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="786.1" y="215.3" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="786.1" y="226.3" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="786.1" y="235.3" font-size="8" text-anchor="middle" fill="#666">8.5 m²</text>
+<polygon points="745.3,243.1 739.7,355.4 825.6,355.4 825.6,243.1" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="784.0" y="297.9" font-size="10" text-anchor="middle" font-weight="bold">li1</text>
+<text x="784.0" y="308.9" font-size="8" text-anchor="middle" fill="#333">Library Corner</text>
+<text x="784.0" y="317.9" font-size="8" text-anchor="middle" fill="#666">19.3 m²</text>
+<polygon points="739.7,355.4 737.8,393.7 825.6,393.7 825.6,355.4" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="782.2" y="372.6" font-size="10" text-anchor="middle" font-weight="bold">tn</text>
+<text x="782.2" y="383.6" font-size="8" text-anchor="middle" fill="#333">Neighborhood Bathr</text>
+<text x="782.2" y="392.6" font-size="8" text-anchor="middle" fill="#666">6.9 m²</text>
+<polygon points="825.6,253.3 890.9,253.3 890.9,191.1 825.6,191.1" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="858.3" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="858.3" y="231.2" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="858.3" y="240.2" font-size="8" text-anchor="middle" fill="#666">8.4 m²</text>
+<polygon points="1379.6,191.1 1275.2,191.1 1275.2,253.3 1378.8,253.3" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<line x1="1378.8" y1="253.3" x2="1379.6" y2="191.1" stroke="#000" stroke-width="4"/>
+<text x="1327.2" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="1327.2" y="231.2" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="1327.2" y="240.2" font-size="8" text-anchor="middle" fill="#666">13.4 m²</text>
+<polygon points="1275.2,191.1 1155.6,191.1 1155.6,253.3 1275.2,253.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1215.4" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">py</text>
+<text x="1215.4" y="231.2" font-size="8" text-anchor="middle" fill="#333">Therapy Room</text>
+<text x="1215.4" y="240.2" font-size="8" text-anchor="middle" fill="#666">15.4 m²</text>
+<polygon points="1155.6,191.1 1067.2,191.1 1067.2,253.3 1155.6,253.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1111.4" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">em</text>
+<text x="1111.4" y="231.2" font-size="8" text-anchor="middle" fill="#333">Staff Office</text>
+<text x="1111.4" y="240.2" font-size="8" text-anchor="middle" fill="#666">11.4 m²</text>
+<polygon points="890.9,253.3 989.1,253.3 989.1,191.1 890.9,191.1" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="940.0" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">em</text>
+<text x="940.0" y="231.2" font-size="8" text-anchor="middle" fill="#333">Staff Office</text>
+<text x="940.0" y="240.2" font-size="8" text-anchor="middle" fill="#666">12.6 m²</text>
+<polygon points="989.1,253.3 1067.2,253.3 1067.2,191.1 989.1,191.1" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1028.2" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">n</text>
+<text x="1028.2" y="231.2" font-size="8" text-anchor="middle" fill="#333">Neighborhood</text>
+<text x="1028.2" y="240.2" font-size="8" text-anchor="middle" fill="#666">10.0 m²</text>
+<polygon points="1379.9,165.4 839.7,165.4 839.7,191.1 1379.6,191.1" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<line x1="1379.6" y1="191.1" x2="1379.9" y2="165.4" stroke="#000" stroke-width="4"/>
+<text x="1109.7" y="176.3" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="1109.7" y="187.3" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="1109.7" y="196.3" font-size="8" text-anchor="middle" fill="#666">28.8 m²</text>
+<polygon points="839.7,165.4 749.2,165.4 747.9,191.1 839.7,191.1" fill="url(#stair)" stroke="#333" stroke-width="1"/>
+<text x="794.1" y="176.3" font-size="8" text-anchor="middle" font-weight="bold">E</text>
+<text x="794.1" y="187.3" font-size="8" text-anchor="middle" fill="#333">stair</text>
+<text x="794.1" y="196.3" font-size="8" text-anchor="middle" fill="#666">4.9 m²</text>
+<polygon points="749.2,165.4 936.7,165.4 936.7,86.8 753.2,84.0" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="843.4" y="123.5" font-size="10" text-anchor="middle" font-weight="bold">lo1</text>
+<text x="843.4" y="134.5" font-size="8" text-anchor="middle" fill="#333">Lounge</text>
+<text x="843.4" y="143.5" font-size="8" text-anchor="middle" fill="#666">30.6 m²</text>
+<polygon points="936.7,165.4 1233.9,165.4 1233.9,91.4 936.7,86.8" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1083.8" y="125.2" font-size="10" text-anchor="middle" font-weight="bold">n</text>
+<text x="1083.8" y="136.2" font-size="8" text-anchor="middle" fill="#333">Neighborhood</text>
+<text x="1083.8" y="145.2" font-size="8" text-anchor="middle" fill="#666">46.8 m²</text>
+<polygon points="1233.9,165.4 1379.9,165.4 1380.7,93.7 1233.9,91.4" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<line x1="1379.9" y1="165.4" x2="1380.7" y2="93.7" stroke="#000" stroke-width="4"/>
+<text x="1306.7" y="126.9" font-size="10" text-anchor="middle" font-weight="bold">en1</text>
+<text x="1306.7" y="137.9" font-size="8" text-anchor="middle" fill="#333">TV / Media Room</text>
+<text x="1306.7" y="146.9" font-size="8" text-anchor="middle" fill="#666">22.0 m²</text>
+<text x="1436.7488600000001" y="70.0" font-size="12" font-weight="bold">Storey 2 (elev 6.0 m)</text>
+<polygon points="2081.5,393.7 2026.4,393.7 2026.4,501.3 2080.1,501.3" fill="url(#stair)" stroke="#333" stroke-width="1"/>
+<line x1="2080.1" y1="501.3" x2="2081.5" y2="393.7" stroke="#000" stroke-width="4"/>
+<text x="2053.6" y="445.3" font-size="10" text-anchor="middle" font-weight="bold">E</text>
+<text x="2053.6" y="456.3" font-size="8" text-anchor="middle" fill="#333">stair</text>
+<text x="2053.6" y="465.3" font-size="8" text-anchor="middle" fill="#666">12.1 m²</text>
+<polygon points="2026.4,420.2 1918.5,420.2 1918.5,501.3 2026.4,501.3" fill="#d9d4c7" stroke="#333" stroke-width="1"/>
+<text x="1972.4" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">ur3</text>
+<text x="1972.4" y="469.8" font-size="8" text-anchor="middle" fill="#333">Second Floor Stora</text>
+<text x="1972.4" y="478.8" font-size="8" text-anchor="middle" fill="#666">18.1 m²</text>
+<polygon points="1820.1,420.2 1665.4,420.2 1665.4,501.3 1820.1,501.3" fill="#f4d8a8" stroke="#333" stroke-width="1"/>
+<text x="1742.7" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">gy1</text>
+<text x="1742.7" y="469.8" font-size="8" text-anchor="middle" fill="#333">Exercise Room</text>
+<text x="1742.7" y="478.8" font-size="8" text-anchor="middle" fill="#666">25.9 m²</text>
+<polygon points="1665.4,420.2 1621.9,420.2 1621.9,501.3 1665.4,501.3" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="1643.6" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">tt</text>
+<text x="1643.6" y="469.8" font-size="8" text-anchor="middle" fill="#333">Upper Bathroom</text>
+<text x="1643.6" y="478.8" font-size="8" text-anchor="middle" fill="#666">7.3 m²</text>
+<polygon points="1621.9,420.2 1564.6,420.2 1564.6,501.3 1621.9,501.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1593.2" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1593.2" y="469.8" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1593.2" y="478.8" font-size="8" text-anchor="middle" fill="#666">9.6 m²</text>
+<polygon points="1564.6,420.2 1525.2,420.2 1525.2,501.3 1564.6,501.3" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="1544.9" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">tt</text>
+<text x="1544.9" y="469.8" font-size="8" text-anchor="middle" fill="#333">Upper Bathroom</text>
+<text x="1544.9" y="478.8" font-size="8" text-anchor="middle" fill="#666">6.6 m²</text>
+<polygon points="1525.2,420.2 1476.7,420.2 1476.7,501.3 1525.2,501.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1500.9" y="458.8" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1500.9" y="469.8" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1500.9" y="478.8" font-size="8" text-anchor="middle" fill="#666">8.1 m²</text>
+<polygon points="1476.7,420.2 1440.8,420.2 1436.7,501.3 1476.7,501.3" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="1457.7" y="459.5" font-size="10" text-anchor="middle" font-weight="bold">tt</text>
+<text x="1457.7" y="470.5" font-size="8" text-anchor="middle" fill="#333">Upper Bathroom</text>
+<text x="1457.7" y="479.5" font-size="8" text-anchor="middle" fill="#666">6.4 m²</text>
+<polygon points="2026.4,420.2 2026.4,393.7 1442.1,393.7 1440.8,420.2" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="1733.9" y="405.0" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="1733.9" y="416.0" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="1733.9" y="425.0" font-size="8" text-anchor="middle" fill="#666">32.0 m²</text>
+<polygon points="1452.3,191.1 1449.7,243.1 1530.0,243.1 1530.0,191.1" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="1490.5" y="215.3" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="1490.5" y="226.3" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="1490.5" y="235.3" font-size="8" text-anchor="middle" fill="#666">8.5 m²</text>
+<polygon points="1449.7,243.1 1446.3,310.5 1530.0,310.5 1530.0,243.1" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1489.0" y="275.0" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1489.0" y="286.0" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1489.0" y="295.0" font-size="8" text-anchor="middle" fill="#666">11.4 m²</text>
+<polygon points="1446.3,310.5 1444.0,355.4 1530.0,355.4 1530.0,310.5" fill="#c9e7e3" stroke="#333" stroke-width="1"/>
+<text x="1487.6" y="331.0" font-size="10" text-anchor="middle" font-weight="bold">tt</text>
+<text x="1487.6" y="342.0" font-size="8" text-anchor="middle" fill="#333">Upper Bathroom</text>
+<text x="1487.6" y="351.0" font-size="8" text-anchor="middle" fill="#666">7.9 m²</text>
+<polygon points="1444.0,355.4 1442.1,393.7 1530.0,393.7 1530.0,355.4" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="1486.5" y="372.6" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="1486.5" y="383.6" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="1486.5" y="392.6" font-size="8" text-anchor="middle" fill="#666">6.9 m²</text>
+<polygon points="1530.0,253.3 1595.3,253.3 1595.3,191.1 1530.0,191.1" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<text x="1562.6" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="1562.6" y="231.2" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="1562.6" y="240.2" font-size="8" text-anchor="middle" fill="#666">8.4 m²</text>
+<polygon points="2083.9,191.1 1979.6,191.1 1979.6,253.3 2083.2,253.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<line x1="2083.2" y1="253.3" x2="2083.9" y2="191.1" stroke="#000" stroke-width="4"/>
+<text x="2031.6" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">q1</text>
+<text x="2031.6" y="231.2" font-size="8" text-anchor="middle" fill="#333">Quiet Room</text>
+<text x="2031.6" y="240.2" font-size="8" text-anchor="middle" fill="#666">13.4 m²</text>
+<polygon points="1979.6,191.1 1860.0,191.1 1860.0,253.3 1979.6,253.3" fill="#d9d4c7" stroke="#333" stroke-width="1"/>
+<text x="1919.8" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">ut1</text>
+<text x="1919.8" y="231.2" font-size="8" text-anchor="middle" fill="#333">Utilities Closet</text>
+<text x="1919.8" y="240.2" font-size="8" text-anchor="middle" fill="#666">15.4 m²</text>
+<polygon points="1860.0,191.1 1771.6,191.1 1771.6,253.3 1860.0,253.3" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1815.8" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1815.8" y="231.2" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1815.8" y="240.2" font-size="8" text-anchor="middle" fill="#666">11.4 m²</text>
+<polygon points="1595.3,253.3 1693.5,253.3 1693.5,191.1 1595.3,191.1" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1644.4" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1644.4" y="231.2" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1644.4" y="240.2" font-size="8" text-anchor="middle" fill="#666">12.6 m²</text>
+<polygon points="1693.5,253.3 1771.6,253.3 1771.6,191.1 1693.5,191.1" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1732.5" y="220.2" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1732.5" y="231.2" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1732.5" y="240.2" font-size="8" text-anchor="middle" fill="#666">10.0 m²</text>
+<polygon points="2084.2,165.4 1544.1,165.4 1544.1,191.1 2083.9,191.1" fill="#f5f5f0" stroke="#333" stroke-width="1"/>
+<line x1="2083.9" y1="191.1" x2="2084.2" y2="165.4" stroke="#000" stroke-width="4"/>
+<text x="1814.1" y="176.3" font-size="10" text-anchor="middle" font-weight="bold">C</text>
+<text x="1814.1" y="187.3" font-size="8" text-anchor="middle" fill="#333">circulation</text>
+<text x="1814.1" y="196.3" font-size="8" text-anchor="middle" fill="#666">28.8 m²</text>
+<polygon points="1544.1,165.4 1453.5,165.4 1452.3,191.1 1544.1,191.1" fill="url(#stair)" stroke="#333" stroke-width="1"/>
+<text x="1498.5" y="176.3" font-size="8" text-anchor="middle" font-weight="bold">E</text>
+<text x="1498.5" y="187.3" font-size="8" text-anchor="middle" fill="#333">stair</text>
+<text x="1498.5" y="196.3" font-size="8" text-anchor="middle" fill="#666">4.9 m²</text>
+<polygon points="1453.5,165.4 1568.3,165.4 1568.3,85.7 1457.6,84.0" fill="#d9d4c7" stroke="#333" stroke-width="1"/>
+<text x="1511.7" y="123.4" font-size="10" text-anchor="middle" font-weight="bold">ut1</text>
+<text x="1511.7" y="134.4" font-size="8" text-anchor="middle" fill="#333">Utilities Closet</text>
+<text x="1511.7" y="143.4" font-size="8" text-anchor="middle" fill="#666">18.8 m²</text>
+<polygon points="1568.3,165.4 1641.1,165.4 1641.1,86.8 1568.3,85.7" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1604.6" y="123.8" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1604.6" y="134.8" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1604.6" y="143.8" font-size="8" text-anchor="middle" fill="#666">11.9 m²</text>
+<polygon points="1641.1,165.4 1739.9,165.4 1739.9,88.4 1641.1,86.8" fill="#d9d4c7" stroke="#333" stroke-width="1"/>
+<text x="1690.3" y="124.5" font-size="10" text-anchor="middle" font-weight="bold">ut1</text>
+<text x="1690.3" y="135.5" font-size="8" text-anchor="middle" fill="#333">Utilities Closet</text>
+<text x="1690.3" y="144.5" font-size="8" text-anchor="middle" fill="#666">15.9 m²</text>
+<polygon points="1739.9,165.4 1806.3,165.4 1806.3,89.4 1739.9,88.4" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1773.1" y="125.1" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1773.1" y="136.1" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1773.1" y="145.1" font-size="8" text-anchor="middle" fill="#666">10.5 m²</text>
+<polygon points="1938.2,91.4 1866.9,90.3 1866.9,165.4 1938.2,165.4" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1902.5" y="126.1" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1902.5" y="137.1" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1902.5" y="146.1" font-size="8" text-anchor="middle" fill="#666">11.0 m²</text>
+<polygon points="1866.9,90.3 1806.3,89.4 1806.3,165.4 1866.9,165.4" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1836.6" y="125.6" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1836.6" y="136.6" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1836.6" y="145.6" font-size="8" text-anchor="middle" fill="#666">9.5 m²</text>
+<polygon points="1938.2,165.4 2015.7,165.4 2015.7,92.6 1938.2,91.4" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<text x="1976.9" y="126.7" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="1976.9" y="137.7" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="1976.9" y="146.7" font-size="8" text-anchor="middle" fill="#666">11.7 m²</text>
+<polygon points="2015.7,165.4 2084.2,165.4 2085.1,93.7 2015.7,92.6" fill="#b9d3ee" stroke="#333" stroke-width="1"/>
+<line x1="2084.2" y1="165.4" x2="2085.1" y2="93.7" stroke="#000" stroke-width="4"/>
+<text x="2050.1" y="127.2" font-size="10" text-anchor="middle" font-weight="bold">r</text>
+<text x="2050.1" y="138.2" font-size="8" text-anchor="middle" fill="#333">Individual Room</text>
+<text x="2050.1" y="147.2" font-size="8" text-anchor="middle" fill="#666">10.3 m²</text>
+<line x1="28.0" y1="539.3258078" x2="138.0" y2="539.3258078" stroke="#000" stroke-width="2"/>
+<text x="144.0" y="543.3258078" font-size="10">5 m (heavy line: party wall; hatched: stair)</text>
+<text x="28.0" y="561.3258078" font-size="10" fill="#444">fails:</text>
+<text x="28.0" y="575.3258078" font-size="10" fill="#444">0/rlrllrr size</text>
+<text x="28.0" y="589.3258078" font-size="10" fill="#444">0/rrllrlrr size</text>
+<text x="28.0" y="603.3258078" font-size="10" fill="#444">0/rrrll crinkliness</text>
+<text x="28.0" y="617.3258078" font-size="10" fill="#444">1/rlrllrl size</text>
+<text x="28.0" y="631.3258078" font-size="10" fill="#444">1/rlrlrrl size</text>
+<text x="28.0" y="645.3258078" font-size="10" fill="#444">1/rrllrr (tn) not adjacent to n</text>
+<text x="28.0" y="659.3258078" font-size="10" fill="#444">1/rrlrrrrrr size</text>
+<text x="28.0" y="673.3258078" font-size="10" fill="#444">1/rrrll crinkliness</text>
+<text x="28.0" y="687.3258078" font-size="10" fill="#444">1/rrrrl (lo1) not adjacent to o</text>
+<text x="28.0" y="701.3258078" font-size="10" fill="#444">1/rrrrrl proportion</text>
+<text x="28.0" y="715.3258078" font-size="10" fill="#444">2/rrrll crinkliness</text>
+<text x="28.0" y="729.3258078" font-size="10" fill="#444">level 1 no outside space</text>
+<text x="28.0" y="743.3258078" font-size="10" fill="#444">too many spaces: ut1 (found 3, expected 1)</text>
+</svg>

@@ -3391,6 +3391,113 @@ def mutate_stair(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"stair unmake {col[0].id or 'root'} ({len(col)} storeys)"
 
 
+# What `mutate_split_stair` calls long, and what it leaves the stair. Neither is a
+# ruling (§39.193 ruled no length). 12 m sits in the census's empty band: 66 stair
+# cells over ten designs, nothing between 9.6 and 18.8 m (§39.189). 4.5 m at the
+# width of these strips is a stair fit of 1.05-1.17 with doors on one or two corners
+# (28.7 m is 0.48), and on `single-2` a raw split at 4.75 m or under costs no fail
+# where 5 m and over costs three, which a child's inner loop does not reliably get
+# back (§39.196). The inner loop moves the cut from there.
+LONG_STAIR_M = 12.0
+SPLIT_STAIR_KEEP_M = 4.5
+# How far past `graph.DOOR_WIDTH` the move widens a shaft. The shafts it was built
+# for are 1.18-1.20 m wide, just under the door, and a cut across one leaves two
+# cells with no door between them: `not connected` on every storey (§39.196).
+SPLIT_STAIR_DOOR_MARGIN = 0.02
+
+
+def _stair_length(leaf: dom.Node) -> float:
+    """A stair cell's long side, as `experiments/diag_long_stairs.py` reads it."""
+    from . import geometry
+
+    return geometry.usable_width(leaf) * geometry.usable_aspect(leaf)
+
+
+def _widen_for_door(lvls: "list[dom.Node]", foot: dom.Node, width: float) -> bool:
+    """Move the cut beside ``foot`` until the cell is ``width`` wide, narrowing what
+    is across that cut. False, with nothing moved, if that cut does not set its
+    width. Only the lowest storey's cut is read; the storeys above inherit it."""
+    from . import geometry as _geo
+
+    now = _geo.usable_width(foot)
+    if now >= width:
+        return True
+    if not foot.id:
+        return False
+    parent = lvls[0].by_id(foot.id[:-1])
+    kept = list(parent.division)
+    step = 0.01
+    parent.division = [d + step for d in kept]
+    _finalise(lvls[0])
+    _geo.clear_cache()
+    rate = (_geo.usable_width(lvls[0].by_id(foot.id)) - now) / step
+    new = [d + (width - now) / rate for d in kept] if abs(rate) > 1e-6 else None
+    if new is None or not all(0.05 < d < 0.95 for d in new):
+        parent.division = kept
+        _finalise(lvls[0])
+        _geo.clear_cache()
+        return False
+    parent.division = new
+    _finalise(lvls[0])
+    _geo.clear_cache()
+    return True
+
+
+def mutate_split_stair(root: dom.Node, rng: np.random.Generator,
+                       types: list[str]) -> tuple[dom.Node, str]:
+    """Split a long stair into a stair and a circulation cell at every level.
+
+    Owner's ruling (§39.193): "A long stair is long because it is doubling as a
+    corridor horizontal circulation, the solution would be to split such a long
+    stair into a stair and circulation cell at every level." So the same cut goes
+    across the shaft's long side on every storey it climbs, one end keeping ``E``
+    at one path (§39.72) and the rest becoming ``C``. Which end is drawn at random.
+    A shaft too narrow for a door between its two parts is widened first, or the
+    split would disconnect every storey (§39.196).
+
+    Unlike `mutate_core_divide` this aims at long shafts, cuts across them, and
+    never types the remainder a room. It declines a shaft that stops under a
+    divided cell: that cell would start reading its cut from this one, moving a
+    wall upstairs (§39.96).
+    """
+    from . import geometry as _geo, graph
+
+    child = _finalise(copy.deepcopy(root))
+    lvls = dom.levels(child)
+    long_shafts = []
+    for foot in sorted(_shaft_feet(lvls), key=lambda x: x.id or ""):
+        if _stair_length(foot) < LONG_STAIR_M:
+            continue
+        shaft = graph.stair_shaft(foot)
+        above = dom._above_node(shaft[-1])
+        if above is None or not above.divided:
+            long_shafts.append(shaft)
+    if not long_shafts:
+        return child, "split_stair noop"
+
+    shaft = _pick(rng, long_shafts)
+    base = shaft[0]
+    if not _widen_for_door(lvls, base, graph.DOOR_WIDTH + SPLIT_STAIR_DOOR_MARGIN):
+        return _finalise(copy.deepcopy(root)), "split_stair noop (cannot be widened for a door)"
+    lvls = dom.levels(child)
+    shaft = [lvl.by_id(n.id) for lvl, n in zip(lvls, shaft)]
+    base = shaft[0]
+    span0 = (_geo.edge_length(base, 0) + _geo.edge_length(base, 2)) / 2.0
+    span1 = (_geo.edge_length(base, 1) + _geo.edge_length(base, 3)) / 2.0
+    rotation, span = (0, span0) if span0 >= span1 else (1, span1)
+    keep = float(SPLIT_STAIR_KEEP_M / span)
+    stair_left = bool(rng.integers(2))
+    ratio = keep if stair_left else 1.0 - keep
+    for node in shaft:
+        node.division = [ratio, ratio]
+        node.rotation = rotation
+        node.left = dom.Node(type=dom.GENERIC_STAIR if stair_left else "C")
+        node.right = dom.Node(type="C" if stair_left else dom.GENERIC_STAIR)
+        node.type = None
+    return (_finalise(child),
+            f"split_stair {base.id or 'root'}{'l' if stair_left else 'r'} ({len(shaft)} storeys)")
+
+
 def mutate_level_add(root: dom.Node, rng: np.random.Generator,
                      types: list[str]) -> tuple[dom.Node, str]:
     from . import genome as _g
@@ -3660,6 +3767,7 @@ MUTATIONS = {
     "retype": mutate_retype,
     "swap": mutate_swap,
     "swap_cells": mutate_swap_cells,
+    "split_stair": mutate_split_stair,
     "rotate": mutate_rotate,
     "pivot": mutate_pivot,
     "pivot3": mutate_pivot3,

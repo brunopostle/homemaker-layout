@@ -20440,3 +20440,65 @@ runs on the box. Eight runs on 4 cores took 5 h 38 m, with the main search endin
 
 Repair then continue is cheap enough to apply to any finalist with an unjoined storey. Filed as a bead,
 to try beyond this one design.
+
+### 39.196 The split of a long stair, built: no fail on `single-2`, once there is a door between the parts (`homemaker-py-yd6t`)
+
+`operators.mutate_split_stair`, `--split-stair`, default off, carries out §39.193's ruling. On every
+storey a shaft over `LONG_STAIR_M` (12 m) climbs it cuts across the long side, one end keeping `E` at
+one path and the rest becoming `C`; which end is drawn at random. It declines a shaft that stops under
+a divided cell, whose wall would move (§39.96). Neither length is a ruling: 12 m sits in §39.189's empty
+band, and 4.5 m is below. `experiments/diag_split_stair.py` prices it with no search;
+`tests/test_split_stair.py` holds it. No objective source was touched.
+
+**As first built it cost 8-9 fails, three of them `not connected`.** The expectation that the two
+parts together are the old cell was wrong. These shafts are 1.18-1.20 m wide and `graph.DOOR_WIDTH` is
+1.2, so a cut across one leaves two cells with no door between them, disconnecting every storey. The
+inner loop put it back, but at a child's 80 evaluations the guard would decline the child first. So the
+move now widens the shaft to 1.22 m by moving the cut beside it, narrowing what is across that cut. A
+negative control in the test shows the door check fails without it.
+
+**What the stair keeps.** Started at 7 m, from the finalists' strip stairs, a raw split on the good
+end cost three `crinkliness`. A scan on `single-2` and `double-1`, both ends:
+
+| stair kept | raw fails | after 80 evaluations | stair fit, doors on 1 / 2 corners |
+|---|---|---|---|
+| 3 m | 13 | 13 | 0.71 / 0.79 |
+| 4-4.75 m | 13 | 13 | 0.94-1.10 / 1.04-1.23 |
+| 5-5.5 m | 16 | 13 | 1.16 / 1.30 at 5 m |
+| 6-7 m | 16 | 16 | 1.39-1.63 / 1.56-1.82 |
+
+That is the better end; the other is 17 throughout. Fit 1.0 is exact and the scorer's factor peaks there.
+**So `SPLIT_STAIR_KEEP_M` is 4.5**, where the cell is a real fit for one or two door corners and costs
+nothing. The 28.7 m cell's fit was 0.48, at the scorer's floor: the stair it was labelled as was not
+being credited at all. A core whose doors take three or four corners needs about 6 m, and gets it only
+from the inner loop.
+
+**Priced at 4.5 m, the better end, inner loop 1,000:**
+
+| design | before | split |
+|---|---|---|
+| `single-2` | 13, 6.81e-5 | 13, 6.93e-5 |
+| `double-1` | 13, 6.89e-5 | 13, 6.99e-5 |
+| `double-4` | 13, 6.92e-5 | 13, 7.01e-5 |
+| `single-7` | 18, 1.73e-6 | 18, 1.76e-6 |
+
+The longest stair goes from 28.7 m to 4.9 m on the first two. **The ruling costs nothing here.** The
+raw split's score is the design's own (6.81e-5 on `single-2`, 6.88e-5 against 6.89e-5 on `double-1`), so
+the 1.3-1.8% in the table is the extra tuning and not the split: no unsplit control was tuned. The other end costs 4 fails and adds `too few stairs (1, min 2)`, which
+is the search's to refuse. Why that end does, whether the separation rule or not, is unchecked.
+
+**Against the tool's expectations:**
+
+1. Stair at about 7 m, the rest `C`: the label held, the length was changed by this section.
+2. No split costs a connection: **failed as built**, fixed by widening.
+3. Fails move by -1 to +3: held at 0 on the better end, **failed** at +4 on the other.
+4. Score within a factor of 2: held on the better end, **failed** on the other, about 16 times worse.
+5. The long double-loaded corridor stays: held. `single-2` reads 73.7 m against 86.2 m, the stair's part
+   no longer being counted. The ruling relabels a use and does not re-plan the range.
+
+**What it does not reach.** `double-4` keeps a 26.5 m `E` on the ground floor at `rlrr`. That climbs nothing,
+so it is no shaft and the move does not see it; the single-storey `E` is still unruled.
+
+**Not measured:** whether a search keeps these children, and how often the move fires. On a design with
+no long shaft each draw is a wasted child, so its weight matters if it ever goes on by default.
+`flag_ab.py splitstair` is the A/B.

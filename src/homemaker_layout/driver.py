@@ -705,6 +705,9 @@ def search(
     # homemaker-py-8wgz: swaps between neighbouring cells, the same way
     if os.environ.get("HOMEMAKER_SWAP_CELLS", "") != "1":
         mutation_weights["swap_cells"] = 0.0
+    # homemaker-py-yd6t: a long stair into a stair and a corridor, the same way
+    if os.environ.get("HOMEMAKER_SPLIT_STAIR", "") != "1":
+        mutation_weights["split_stair"] = 0.0
     # the height move belongs to a search that tunes heights, and to no other
     if not (inner_kw or {}).get("heights"):
         mutation_weights["storey_height"] = 0.0
