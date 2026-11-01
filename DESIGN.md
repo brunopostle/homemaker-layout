@@ -20378,14 +20378,14 @@ The upper west-wing rooms kept their size. The inner loop moved none of it.
 4. Rooms keep their codes: held, no missing room and no `too few` or `too many`.
 
 **So a connected single-loaded plan is priced at 14 at most, against 13 for the double-loaded one,
-and one fail is not a difference on one design.** Neither figure says the plan is as good: `single-2`
-had 128k of search after its last change of plan and the joined design has had none, while 2.5e-5
-against 6.8e-5 runs the other way. §39.192's worry was that a single-loaded plan was cheap only
-because it left its wings unjoined. That is now answered for this design: joining it costs two fails.
+and one fail is not a difference on one design.** The score is a factor of about 2.8 lower, 2.5e-5
+against 6.8e-5, and the joined design has had no search since the repair, so neither figure is final.
+§39.192's worry was that a single-loaded plan was cheap only because it left its wings unjoined. For
+this design that is answered: joining it costs two fails.
 
-This also bears on §39.159. A strip off a room there could not join circulation meeting the room on
-opposite walls, and here every storey joined with no route abandoned. Corridors already running along
-the wings seem to be what makes the strips work, which is one design's evidence and unmeasured beyond it.
+This sits oddly with §39.159, where a strip off a room could not join circulation meeting the room on
+opposite walls and the seeder left 36 of 54 storeys disconnected. Here every storey joined with no
+route abandoned. Why is unmeasured, and this is one design.
 
 What is not known is whether a search keeps this plan and recovers the six. That takes a continuation
 from the joined design, with the guard on by default now that every storey is connected.
