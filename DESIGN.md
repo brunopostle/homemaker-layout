@@ -20543,4 +20543,3 @@ inner loop (`used` 80) on what is mostly a duplicate. `--evolve-args --split-sta
 as a missing value; it has to be `--evolve-args=--split-stair`, as the script writes it. A 240 s replay of
 `double-1` with the flag off reached 4440 evaluations with no new best, which the control's log also shows
 (its next is at 11080): consistent with a clean pair, and not a proof of one.
-
