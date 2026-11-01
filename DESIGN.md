@@ -20283,3 +20283,50 @@ sets departs from the literal idea, on the measurement above. Four cells rather 
 already adds more fails than mixed 3, and more would approach `ruin_recreate`.
 
 **Expectation, before any A/B:** null on fails, like most single-operator A/Bs.
+
+### 39.192 The clean-seed race: a single-loaded north range at 12 fails, in a building that is not connected (`homemaker-py-4872`)
+
+`experiments/run_clean_seed_maple.sh`, 48 clean seeds + 3 cold, at `c73dfde+orth`, search
+`fefeb72`: 15:19 to 00:26, about 9 h. Results in `experiments/results/halving-maple-clean/`.
+
+| budget | clean: median, best | §39.187 single arm: median, best |
+|---|---|---|
+| 4k | 78, 46 | 79.5, 33 |
+| 8k | 60.5, 40 | 65, 29 |
+| 16k | 45, 34 | 47.5, 22 |
+| 32k | 36, 26 | 32, 13 |
+| 64k | 24.5, 20 | 21, 13 |
+| 128k | `clean-9` **12**, `clean-1` 21 | 13 (four finalists) |
+
+**`clean-9` wins at 12 fails, score 1.3e-4, against `single-2`'s 13 and 6.8e-5.** On its plan the
+north range is single-loaded on all three storeys: rooms on the street side, a corridor of about 43
+m2 on the court side. That is the first plan of the kind in these races, which §39.187 could not
+find. No long double-loaded corridor formed. The detector reads one, 7.4 x 1.7 m on each storey,
+and it is the stair shaft `rlrllrl` in the south block.
+
+**It is not yet a price, because three of the twelve are `level N not connected`.** `single-2` has
+none of those. Upstairs the north corridor meets no stair and no other corridor, and reaches the
+rest only through rooms; storey 2 also has `inaccessible usable space`. `connect.txt`: 3 of 48 seeds
+started with every storey connected, 5 runs at most had it after a stage, and neither finalist does,
+as §39.159 says connection is kept and not made. So a single-loaded plan costs no more fails
+than the double-loaded winner while it is allowed to leave the wings unjoined. What joining them
+costs is unmeasured. One run on one programme, and 12 against 13 is not a difference.
+
+**Against §39.189's expectations:**
+
+1. At least 40 clean seeds: held, 48, all reading 0.
+2. Stage 0 median above 79.5: failed narrowly, 78. The extra unconnected storeys did not show there.
+3. Winner worse than 13, at 15-25: **failed**, 12. `clean-1` was inside it, at 21.
+4. Half the finalists grow a double-loaded corridor over 8 m: **failed**. `clean-9`'s is 7.4 m and
+   `clean-1` has none. It did happen once, in `clean-11` at 64k (26.6 m), which went out there.
+5. The winner has a storey not connected: held, all three.
+6. A finalist with a stair cell over 15 m: **failed**, longest 7.4 m. `clean-1` had one at 64k, 29.1 x
+   1.45 m, and lost it at 128k. A progress report during the race called this expectation held; it
+   was read off the wrong stage. `homemaker-py-yd6t` stands on §39.187's winner and the spine winner.
+
+**Read with §39.188:** that the seed decides holds here too. Clean seeds mostly stayed clean, and
+they did so with no penalty and no guard. Next is joining `clean-9`'s wings, by a seed that keeps
+`outer` and bridges its storeys, or by a repair from the finished design.
+
+The moves in §39.190 and §39.191 were merged after this race ended, so the search commit and config
+hash move: this race and §39.187's stop being a control for anything run later.
