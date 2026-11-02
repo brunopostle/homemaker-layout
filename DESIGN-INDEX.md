@@ -218,7 +218,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (306 of them, 20818 lines)
+## Every section of DESIGN.md (307 of them, 20856 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -575,4 +575,5 @@ below are the most recent work.
 - §39.198 · 20547-20593 · The race with the split on: every long stair splits at no fail, and a new low of 10 on maple-court owed to something else (`homemaker-py-yd6t`)
 - §39.199 · 20594-20624 · The race winners' low fail counts include rooms built at 2-30% of their size, each charged one fail (`homemaker-py-hlm1`)
 - §39.200 · 20625-20715 · The score adds up area: re-ranking and re-tuning designs under a programme-centric score (`homemaker-py-5fje`)
-- §39.201 · 20716-20818 · A plan to settle the aggregation questions by experiment (`homemaker-py-5fje`)
+- §39.201 · 20716-20819 · A plan to settle the aggregation questions by experiment (`homemaker-py-5fje`)
+- §39.202 · 20820-20856 · Three questionnaire items worked through, before asking them (`homemaker-py-5fje.2`)

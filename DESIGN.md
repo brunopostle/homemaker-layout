@@ -20816,3 +20816,41 @@ under the new score, each as a separate question, not retired in the switch.
 one judging round). Phase 2 is container work. Phase 3 is the one box job, about a day. Phase 1 can end the
 plan early: if no candidate passes the rulings better than A0 does, A0's form is vindicated and the
 token-room question returns to a narrower fix (§39.199's threshold).
+
+### 39.202 Three questionnaire items worked through, before asking them (`homemaker-py-5fje.2`)
+
+Owner, 2026-11-02, on §39.201: "They seem ok, but I need to see what you are going to do with them to
+properly understand." So O1-O3 were built on maple-court `clean-9` by `experiments/questionnaire.py`, which
+moves one cut per edit (the area goes to or comes from the room's sibling), lists every cell and fail
+that moved, draws both variants (`experiments/results/questionnaire/`) and asks each candidate score
+which variant is worse. `clean-9`'s lounge is near size (69 of 80 m2), which is why it is the base; it is
+also disconnected on every storey, unchanged by every edit.
+
+| item | A | B | A0 | P1 | P2 | P1 unfloored | P2 unfloored |
+|---|---|---|---|---|---|---|---|
+| O1 | lounge at 2% (1.6 m2) | lounge left out | **B** x1.98 | A x1.30 | A x3.12 | A x2.01 | A x20.1 |
+| O2 | toilet at 50% (3.0 m2) | lounge at 50% (40 m2) | A x3.97 | A x2.44 | A x1.55 | A x5.14 | A x1.82 |
+| O3 | lounge at 80% (64 m2) | toilet at 50% | B x4.02 | B x1.32 | B x1.08 | B x2.84 | B x1.39 |
+
+(the letter is the variant each score calls worse, and by what factor)
+
+**O1 separates today's score from every P candidate.** A0 calls leaving the lounge out twice as bad as a
+1.6 m2 lounge; every P score says the reverse. If the owner rules them equal, or the token worse, A0 fails
+that rule.
+
+**O2 and O3 separate nothing, and the reasons are what the questionnaire has to be built around.**
+
+- **Real edits have side effects.** The 3 m2 toilet also fails proportion and daylight; the 40 m2 lounge
+  fails size but a neighbouring cell (`0/rlrllrrrrrl`) GAINS daylight from the yard the lounge gave up.
+  Judged as plans that is right, but the item no longer asks only "toilet or lounge".
+- **"50% of target" is not one severity.** The brief gives the toilet a sigma of 25% of its target
+  (6 ± 1.5) and the lounge 12.5% (80 ± 10), so the toilet at half size is 2 sigma and does not even fail
+  size, while the lounge at half is 4 sigma. Every score reads that through the same gaussian.
+
+**What the method is, then.** Each answer becomes a test (`tests/`, as `test_ruling_omit_vs_circulation.py`
+does for §39.85): "under candidate X, variant A must score below B", and a candidate failing it is dropped.
+An item every candidate already agrees on can drop nothing, so **an item is put to the owner only if the
+candidates disagree on it**, checked by this tool first; O2 and O3 as built would waste the owner's time.
+They are rebuilt with the side effects held out (the room's lost area going to a cell that changes no
+other fail) and at a matched severity, and the questionnaire asks what "50%" should mean, since the brief's
+sigmas are themselves part of the answer to Q1.
