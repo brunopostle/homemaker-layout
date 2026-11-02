@@ -20585,3 +20585,9 @@ figure should not be read as a better plan. Under §39.197's ruling it stays, an
 **What it cost.** The noop draws took 3.7% of evaluations in the double arm and 4.9% in the best. They are not
 pure waste, since a noop runs the inner loop on its parent and was kept 56 times and twice a new best, like
 every other operator's noop. The move fired about 5% of the time.
+
+**Owner's ruling, 2026-11-02:** "Yes, it can be a default, but it doesn't need to be enabled now if it will
+require a full new set of control runs." It will: making it the default moves the search config, so later
+races could not pair against the controls already run. So `--split-stair` stays off and becomes the default
+when the next change forces new controls anyway. Make it part of that change, and say so in its write-up.
+
