@@ -20543,3 +20543,45 @@ inner loop (`used` 80) on what is mostly a duplicate. `--evolve-args --split-sta
 as a missing value; it has to be `--evolve-args=--split-stair`, as the script writes it. A 240 s replay of
 `double-1` with the flag off reached 4440 evaluations with no new best, which the control's log also shows
 (its next is at 11080): consistent with a clean pair, and not a proof of one.
+
+### 39.198 The race with the split on: every long stair splits at no fail, and a new low of 10 on maple-court owed to something else (`homemaker-py-yd6t`)
+
+`experiments/run_split_stair_race.sh`, 8 runs at 128k at `c73dfde+orth`, search `5dd9012`, config
+`1a0632d662`, 5.6 h; results in `experiments/results/split-stair-race/`. Every run had `--split-stair`.
+
+| field | fails | score | longest stair | double-loaded | connected |
+|---|---|---|---|---|---|
+| `double-1..4`, from `single-2` | 13, 13, 13, 13 | 6.86-6.92e-5 | 5.0 m on all four | 72.7-72.9 m | all |
+| §39.195's double arm, no split | 13, 13, 13, 13 | 6.88-6.92e-5 | 28.7 m on all four | 86.2 m | all |
+| `best-1..4`, from `joined-1` (11) | 10, 11, 10, 10 | 2.4-5.1e-4 | 6.7-7.1 m; `best-4` 28.6 m | 6.9-14.3 m | all |
+
+**The six expectations.** 1 held, more strongly than written: all four double runs took a real split as a
+new best, three of them within 1,320 evaluations. 2 held, 4 of 4 under 12 m where I expected 2. 3 held, median
+13. 4 held, median 10, none above 11. 6 held: every design keeps a short lone ground-floor `E` of 3-4 m, and
+§39.195's 26.5 m `rlrr` did not recur here. **5 was half wrong**: `split_stair noop` was 4.9% of the best
+arm's evaluations, as expected, but it also made 7 real splits on shafts the search had grown (`rrlr`,
+`rrll`), all kept, so the move is not idle on a design that starts with no long stair.
+
+**A search keeps these children, and refuses the bad end.** This is what §39.196 could not say. In the double
+arm, `rrrlr` (the end that costs nothing) was 8 best, 13 kept, 28 duplicate, none rejected. `rrrll` (the end
+that costs 4 fails and `too few stairs`) was 44 rejected, 4 kept. So drawing an end at random is good enough.
+The pair against §39.195 is 0 wins, 0 losses, 4 ties on fails, and the scores move both ways by under 1%:
+**the split changes what the plan says and earns nothing the scorer sees**, which is §39.196's "relabels and does not
+re-plan" now measured over a search. The range is still read as 73 m double-loaded.
+
+**10 fails is not the split's doing.** The drop from 11 to 10 came from `stair unmake`, `crossover` and
+`undivide` in three different runs, all in the finishing polish, and the arm has no control without the
+flag. It is more search on `joined-1`, which had already gone 14 to 11. These are the lowest fails and best scores in maple-court's
+race results (`best-3`, 10 fails, 5.13e-4, only 6 `size` and 4 `crinkliness`), still with real flaws: `lr1`
+is 1.7 m2, `lo1` 7.2 m2, and all four crinkliness fails are on buried `C` cells. Circulation runs 118-167 m2
+a storey.
+
+**`best-4`'s 28.6 m stair is the single-storey case again.** It is on storey 2 alone at `rrl`, put there by a
+`level_retype` swap, so `split_stair` cannot see it. Relabelled `C` it scores identically, fails and score,
+so a lone `E` is worth nothing to the scorer either way. It does hide the cell from
+`diag_double_loaded.py`, which reads `best-4` at 6.9 m beside 13.5-14.3 m for its siblings: that lower
+figure should not be read as a better plan. Under §39.197's ruling it stays, and it is a flaw to read.
+
+**What it cost.** The noop draws took 3.7% of evaluations in the double arm and 4.9% in the best. They are not
+pure waste, since a noop runs the inner loop on its parent and was kept 56 times and twice a new best, like
+every other operator's noop. The move fired about 5% of the time.
