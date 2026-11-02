@@ -169,6 +169,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A long stair is doubling as a corridor: split it into a stair and a circulation cell at every level, rather than capping its length | §39.193 |
 | A stair on a single storey "makes no sense, but may be necessary to allow a design to go from one to two storeys": neither relabelled nor charged | §39.197 |
 | `--split-stair` is to be a default, but switched on only when the next change forces a new set of controls anyway | §39.198 |
+| `value / cost` was "just something to get everything going", maybe a half-understood cost-benefit ratio; `value - cost` was never ruled out. No design intent to keep: the whole area-additive aggregation is open to review | §39.200 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -217,7 +218,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (304 of them, 20623 lines)
+## Every section of DESIGN.md (305 of them, 20714 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -572,4 +573,5 @@ below are the most recent work.
 - §39.196 · 20444-20505 · The split of a long stair, built: no fail on `single-2`, once there is a door between the parts (`homemaker-py-yd6t`)
 - §39.197 · 20506-20546 · Owner's ruling on the single-storey stair, the repair priced elsewhere, and the race with the split on (`homemaker-py-yd6t`, `homemaker-py-05k3`)
 - §39.198 · 20547-20593 · The race with the split on: every long stair splits at no fail, and a new low of 10 on maple-court owed to something else (`homemaker-py-yd6t`)
-- §39.199 · 20594-20623 · The race winners' low fail counts include rooms built at 2-30% of their size, each charged one fail (`homemaker-py-hlm1`)
+- §39.199 · 20594-20624 · The race winners' low fail counts include rooms built at 2-30% of their size, each charged one fail (`homemaker-py-hlm1`)
+- §39.200 · 20625-20714 · The score adds up area: re-ranking and re-tuning designs under a programme-centric score (`homemaker-py-5fje`)

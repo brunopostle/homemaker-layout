@@ -20621,3 +20621,94 @@ room that missed its size, or a room that is missing?** If the second, the plain
 threshold (below some fraction of target, score it as missing) or a size fail that counts more lines the
 further it misses. Either moves the objective and every race control with it, which is the occasion
 §39.198 set for switching `--split-stair` on (`homemaker-py-lycb`).
+
+### 39.200 The score adds up area: re-ranking and re-tuning designs under a programme-centric score (`homemaker-py-5fje`)
+
+**Owner, 2026-11-02**, on §39.199: "Maybe the whole scoring system needs looking at again. We score each room
+and add their scores together, with a 'fail' multiplier that applies to the whole building, but maybe
+relying on this additive system is the problem." And on the `value / cost` form: "the value/cost was just
+something to get everything going, it wasn't clear if it should be value - cost instead. It probably was
+based on some half-understood concept of cost benefit ratio." So `value / cost` carries no design intent
+to keep, and nothing about it is to be defended as Urb's.
+
+**What the score is** (`fitness._evaluate_full`, `process_storey`):
+
+    score = sum_cells(area * value_rate * quality) * building_factor * 0.5**fails / cost
+
+Three properties of that form, each visible in §39.199:
+
+1. **A cell's say is its built area.** A room that cannot be made good loses least by being made small:
+   a token `lr1` forfeits 1.7 m2 of value, a full-size dark one most of 80.
+2. **Square metres are fungible.** Nothing in the sum knows `lr1` was asked for. Its area can become
+   corridor, yard or nothing, and nothing (also lowering `cost`).
+3. **A fail is counted, not measured.** `0.5**n` charges a room at 2% of its size what it charges one at
+   92%; how far it missed survives only in the area-weighted sum, where (1) makes it worth nothing.
+
+Several standing rules read as patches for these: `connectivity_weight` exists because a severed corridor
+turned into habitable area and GAINED value (its docstring); `area_cap` is described as the objective's only
+statement that small circulation is efficient; and the three crinkliness nulls (§39.68) share the cause
+"the failing tail is 0.034% of corpus value", which is (1): a dark cell has already had its value
+multiplied away, so no re-weighting of the factor can reach it.
+
+**The arms** (`experiments/diag_aggregation.py`, offline, no `src/` change, the stamp does not move):
+
+| arm | score |
+|---|---|
+| A0 | today's |
+| A1 | value - cost: `value * building_factor * 0.5**fails - cost` |
+| P1 | each REQUIRED room instance gets `s_i` = product of its cell's factors (each floored at PHI) x 0.5 per adjacency it misses; a missing instance PHI^2. `geomean(s_i) * building_factor * 0.5**n_bld`, where `n_bld` counts the fails no room carries (connectivity, stairs, geometry fails on `C`/`O`/`E` cells, ...) |
+| P2 | P1 with each room's `log s_i` weighted by its DECLARED target area: big rooms matter more by what was asked, not what was built |
+
+**A1 is a non-starter at today's rates.** Value is 16-58% of cost across all 98 designs, so
+`value - cost` is negative everywhere, and the first form tried, `(value - cost) * 0.5**fails`, rose with
+every fail. Put on value, the penalty points the right way but the arm then mostly rewards the cheapest
+building. A difference needs value and cost in one currency, which a ratio never did: the ratio is free of
+the rates' scale, which is probably why it served to get things going. A1 is an open design question (what
+is a lit square metre of bedroom worth in cost units?), not a formula to test.
+
+**Re-ranking 98 committed designs** (the six `+orth` cold corpora, `hand-3storey`, 25 race finalists and
+winners; PHI = 1e-3, and within 0.08 of these at 1e-2) mostly agrees with A0: Kendall tau within a programme 0.72 / 0.58 / 0.74 /
+0.63 for P1 (harbor / health / maple / programme-house), 0.64 / 0.53 / 0.69 / 0.78 for P2. The token-room
+designs still lead maple-court and harbor-house under P1, because a geomean over 55 rooms makes a token room
+one vote in 55 (x0.88 at PHI = 1e-3, milder than one fail's x0.5). **That re-ranking is weak evidence either
+way**: every design in it was found by an A0 search, so it cannot show what another score would reward.
+
+**Re-tuning** is the sharper test (`experiments/diag_aggregation_tune.py`): hold the topology, run
+`innerloop.optimise` (which compares on score alone) at 3,000 evaluations with each arm as the score,
+PHI = 1e-20 so a far-off room keeps a gradient (log of a gaussian factor is minus half its squared z-score,
+and P1 becomes a least-squares fit of every room to its brief). A0 with the same budget is the control.
+
+| design | arm | fails | big rooms built, m2 (targets: lr1 80, da1 60, n 60 x4) |
+|---|---|---|---|
+| maple `best-3` | A0 | 10 | lr1 1, da1 16, n 8 / 13 / 16 / 44 |
+| | P1 | 12 | lr1 5, da1 24, n 10 / 16 / 24 / 43 |
+| | P2 | 16 | lr1 6, da1 38, n 9 / 26 / 38 / 50 |
+| maple `clean-9` | A0 | 12 | lr1 73, da1 17, n 8 / 14 / 17 / 46 |
+| | P2 | 20 | lr1 75, da1 33, n 14 / 25 / 33 / 57 |
+| harbor `winner-total` | A0 | 8 | n 2 / 9 / 60 / 62 / 62 |
+| | P2 | 14 | n 7 / 20 / 51 / 57 / 57 |
+| programme-house `hand-3storey` (l1 35, b2 12, t1 5, t2 4) | A0 | 0 | l1 35, b2 8, t1 3, t2 3 |
+| | P1 | 0 | l1 34, b2 10, t1 4, t2 4 |
+
+(`final-single-3` and harbor's `c836457+orth-s1` behave the same way; all six in `experiments/results/aggregation/tune-3000.log`, the re-rankings beside it.) Four readings:
+
+- **The programme-centric arms pull rooms toward the brief, both ways.** Under-sized big rooms grow, and on
+  the human design A0's tuning squeezes the small rooms (toilets to 3 m2 against 4-5, `b2` to 8 against 12)
+  where P1 holds them. That is property (1) seen directly: under A0 a small room hardly counts.
+- **The fail count rises as rooms improve** (10 -> 16 on `best-3` under P2). The extra fails are
+  threshold crossings elsewhere, traded for big rooms coming much closer. So **the fail count is not a
+  neutral yardstick**: it is part of A0's aggregation, and comparing objectives by it is biased toward A0.
+  "10 fails, a new low" (§39.198) is a statement in A0's terms.
+- **The token rooms are topological.** `best-3`'s `lr1` reaches only 6 m2 under P2, where it carries the
+  most weight of any room and has a gradient: walls alone cannot grow it. Only a search under the new
+  score can say whether that score builds the lounge, and that needs the box.
+- **A0's control gains almost nothing** from 3,000 more evaluations on any design (best-3 0.000513 ->
+  0.000525), so the other arms' movement is the score's doing, not extra tuning.
+
+**What is decided and what is not.** Nothing in `src/` has changed. An objective of the P kind settles
+several things A0 settles implicitly, and they are the owner's: equal votes or target-weighted (P2 moved
+rooms further; P1 is kinder to small rooms); whether fails stay a score driver (`0.5**n_bld` for the
+building-level ones here) or become a report; what decides how big the building is, and what a corridor or
+a yard is worth, once there is no value per square metre; and whether cost is a divisor, a factor, a
+constraint, or a currency (A1). A switch would invalidate every corpus and control, which is the occasion
+for `homemaker-py-lycb`.
