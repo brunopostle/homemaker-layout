@@ -1,0 +1,8 @@
+maple-court: 4 candidates, budget 128000 rising x2 to 128000, ranked on total fails, 4 slots; at most 3 stages
+  stage 0 (128000): double-1: 4 structural, 13 fails, score 6.92e-05, 19122s
+  stage 0 (128000): double-3: 4 structural, 13 fails, score 6.88e-05, 19200s
+  stage 0 (128000): double-4: 4 structural, 13 fails, score 6.86e-05, 19234s
+  stage 0 (128000): double-2: 4 structural, 13 fails, score 6.86e-05, 19316s
+
+winner double-1: 4 structural, 13 fails, score 6.92e-05 (stage 0, budget 128000)
+wrote experiments/results/split-stair-race/winner-double.dom

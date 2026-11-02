@@ -1,0 +1,13 @@
+stage 0: 4 candidates in both races
+
+fails:
+  N=4   off mean 13.00   split mean 13.00   0W/0L/4T (for split)
+  mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+  ** NO DIFFERENCE: the two arms scored identically on every seed.
+     Nothing to test -- do not report a winner.
+
+structural:
+  N=4   off mean 4.00   split mean 4.00   0W/0L/4T (for split)
+  mean diff +0.000  sd 0.000  95% CI [+0.000, +0.000]
+  ** NO DIFFERENCE: the two arms scored identically on every seed.
+     Nothing to test -- do not report a winner.
