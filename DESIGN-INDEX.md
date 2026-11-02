@@ -217,7 +217,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (303 of them, 20592 lines)
+## Every section of DESIGN.md (304 of them, 20623 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -571,4 +571,5 @@ below are the most recent work.
 - §39.195 · 20393-20443 · A search from the joined design: one run reaches 11 fails, connected and single-loaded, and the arms' medians are level (`homemaker-py-73r9`)
 - §39.196 · 20444-20505 · The split of a long stair, built: no fail on `single-2`, once there is a door between the parts (`homemaker-py-yd6t`)
 - §39.197 · 20506-20546 · Owner's ruling on the single-storey stair, the repair priced elsewhere, and the race with the split on (`homemaker-py-yd6t`, `homemaker-py-05k3`)
-- §39.198 · 20547-20592 · The race with the split on: every long stair splits at no fail, and a new low of 10 on maple-court owed to something else (`homemaker-py-yd6t`)
+- §39.198 · 20547-20593 · The race with the split on: every long stair splits at no fail, and a new low of 10 on maple-court owed to something else (`homemaker-py-yd6t`)
+- §39.199 · 20594-20623 · The race winners' low fail counts include rooms built at 2-30% of their size, each charged one fail (`homemaker-py-hlm1`)

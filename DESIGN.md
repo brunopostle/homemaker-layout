@@ -20590,3 +20590,34 @@ every other operator's noop. The move fired about 5% of the time.
 require a full new set of control runs." It will: making it the default moves the search config, so later
 races could not pair against the controls already run. So `--split-stair` stays off and becomes the default
 when the next change forces new controls anyway. Make it part of that change, and say so in its write-up.
+
+### 39.199 The race winners' low fail counts include rooms built at 2-30% of their size, each charged one fail (`homemaker-py-hlm1`)
+
+`best-3`, maple-court's 10-fail low (§39.198), builds its 80 m2 lounge `lr1` at **1.7 m2**, the 30 m2 `lo1`
+at 7.2, the 60 m2 `da1` at 16.6 and three of the four 60 m2 `n` at 7.7-16.6. Its programme rooms total 642 m2
+of the 1,024 m2 asked, beside 367 m2 of `C`. Each of those rooms is one `size` line: `quality_size` is a plain
+gaussian, so 1.7 m2 against 80 ± 10 is a factor of about 1e-13, and that factor costs only the leaf's own
+value, which at 1.7 m2 is nearly nothing. Omitting the room instead costs 5-8 lines (§39.80). So a room
+shrunk to a token is **16-128x cheaper than leaving it out**, and on a plan it is the same thing.
+
+`experiments/diag_shrunk_rooms.py` lists every programme room under half its target, today's code:
+
+| designs | fails | rooms under 25% of target, per design |
+|---|---|---|
+| maple-court race finalists, §39.192-§39.198 (24) | 10-21 | 1-4 on every one; `lr1` at 1-7% on 13 of them |
+| harbor-house halving winner (§39.151) | 8 | `n` at 3%, `me1` and a second `n` at 14% |
+| `c836457+orth` cold corpus, maple-court (3) | 69-77 | 0-1 |
+| `c836457+orth` cold corpus, harbor / health / programme-house (9) | 1-43 | 0-1 |
+
+The rooms are always the large ones §39.15 found need two aspects as declared (`lr1`, `da1`, `n`) plus `lo1`,
+`ws1` and `me1`. The cold search, at 70-odd fails, mostly keeps them near size; the pipeline that took
+maple-court from ~70 to 10 shrinks them. **So part of the fall in fails is rooms traded for a single
+line each**, and the "lowest fails on maple-court" in §39.198 should be read with that.
+
+This is not landed as a defect, because it may be the objective working: one fail is the stated price of
+a room that misses its size, and the comparator is entitled to prefer one fail to the several a full-size
+single-aspect lounge earns. The question is the owner's: **is a room at a few percent of its target a
+room that missed its size, or a room that is missing?** If the second, the plain candidates are a
+threshold (below some fraction of target, score it as missing) or a size fail that counts more lines the
+further it misses. Either moves the objective and every race control with it, which is the occasion
+§39.198 set for switching `--split-stair` on (`homemaker-py-lycb`).
