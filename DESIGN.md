@@ -20590,4 +20590,3 @@ every other operator's noop. The move fired about 5% of the time.
 require a full new set of control runs." It will: making it the default moves the search config, so later
 races could not pair against the controls already run. So `--split-stair` stays off and becomes the default
 when the next change forces new controls anyway. Make it part of that change, and say so in its write-up.
-
