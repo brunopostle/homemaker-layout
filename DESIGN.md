@@ -20712,3 +20712,107 @@ building-level ones here) or become a report; what decides how big the building 
 a yard is worth, once there is no value per square metre; and whether cost is a divisor, a factor, a
 constraint, or a currency (A1). A switch would invalidate every corpus and control, which is the occasion
 for `homemaker-py-lycb`.
+
+### 39.201 A plan to settle the aggregation questions by experiment (`homemaker-py-5fje`)
+
+Owner, 2026-11-02: "We need a plan to determine these questions through experiments." The four questions
+§39.200 left open:
+
+- **Q1** equal votes per room, or votes weighted by declared target area?
+- **Q2** fails as a score driver (`0.5**n`), or only a report?
+- **Q3** with no value per square metre, what decides the building's size, and what is a corridor or a
+  yard worth?
+- **Q4** cost as a divisor, a factor, a constraint, or a currency set against value?
+
+**The difficulty is the yardstick.** §39.200 showed the fail count is part of A0's own aggregation, and
+every arm's score is a judge in its own cause. So no arm may be judged by its own score or by A0's. Every
+experiment below is judged on three instruments fixed in Phase 0, BEFORE any arm is run on them:
+
+1. **A report card**: arm-neutral facts about a plan, each read straight off the geometry and the brief
+   and none of them a score: per room, built area / target (and the count of rooms under 25% and over
+   150%), daylight (exposure against the 2.5 m-per-window-wall rule), adjacencies met, proportion; per
+   building, missing and extra rooms, storeys connected, a stair that serves every storey, circulation
+   area as a share of room area, external wall and roof per m2 of room, and `cost`. A vector, never summed:
+   summing it would be a fifth aggregation.
+2. **Ordering rulings**: the owner's answers to concrete "which is worse" pairs, each turned into a test
+   that a candidate score must pass, as `diag_ruling_omit_vs_circulation.py` does for §39.85's ruling.
+   Rulings settle what a score MUST say; the experiments then only choose among scores that say it.
+3. **Blind pairwise judgement**: the owner shown two plans of the same programme (`plan_svg.py` drawings
+   with the score and fail list stripped and the order randomised), picking the better or calling them
+   equal. The owner's time is the scarce resource, so the pairs are chosen where the candidate scores
+   DISAGREE most, which is where a judgement says most. About 30 pairs a round.
+
+#### Phase 0: the instruments (container, no owner time but the questionnaire)
+
+- `experiments/report_card.py`: the vector above for any `.dom`, a TSV row per design. Negative control: a
+  design with a room shrunk, a room deleted, a storey disconnected must each move exactly the column it
+  should.
+- **The questionnaire**, a draft for the owner to amend before answering. Each item is a pair of
+  edits to one real design (maple-court `clean-9` or the programme-house hand design), drawn, so it is
+  judged on a plan rather than in the abstract:
+  - O1 the lounge built at 2% of its target, or left out: equal, or which is worse?
+  - O2 a toilet at 50% of target, or the lounge at 50%: which is worse? (Q1 directly: equal votes say
+    equal, target weighting says the lounge, by about thirteen times on maple-court)
+  - O3 the lounge at 80%, or a toilet at 50%?
+  - O4 a bedroom lit on one side only at 6 m deep, or a bedroom 30% under size?
+  - O5 every room on brief, and circulation at 20% of room area, or 35%: how much worse is the second, and
+    is there a share below which more corridor costs nothing? (Q3)
+  - O6 the same rooms, 15% cheaper to build (less wall, a lower storey), or one room 20% under size:
+    which is better? Asked at two or three sizes of trade, this prices a room in cost units, which is
+    exactly the exchange rate `value - cost` needs (Q4)
+  - O7 an unrequested extra room, or the same area left as yard?
+  - O8 one storey not connected, or three rooms each 40% under size? (Q2: a fail as a cliff or as one
+    graded defect among many)
+- `experiments/judge_pairs.py`: picks the pairs, writes the drawings with the labels a judge should not
+  see removed, and records answers in a TSV that later rounds append to.
+
+#### Phase 1: price lists and re-tuning (container)
+
+- **Every candidate against every ruling.** Candidates are the P1/P2 family crossed with the options for
+  Q2-Q4: fails as `0.5**n_bld` / as `0.5**n` / as report only; building size from the brief's targets
+  alone / with a circulation-share target / with `area_cap`; cost as divisor / as `(cost_ref / cost)**a`
+  with `a` from O6 / as `value - lambda * cost` with `lambda` from O6 / absent. Most combinations die here,
+  cheaply: a candidate that orders O1-O8 against the owner is out, whatever it would do in a search.
+- **Re-tuning at scale**, `diag_aggregation_tune.py` over all 25 race finalists and the twelve
+  `c836457+orth` designs for each surviving candidate, A0 as control, each tuned design's report card
+  against its A0-tuned twin, paired through `ab_report`. This is the first measure of what each score
+  BUILDS, not how it ranks.
+- **Round 1 of judging** on pairs where the survivors disagree (tuned twins of one topology are the
+  cleanest pairs: same plan, different walls). Expectation before it runs: the owner prefers P-tuned twins
+  where big rooms came nearer the brief, and A0 twins where P's extra fails are daylight.
+- Out of Phase 1: Q1 answered (by O2/O3 and round 1), and two or three candidates for Q2-Q4.
+
+#### Phase 2: a selectable aggregation in the scorer (container)
+
+The search must be able to run under a candidate, so each survivor goes into `fitness.py` behind one config
+key, `aggregation`, defaulting to today's. That is an objective source, so the stamp moves; the guard is
+`diag_8b2u_score_cost.py --snapshot/--diff` showing every committed design's score and fail list
+bit-identical under the default, plus a test pinning it. The outer comparator's tiers (hard fails
+before soft, `fitness.tier_counts` in `driver`) are themselves an aggregation: under a P score, whether hard fails still come first is
+part of Q2, so the tiers become selectable with it. A smoke run of `homemaker-evolve` at a few thousand
+evaluations per candidate, which a container can do, checks it runs, not what it finds.
+
+#### Phase 3: search under each candidate (the box)
+
+The only test of the token lounge (§39.200: walls cannot grow it, only a search can). Two or three
+candidates and A0, each from the same seeds, on all four programmes; harbor-house and maple-court through
+the catalogue pipeline (`successive_halving.py`, whose fields the earlier races already fixed), health-centre
+and programme-house cold. At 128k evaluations and three seeds that is roughly 30 run-hours an arm, so 15-20 h
+of makespan for three or four arms at eight slots, if a P score costs what A0 does (time it in Phase 2).
+Expectations written down before it runs, as distributions over report-card columns: e.g. token rooms per
+maple-court finalist from 1-4 under A0 to at most one under P2; median built/target of the five largest
+rooms from ~0.3 to above 0.7; storeys connected no worse. Judged on report cards paired by seed, then
+round 2 of blind judging on the finalists. Q2 is settled here, since a cliff versus a gradient is a
+question about search dynamics that no container measurement answers.
+
+#### Phase 4: the ruling and the switch
+
+The owner chooses; the chosen aggregation becomes the default, `--split-stair` goes on in the same change
+(`homemaker-py-lycb`), and a new set of controls is run once for both. Rules that read as patches for
+area-additivity (§39.200: `connectivity_weight`, `area_cap`, the value rates themselves) are re-examined
+under the new score, each as a separate question, not retired in the switch.
+
+**Order and cost.** Phase 0 and Phase 1 need no box and a few hours of the owner's time (the questionnaire,
+one judging round). Phase 2 is container work. Phase 3 is the one box job, about a day. Phase 1 can end the
+plan early: if no candidate passes the rulings better than A0 does, A0's form is vindicated and the
+token-room question returns to a narrower fix (§39.199's threshold).
