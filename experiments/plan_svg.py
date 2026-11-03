@@ -61,7 +61,12 @@ def centroid(poly):
     return (cx / (3 * a), cy / (3 * a)) if a else poly[0]
 
 
-def render(dom_path: Path, programme_dir: Path, title: str) -> str:
+def render(dom_path: Path, programme_dir: Path, title: str,
+           blind: bool = False, highlight: "set[str] | None" = None) -> str:
+    """``blind`` leaves out the path, the score and the fail list, and writes
+    each room's target beside its area, for judging plans without the scorer's
+    view (`experiments/ask_questionnaire.py`). ``highlight`` outlines the cells
+    with those ``dom_id``s (``"level/path"``) in red."""
     root = dom.load(str(dom_path), native=True)
     reqs = load_programme_dir(str(programme_dir))
     made = rooms(root, programme_dir)
@@ -81,6 +86,8 @@ def render(dom_path: Path, programme_dir: Path, title: str) -> str:
     panel = w + 2 * PAD
     top = 56.0
     fail_lines = [f"{k}" + (f" x{v}" if v != 1 else "") for k, v in _count(fails).items()]
+    if blind:
+        fail_lines = []
     height = top + h + 2 * PAD + 30 + 14 * (len(fail_lines) + 2)
     width = max(panel * len(storeys), 2 * PAD + 6.2 * (len(str(dom_path)) + 30))
 
@@ -94,8 +101,11 @@ def render(dom_path: Path, programme_dir: Path, title: str) -> str:
            'stroke-width="0.8"/></pattern></defs>',
            f'<rect width="100%" height="100%" fill="white"/>',
            f'<text x="{PAD}" y="24" font-size="16" font-weight="bold">{escape(title)}</text>',
-           f'<text x="{PAD}" y="42" font-size="11" fill="#555">{escape(str(dom_path))} -- '
-           f'score {score:.4g}, {len(fails)} fails</text>']
+           (f'<text x="{PAD}" y="42" font-size="11" fill="#555">'
+            'red outline: the cells this version changes</text>' if blind else
+            f'<text x="{PAD}" y="42" font-size="11" fill="#555">{escape(str(dom_path))} -- '
+            f'score {score:.4g}, {len(fails)} fails</text>')]
+    marked = []
     for k, li in enumerate(sorted(storeys)):
         cx, _ = pt(x0, y1, k)
         out.append(f'<text x="{cx}" y="{top + 14}" font-size="12" font-weight="bold">'
@@ -109,6 +119,8 @@ def render(dom_path: Path, programme_dir: Path, title: str) -> str:
                 fill = FILL["outside"]
             pts = " ".join("%.1f,%.1f" % pt(x, y, k) for x, y in poly)
             out.append(f'<polygon points="{pts}" fill="{fill}" stroke="#333" stroke-width="1"/>')
+            if highlight and r["dom_id"] in highlight:
+                marked.append(f'<polygon points="{pts}" fill="none" stroke="#d00" stroke-width="3"/>')
             walls = r["face_styles"][2:]
             for i, s in enumerate(walls):
                 if s == "blank":
@@ -125,15 +137,21 @@ def render(dom_path: Path, programme_dir: Path, title: str) -> str:
             if a > 4:
                 out.append(f'<text x="{mx:.1f}" y="{my + 9:.1f}" font-size="8" text-anchor="middle" '
                            f'fill="#333">{escape(name[:18])}</text>')
+                asked = (f" of {reqs[code].size:g}" if blind and code in reqs
+                         and reqs[code].size else "")
                 out.append(f'<text x="{mx:.1f}" y="{my + 18:.1f}" font-size="8" '
-                           f'text-anchor="middle" fill="#666">{a:.1f} m²</text>')
+                           f'text-anchor="middle" fill="#666">{a:.1f}{asked} m²</text>')
+            elif blind and code in reqs:
+                out.append(f'<text x="{mx:.1f}" y="{my + 9:.1f}" font-size="7" '
+                           f'text-anchor="middle" fill="#d00">{a:.1f} of {reqs[code].size:g} m²</text>')
+    out += marked
     # scale bar
     sy = top + h + 2 * PAD + 10
     out.append(f'<line x1="{PAD}" y1="{sy}" x2="{PAD + 5 * SCALE}" y2="{sy}" stroke="#000" '
                'stroke-width="2"/>')
     out.append(f'<text x="{PAD + 5 * SCALE + 6}" y="{sy + 4}" font-size="10">5 m '
-               '(heavy line: party wall; hatched: stair)</text>')
-    for i, line in enumerate(["fails:"] + (fail_lines or ["none"])):
+               '(heavy line: party wall; hatched: stair; green or blank: outside)</text>')
+    for i, line in enumerate([] if blind else ["fails:"] + (fail_lines or ["none"])):
         out.append(f'<text x="{PAD}" y="{sy + 22 + 14 * i}" font-size="10" fill="#444">'
                    f'{escape(line)}</text>')
     out.append("</svg>")

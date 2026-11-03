@@ -83,8 +83,14 @@ def capture(fit, root):
     return score, fails, leaves, bf[0], value, cost
 
 
-def arms(fit, reqs, root, phi):
+def arms(fit, reqs, root, phi, cost_scale=1.0):
+    """Every arm's score for ``root``. ``cost_scale`` multiplies the built
+    cost, for a hypothetical "the same plan, cheaper" (questionnaire O6);
+    P1c/P2c are P1/P2 divided by cost (x 1e5, a constant that only sets the
+    scale), the P family with today's cost divisor kept."""
     score, fails, leaves, bf, value, cost = capture(fit, root)
+    score /= cost_scale
+    cost *= cost_scale
     rooms = {c: r for c, r in reqs.items() if not dom.is_generic(c)}
     by_cell = {(le.level, le.id): le for le in leaves}
     adj_miss = defaultdict(int)
@@ -127,7 +133,8 @@ def arms(fit, reqs, root, phi):
     p1 = math.exp(sum(math.log(s) for _, s in votes) / len(votes)) * bf * 0.5 ** n_bld
     p2 = math.exp(sum(t * math.log(s) for t, s in votes) / w) * bf * 0.5 ** n_bld
     a1 = value * bf * 0.5 ** len(fails) - cost
-    return dict(A0=score, A1=a1, P1=p1, P2=p2, fails=len(fails), n_bld=n_bld,
+    return dict(A0=score, A1=a1, P1=p1, P2=p2, P1c=p1 * 1e5 / cost, P2c=p2 * 1e5 / cost,
+                fails=len(fails), n_bld=n_bld,
                 room_fails=room_fails, missing=missing, extra=extra, token=token,
                 bf=bf, value=value, cost=cost, fail_lines=fails)
 

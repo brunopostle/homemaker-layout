@@ -1,0 +1,156 @@
+
+== O1 (pair): Which is worse: the common living room shrunk to a sliver (2% of its 80 m2), or left out altogether?
+  rung 0 A: lr1 at 1.6 m2 (2% of 80)
+       + 0/ll (lr1) not adjacent to c
+       + 0/ll access
+       + 0/ll crinkliness
+       + 0/ll proportion
+       + 0/ll shape
+       + 0/ll size
+       - 0/rlrllrrrrrl crinkliness
+  rung 0 B: lr1 left out (its cell given to the neighbouring O)
+       + missing lr1: would need adjacency to c
+       + missing lr1: would need adjacency to o
+       + missing lr1: would need proportion check
+       + missing lr1: would need size check
+       + missing lr1: would need to be on level 0
+       + missing required space: lr1
+       + missing required space: lr1 (critical)
+       - 0/rlrllrrrrrl crinkliness
+  worse, per rung:           
+    A0 today                 B
+    A1 value-cost            A
+    P1 equal votes           A
+    P2 target-weighted       A
+    P1 unfloored             A
+    P2 unfloored             A
+    P1 / cost                A
+    P2 / cost                A
+  -> ASK: the candidates disagree
+
+== O2 (pair): Which is worse: a bathroom at 2.3 m2 (asked 6 +- 1.5), or the common living room at 55 m2 (asked 80 +- 10)? The brief calls these equally far off: each is 2.5 of its own tolerances short.
+  rung 0 A: t at 2.2 m2 (38% of 6)
+       + 0/rlrllrrrlllr crinkliness
+       + 0/rlrllrrrlllr proportion
+       + 0/rlrllrrrlllr size
+  rung 0 B: lr1 at 55.0 m2 (69% of 80)
+       + 0/ll size
+  worse, per rung:           
+    A0 today                 A
+    A1 value-cost            A
+    P1 equal votes           A
+    P2 target-weighted       =
+    P1 unfloored             A
+    P2 unfloored             A
+    P1 / cost                A
+    P2 / cost                A
+  -> ASK: the candidates disagree
+
+== O3 (pair): Which is worse: a bathroom at 60% of its size (3.6 of 6 m2), or the common living room at 60% (48 of 80 m2)?
+  rung 0 A: t at 3.6 m2 (60% of 6)
+       + 0/rlrllrrrlllr crinkliness
+       + 0/rlrllrrrlllr proportion
+  rung 0 B: lr1 at 48.0 m2 (60% of 80)
+       + 0/ll size
+  worse, per rung:           
+    A0 today                 A
+    A1 value-cost            A
+    P1 equal votes           A
+    P2 target-weighted       B
+    P1 unfloored             A
+    P2 unfloored             A
+    P1 / cost                A
+    P2 / cost                B
+  -> ASK: the candidates disagree
+
+== O5 (ladder): Every room unchanged; B has more corridor, taken out of the yard. Is B worse, or no different?
+  rung 0 A: as designed
+  rung 0 B: 5 m2 more corridor, a strip cut off the yard
+       + 0/rlrlrr width
+       + 0/rrl crinkliness
+  rung 1 A: as designed
+  rung 1 B: 10 m2 more corridor, a strip cut off the yard
+       + 0/lrr width
+       + 0/rlrr crinkliness
+  rung 2 A: as designed
+  rung 2 B: 20 m2 more corridor, a strip cut off the yard
+       + 0/rlrr crinkliness
+  rung 3 A: as designed
+  rung 3 B: 40 m2 more corridor, a strip cut off the yard
+       + 0/rrl crinkliness
+  worse, per rung:          5    10    20    40
+    A0 today                 B     B     B     B
+    A1 value-cost            B     B     B     B
+    P1 equal votes           B     B     B     B
+    P2 target-weighted       B     B     B     B
+    P1 unfloored             B     B     B     B
+    P2 unfloored             B     B     B     B
+    P1 / cost                B     B     B     B
+    P2 / cost                B     B     B     B
+  -> DROP: every candidate agrees
+
+== O6 (ladder): A is as designed. B has the common living room at 80% of its size (64 of 80 m2) and costs the stated amount less to build. Which is worse?
+  rung 0 A: as designed
+  rung 0 B: lr1 at 64.0 m2 (80% of 80)
+  rung 1 A: as designed
+  rung 1 B: lr1 at 64.0 m2 (80% of 80); costs 1% less to build
+  rung 2 A: as designed
+  rung 2 B: lr1 at 64.0 m2 (80% of 80); costs 2% less to build
+  rung 3 A: as designed
+  rung 3 B: lr1 at 64.0 m2 (80% of 80); costs 5% less to build
+  rung 4 A: as designed
+  rung 4 B: lr1 at 64.0 m2 (80% of 80); costs 10% less to build
+  rung 5 A: as designed
+  rung 5 B: lr1 at 64.0 m2 (80% of 80); costs 20% less to build
+  rung 6 A: as designed
+  rung 6 B: lr1 at 64.0 m2 (80% of 80); costs 40% less to build
+  worse, per rung:        0.0  0.01  0.02  0.05   0.1   0.2   0.4
+    A0 today                 B     A     A     A     A     A     A
+    A1 value-cost            A     A     A     A     A     A     A
+    P1 equal votes           B     B     B     B     B     B     B
+    P2 target-weighted       B     B     B     B     B     B     B
+    P1 unfloored             B     B     B     B     B     B     B
+    P2 unfloored             B     B     B     B     B     B     B
+    P1 / cost                =     A     A     A     A     A     A
+    P2 / cost                B     A     A     A     A     A     A
+  -> ASK: the candidates disagree
+
+== O7 (pair): Which is worse: as designed, or with an extra room nobody asked for built on part of the yard?
+  rung 0 A: as designed
+  rung 0 B: an extra meeting room (m, 10 m2) nobody asked for, cut off the yard
+       + 0/lrr proportion
+       + 0/rlrr crinkliness
+       + too many spaces: m (found 4, expected 3)
+  worse, per rung:           
+    A0 today                 B
+    A1 value-cost            B
+    P1 equal votes           B
+    P2 target-weighted       B
+    P1 unfloored             B
+    P2 unfloored             B
+    P1 / cost                B
+    P2 / cost                B
+  -> DROP: every candidate agrees
+
+== O8 (pair): Which is worse: one storey cut off from the others' circulation, or three individual rooms each at 40% of their size (4 of 10 m2)?
+  rung 0 A: storey 1 cut off: a corridor cell built over as tn
+       + 1/rllrrll (tn) not adjacent to n
+       + level 1 not connected
+       + too many spaces: tn (found 5, expected 4)
+  rung 0 B: 3 x r at 40% of 10 m2
+       + 2/rlrllrrrrll size
+       + 2/rlrllrrrrlr size
+       + 2/rrrrlrr proportion
+       + 2/rrrrlrr size
+  worse, per rung:           
+    A0 today                 B
+    A1 value-cost            =
+    P1 equal votes           A
+    P2 target-weighted       A
+    P1 unfloored             A
+    P2 unfloored             A
+    P1 / cost                A
+    P2 / cost                A
+  -> ASK: the candidates disagree
+
+wrote /home/bruno/src/homemaker-layout/experiments/results/questionnaire/items.json: 5 of 7 items to ask

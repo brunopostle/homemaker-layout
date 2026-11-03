@@ -20854,3 +20854,48 @@ candidates disagree on it**, checked by this tool first; O2 and O3 as built woul
 They are rebuilt with the side effects held out (the room's lost area going to a cell that changes no
 other fail) and at a matched severity, and the questionnaire asks what "50%" should mean, since the brief's
 sigmas are themselves part of the answer to Q1.
+
+### 39.203 The questionnaire, built and pre-tested: five items to ask (`homemaker-py-5fje.2`)
+
+Owner, 2026-11-03: "So I need to run a script in the experiments folder, this will ask me questions and I
+answer them one at a time?" Yes:
+
+    HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/ask_questionnaire.py
+
+opens each comparison in the browser (two blind plans side by side: no score, no fails, which edit is on
+the left chosen at random, the edited cells outlined in red, each room labelled with its built area and
+the area asked), asks in the terminal which is worse (`l` / `r` / `e` equal / `s` skip / `q` quit), takes
+an optional note, and appends to `experiments/results/questionnaire/answers.tsv`, so it resumes where it
+stopped. A ladder is asked by bisection, three answers for seven rungs. `--report` prints, at any time,
+each candidate's verdict beside the answers and which candidates agree with how many.
+
+`experiments/questionnaire.py` builds the items (`items.json`, drawings and `.dom`s beside it). Each edit
+moves one cut or relabels one cell, and where several cells could take it the one that changes fewest fails
+elsewhere is chosen, so an item asks one question; what remains is printed. Pre-tested against eight
+candidates (A0, A1, P1, P2, P1/P2 unfloored, P1/P2 divided by cost):
+
+| item | edit A | edit B | candidates | |
+|---|---|---|---|---|
+| O1 | lounge at 2% | lounge left out | A0 alone calls B worse | ask |
+| O2 | bathroom at 2.2 m2 | lounge at 55 m2 (each 2.5 sigma short) | P2 level (within 0.1%), the rest A worse | ask |
+| O3 | bathroom at 60% | lounge at 60% | P2 and P2/cost B worse, the rest A | ask |
+| O6 | as designed | lounge at 80%, costing 0-40% less | switch: A0 at 1%, P/cost at 0-1%, P never | ask (ladder) |
+| O8 | storey 1 cut off | three bedrooms at 40% | A0 calls B worse, every P calls A worse | ask |
+| O5 | as designed | 5-40 m2 more corridor out of the yard | all B worse | dropped |
+| O7 | as designed | an extra 10 m2 meeting room on the yard | all B worse | dropped |
+
+**Why three of the eight are not asked**, each a finding in itself:
+
+- **O4** (a deep one-sided bedroom against a 30%-short one) cannot separate aggregations at all: both
+  defects sit on rooms of one code, so every candidate weighs them by the same factor product. It is a
+  question about the factors' calibration, not their sum, and is left for later.
+- **O5**: on both `clean-9` and `best-1` every corridor strip that can be cut from a yard takes the
+  daylight of the corridor `0/rlrr` (and some a neighbour's width), so all candidates call it worse for
+  that, not for the corridor. Whether corridor area costs anything in itself cannot be asked on these
+  plans; Q3 goes to Phase 1's re-tuning instead (what circulation share each candidate builds).
+- **O7**: an extra room trips the scorer's own `too many spaces` fail, and loses the strip's daylight
+  too, so every candidate already rules against it.
+
+The script was tested end to end on invented answers (a scratch answers file, not committed): the
+resumption, the ladder's bisection, and a report naming, for each candidate, the items it disagrees on.
+`current.html` is rewritten for each comparison and is not worth committing.

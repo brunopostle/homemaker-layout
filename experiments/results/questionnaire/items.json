@@ -1,0 +1,550 @@
+[
+ {
+  "id": "O1",
+  "kind": "pair",
+  "question": "Which is worse: the common living room shrunk to a sliver (2% of its 80 m2), or left out altogether?",
+  "measure": null,
+  "useful": true,
+  "rungs": [
+   {
+    "value": null,
+    "a": {
+     "desc": "lr1 at 1.6 m2 (2% of 80)",
+     "svg": "O1-0-a.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/ll (lr1) not adjacent to c",
+      "0/ll access",
+      "0/ll crinkliness",
+      "0/ll proportion",
+      "0/ll shape",
+      "0/ll size"
+     ],
+     "minus": [
+      "0/rlrllrrrrrl crinkliness"
+     ]
+    },
+    "b": {
+     "desc": "lr1 left out (its cell given to the neighbouring O)",
+     "svg": "O1-0-b.svg",
+     "cost": 1.0,
+     "plus": [
+      "missing lr1: would need adjacency to c",
+      "missing lr1: would need adjacency to o",
+      "missing lr1: would need proportion check",
+      "missing lr1: would need size check",
+      "missing lr1: would need to be on level 0",
+      "missing required space: lr1",
+      "missing required space: lr1 (critical)"
+     ],
+     "minus": [
+      "0/rlrllrrrrrl crinkliness"
+     ]
+    },
+    "worse": {
+     "A0 today": "B",
+     "A1 value-cost": "A",
+     "P1 equal votes": "A",
+     "P2 target-weighted": "A",
+     "P1 unfloored": "A",
+     "P2 unfloored": "A",
+     "P1 / cost": "A",
+     "P2 / cost": "A"
+    }
+   }
+  ]
+ },
+ {
+  "id": "O2",
+  "kind": "pair",
+  "question": "Which is worse: a bathroom at 2.3 m2 (asked 6 +- 1.5), or the common living room at 55 m2 (asked 80 +- 10)? The brief calls these equally far off: each is 2.5 of its own tolerances short.",
+  "measure": null,
+  "useful": true,
+  "rungs": [
+   {
+    "value": null,
+    "a": {
+     "desc": "t at 2.2 m2 (38% of 6)",
+     "svg": "O2-0-a.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/rlrllrrrlllr crinkliness",
+      "0/rlrllrrrlllr proportion",
+      "0/rlrllrrrlllr size"
+     ],
+     "minus": []
+    },
+    "b": {
+     "desc": "lr1 at 55.0 m2 (69% of 80)",
+     "svg": "O2-0-b.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/ll size"
+     ],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "A",
+     "A1 value-cost": "A",
+     "P1 equal votes": "A",
+     "P2 target-weighted": "=",
+     "P1 unfloored": "A",
+     "P2 unfloored": "A",
+     "P1 / cost": "A",
+     "P2 / cost": "A"
+    }
+   }
+  ]
+ },
+ {
+  "id": "O3",
+  "kind": "pair",
+  "question": "Which is worse: a bathroom at 60% of its size (3.6 of 6 m2), or the common living room at 60% (48 of 80 m2)?",
+  "measure": null,
+  "useful": true,
+  "rungs": [
+   {
+    "value": null,
+    "a": {
+     "desc": "t at 3.6 m2 (60% of 6)",
+     "svg": "O3-0-a.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/rlrllrrrlllr crinkliness",
+      "0/rlrllrrrlllr proportion"
+     ],
+     "minus": []
+    },
+    "b": {
+     "desc": "lr1 at 48.0 m2 (60% of 80)",
+     "svg": "O3-0-b.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/ll size"
+     ],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "A",
+     "A1 value-cost": "A",
+     "P1 equal votes": "A",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "A",
+     "P2 unfloored": "A",
+     "P1 / cost": "A",
+     "P2 / cost": "B"
+    }
+   }
+  ]
+ },
+ {
+  "id": "O5",
+  "kind": "ladder",
+  "question": "Every room unchanged; B has more corridor, taken out of the yard. Is B worse, or no different?",
+  "measure": "the smallest added corridor that makes a plan worse",
+  "useful": false,
+  "rungs": [
+   {
+    "value": 5,
+    "a": {
+     "desc": "as designed",
+     "svg": "O5-0-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "5 m2 more corridor, a strip cut off the yard",
+     "svg": "O5-0-b.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/rlrlrr width",
+      "0/rrl crinkliness"
+     ],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "B",
+     "A1 value-cost": "B",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "B",
+     "P2 / cost": "B"
+    }
+   },
+   {
+    "value": 10,
+    "a": {
+     "desc": "as designed",
+     "svg": "O5-1-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "10 m2 more corridor, a strip cut off the yard",
+     "svg": "O5-1-b.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/lrr width",
+      "0/rlrr crinkliness"
+     ],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "B",
+     "A1 value-cost": "B",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "B",
+     "P2 / cost": "B"
+    }
+   },
+   {
+    "value": 20,
+    "a": {
+     "desc": "as designed",
+     "svg": "O5-2-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "20 m2 more corridor, a strip cut off the yard",
+     "svg": "O5-2-b.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/rlrr crinkliness"
+     ],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "B",
+     "A1 value-cost": "B",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "B",
+     "P2 / cost": "B"
+    }
+   },
+   {
+    "value": 40,
+    "a": {
+     "desc": "as designed",
+     "svg": "O5-3-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "40 m2 more corridor, a strip cut off the yard",
+     "svg": "O5-3-b.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/rrl crinkliness"
+     ],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "B",
+     "A1 value-cost": "B",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "B",
+     "P2 / cost": "B"
+    }
+   }
+  ]
+ },
+ {
+  "id": "O6",
+  "kind": "ladder",
+  "question": "A is as designed. B has the common living room at 80% of its size (64 of 80 m2) and costs the stated amount less to build. Which is worse?",
+  "measure": "the saving at which a 20%-short living room becomes acceptable",
+  "useful": true,
+  "rungs": [
+   {
+    "value": 0.0,
+    "a": {
+     "desc": "as designed",
+     "svg": "O6-0-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "lr1 at 64.0 m2 (80% of 80)",
+     "svg": "O6-0-b.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "B",
+     "A1 value-cost": "A",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "=",
+     "P2 / cost": "B"
+    }
+   },
+   {
+    "value": 0.01,
+    "a": {
+     "desc": "as designed",
+     "svg": "O6-1-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "lr1 at 64.0 m2 (80% of 80); costs 1% less to build",
+     "svg": "O6-1-b.svg",
+     "cost": 0.99,
+     "plus": [],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "A",
+     "A1 value-cost": "A",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "A",
+     "P2 / cost": "A"
+    }
+   },
+   {
+    "value": 0.02,
+    "a": {
+     "desc": "as designed",
+     "svg": "O6-2-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "lr1 at 64.0 m2 (80% of 80); costs 2% less to build",
+     "svg": "O6-2-b.svg",
+     "cost": 0.98,
+     "plus": [],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "A",
+     "A1 value-cost": "A",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "A",
+     "P2 / cost": "A"
+    }
+   },
+   {
+    "value": 0.05,
+    "a": {
+     "desc": "as designed",
+     "svg": "O6-3-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "lr1 at 64.0 m2 (80% of 80); costs 5% less to build",
+     "svg": "O6-3-b.svg",
+     "cost": 0.95,
+     "plus": [],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "A",
+     "A1 value-cost": "A",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "A",
+     "P2 / cost": "A"
+    }
+   },
+   {
+    "value": 0.1,
+    "a": {
+     "desc": "as designed",
+     "svg": "O6-4-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "lr1 at 64.0 m2 (80% of 80); costs 10% less to build",
+     "svg": "O6-4-b.svg",
+     "cost": 0.9,
+     "plus": [],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "A",
+     "A1 value-cost": "A",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "A",
+     "P2 / cost": "A"
+    }
+   },
+   {
+    "value": 0.2,
+    "a": {
+     "desc": "as designed",
+     "svg": "O6-5-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "lr1 at 64.0 m2 (80% of 80); costs 20% less to build",
+     "svg": "O6-5-b.svg",
+     "cost": 0.8,
+     "plus": [],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "A",
+     "A1 value-cost": "A",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "A",
+     "P2 / cost": "A"
+    }
+   },
+   {
+    "value": 0.4,
+    "a": {
+     "desc": "as designed",
+     "svg": "O6-6-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "lr1 at 64.0 m2 (80% of 80); costs 40% less to build",
+     "svg": "O6-6-b.svg",
+     "cost": 0.6,
+     "plus": [],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "A",
+     "A1 value-cost": "A",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "A",
+     "P2 / cost": "A"
+    }
+   }
+  ]
+ },
+ {
+  "id": "O7",
+  "kind": "pair",
+  "question": "Which is worse: as designed, or with an extra room nobody asked for built on part of the yard?",
+  "measure": null,
+  "useful": false,
+  "rungs": [
+   {
+    "value": null,
+    "a": {
+     "desc": "as designed",
+     "svg": "O7-0-a.svg",
+     "cost": 1.0,
+     "plus": [],
+     "minus": []
+    },
+    "b": {
+     "desc": "an extra meeting room (m, 10 m2) nobody asked for, cut off the yard",
+     "svg": "O7-0-b.svg",
+     "cost": 1.0,
+     "plus": [
+      "0/lrr proportion",
+      "0/rlrr crinkliness",
+      "too many spaces: m (found 4, expected 3)"
+     ],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "B",
+     "A1 value-cost": "B",
+     "P1 equal votes": "B",
+     "P2 target-weighted": "B",
+     "P1 unfloored": "B",
+     "P2 unfloored": "B",
+     "P1 / cost": "B",
+     "P2 / cost": "B"
+    }
+   }
+  ]
+ },
+ {
+  "id": "O8",
+  "kind": "pair",
+  "question": "Which is worse: one storey cut off from the others' circulation, or three individual rooms each at 40% of their size (4 of 10 m2)?",
+  "measure": null,
+  "useful": true,
+  "rungs": [
+   {
+    "value": null,
+    "a": {
+     "desc": "storey 1 cut off: a corridor cell built over as tn",
+     "svg": "O8-0-a.svg",
+     "cost": 1.0,
+     "plus": [
+      "1/rllrrll (tn) not adjacent to n",
+      "level 1 not connected",
+      "too many spaces: tn (found 5, expected 4)"
+     ],
+     "minus": []
+    },
+    "b": {
+     "desc": "3 x r at 40% of 10 m2",
+     "svg": "O8-0-b.svg",
+     "cost": 1.0,
+     "plus": [
+      "2/rlrllrrrrll size",
+      "2/rlrllrrrrlr size",
+      "2/rrrrlrr proportion",
+      "2/rrrrlrr size"
+     ],
+     "minus": []
+    },
+    "worse": {
+     "A0 today": "B",
+     "A1 value-cost": "=",
+     "P1 equal votes": "A",
+     "P2 target-weighted": "A",
+     "P1 unfloored": "A",
+     "P2 unfloored": "A",
+     "P1 / cost": "A",
+     "P2 / cost": "A"
+    }
+   }
+  ]
+ }
+]
