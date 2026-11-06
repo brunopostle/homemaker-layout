@@ -20899,3 +20899,60 @@ candidates (A0, A1, P1, P2, P1/P2 unfloored, P1/P2 divided by cost):
 The script was tested end to end on invented answers (a scratch answers file, not committed): the
 resumption, the ladder's bisection, and a report naming, for each candidate, the items it disagrees on.
 `current.html` is rewritten for each comparison and is not worth committing.
+
+### 39.204 The owner's answers: P1 agrees with all six, today's score with one (`homemaker-py-5fje.2`)
+
+The owner answered the questionnaire of §39.203 on 2026-11-06, seven answers over the five items, with
+notes. The answers are in `experiments/results/questionnaire/answers.tsv`, in the owner's words:
+
+| item | owner: worse | note |
+|---|---|---|
+| O1 | A, the 1.6 m2 sliver of lounge, not the omitted lounge | "The sliver is useless and misleads" |
+| O2 | A, the 2.2 m2 bathroom, not the 55 m2 lounge | "the bathroom is no use for anything, if it was 0.8m clear width it could fit a single wc stall, whereas a spread of common room sizes might be better than them all being the same size" |
+| O3 | equal: bathroom at 60% and lounge at 60% | "this bathroom is usable for a single wc stall and the common room is usable if not as big as liked" |
+| O6 | B, the 80% lounge, at savings of 5%, 20% and 40% | "the larger common room reduces the length of open wall to the circulation area and may make this space less appealing"; later rungs "seems to be the same question as before" |
+| O8 | A, storey 1 cut off, not three bedrooms at 40% | |
+
+Against the eight candidates (`ask_questionnaire.py --report`):
+
+| candidate | agrees on | disagrees on |
+|---|---|---|
+| A0, today's score | 1 of 5 | O1, O3, O6, O8 |
+| A1, value - cost | 2 of 5 | O3, O6, O8 |
+| P1, P1 unfloored, P2 unfloored | 4 of 5 | O3 |
+| P2, P1/cost, P2/cost | 3 of 5 | O3 and O2 or O6 |
+
+O3 is "equal", and no candidate can say that of two different plans (it needs a 0.1% tie), so it
+counts against every one of them equally and separates none. Leaving it out, **P1 and both unfloored
+variants agree with every answer, and today's score gets four of five comparisons wrong**: it prefers
+a token room to an omitted one (O1, §39.199's mechanism, now confirmed as wrong by the owner), prefers a
+storey cut off from the stair to three undersized bedrooms (O8), and trades a 20%-short lounge for a
+1% saving (O6) where the owner would not take it for 40%.
+
+**What the notes add, beyond the orderings.** None of them is about how scores are summed; all are
+about how one room is judged, which is Phase 2's question (calibration of the factors), not this one:
+
+- **Usability is a threshold, not a distance from the target.** A bathroom is acceptable once it can
+  hold a wc stall (about 0.8 m clear width); below that it is "no use for anything". The gaussian on
+  area treats 2.2 m2 and 3.6 m2 as points on one smooth slope. O3's "equal" says the same: both rooms
+  pass a usability bar, and the shortfall beyond it barely matters.
+- **The collateral fails of O3 did not register.** The 60% bathroom also picked up `proportion` and
+  `crinkliness` fails, which is why every P calls it worse; the owner judged it usable anyway.
+- **Variety of size may be a virtue** among rooms of one kind, where the brief gives each the same
+  target.
+- **A room's wall to the circulation matters** to how appealing it is, which nothing scores.
+
+**O6's cost reading is not settled.** The rungs differed only in the stated saving, the drawings being
+identical, and the owner's notes ("the same question as before") suggest the plan was judged and the
+money not weighed. Read literally, the answer says cost should hardly trade against room area, which
+favours P1 (no cost term) over P1/cost; read as "the saving was not taken into account", it says
+nothing about cost. The owner is asked which.
+
+**Tests.** `tests/test_owner_orderings.py` scores every answered pair from its committed `.dom`s:
+P1 must give the owner's verdict on all six (O1, O2, O6 at three rungs, O8), and today's score is held
+to the same as a strict xfail on the five it gets wrong. That xfail is the negative control (the
+comparison can fail, and does, on A0), and it XPASSes, failing the run, the day the objective changes.
+
+**Next** (`homemaker-py-5fje.4`, Phase 1): re-tune and re-rank under P1 and P1 unfloored, with A0 as the
+control, to see what designs each builds: token rooms, circulation share, the shapes that the notes
+above say matter.

@@ -170,6 +170,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A stair on a single storey "makes no sense, but may be necessary to allow a design to go from one to two storeys": neither relabelled nor charged | §39.197 |
 | `--split-stair` is to be a default, but switched on only when the next change forces a new set of controls anyway | §39.198 |
 | `value / cost` was "just something to get everything going", maybe a half-understood cost-benefit ratio; `value - cost` was never ruled out. No design intent to keep: the whole area-additive aggregation is open to review | §39.200 |
+| Questionnaire answers: a token room is worse than the room left out ("useless and misleads"); a storey cut off is worse than three bedrooms at 40%; a 20%-short lounge is worse even at 40% cheaper; a room is usable once it clears a threshold (a wc stall's 0.8 m), not by distance from its target. P1 agrees with all six orderings, today's score with one; pinned in `tests/test_owner_orderings.py` | §39.204 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -218,7 +219,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (308 of them, 20901 lines)
+## Every section of DESIGN.md (309 of them, 20958 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -577,4 +578,5 @@ below are the most recent work.
 - §39.200 · 20625-20715 · The score adds up area: re-ranking and re-tuning designs under a programme-centric score (`homemaker-py-5fje`)
 - §39.201 · 20716-20819 · A plan to settle the aggregation questions by experiment (`homemaker-py-5fje`)
 - §39.202 · 20820-20857 · Three questionnaire items worked through, before asking them (`homemaker-py-5fje.2`)
-- §39.203 · 20858-20901 · The questionnaire, built and pre-tested: five items to ask (`homemaker-py-5fje.2`)
+- §39.203 · 20858-20902 · The questionnaire, built and pre-tested: five items to ask (`homemaker-py-5fje.2`)
+- §39.204 · 20903-20958 · The owner's answers: P1 agrees with all six, today's score with one (`homemaker-py-5fje.2`)
