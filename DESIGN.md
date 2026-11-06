@@ -20973,3 +20973,77 @@ comparison can fail, and does, on A0), and it XPASSes, failing the run, the day 
 **Next** (`homemaker-py-5fje.4`, Phase 1): re-tune and re-rank under P1 and P1 unfloored, with A0 as the
 control, to see what designs each builds: token rooms, circulation share, the shapes that the notes
 above say matter.
+
+### 39.205 The report card: plain facts about a plan, the yardstick no candidate owns (`homemaker-py-5fje.1`)
+
+§39.201's first instrument. `experiments/report_card.py` writes, for any `.dom`, one row of facts read off
+the geometry and the brief (and `--rooms`, one row per room cell). It reads no factor, no fail line and no
+value rate. The scorer is run only so that the building measured is the one it scores: the same preprocessing
+and merge, and the same adjacency graphs, captured as each storey goes past. The row is a vector and is never
+summed: rooms asked, missing, extra, token (<25% of target) and over (>150%), **shortfall_m2** (area the
+rooms fall short of their targets, plus the whole target of each missing room), **surplus_m2** (area beyond
+the targets), median and least built/target and the median of the five largest, narrowest usable width,
+rooms longer than the brief's proportion, unlit rooms and rooms more than 2.5 m deep per metre of exposed
+wall (Alexander 159, §39.16), adjacencies asked and met, rooms without a door, storeys and storeys whose
+circulation is one piece, storeys the ground-floor stair reaches, room, circulation and inside area,
+external wall and roof per m2 of room, and cost.
+
+Shortfall and surplus were added while building it, and they matter for the ruling of §39.204: they keep
+apart the two things the owner separates, area the brief asked for and did not get, and area built beyond
+it. Surplus and `circ_m2` are the two kinds of waste.
+
+**The negative control** (`--self-test`, pinned by `tests/test_report_card.py`): six edits, five of them
+the questionnaire's committed designs and one made in memory, each required to move the column it is about
+and to hold the columns it is not about:
+
+| edit | must move | must hold |
+|---|---|---|
+| lounge at 2% (O1 a) | token +1, shortfall up | missing, connected |
+| lounge left out (O1 b) | missing +1, shortfall up | token, connected |
+| bathroom at 38% (O2 a) | shortfall up | missing, token, connected |
+| storey 1 cut off (O8 a) | connected -1 | missing, token, stair_storeys |
+| three bedrooms at 40% (O8 b) | shortfall up | missing, token, connected |
+| top stair cell relabelled `C` (best-1) | stair_storeys -1 | missing, token, shortfall |
+
+All six pass. The control also lists every other column each edit moved: the side effects the questionnaire
+printed (§39.203) show up here as facts, e.g. the 2% lounge also loses its door. Only `rooms_asked`,
+`storeys` and `ratio_big5` are moved by no control. The first two are fixed for a programme and a tree, and
+the third is a median that the lounge, already the worst of the five, cannot shift.
+
+**Two premises were wrong, and the first draft of the control caught both.** `ratio_min` was the first
+choice of column for "a room shrunk", and it failed twice: clean-9 already has a lounge at 16% and best-1 a room at 11%,
+so shrinking another room moved no minimum. That is why shortfall exists. And a `narrow` column counted
+rooms under the brief's width. No programme asks for a room width (`width_inside` is null, §39.37), so it was
+comparing against a dataclass default, which made all six rooms of the hand-drawn programme-house "narrow". It is now
+`narrowest`, a width in metres, for the owner's usability threshold (a wc stall wants 0.8 m, §39.204).
+
+**Cross-checked against the scorer** on all 98 designs of §39.200's re-rank: `storeys - connected` equals the
+count of `level N not connected` fails on 98 of 98, and `missing` equals the count of `missing required
+space` lines (one per room; the scorer writes a `(critical)` twin of each) on 98 of 98.
+
+**The baseline, A0-searched designs** (`experiments/results/aggregation/report-card.tsv` and
+`report-card-rooms.tsv`, 98 designs, 3437 room cells, six seconds), medians per programme:
+
+| programme | n | token | missing | shortfall m2 | surplus m2 | big5 ratio | deep | circ / room area | storeys connected | stair reaches |
+|---|---|---|---|---|---|---|---|---|---|---|
+| harbor-house | 20 | 1 | 2 | 179 | 50 | 0.78 | 24 | 0.50 | 0 of 2 | 2 |
+| health-centre | 18 | 0 | 1 | 22 | 7 | 1.00 | 7 | 0.29 | 0 of 1 | 0 |
+| maple-court | 41 | 3 | 0 | 302 | 45 | 0.28 | 36 | 0.52 | 2 of 3 | 3 |
+| programme-house | 19 | 0 | 0 | 16 | 4 | 1.01 | 2 | 0.41 | 2 of 2 | 2 |
+
+Two facts in this table were not on record before:
+
+- **Circulation is already half the room area** on harbor-house and maple-court, under a score that charges for
+  it through cost. P1 has no cost term (§39.204), so Phase 1 must watch this column most closely, and it now
+  has a baseline to compare with.
+- **Higher-scoring maple-court designs fall shorter of the brief**, under A0 and under P1 alike: within the
+  programme, Kendall tau of score against shortfall is +0.51 (A0) and +0.44 (P1), and against token rooms
+  +0.49 and +0.44. That is confounded. The high scorers are the catalogue finalists and the low ones are older
+  cold-start corpora at other stamps, and every design came from an A0 search, so it says nothing yet about
+  what P1 would build. It is the comparison that Phase 1's tuned twins make cleanly (same topology, walls
+  tuned under each arm).
+
+**Expectations for Phase 1, written before it runs:** P1-tuned twins against A0-tuned twins of the same
+topology, paired: shortfall_m2 and token lower under P1 on most maple-court pairs; surplus_m2 roughly level
+(the size factor is two-sided under both); circ_share higher under P1 on at least half the pairs, the cost of
+dropping the cost divisor; connected no worse.
