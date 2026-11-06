@@ -1,5 +1,6 @@
 """Build and pre-test the ordering questionnaire (`homemaker-py-5fje.2`,
-DESIGN.md §39.201-§39.203).
+DESIGN.md §39.201-§39.203). This asks nothing: to ANSWER the questionnaire,
+run `ask_questionnaire.py`.
 
 Each item is one or more pairs of edits, A and B, to a real design. For every
 pair this makes both variants, says what each edit moved (cells and fails),
@@ -413,6 +414,8 @@ def main() -> int:
     (out / "items.json").write_text(json.dumps(manifest, indent=1) + "\n")
     print(f"\nwrote {out / 'items.json'}: "
           f"{sum(m['useful'] for m in manifest)} of {len(manifest)} items to ask")
+    print("\nThis script only BUILDS the questionnaire. To answer it, run:\n"
+          "    HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/ask_questionnaire.py")
     return 0
 
 
