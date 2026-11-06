@@ -20910,7 +20910,7 @@ notes. The answers are in `experiments/results/questionnaire/answers.tsv`, in th
 | O1 | A, the 1.6 m2 sliver of lounge, not the omitted lounge | "The sliver is useless and misleads" |
 | O2 | A, the 2.2 m2 bathroom, not the 55 m2 lounge | "the bathroom is no use for anything, if it was 0.8m clear width it could fit a single wc stall, whereas a spread of common room sizes might be better than them all being the same size" |
 | O3 | equal: bathroom at 60% and lounge at 60% | "this bathroom is usable for a single wc stall and the common room is usable if not as big as liked" |
-| O6 | B, the 80% lounge, at savings of 5%, 20% and 40% | "the larger common room reduces the length of open wall to the circulation area and may make this space less appealing"; later rungs "seems to be the same question as before" |
+| O6 | B, the 80% lounge, at savings of 5%, 20% and 40%, asked twice (below) | "a smaller room than requested isn't a saving" |
 | O8 | A, storey 1 cut off, not three bedrooms at 40% | |
 
 Against the eight candidates (`ask_questionnaire.py --report`):
@@ -20940,13 +20940,30 @@ about how one room is judged, which is Phase 2's question (calibration of the fa
   `crinkliness` fails, which is why every P calls it worse; the owner judged it usable anyway.
 - **Variety of size may be a virtue** among rooms of one kind, where the brief gives each the same
   target.
-- **A room's wall to the circulation matters** to how appealing it is, which nothing scores.
+- **The circulation's external wall matters** (O6, corrected below): a room that grows into it takes
+  its daylight and makes the corridor less appealing.
 
-**O6's cost reading is not settled.** The rungs differed only in the stated saving, the drawings being
-identical, and the owner's notes ("the same question as before") suggest the plan was judged and the
-money not weighed. Read literally, the answer says cost should hardly trade against room area, which
-favours P1 (no cost term) over P1/cost; read as "the saving was not taken into account", it says
-nothing about cost. The owner is asked which.
+**O6, asked twice.** The owner misread O6 the first time and asked for it again; `ask_questionnaire.py
+--item O6` re-asks one item, writing a `redo` row that sets the earlier answers aside. The verdicts
+came out the same (the 80% lounge worse at savings of 5%, 20% and 40%), now with the reason:
+
+> the costing is to prevent wasteful spending, making the common-room smaller than requested isn't
+> causing wasteful spending - there is an entire other layout engine that designs buildings to a fixed
+> cost and that pares rooms accordingly, but we are not building this engine yet (or maybe never)
+
+and "a smaller room than requested isn't a saving". **That is a ruling on what cost is for**: it
+penalises waste, area built beyond what the brief asks; it does not buy back a shortfall against the
+brief. So no candidate in which cost trades against room size can be right, which rules out A0, A1,
+P1/cost and P2/cost as formed, and leaves P1 (and its unfloored variant), which has no cost term at
+all. What P1 lacks in its turn is any charge for waste that is not in a room: oversize rooms are
+already penalised by the two-sided size factor, but surplus circulation is not. Phase 1 must measure
+the circulation share P1 builds (the question O5 could not ask), and if it grows, the charge to add is
+one on area beyond the brief, not on total cost.
+
+The first note on O6 is corrected too: it was about the circulation, not the lounge. The larger lounge
+leaves the corridor less external wall, so less daylight, which makes the CIRCULATION less appealing.
+That is a design reason to prefer the smaller lounge, and nothing in the score makes a corridor's
+daylight count for anything beyond its own crinkliness factor.
 
 **Tests.** `tests/test_owner_orderings.py` scores every answered pair from its committed `.dom`s:
 P1 must give the owner's verdict on all six (O1, O2, O6 at three rungs, O8), and today's score is held
