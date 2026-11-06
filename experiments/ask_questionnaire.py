@@ -16,7 +16,8 @@ Answers are appended to `answers.tsv` beside the items as they are given, so
 it can be stopped (q) and resumed; `--again` asks everything afresh (the old
 answers stay in the file, the newest per comparison counts). At the end, and
 with `--report` at any time, it prints which candidate scores agree with the
-answers so far.
+answers so far. `--item O6` asks one item again: a `redo` row is written and
+that item's earlier answers no longer count.
 """
 import argparse
 import datetime
@@ -36,6 +37,9 @@ def load_answers(path, since=""):
     if path.exists():
         for line in path.read_text().splitlines()[1:]:
             row = dict(zip(COLS, line.split("\t")))
+            if row.get("worse") == "redo":                   # an item asked again:
+                got = {k: v for k, v in got.items() if k[0] != row["item"]}   # forget it
+                continue
             if row.get("worse") in ("A", "B", "=") and row["when"] >= since:
                 got[(row["item"], int(row["rung"]))] = row   # newest wins
     return got
@@ -47,6 +51,10 @@ def page(item, rung, n, left):
     extra = ""
     if item["kind"] == "ladder":
         extra = f"<p>Step {n + 1} of a ladder of {len(item['rungs'])}.</p>"
+        if rung.get("value"):
+            extra += (f'<p class="q"><b>At this step, the plan with the smaller room costs '
+                      f'{rung["value"]:.0%} less to build than the other.</b> The drawings are the same at every step; only this saving '
+                      f'changes. Is the smaller room worth that saving?</p>')
     cells = "".join(
         f'<div class="side"><h2>{lab}</h2><p class="desc">{html.escape(r["desc"])}</p>'
         f'<img src="{html.escape(r["svg"])}"></div>' for lab, r in sides)
@@ -196,17 +204,31 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--report", action="store_true", help="only print what the answers say")
     ap.add_argument("--again", action="store_true", help="ask everything afresh")
+    ap.add_argument("--item", action="append", default=[],
+                    help="ask this item again (repeatable); its earlier answers are set aside")
     ap.add_argument("--no-browser", action="store_true", help="do not open pages")
     ap.add_argument("--answers", default=str(HERE / "answers.tsv"), help=argparse.SUPPRESS)
     a = ap.parse_args()
     items = [i for i in json.loads((HERE / "items.json").read_text()) if i["useful"]]
     answers_path = Path(a.answers)
     since = datetime.datetime.now().isoformat(timespec="seconds") if a.again else ""
+    if a.item:
+        unknown = set(a.item) - {i["id"] for i in items}
+        if unknown:
+            sys.exit(f"no such item to ask: {', '.join(sorted(unknown))}")
+        if not answers_path.exists():
+            answers_path.write_text("\t".join(COLS) + "\n")
+        with answers_path.open("a") as f:
+            for it in a.item:
+                f.write("\t".join([datetime.datetime.now().isoformat(timespec="seconds"),
+                                   it, "-1", "", "", "", "redo", "asked again"]) + "\n")
     done = load_answers(answers_path, since)
     rng = random.Random()
     if not a.report:
         print(f"{len(items)} items. Each opens a page in your browser; answer here.")
         for item in items:
+            if a.item and item["id"] not in a.item:
+                continue
             if item["kind"] == "pair":
                 if (item["id"], 0) in done:
                     continue

@@ -9,7 +9,8 @@ owner's verdict on every one.
 
 `test_todays_objective_agrees` asks the same of today's score (A0). It is a
 strict xfail on the comparisons A0 is known to get wrong: today it documents
-the disagreement, and the day the objective changes it XPASSes, which fails
+the disagreement (which comparisons comes from the pre-test's verdicts in
+`items.json`), and the day the objective changes it XPASSes, which fails
 the run and forces this file to be revisited.
 
 "Equally bad" answers (O3) are not tested: no score here can make two
@@ -33,8 +34,6 @@ HERE = REPO / "experiments" / "results" / "questionnaire"
 PROG = REPO / "examples" / "maple-court"
 pytestmark = pytest.mark.skipif(not (HERE / "answers.tsv").is_file(), reason="no answers")
 
-# comparisons today's objective orders against the owner (§39.204)
-A0_WRONG = {"O1-0", "O6-3", "O6-5", "O6-6", "O8-0"}
 
 
 def _answers():
@@ -44,12 +43,17 @@ def _answers():
     newest = {}
     with (HERE / "answers.tsv").open() as f:
         for row in csv.DictReader(f, delimiter="\t"):
-            if row["worse"] in ("A", "B"):
+            if row["worse"] == "redo":       # asked again: earlier answers set aside
+                newest = {k: v for k, v in newest.items() if k[0] != row["item"]}
+            elif row["worse"] in ("A", "B"):
                 newest[(row["item"], int(row["rung"]))] = row["worse"]
     return [(f"{i}-{r}", items[i]["rungs"][r], w) for (i, r), w in sorted(newest.items())]
 
 
 ANSWERS = _answers()
+# comparisons today's objective orders against the owner, by the pre-test's
+# verdicts stored in items.json (§39.204)
+A0_WRONG = {k for k, rung, w in ANSWERS if rung["worse"]["A0 today"] != w}
 
 
 @pytest.fixture(scope="module")
