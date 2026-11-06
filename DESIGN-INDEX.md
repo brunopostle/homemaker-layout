@@ -219,7 +219,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (310 of them, 21049 lines)
+## Every section of DESIGN.md (311 of them, 21089 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -580,4 +580,5 @@ below are the most recent work.
 - §39.202 · 20820-20857 · Three questionnaire items worked through, before asking them (`homemaker-py-5fje.2`)
 - §39.203 · 20858-20902 · The questionnaire, built and pre-tested: five items to ask (`homemaker-py-5fje.2`)
 - §39.204 · 20903-20976 · The owner's answers: P1 agrees with all six, today's score with one (`homemaker-py-5fje.2`)
-- §39.205 · 20977-21049 · The report card: plain facts about a plan, the yardstick no candidate owns (`homemaker-py-5fje.1`)
+- §39.205 · 20977-21050 · The report card: plain facts about a plan, the yardstick no candidate owns (`homemaker-py-5fje.1`)
+- §39.206 · 21051-21089 · The blind judging kit, and a round 0 ready to ask (`homemaker-py-5fje.3`)

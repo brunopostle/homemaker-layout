@@ -21047,3 +21047,43 @@ Two facts in this table were not on record before:
 topology, paired: shortfall_m2 and token lower under P1 on most maple-court pairs; surplus_m2 roughly level
 (the size factor is two-sided under both); circ_share higher under P1 on at least half the pairs, the cost of
 dropping the cost divisor; connected no worse.
+
+### 39.206 The blind judging kit, and a round 0 ready to ask (`homemaker-py-5fje.3`)
+
+§39.201's third instrument. `experiments/judge_pairs.py` has three modes:
+
+- **build** scores every design under each candidate (A0 and P1 by default, through `diag_aggregation.arms`)
+  and takes its report card (§39.205). For each pair of designs of one programme, each candidate's verdict
+  is the sign of its log score ratio, divided by that candidate's spread of log scores within the programme,
+  so that A0's confidence and P1's can be compared. A pair counts only if two candidates order it
+  OPPOSITELY. Its strength is the smaller of the two opposing confidences, so a pair both are sure about
+  ranks first. Pairs are taken strongest first, the programmes in turn, each design in at most two pairs,
+  and none judged in an earlier round. Each plan is drawn blind (`plan_svg.render(blind=True)`, which gained
+  a `note=` for its subtitle): room code, name, built area against target, and no score, fail list, file
+  name or design name. The drawings are checked by grep for none of these.
+- **ask** puts the pairs in random order, with the left side drawn at random, and asks "which is the better
+  building, or about equal". Answers are appended to `experiments/results/judging/answers.tsv`, newest per
+  pair wins, and a round can be stopped and resumed.
+- **report** gives each candidate's agreement over the decisive answers with an exact two-sided sign test, a
+  split by programme, and for each report-card fact how often the chosen plan has the larger value. That
+  last list says which facts the owner's choices follow, whatever any score says.
+
+`tests/test_judge_pairs.py` holds the choice rule. Its negative control is two candidates that agree on
+every design, which must yield no pairs. The other tests require that only reversals are asked, strongest
+first, under the per-design cap and the exclusions, and check the sign test against hand values.
+
+**Round 0 is built and not yet asked.** The plan's round 1 is for Phase 1's tuned twins. Round 0 is a pilot
+on the 98 A0-searched designs that §39.205's table covers: 30 pairs (harbor-house 8, health-centre 8,
+maple-court 7, programme-house 7), in `experiments/results/judging/round-0/`. The pairs differ in the ways the
+questionnaire asked about: a token room against a missing one, a storey connected or not, shortfall. The
+strongest disagreements are 0.4-0.9 of a programme's spread, and the weakest 0.1-0.3. On the strong ones A0 and P1 are far apart, and the weak ones
+are close to a tie under both. Read the round's result with that in mind: it is a pilot of the instrument
+and a first look at Q1-Q3 on real plans, and it cannot settle anything about what P1 would BUILD.
+
+    python experiments/judge_pairs.py ask --round 0      # the owner, about 30 answers
+    python experiments/judge_pairs.py report
+
+**Expectation, before it is asked:** P1 agrees with the owner on more decisive pairs than A0 does, as on the
+questionnaire (§39.204), but by less, since these pairs are whole plans with many differences, not single
+edits. Something like 18-20 of 30 for P1, short of significance at this n. The facts the choices follow
+most consistently will be missing rooms and storeys connected, and not cost.

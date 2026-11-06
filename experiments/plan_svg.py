@@ -62,11 +62,13 @@ def centroid(poly):
 
 
 def render(dom_path: Path, programme_dir: Path, title: str,
-           blind: bool = False, highlight: "set[str] | None" = None) -> str:
+           blind: bool = False, highlight: "set[str] | None" = None,
+           note: "str | None" = None) -> str:
     """``blind`` leaves out the path, the score and the fail list, and writes
     each room's target beside its area, for judging plans without the scorer's
     view (`experiments/ask_questionnaire.py`). ``highlight`` outlines the cells
-    with those ``dom_id``s (``"level/path"``) in red."""
+    with those ``dom_id``s (``"level/path"``) in red. ``note`` replaces the
+    blind drawing's line about that outline (`judge_pairs.py` outlines nothing)."""
     root = dom.load(str(dom_path), native=True)
     reqs = load_programme_dir(str(programme_dir))
     made = rooms(root, programme_dir)
@@ -102,7 +104,8 @@ def render(dom_path: Path, programme_dir: Path, title: str,
            f'<rect width="100%" height="100%" fill="white"/>',
            f'<text x="{PAD}" y="24" font-size="16" font-weight="bold">{escape(title)}</text>',
            (f'<text x="{PAD}" y="42" font-size="11" fill="#555">'
-            'red outline: the cells this version changes</text>' if blind else
+            f'{escape(note if note is not None else "red outline: the cells this version changes")}'
+            '</text>' if blind else
             f'<text x="{PAD}" y="42" font-size="11" fill="#555">{escape(str(dom_path))} -- '
             f'score {score:.4g}, {len(fails)} fails</text>')]
     marked = []
