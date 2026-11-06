@@ -48,9 +48,18 @@ DEFAULT_DESIGNS = HERE / "results" / "aggregation" / "report-card.tsv"
 # (label, arm in diag_aggregation.arms, phi)
 CANDIDATES = [("A0", "A0", 1e-3), ("P1", "P1", 1e-3)]
 # report-card columns compared in the report, against the owner's choices
-FACTS = ["missing", "token", "shortfall_m2", "surplus_m2", "deep", "unlit",
-         "adj_met", "no_door", "connected", "stair_storeys", "circ_share",
+FACTS = ["missing", "token", "sliver", "shortfall_m2", "surplus_m2", "deep", "unlit",
+         "adj_share", "no_door", "connected", "stair_storeys", "circ_share",
          "narrowest", "wall_per_m2", "cost"]
+
+
+def fact(card, c):
+    """A report-card value; ``adj_share`` is derived for cards frozen in a
+    round's pairs.json before the column existed. ``sliver`` cannot be, and
+    reads None on those."""
+    if c == "adj_share" and c not in card:
+        return card["adj_met"] / card["adj_asked"] if card.get("adj_asked") else None
+    return card.get(c)
 
 
 # --------------------------------------------------------------------------- #
@@ -303,7 +312,7 @@ def report(a):
         more = less = 0
         for p, r in decisive:
             win, lose = (("a", "b") if r["better"] == "A" else ("b", "a"))
-            x, y = p["sides"][win]["card"].get(c), p["sides"][lose]["card"].get(c)
+            x, y = fact(p["sides"][win]["card"], c), fact(p["sides"][lose]["card"], c)
             if x is None or y is None or x == y:
                 continue
             more += x > y

@@ -31,6 +31,9 @@ aggregation):
                 A fact, not a count against the brief: no programme asks a
                 room width (`width_inside` is null, §39.37), and the owner's
                 test is usability (a wc stall wants 0.8 m clear, §39.204)
+  sliver        rooms whose usable rectangle is under 0.8 m wide, the owner's
+                "no use for anything" (§39.204); "sliver rooms" is the
+                commonest note on round 0 of judging (§39.207)
   long          rooms whose usable rectangle is longer than the brief's
                 proportion (the per-space value, else `proportion_inside`)
   unlit         rooms that need light (any but `crinkliness: none`) with no
@@ -40,6 +43,8 @@ aggregation):
   depth_med     median floor depth per metre of exposed wall over lit rooms
   adj_asked / adj_met
                 adjacencies the brief asks of built rooms, and how many are met
+  adj_share     adj_met / adj_asked. The count alone falls when a room is
+                missing, since a missing room asks nothing (§39.207)
   no_door       rooms with no access (no circulation, or what serves their usage)
   storeys / connected
                 storeys, and storeys whose circulation is one piece, stairs counted
@@ -82,12 +87,13 @@ from homemaker_layout import programme as _pr  # noqa: E402
 from homemaker_layout.fitness import Fitness, _height  # noqa: E402
 
 DEPTH_PER_WINDOW = 2.5   # m of floor per window wall, Alexander 159 (§39.16)
+SLIVER = 0.8             # m: below this a room holds nothing, not even a wc stall (§39.204)
 TOKEN, OVER = 0.25, 1.5
 
 DESIGN_COLS = ["rooms_asked", "missing", "extra", "token", "over",
                "shortfall_m2", "surplus_m2",
-               "ratio_med", "ratio_min", "ratio_big5", "narrowest", "long",
-               "unlit", "deep", "depth_med", "adj_asked", "adj_met", "no_door",
+               "ratio_med", "ratio_min", "ratio_big5", "narrowest", "sliver", "long",
+               "unlit", "deep", "depth_med", "adj_asked", "adj_met", "adj_share", "no_door",
                "storeys", "connected", "stair_storeys",
                "room_m2", "circ_m2", "circ_share", "inside_m2",
                "wall_per_m2", "roof_per_m2", "cost"]
@@ -228,6 +234,7 @@ def card(fit, reqs, root):
         ratio_min=min(ratios, default=float("nan")),
         ratio_big5=statistics.median(r["ratio"] for r in big) if big else float("nan"),
         narrowest=min((r["width"] for r in room_rows), default=float("nan")),
+        sliver=sum(r["width"] < SLIVER for r in room_rows),
         long=sum(r["aspect"] > r["aspect_max"] for r in room_rows),
         unlit=sum(r["exposed_m"] == 0 for r in lit),
         deep=sum(r["depth"] > DEPTH_PER_WINDOW for r in lit),
@@ -246,6 +253,7 @@ def card(fit, reqs, root):
         wall_per_m2=wall_m2 / room_m2 if room_m2 else float("nan"),
         roof_per_m2=roof / room_m2 if room_m2 else float("nan"),
         cost=cost)
+    row["adj_share"] = row["adj_met"] / row["adj_asked"] if row["adj_asked"] else float("nan")
     return row, room_rows
 
 

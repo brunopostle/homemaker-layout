@@ -21087,3 +21087,75 @@ and a first look at Q1-Q3 on real plans, and it cannot settle anything about wha
 questionnaire (§39.204), but by less, since these pairs are whole plans with many differences, not single
 edits. Something like 18-20 of 30 for P1, short of significance at this n. The facts the choices follow
 most consistently will be missing rooms and storeys connected, and not cost.
+
+### 39.207 Round 0 answered: P1 sides with the owner on 18 of 25 whole plans, today's score on 7 (`homemaker-py-5fje.3`)
+
+The owner judged all 30 pairs of §39.206 on 2026-11-06: 25 decisive, 5 "about equal", a note on 27. The answers
+are in `experiments/results/judging/answers.tsv`. `judge_pairs.py report --round 0`:
+
+| | agrees with the owner | harbor-house | health-centre | maple-court | programme-house |
+|---|---|---|---|---|---|
+| A0, today's score | 7 of 25 | 0/5 | 1/7 | 2/6 | 4/7 |
+| P1 | **18 of 25** | 5/5 | 6/7 | 4/6 | 3/7 |
+
+Every pair is one the two order oppositely, so this is a head-to-head, and the exact sign test gives
+p = 0.043. The expectation of §39.206 was "something like 18-20 of 30 for P1, short of significance". It came out as
+18 of 25 decisive answers, just inside significance. On whole plans with many differences,
+the questionnaire's result (§39.204) holds. The one programme where it does not is programme-house, at 3 of
+7, and there the owner's notes are about a living/dining/kitchen that does not work (R0-20, R0-24) and
+circulation added beyond what the brief needs (R0-08, R0-16). Neither score measures either.
+
+**Which facts the choices follow** (report card, decisive answers, chosen plan's value against the other's,
+ties left out):
+
+| fact | chosen plan larger in | p |
+|---|---|---|
+| missing rooms | 11 of 13 | 0.022 |
+| token rooms (<25% of target) | 2 of 11 | 0.065 |
+| sliver rooms (usable width < 0.8 m) | 1 of 7 | 0.125 |
+| share of asked adjacencies met | **2 of 15** | **0.007** |
+| storeys connected | 7 of 9 | 0.18 |
+| shortfall m2, surplus m2, circulation share, deep rooms, wall per m2, cost | 9-12 of 23-25 | > 0.2 |
+
+- **A room left out beats a token of it**, now on whole plans and not only on the single edit of O1. The
+  preferred plan has more missing rooms in 11 of 13 pairs and fewer token rooms in 9 of 11. This is
+  §39.199's mechanism seen from the judge's side.
+- **The preferred plan meets FEWER of its adjacencies**, 13 of 15, and as a share, not a count: the count
+  alone falls with every missing room, which is why the card now carries `adj_share`. The notes give the
+  likely reason. On R0-30: "it looks like the optimiser is happy with placing circulation spaces next to rooms,
+  giving them 'circulation', but with no consideration of how the circulation might be connected to each
+  other". Most adjacencies ask for `c`, and a scrap of corridor beside a room meets one. A plan that meets
+  more of them is, in this corpus, a plan with more scraps. Five notes say the same thing (R0-06,
+  R0-12, R0-16, R0-22, R0-30).
+- **Cost, shortfall, circulation share, depth and wall area say nothing** at this n, in line with the ruling
+  that cost is for waste (§39.204). Shortfall, which P1 is built to minimise, splits 12/13: the owner's
+  choices follow what a room CAN be used for, not its distance from the target area.
+
+**What the notes are about.** Grouped by count:
+
+| theme | notes |
+|---|---|
+| the building's shape: "better shape", "coherent shape", "more chaotic", a "credible courtyard", "one big courtyard" for the site | 11 |
+| sliver rooms | 7 |
+| circulation in pieces, or more of it than the brief needs | 6 |
+| a building in two disconnected parts | 2 (R0-14, R0-18) |
+| courtyards that run the full height | 2 (R0-15, R0-21), as a merit |
+| a living/dining/kitchen that does not work | 2 (programme-house) |
+| a plan that is mostly stair | 1 (R0-03) |
+
+Neither score and no column of the card measures the first theme or the third. These are not aggregation
+questions, which is what this review was set up for (§39.201). They are questions about what is measured at all,
+and they are filed separately: `homemaker-py-5fje.7` (circulation as a network, not as an adjacency
+each room ticks off) and `homemaker-py-5fje.8` (what "shape" means, to be asked of the owner before
+anything is built).
+
+**A drawing defect, found by the judge.** R0-25: "why are there some unlabelled spaces and some marked
+outside, which ought to be equivalent especially on the ground floor". The unlabelled ones were yards open to
+the sky. `rooms_export` leaves those out by design, since to the IFC they are the roof of what is below, and
+`plan_svg` drew only what it was given. `plan_svg.open_outside` now draws them, pale and labelled "open yard"
+(ground) or "open to the sky" (above), with covered outside darker and labelled so. Round 0's drawings are left
+as judged. Later rounds get the new ones.
+
+**For Phase 1** (`homemaker-py-5fje.4`): P1 and A0 stay the candidates. The tuned twins should be read on
+`token`, `sliver`, `missing`, `adj_share`, `circ_share` and `connected`. This round says those are what the
+judge sees, and that `shortfall_m2` is not.

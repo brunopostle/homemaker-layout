@@ -15,6 +15,7 @@ The programme directory defaults to examples/<name> for the first programme
 name found in the path, else the `.dom`'s own directory.
 """
 import argparse
+import copy
 import math
 import sys
 from html import escape
@@ -31,7 +32,36 @@ FILL = {
     "living": "#f4d8a8", "kitchen": "#f2b880", "bedroom": "#b9d3ee",
     "toilet": "#c9e7e3", "utility": "#d9d4c7", "circulation": "#f5f5f0",
     "stair": "#e0e0e0", "outside": "#cfe8bf", "sahn": "#dcefcf", "none": "#e8ddee",
+    "open": "#eef6e8",
 }
+
+
+def open_outside(root, programme_dir):
+    """The outside cells with nothing built over them, which `rooms_export`
+    leaves out (to the IFC they are the roof of what is below, not rooms), in
+    the same frame and the same merged tree. Without them a ground-floor yard
+    was drawn green where a storey covers it and blank where none does, and
+    the owner, judging plans, read the two as different things (§39.207)."""
+    conf, _ = load_config(str(programme_dir))
+    r = copy.deepcopy(root)
+    dom.link(r)
+    dom.merge_divided(r, allow_sahn=bool(conf.get("allow_sahn_circulation")))
+    dom.link(r)
+    geometry.clear_cache()
+    lvls = dom.levels(r)
+    u, v = geometry._reference_axes(lvls[0])
+    out = []
+    for li, lvl in enumerate(lvls):
+        for leaf in lvl.leaves():
+            if leaf.type in dom.GENERIC_OUTSIDE and not dom.is_covered(leaf):
+                poly = geometry.polygon(leaf)
+                if len(poly) < 3:
+                    continue
+                out.append({"vertices": [[x * u[0] + y * u[1], x * v[0] + y * v[1]] for x, y in poly],
+                            "usage": "open", "code": leaf.type, "dom_id": f"{li}/{leaf.id}",
+                            "face_styles": ["default"] * (len(poly) + 2), "elevation": None})
+    geometry.clear_cache()
+    return out
 SCALE = 22.0  # px per metre
 PAD = 28.0
 
@@ -72,6 +102,7 @@ def render(dom_path: Path, programme_dir: Path, title: str,
     root = dom.load(str(dom_path), native=True)
     reqs = load_programme_dir(str(programme_dir))
     made = rooms(root, programme_dir)
+    yards = open_outside(root, programme_dir)
 
     conf, cost = load_config(str(programme_dir))
     scored = dom.load(str(dom_path), native=True)
@@ -79,10 +110,13 @@ def render(dom_path: Path, programme_dir: Path, title: str,
     score, fails = Fitness(conf, cost).score_with_fails(scored)
 
     storeys: dict[int, list] = {}
-    for r in made:
+    for r in made + yards:
         storeys.setdefault(int(r["dom_id"].split("/")[0]), []).append(r)
-    xs = [x for r in made for x, _ in r["vertices"]]
-    ys = [y for r in made for _, y in r["vertices"]]
+    elev = {}
+    for r in made:
+        elev.setdefault(int(r["dom_id"].split("/")[0]), r["elevation"])
+    xs = [x for r in made + yards for x, _ in r["vertices"]]
+    ys = [y for r in made + yards for _, y in r["vertices"]]
     x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
     w, h = (x1 - x0) * SCALE, (y1 - y0) * SCALE
     panel = w + 2 * PAD
@@ -112,13 +146,15 @@ def render(dom_path: Path, programme_dir: Path, title: str,
     for k, li in enumerate(sorted(storeys)):
         cx, _ = pt(x0, y1, k)
         out.append(f'<text x="{cx}" y="{top + 14}" font-size="12" font-weight="bold">'
-                   f'Storey {li} (elev {storeys[li][0]["elevation"]:.1f} m)</text>')
+                   f'Storey {li} (elev {elev[li]:.1f} m)</text>')
         for r in storeys[li]:
             poly = r["vertices"]
             usage = r["usage"]
             code = r["code"]
             fill = "url(#stair)" if code == "E" else FILL.get(usage, "#eeeeee")
-            if code == "O" or usage == "outside":
+            if usage == "open":
+                fill = FILL["open"]
+            elif code == "O" or usage == "outside":
                 fill = FILL["outside"]
             pts = " ".join("%.1f,%.1f" % pt(x, y, k) for x, y in poly)
             out.append(f'<polygon points="{pts}" fill="{fill}" stroke="#333" stroke-width="1"/>')
@@ -133,6 +169,10 @@ def render(dom_path: Path, programme_dir: Path, title: str,
             mx, my = pt(*centroid(poly), k)
             name = reqs[code].name if code in reqs else {
                 "C": "circulation", "E": "stair", "O": "outside", "S": "sahn"}.get(code, "")
+            if usage == "open":
+                name = "open yard" if li == 0 else "open to the sky"
+            elif code in ("O", "S"):
+                name = "covered outside"
             a = area(poly)
             fs = 10 if a > 6 else 8
             out.append(f'<text x="{mx:.1f}" y="{my - 2:.1f}" font-size="{fs}" text-anchor="middle" '
@@ -153,7 +193,8 @@ def render(dom_path: Path, programme_dir: Path, title: str,
     out.append(f'<line x1="{PAD}" y1="{sy}" x2="{PAD + 5 * SCALE}" y2="{sy}" stroke="#000" '
                'stroke-width="2"/>')
     out.append(f'<text x="{PAD + 5 * SCALE + 6}" y="{sy + 4}" font-size="10">5 m '
-               '(heavy line: party wall; hatched: stair; green or blank: outside)</text>')
+               '(heavy line: party wall; hatched: stair; green: outside, darker where a '
+               'storey is built over it)</text>')
     for i, line in enumerate([] if blind else ["fails:"] + (fail_lines or ["none"])):
         out.append(f'<text x="{PAD}" y="{sy + 22 + 14 * i}" font-size="10" fill="#444">'
                    f'{escape(line)}</text>')
