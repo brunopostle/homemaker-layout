@@ -21403,3 +21403,77 @@ neither ruled on the shape of the factor. As
 measured here, a threshold costs a few slivers (4 designs) and lets rooms sit deeper, still passing. A plain
 threshold is also a cliff, from 1.0 to the 0.1 fail at the edge; a ruled version would want a graded band
 before the fail, which is a design question for after the ruling. Filed as `homemaker-py-5fje.13`.
+
+### 39.213 Owner's ruling: daylight is a minimum, and with it P1's shrink is left to the size factor alone (`homemaker-py-5fje.13`)
+
+The owner's ruling, 2026-11-07, on §39.212's question:
+
+> All internal spaces that are occupied and used all the time, including circulation and stairs, should
+> pass the light on two sides pattern, which is instrumented in the crinkliness measure and allows single
+> side lit rooms to be up to about 2.5m deep, or deeper with higher ceilings (because the crinkliness
+> measure is scale invariant). Using this measure a room can have more light than needed and this doesn't
+> make it any better, but less light fails the pattern.
+
+Asked where "fails" begins (62% of the lit rooms in the 98 re-ranked designs lie between 2.5 m and the
+4.86 m fail edge, and §39.138 accepted a 5.7 m single-aspect room under a 4.2 m ceiling, which is 4.07 m at
+3 m), the owner chose: **1.0 up to 2.5 m per lit wall, graded beyond it, failing at 4.86 m as now.** That is
+`crinkliness_shape="daylight"` (§39.14, §39.16), which is now the default. Circulation and stairs already take
+the same parameters (`uncrinkliness_circulation` equals `uncrinkliness`, §38.10), so that part of the ruling
+was already in force. A space with `crinkliness: none` has no daylight requirement, and under "daylight" it
+is no longer docked for being over-exposed: more light is no better and no worse, and the wall is billed
+by `cost`. That retires §38.10's "a store may not be a starfish" from this factor. It was a design note, not
+a ruling, and §39.16 had already counted it as charging the wall twice. `tests/test_fitness.py` now pins the
+new behaviour, with the old shape as its control. A configuration that sets one of §38.1's superseded `crinkliness_mode`s without a shape keeps the
+gaussian it was measured under. `tests/test_fitness_crinkliness.py` names "gaussian" wherever it compares
+against the old default, and `test_daylight_is_the_default` pins the ruling with that control.
+
+**Priced on the 212 designs of §39.211** (the 98 re-ranked and the 114 Phase 1 twins): every score moves,
+by ×0.99 to ×1.10 (programme-house a median ×1.05, health-centre ×1.02, the others ×1.00). No fail list
+changes: the clipped side never failed, which §39.14 measured. 8 of 1334 within-programme pairs of the 98
+change order. Under A0 the change is nearly invisible, because the cell's factors are averaged
+geometrically.
+
+**What it does to P1 tuning, against an expectation written before it ran** (the bead notes: "P1's shrink
+partly remains ... shortfall up vs found on fewer designs than gaussian-P1's 30 and more than P1t's 19").
+P1 re-tuned on the 38 designs under the ruled objective (`experiments/results/phase1-daylight-ruled/`):
+
+| against the design as found | shortfall up | room area down | circulation share up |
+|---|---|---|---|
+| P1, gaussian daylight (§39.212's re-run) | 30 | 34 | 22 |
+| **P1, ruled daylight** | **32** | **34** | **28** |
+| P1t, daylight as pass/fail | 19 | 26 | 22 |
+
+Paired with P1 under the gaussian, the ruled objective has more shortfall on 26 designs and less on 11,
+fewer token rooms on 4 and more on none, and more slivers on 4. **The expectation was wrong**, and the
+reason is the useful part. The gaussian's shallow side held a shrinking room back: a room shallower than
+2.5 m per lit wall lost daylight factor. The ruling takes that away, rightly, since more light is no better.
+That leaves the size factor as the only thing that defends a room's area under P1, against the pull from
+rooms graded between 2.5 m and 4.86 m.
+
+**Where the area goes: outside, not to circulation.** A first reading of this section said the area went to
+circulation, which P1 does not price. The owner asked why the rule would not shrink circulation and stairs in
+the same way, and measuring it showed that reading was wrong. Over the 38 designs, as found -> P1-tuned under
+the ruled objective, summed:
+
+| | room cells | circulation and stairs (`C`, `E`) | outside (`O`, `S`) |
+|---|---|---|---|
+| area | **-1558 m²** (up in 4 designs) | +138 m² (up in 18) | **+479 m²** (up in 26) |
+| daylight factor, cells better / worse | 862 / 201 | 253 / 119 | |
+| crinkliness fails | 78 -> 70 | 120 -> 111 | |
+
+The P1 re-run under the gaussian is the same shape (rooms -1448, circulation +40, outside +465), and P1t
+about half of it (-803, -17, +300). The remainder of the room loss is mostly upper-storey outdoor space open to
+the sky, which is not a scored cell, and the inside area falls (§39.208: `inside_m2` lower on 25 of 38).
+Circulation's daylight improves alongside the rooms' because the walls that move are mostly to outdoor space,
+not between rooms and corridors. Circulation's SHARE rises only because the rooms shrink around it: it has no
+size target (`size_circulation` is null, §39.23), so nothing pulls it either way, and under A0 cost is what
+holds it down.
+
+So within a fixed topology, the daylight rule buys crinkliness the only way walls can: by giving floor to
+yards and courtyards and pulling rooms back to shallow, better-lit plans. The owner's reading is that the
+building's overall shape needs more crinkliness, more wings or courtyards. That is a TOPOLOGY change, which
+ratio tuning cannot make and a search can. It is also the §39.144 "wings of light" thread and the catalogue
+pipeline's daylight filter (§39.145-§39.155). What P1 adds is that it lets the rooms' daylight outvote their
+size, where A0's area-additive value does not. Whether that is the right trade is the owner's to judge, not
+the card's. Rounds 0 and 1 suggest the judge does not see the shortfall (§39.207, §39.210), and the ruling of
+§39.204 says it matters.

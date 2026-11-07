@@ -114,7 +114,10 @@ def test_unknown_tail_is_rejected():
 
 
 # --------------------------------------------------------------------------- #
-# crinkliness_shape="daylight" (homemaker-py-9gj, DESIGN.md §39.14)
+# crinkliness_shape="daylight" (homemaker-py-9gj, DESIGN.md §39.14), the
+# default since the owner's ruling of 2026-11-07 (§39.213): more light than
+# the pattern needs is no better. "gaussian", the old default, is named
+# explicitly wherever a test compares against it.
 # --------------------------------------------------------------------------- #
 
 def _q(distance, sigma, crink, **conf):
@@ -143,7 +146,8 @@ def test_daylight_shape_stops_penalising_surplus_daylight():
     for crink in (1 / b, 1.5, 2.0, 4.0, 20.0):        # 1/crink <= b
         assert _q(b, s, crink, crinkliness_shape="daylight") == 1.0
         if crink > 1 / b:
-            assert _q(b, s, crink) < 1.0, "stock should penalise surplus daylight"
+            assert _q(b, s, crink, crinkliness_shape="gaussian") < 1.0, \
+                "the old gaussian should penalise surplus daylight"
 
 
 @pytest.mark.skipif(not (EXAMPLES / "harbor-house").is_dir(), reason="examples absent")
@@ -152,7 +156,17 @@ def test_daylight_shape_leaves_the_under_lit_side_alone():
     limit is the part that still does useful work, so it must not move."""
     b, s = 5.0 / 6, 1.1 / 3
     for crink in (0.62, 0.7, 0.9, 1.0, 1.19):          # 1/crink > b, passing
-        assert _q(b, s, crink, crinkliness_shape="daylight") == _q(b, s, crink)
+        assert (_q(b, s, crink, crinkliness_shape="daylight")
+                == _q(b, s, crink, crinkliness_shape="gaussian"))
+
+
+@pytest.mark.skipif(not (EXAMPLES / "harbor-house").is_dir(), reason="examples absent")
+def test_daylight_is_the_default():
+    """The ruling of §39.213: an unconfigured scorer does not reward a room
+    for being lit beyond the pattern."""
+    b, s = 5.0 / 6, 1.1 / 3
+    assert _q(b, s, 2.0) == 1.0
+    assert _q(b, s, 2.0, crinkliness_shape="gaussian") < 1.0      # control
 
 
 @pytest.mark.skipif(not (EXAMPLES / "harbor-house").is_dir(), reason="examples absent")
@@ -174,6 +188,8 @@ def test_every_combination_keeps_the_fail_set_byte_identical():
     failure that any corpus artefact actually incurs.
     """
     combos = [{"crinkliness_tail": "ramp"},
+              {"crinkliness_shape": "gaussian"},
+              {"crinkliness_shape": "gaussian", "crinkliness_tail": "ramp"},
               {"crinkliness_shape": "daylight"},
               {"crinkliness_shape": "daylight", "crinkliness_tail": "ramp"}]
     seen = 0

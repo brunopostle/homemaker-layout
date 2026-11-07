@@ -580,13 +580,19 @@ def test_declared_crinkliness_none_accepts_the_literal_string():
     assert f.quality_uncrinkliness(leaf, None, {}) == 1.0
 
 
-def test_declared_crinkliness_none_still_penalises_over_exposure():
-    """Needing no window is not exemption from envelope cost. The factor is
-    clipped on the compact side only, never switched off -- a crinkly store
-    still costs wall."""
+def test_declared_crinkliness_none_is_not_docked_for_light():
+    """A space that needs no window is not docked for having more light than
+    it needs: the owner's ruling of 2026-11-07 (DESIGN.md §39.213), "a room can
+    have more light than needed and this doesn't make it any better", under
+    the default `crinkliness_shape="daylight"`. Its extra wall is billed by
+    `cost`. §38.10's "a store may not be a starfish", which docked it here
+    too, survives only under the old "gaussian" shape: the control."""
     target = CONF_DEFAULTS["uncrinkliness"][0]
     f, leaf = _declared_fit(1.0 / (target / 2), {"crinkliness": None})
-    assert f.quality_uncrinkliness(leaf, None, {}) < 1.0
+    assert f.quality_uncrinkliness(leaf, None, {}) == 1.0
+    g, leaf = _declared_fit(1.0 / (target / 2), {"crinkliness": None},
+                            conf_extra={"crinkliness_shape": "gaussian"})
+    assert g.quality_uncrinkliness(leaf, None, {}) < 1.0
 
 
 def test_declared_crinkliness_pair_is_used_verbatim():

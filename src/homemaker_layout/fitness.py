@@ -737,7 +737,19 @@ class Fitness:
         if self._quality_aggregate not in ("product", "geometric_mean"):
             raise ValueError(
                 f"unknown quality_aggregate: {self._quality_aggregate!r}")
-        self._crinkliness_shape = str(self.conf("crinkliness_shape") or "gaussian")
+        # Owner's ruling, 2026-11-07 (DESIGN.md §39.213): every space occupied
+        # and used all the time, circulation and stairs included, must pass
+        # Alexander 159, which `crinkliness` instruments; "a room can have
+        # more light than needed and this doesn't make it any better, but less
+        # light fails the pattern". So "daylight" is the default: 1.0 up to the
+        # peak (2.5 m per lit wall at a 3 m ceiling), graded beyond it, failing
+        # where the gaussian does (4.86 m). "gaussian" was the default until
+        # then, and made the peak a target (§39.212).
+        # §38.1's superseded modes were measured under the gaussian and refuse
+        # to compose with "daylight", so a mode set without a shape keeps it.
+        self._crinkliness_shape = str(
+            self.conf("crinkliness_shape")
+            or ("daylight" if self._crinkliness_mode == "urb" else "gaussian"))
         if self._crinkliness_shape not in ("gaussian", "daylight"):
             raise ValueError(
                 f"unknown crinkliness_shape: {self._crinkliness_shape!r}")
