@@ -474,6 +474,44 @@ def _joined(graphs: "list[nx.Graph]") -> "list[bool]":
     return out
 
 
+def circulation_pieces(graph_circ: "list[nx.Graph]", level: int) -> int:
+    """How many pieces storey ``level``'s circulation is in, a stair shaft
+    counting as a link between the storeys it serves (§39.125): the number of
+    pieces of the whole building's circulation that the storey's circulation
+    cells fall into. 0 for a storey with no circulation.
+
+    Owner's ruling, 2026-11-07 (DESIGN.md §39.215): one ``level N not
+    connected`` fail per piece beyond the first, "because currently once the
+    storey is disconnected there may be no simple moves that resolve it, so
+    this would give an incremental way to resolve the problem"."""
+    only = []
+    for g in graph_circ:
+        c = g.copy()
+        c.remove_nodes_from([v for v in list(c.nodes()) if not dom.is_circulation(v)])
+        only.append(c)
+    if level >= len(only) or len(only[level]) == 0:
+        return 0
+    g = only[level]
+    if not STAIRS_JOIN_STOREYS:
+        return nx.number_connected_components(g)
+    whole = nx.Graph()
+    for h in only:
+        whole.add_nodes_from(h.nodes())
+        whole.add_edges_from(h.edges())
+    for h in only:
+        for n in h.nodes():
+            if is_stair_cell(n):
+                above = dom._above_node(n)
+                if is_stair_cell(above) and whole.has_node(above):
+                    whole.add_edge(n, above)
+    seen, pieces = set(), 0
+    for n in g.nodes():
+        if n not in seen:
+            pieces += 1
+            seen |= nx.node_connected_component(whole, n)
+    return pieces
+
+
 def circulation_joined(graph_circ: "list[nx.Graph]", level: int) -> bool:
     """Is storey ``level``'s circulation one piece, stairs counted? What
     ``level N not connected`` asks. An empty storey is not connected, as in

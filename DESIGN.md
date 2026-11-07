@@ -21524,3 +21524,41 @@ courtyard". Where missing rooms are equal, fewer pieces won 4 of 5: suggestive, 
 fragmentation from shape (`homemaker-py-5fje.8`). The bead's next step stands: an owner question on what a
 working circulation is, before any objective change. Today `level N not connected` asks only whether a
 storey's circulation is one piece, with stairs counted, and it is one fail however many pieces there are.
+
+### 39.215 Owner's ruling: one fail per extra piece of circulation (`homemaker-py-5fje.7`)
+
+Offered three readings of "a working circulation" after §39.214 (a fail per extra or orphaned piece; every
+door on a route from the entrance or a stair; a form for the route), the owner chose the first, on 2026-11-07:
+
+> Probably 1 because currently once the storey is disconnected there may be no simple moves that resolve
+> it, so this would give an incremental way to resolve the problem.
+
+**What changed.** `graph.circulation_pieces(graph_circ, level)` counts the pieces a storey's circulation is
+in, as pieces of the whole building's circulation with a stair shaft joining the storeys it serves (§39.125).
+So `pieces == 1` exactly when `circulation_joined` holds. `Fitness.process_storey` emits `level N not
+connected` once for each piece beyond the first, and still once for a storey with no circulation. The line
+is unchanged, and repeated, so `driver`'s connection guard, which reads the SET of storeys that fail, still
+means what it meant. The extra-piece reading was chosen over "per orphaned piece" because it is the one that
+pays every join: an orphan is only a piece that reaches no stair. `tests/test_circulation_pieces.py` pins it
+on clean-9 (four pieces on each of three storeys, nine fails). Cutting a corridor in two costs exactly one
+more fail. The control is the old one-per-storey rule, under which the cut costs nothing, because the storey
+was already split.
+
+**Why it is not §18 again.** §18 (`homemaker-py-qi6`) gave the search a graded connectivity signal as a
+tertiary comparator key, beneath the fail count, and it never fired in an A/B: the search never met the tie
+it was meant to break. Here each piece IS a fail, in the primary key the search ranks on, so a join that
+removes a piece is a better child outright. Whether the search can find such joins is a sweep question.
+§18's finish-time repair also found that bridging costs room cells, and missing-room cascades.
+
+**Priced** on the 212 designs of §39.211, against the daylight objective of §39.213: 97 move, and no line
+other than `not connected` changes. Every harbor-house and health-centre design gains fails, a median 5 (up
+to 8), a score ratio of a median ×1/32. On maple-court 35 of 119 move, up to 9 fails. Programme-house: none.
+43 of 1334 within-programme pairs of the 98 change order. Against the judge, A0 agrees on 8 of round 0's 25
+decisive pairs (7 before) and 6 of round 1's 17 (unchanged). The ruling is about giving a search an
+incremental path, not about ranking finished plans, and it barely moves the ranking.
+
+**Expectation for the next sweep, written now:** at the same budget, `not connected` lines per multi-storey
+design fall below this table's re-scored baseline on harbor-house and health-centre, where every design is
+fragmented today, and the cold-start corpus's per-storey piece count (`circ_pieces` on the card) falls with
+them. If the pieces do not fall, the search has no move that joins circulation without a missing-room
+cascade (§18), and the lever is an operator, not the objective.

@@ -2405,8 +2405,12 @@ class Fitness:
 
         if graph_circ is not None:
             # One piece of circulation per storey -- a stair shaft counting
-            # as a link between the storeys it serves (§39.125).
-            if not graph_mod.circulation_joined(graph_circ, level_id):
+            # as a link between the storeys it serves (§39.125) -- and one
+            # fail for each piece beyond the first, so that each join a search
+            # makes clears one (owner's ruling, §39.215). A storey with no
+            # circulation is one fail, as before.
+            pieces = graph_mod.circulation_pieces(graph_circ, level_id)
+            for _ in range(max(1, pieces - 1) if pieces != 1 else 0):
                 fail(f"level {level_id} not connected")
 
             conf_fg = self.conf("force_roof_garden")
