@@ -171,6 +171,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | `--split-stair` is to be a default, but switched on only when the next change forces a new set of controls anyway | §39.198 |
 | `value / cost` was "just something to get everything going", maybe a half-understood cost-benefit ratio; `value - cost` was never ruled out. No design intent to keep: the whole area-additive aggregation is open to review | §39.200 |
 | Questionnaire answers: a token room is worse than the room left out ("useless and misleads"); a storey cut off is worse than three bedrooms at 40%; a 20%-short lounge is worse even at 40% cheaper, because cost is to prevent WASTEFUL spending and "a smaller room than requested isn't a saving" (cost must not trade against shortfall; a fixed-cost engine that pares rooms is a different, unbuilt engine); a room is usable once it clears a threshold (a wc stall's 0.8 m), not by distance from its target. P1 agrees with all six orderings, today's score with one; pinned in `tests/test_owner_orderings.py` | §39.204 |
+| Every stair is scored for fit, not the best one; a stair that cannot hold a flight is a MISSING stair (it counts towards no `staircase_min`). Too narrow means under 0.9 m, a domestic flight, not the 1.25 m `stair_width`; too short means too short in every orientation. A stair too long still holds its flight and is scored as oversized. Pinned in `tests/test_every_stair_scored.py` | §39.211 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -219,7 +220,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (315 of them, 21299 lines)
+## Every section of DESIGN.md (316 of them, 21348 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -585,4 +586,5 @@ below are the most recent work.
 - §39.207 · 21091-21162 · Round 0 answered: P1 sides with the owner on 18 of 25 whole plans, today's score on 7 (`homemaker-py-5fje.3`)
 - §39.208 · 21163-21224 · Phase 1, tuned twins: P1 does not make the slivers A0 does, but it shrinks rooms below their brief (`homemaker-py-5fje.4`)
 - §39.209 · 21225-21248 · Judging round 1, built: tuned twins of one plan, A0's walls against P1's or P1u's (`homemaker-py-5fje.10`)
-- §39.210 · 21249-21299 · Round 1 answered: between twins the sliver decides, and the scorer charges nothing for a stair too small to climb (`homemaker-py-5fje.10`)
+- §39.210 · 21249-21300 · Round 1 answered: between twins the sliver decides, and the scorer charges nothing for a stair too small to climb (`homemaker-py-5fje.10`)
+- §39.211 · 21301-21348 · Owner's ruling: every stair is scored for fit, and a stair that cannot hold a flight is a missing stair (`homemaker-py-5fje.11`)

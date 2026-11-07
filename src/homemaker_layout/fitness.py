@@ -36,6 +36,10 @@ from . import programme as _programme
 from .dom import Node
 
 FAIL_THRESHOLD = 0.1  # Urb::Dom::Fitness::Base
+# The narrowest cell that can hold a flight at all, a domestic stair's width.
+# Narrower than ``stair_width`` but not than this, a cell is still a stair and
+# is scored on its fit (owner's ruling 2026-11-07, DESIGN.md §39.211).
+MIN_FLIGHT_WIDTH = 0.9
 _MISSING = object()  # tells an absent config key from one declared null
 
 # Per-leaf quality factors that emit a failure when they drop below
@@ -2021,6 +2025,16 @@ class Fitness:
         best. ``corners`` now matters only for how MANY there are: that is what
         decides how many turns the stair may take.
         """
+        best = None
+        for fit in self._stair_fits(leaf, corners):
+            key = (self.quality_staircase_volume(fit), -abs(fit - 1.0))
+            if best is None or key > best[0]:
+                best = (key, fit)
+        return best[1]
+
+    def _stair_fits(self, leaf: Node, corners: list[int]) -> list[float]:
+        """The fit of every orientation `_stair_fit` chooses among: each edge
+        as the base, either neighbour as the length."""
         root = dom_mod._level_root(leaf)
         while root.below is not None:
             root = root.below
@@ -2033,22 +2047,17 @@ class Fitness:
         turns = {1: self._three_turn, 2: self._two_turn,
                  3: self._one_turn}.get(len(set(corners)), self._zero_turn)
 
-        # A stair is fitted to a four-cornered core. `stack_corners_in_use`
-        # returns nothing for any other cell, so this is never reached with one.
         quad = geometry.quad_corners(leaf)
         sides = [math.dist(quad[i], quad[(i + 1) % 4]) for i in range(4)]
-        best = None
+        fits = []
         for edge in range(4):
             base = sides[edge]
             going_a = int((base - 2 * width) / going)
             going_b = turns(risers, going_a)
             for side in (1, 3):                       # the next edge, or the last
                 length = sides[(edge + side) % 4]
-                fit = length / (width * 2 + going * going_b)
-                key = (self.quality_staircase_volume(fit), -abs(fit - 1.0))
-                if best is None or key > best[0]:
-                    best = (key, fit)
-        return best[1]
+                fits.append(length / (width * 2 + going * going_b))
+        return fits
 
     # ----------------------------------------------------------------------- #
     # Building-level ratio helpers (Dom.pm:Ratios/Areas/Area_Internal)
@@ -2143,17 +2152,50 @@ class Fitness:
                     return k
         return 1
 
+    @staticmethod
+    def _one_stair_volume(sf: float) -> float:
+        """One stair's factor: a gaussian on its fit, sharper short than long,
+        floored at 0.09 (``ProgrammeDriven::quality_staircase_volume``'s)."""
+        if sf < 1:
+            f2 = gaussian(sf, 1.2, 1.0, 0.1)
+        else:
+            f2 = gaussian(sf, 1.2, 1.0, 0.5)
+        return max(f2, 0.09)
+
     def quality_staircase_volume(self, *stair_fits: float) -> float:
-        """Best-stair gaussian; mirrors ``ProgrammeDriven::quality_staircase_volume``."""
-        factor = 0.09
+        """Every stair scored: the product of each stair's own factor, 0.09
+        for a building with none.
+
+        Owner's ruling, 2026-11-07 (DESIGN.md §39.211): "every stair should be
+        scored for fit". Perl's rule, ported here until then, took the BEST
+        stair's factor, so once one stair fitted every other could be any size
+        for free -- a 1.5 m² second stair in maple-court cost nothing (§39.210).
+        Stairs that cannot hold a flight never reach this: see
+        ``_holds_flight``."""
+        if not stair_fits:
+            return 0.09
+        factor = 1.0
         for sf in stair_fits:
-            if sf < 1:
-                f2 = gaussian(sf, 1.2, 1.0, 0.1)
-            else:
-                f2 = gaussian(sf, 1.2, 1.0, 0.5)
-            if f2 > factor:
-                factor = f2
+            factor *= self._one_stair_volume(sf)
         return factor
+
+    def _holds_flight(self, leaf: Node, corners: list[int]) -> bool:
+        """Can this stair cell hold a flight at all? Owner's ruling,
+        2026-11-07 (§39.211): "stairs that can't hold a flight should be
+        missing stairs". It cannot if it is narrower than
+        ``MIN_FLIGHT_WIDTH`` -- the owner chose a domestic flight's width over
+        the 1.25 m ``stair_width``, which many evolved stairs miss by a few
+        centimetres -- or so much SHORTER than its flight needs that its own
+        factor is a fail, in EVERY orientation: a 28 m column whose best-scoring
+        orientation reads short across it holds a flight along it. A stair too
+        LONG still holds its flight: it is scored, and its fit says it is
+        oversized."""
+        quad = geometry.quad_corners(leaf)
+        short = min(math.dist(quad[i], quad[(i + 1) % 4]) for i in range(4))
+        if short < MIN_FLIGHT_WIDTH:
+            return False
+        longest = max(self._stair_fits(leaf, corners))
+        return not (longest < 1 and self._one_stair_volume(longest) < FAIL_THRESHOLD)
 
     # ----------------------------------------------------------------------- #
     # Public access / boundary length helpers
@@ -2328,8 +2370,12 @@ class Fitness:
                             corners = graph_mod.stack_corners_in_use(
                                 leaf, graph_circ, all_lvls, doors=door)
                         stair_fit = self._stair_fit(leaf, corners)
-                        tracking["stair_fit"].append(stair_fit)
-                        tracking["stair_leaves"].append(leaf)
+                        # A cell that cannot hold a flight is not a stair:
+                        # it counts towards no `staircase_min` and has no
+                        # fit to score (§39.211). It is still circulation.
+                        if self._holds_flight(leaf, corners):
+                            tracking["stair_fit"].append(stair_fit)
+                            tracking["stair_leaves"].append(leaf)
 
                 # Public access tracking
                 if root is not None:
@@ -2418,8 +2464,11 @@ class Fitness:
         # Staircase volume (multi-level only)
         lvls = dom_mod.levels(root)
         if len(lvls) > 1:
-            sf_factor = self.quality_staircase_volume(*tracking.get("stair_fit", []))
-            if sf_factor < FAIL_THRESHOLD:
+            fits = tracking.get("stair_fit", [])
+            sf_factor = self.quality_staircase_volume(*fits)
+            # one fail per stair whose own factor fails, or one for none
+            bad = sum(self._one_stair_volume(sf) < FAIL_THRESHOLD for sf in fits) if fits else 1
+            for _ in range(bad):
                 tracking["_failures"].append("staircase volume")
             factor *= sf_factor
 

@@ -49,13 +49,28 @@ def test_the_owners_drawing_has_two_separated_stairs():
     assert _stair_fails("hand2a.dom") == []
 
 
-def test_two_stairs_five_metres_apart_are_one_way_out():
+@pytest.fixture
+def every_cell_holds_a_flight(monkeypatch):
+    """close-stairs.dom's second stair is 4.1 m², too short for its flight in
+    any orientation, so since §39.211 it is a MISSING stair on its own account.
+    These two tests are about separation, so they set that rule aside;
+    `tests/test_every_stair_scored.py` holds it."""
+    monkeypatch.setattr(Fitness, "_holds_flight", lambda self, leaf, corners: True)
+
+
+def test_two_stairs_five_metres_apart_are_one_way_out(every_cell_holds_a_flight):
     assert _stair_fails("close-stairs.dom") == ["too few stairs (1, min 2)"]
 
 
-def test_negative_control_without_the_rule_both_stairs_count():
+def test_negative_control_without_the_rule_both_stairs_count(every_cell_holds_a_flight):
     """The fail above comes from the separation rule and nothing else."""
     assert _stair_fails("close-stairs.dom", separation=0) == []
+
+
+def test_the_second_stair_cannot_hold_a_flight():
+    """§39.211: without the patch above, the separation rule off, the short
+    second stair is missing all the same."""
+    assert _stair_fails("close-stairs.dom", separation=0) == ["too few stairs (1, min 2)"]
 
 
 def test_the_rule_reads_the_diagonal():

@@ -21297,3 +21297,52 @@ owner to rule on before anything changes.
 slivers and, through the notes, stairs and outside space of usable shape. The candidates differ on slivers
 mainly because A0 makes them. The open threads are `5fje.9` (P1 shrinking rooms), `5fje.11` (stairs),
 `5fje.7` (circulation as a network) and `5fje.8` (shape, which now includes triangular yards).
+
+### 39.211 Owner's ruling: every stair is scored for fit, and a stair that cannot hold a flight is a missing stair (`homemaker-py-5fje.11`)
+
+The owner's ruling, 2026-11-07, on §39.210's finding: **"every stair should be scored for fit and stairs that
+can't hold a flight should be missing stairs."** Asked whether a cell narrower than the 1.25 m `stair_width` is
+one that cannot hold a flight (many evolved stairs are 1.17-1.19 m), the owner chose **a lower minimum**:
+0.9 m, a domestic flight's width.
+
+**What changed, in `fitness.py`:**
+
+- `quality_staircase_volume` is the **product** of every stair's own factor (`_one_stair_volume`, the old
+  gaussian with its 0.09 floor), and 0.09 for a building with none. It was the best stair's factor (Perl's
+  rule), so once one stair fitted, every other one was free. Each stair whose factor fails emits its own
+  `staircase volume` fail.
+- `_holds_flight` decides whether a fitted `E` shaft is a stair at all. It is not if its shorter side is
+  under `MIN_FLIGHT_WIDTH` (0.9 m), or if it is too short for its flight **in every orientation**: the longest
+  fit `_stair_fits` finds is below 1 and its factor fails, which is a fit under about 0.78. A cell that is
+  not a stair adds no fit and counts towards no `staircase_min`, so `too few stairs` fires. It is still
+  circulation.
+- "In every orientation" is not a nicety. `_stair_fit` picks the orientation the factor likes best and
+  breaks ties towards a fit near 1. For a 28.7 m × 1.17 m stair column, both orientations sit at the 0.09
+  floor, so it picks the fit of 0.47 measured across the cell, not the 4.8 along it. The first draft judged
+  "too short" on that and declared the column missing. It holds a flight with room to spare: it is
+  oversized, and it is now scored as such.
+- A stair too long still holds its flight. It is scored, and its fit says it is oversized.
+
+**What it costs, priced before landing** (score and fail list of the 98 re-ranked designs and the 114 Phase 1
+twins, before and after): 107 of 212 move, all of them maple-court (94 of 119) or harbor-house (13 of 35),
+the two programmes that ask for two stairs. Health-centre and programme-house do not move. Added fails:
+`too few stairs` ×29, where a second stair was too short for its flight, and `staircase volume` ×21, where
+a second stair was oversized. No fail was removed. Maple-court's median ratio is 0.91, ranging from ×0.015
+(`final-single-7`, whose 34 m² stair column was free beside a good stair) to ×1.2 (two stairs that both fit
+now multiply). The tiny second stairs P1 tuning made (§39.208, §39.210) are now missing in every twin
+where they occur. The A0 twins' 5 m², 1.17 m stairs survive, as the owner chose.
+
+**Left open, by choice.** `_stair_fit`'s model puts two flight widths across the base
+(`base - 2 * width`). On a base narrower than that it counts a negative number of treads, so it can rate a
+1.17 m cell as a good fit for a stair 1.25 m wide. The owner's 0.9 m minimum makes that cell a stair, but
+not a well-measured one. That is a defect of the fit model, not of this ruling, and it is filed as
+`homemaker-py-5fje.12`.
+
+The objective stamp moves with this commit, so no corpus is at the live objective. Rankings of the
+two-stair programmes are the thing to re-read: the report card (§39.205) reads no score and is unaffected,
+but P1 and A0 both carry the new factor. `tests/test_every_stair_scored.py` holds the ruling on committed
+twins, each case with its control. One older test had to change: `tests/test_stair_separation.py`'s fixture
+`close-stairs.dom` has a second stair of 4.1 m², too short for its flight in any orientation (longest fit
+0.71), so it was now missing for that reason as well as for its separation. The two separation tests set
+the flight rule aside, and a third test pins that the stair is missing on its own account. Full suite: 1025
+passed before that fix, with only that failure.
