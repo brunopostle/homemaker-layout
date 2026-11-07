@@ -21221,3 +21221,27 @@ without the judge: slivers (A0 makes them), circulation (A0 trims it), room area
 and token rooms (P1u cuts them). Round 1 of the judging kit asks that question on these twins, where the
 topology is held fixed and the only differences are the walls. Until it is answered, neither P1 nor P1u is
 a better objective than A0, only a different one.
+
+### 39.209 Judging round 1, built: tuned twins of one plan, A0's walls against P1's or P1u's (`homemaker-py-5fje.10`)
+
+§39.208 left four differences that the report card cannot rank: A0 tuning carves slivers and trims
+circulation, P1 shrinks rooms below their brief, and P1u cuts token rooms. Only the judge can rank them,
+and twins are the cleanest pairs for it: same topology, same rooms, only the walls differ.
+
+`judge_pairs.py build --twins` reads `phase1_tune.py`'s run. For each design it pairs the A0-tuned twin
+with the P1- or P1u-tuned twin, alternating the two over a programme's designs, so that each is asked about
+equally. A design falls back to its other pair only where the candidate scores agree on the first. As in
+round 0, only pairs on which A0 and P1 disagree are kept, one pair per design, programmes in turn. The
+report adds a tally of which tuning the judge chose, per matchup. Round 1 has 30 pairs from 30 designs:
+15 A0-P1 and 15 A0-P1u; 20 maple-court, 5 harbor-house, 4 programme-house and 1 health-centre. The
+disagreements are weak (z 0.03-0.2 on the programme-wide spread), as they must be between twins. The
+drawings are the round-0 kit with open yards drawn (§39.207). Within the pairs, slivers differ in 9 (the A0
+twin has one in all 9), token rooms in 10, and shortfall by more than 10 m² in 13.
+
+**Expectation, before it is asked:** many "about equal" answers, a third or more, because twins share
+their plan. Among the decisive answers, the P1/P1u twin is chosen on more than half, carried by the 9 sliver
+pairs, which round 0's notes predict will go against A0. The pairs where the P1 twin's rooms are visibly
+short of their brief (the drawings print built area against asked) are the ones most likely to go to A0.
+At about 10 decisive answers per matchup, no difference between P1 and P1u can be resolved. If the A0
+twins win most decisive pairs, shrinking rooms costs P1 more in the judge's eyes than slivers cost A0, and
+`homemaker-py-5fje.9` becomes the priority.

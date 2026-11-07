@@ -60,3 +60,43 @@ def test_sign_test(jp):
     assert jp.binom_two_sided(5, 10) == 1.0
     assert jp.binom_two_sided(0, 5) == pytest.approx(2 / 32)
     assert jp.binom_two_sided(10, 10) == pytest.approx(2 / 1024)
+
+
+def _twins(a0_scores, p1_scores, arms=("A0", "P1")):
+    """Two twins per design; ``a0_scores[i]`` is design i's (A0 twin, P1 twin)
+    under candidate A0, ``p1_scores[i]`` the same under candidate P1."""
+    scored, twins = {}, {}
+    for i, (x, y) in enumerate(zip(a0_scores, p1_scores)):
+        for arm, sa, sp in zip(arms, x, y):
+            path = f"d{i}--{arm}"
+            scored[path] = dict(programme="p", scores=dict(A0=sa, P1=sp))
+            twins[path] = (f"d{i}", arm)
+    return scored, twins
+
+
+def test_twins_agreeing_give_no_pairs(jp):
+    # both candidates prefer the A0 twin of every design: nothing to ask
+    scored, twins = _twins([(2, 1), (3, 1)], [(5, 4), (5, 1)])
+    assert jp.choose_twins(scored, twins, ["A0", "P1"], 30, [("A0", "P1")]) == []
+
+
+def test_twins_one_pair_per_design_and_only_twins(jp):
+    # A0 prefers each A0 twin, P1 each P1 twin: every design disagrees
+    scored, twins = _twins([(2, 1), (3, 1), (4, 1)], [(1, 2), (1, 3), (1, 4)])
+    chosen = jp.choose_twins(scored, twins, ["A0", "P1"], 30, [("A0", "P1")])
+    assert len(chosen) == 3
+    for _, _, a, b, z in chosen:
+        assert twins[a][0] == twins[b][0]
+        assert z["A0"] * z["P1"] < 0
+
+
+def test_twins_arm_pairs_alternate(jp):
+    scored, twins = {}, {}
+    for i in range(4):
+        for arm, sa, sp in (("A0", 2, 1), ("P1", 1, 2), ("P1u", 1, 3)):
+            path = f"d{i}--{arm}"
+            scored[path] = dict(programme="p", scores=dict(A0=sa, P1=sp))
+            twins[path] = (f"d{i}", arm)
+    chosen = jp.choose_twins(scored, twins, ["A0", "P1"], 30, [("A0", "P1"), ("A0", "P1u")])
+    arms = sorted(twins[b][1] for _, _, a, b, _ in chosen)
+    assert arms == ["P1", "P1", "P1u", "P1u"]
