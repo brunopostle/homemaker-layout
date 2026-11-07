@@ -21159,3 +21159,65 @@ as judged. Later rounds get the new ones.
 **For Phase 1** (`homemaker-py-5fje.4`): P1 and A0 stay the candidates. The tuned twins should be read on
 `token`, `sliver`, `missing`, `adj_share`, `circ_share` and `connected`. This round says those are what the
 judge sees, and that `shortfall_m2` is not.
+
+### 39.208 Phase 1, tuned twins: P1 does not make the slivers A0 does, but it shrinks rooms below their brief (`homemaker-py-5fje.4`)
+
+§39.201's Phase 1. `experiments/phase1_tune.py` re-tunes each design's division ratios, topology fixed, once
+under each candidate score: A0 (today's), P1 at phi 1e-3 and P1u (P1 unfloored, phi 1e-20). Every arm starts
+from the design's own ratios at the same budget (Nelder-Mead, 3000 evaluations), so A0 is the control for "more
+tuning". 38 designs: the 25 race finalists, the 12 `coldstart-c836457+orth` designs and the hand-drawn
+programme-house, 114 runs, 8 at a time on the desktop, half an hour, no failures. The twins and `cards.tsv`
+(the report card of every design as found and as tuned) are in `experiments/results/phase1/`, and
+`phase1_tune.py report` prints the paired tables. 26 of the 38 are maple-court.
+
+**Paired against the A0-tuned twin** (count of designs where the arm's value is lower / higher; MDD from
+`ab_report`):
+
+| fact | P1 | P1u |
+|---|---|---|
+| token rooms | 6 / 3, within MDD | **14 / 2**, median 3 -> 2 |
+| sliver rooms | **11 / 2** | **11 / 2** |
+| shortfall m² | **9 / 29**, median 298 -> 318 | 19 / 19, within MDD |
+| surplus m² | **37 / 1**, median 28 -> 17 | **27 / 11** |
+| circulation share | **6 / 32**, median 0.42 -> 0.53 | **8 / 30**, 0.42 -> 0.52 |
+| wall per m² | **6 / 32** | **12 / 26** |
+| missing, adj_share, connected, stair_storeys | no change | no change |
+| cost, inside m², unlit, no_door | within MDD | within MDD |
+
+Missing rooms, adjacencies and connected storeys cannot move when the topology is fixed, so they are flat by
+construction and say nothing about the scores.
+
+**Against the expectations of §39.205:** P1 was expected to cut shortfall and token rooms on most
+maple-court pairs. On maple-court it RAISED shortfall on 25 of 26 and cut token rooms on only 6. Surplus was
+expected to stay level; it fell on all 26. Circulation share was expected to rise on at least half; it rose
+on 23. Connected was expected to be no worse; it was unchanged. Two of four expectations were wrong, and both
+wrong ones concern room areas, which is what P1 was built to get right.
+
+**The control changes the reading.** Against the designs AS FOUND, not against the A0 twins:
+
+- **A0 tuning makes the slivers.** It adds a sliver room to 10 of 38 designs and removes one from 1. P1 and
+  P1u leave slivers as they were (2/2 and 1/1). The 11 / 2 in the table is A0 making them, not P1 removing
+  them. Today's score, given the walls to move, carves the thing the owner's notes object to most after shape
+  (§39.207).
+- **A0 tuning cuts circulation.** It lowers circulation area on 36 of 38 (median 353 -> 333 m²), and with it
+  cost and the inside area. Under P1 circulation area stays as found (19 / 19). Its share rises only because
+  the rooms shrink: room area falls on 35 of 38 under P1. So P1 does not add circulation. It keeps the
+  circulation A0 would trade away and gives up room area.
+- **P1 shrinks rooms below their brief.** Against the design as found, shortfall rises on 30 of 38 and
+  surplus falls on 37. P1 removes the surplus and then keeps going. The owner ruled that a smaller room than
+  asked is not a saving (§39.204), so P1 as specified fails that ruling in tuning, though it agreed with the
+  owner on round 0's whole plans (§39.207). P1u, unfloored, does less of it: shortfall 14 / 24 against found,
+  room area level, and it is the one arm that clearly cuts token rooms (13 / 2 against found). That fits the
+  floor taking away P1's pull back towards the brief once a room is far below it, but this run does not
+  show that this is the mechanism.
+
+Why the geomean trades room area away is not answered here. Two candidates: the size factor is more
+forgiving below the target than above it, or the proportion and width factors gain more from narrower rooms
+than size loses. Both can be read off the per-room factors of a twin pair, and that is
+`homemaker-py-5fje.9`.
+
+**For the owner, and for Phase 2.** The card says the arms differ in four things that cannot be ranked
+without the judge: slivers (A0 makes them), circulation (A0 trims it), room area against brief (P1 trims it)
+and token rooms (P1u cuts them). Round 1 of the judging kit asks that question on these twins, where the
+topology is held fixed and the only differences are the walls. Until it is answered, neither P1 nor P1u is
+a better objective than A0, only a different one.
