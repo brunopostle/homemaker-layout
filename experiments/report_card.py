@@ -58,6 +58,21 @@ aggregation):
                 per m2 of room
   cost          the scorer's construction cost, in its units
 
+Circulation as a network (`homemaker-py-5fje.7`, §39.214), read off the
+scorer's access graph (``graph_circ``: each room keeps the door it is served
+by), per storey, before a stair joins storeys:
+
+  circ_pieces   pieces of indoor circulation (C and E cells) beyond one per
+                storey that has any
+  circ_orphan_m2
+                area of the pieces that reach no stair and, on the ground
+                storey, no outside: scraps that join nothing
+
+A third measure was tried and dropped: circulation on no route joining the
+stairs, the way out and every room's door (an approximate Steiner tree, a
+cell counting whole). It was zero on 90 of the 98 designs, because nearly
+every scrap of corridor is some room's door (§39.214).
+
     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/report_card.py \\
         [--rooms rooms.tsv] [--tsv out.tsv] DESIGN.dom ...
     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/report_card.py --self-test
@@ -96,7 +111,8 @@ DESIGN_COLS = ["rooms_asked", "missing", "extra", "token", "over",
                "unlit", "deep", "depth_med", "adj_asked", "adj_met", "adj_share", "no_door",
                "storeys", "connected", "stair_storeys",
                "room_m2", "circ_m2", "circ_share", "inside_m2",
-               "wall_per_m2", "roof_per_m2", "cost"]
+               "wall_per_m2", "roof_per_m2", "cost",
+               "circ_pieces", "circ_orphan_m2"]
 ROOM_COLS = ["level", "id", "code", "usage", "area", "target", "ratio",
              "width", "aspect", "aspect_max",
              "exposed_m", "depth", "needs_light",
@@ -254,7 +270,33 @@ def card(fit, reqs, root):
         roof_per_m2=roof / room_m2 if room_m2 else float("nan"),
         cost=cost)
     row["adj_share"] = row["adj_met"] / row["adj_asked"] if row["adj_asked"] else float("nan")
+    row["circ_pieces"], row["circ_orphan_m2"] = circulation_network(storeys, rooms)
     return row, room_rows
+
+
+CIRC = set(dom.GENERIC_INDOOR_CIRCULATION)
+
+
+def circulation_network(storeys, rooms):
+    """``(pieces, orphan_m2)`` over the storeys, from each storey's trimmed
+    access graph. See the module docstring."""
+    import networkx as nx
+    pieces = 0
+    orphan = 0.0
+    graph_circ = storeys[0][2] if storeys else []
+    for i, Gc in enumerate(graph_circ):
+        circ = [n for n in Gc.nodes() if n.type in CIRC and dom.is_usable(n)]
+        if not circ:
+            continue
+        comps = list(nx.connected_components(Gc.subgraph(circ)))
+        pieces += len(comps) - 1
+        for comp in comps:
+            stair = any(n.type == dom.GENERIC_STAIR for n in comp)
+            out = i == 0 and any(nb.type in dom.GENERIC_OUTSIDE
+                                 for n in comp for nb in Gc.neighbors(n))
+            if not stair and not out:
+                orphan += sum(geometry.area(n) for n in comp)
+    return pieces, orphan
 
 
 def fmt(v):
@@ -313,7 +355,10 @@ CONTROLS = [
     ("three bedrooms at 40% (O8 b)", BEST1, Q / "O8-0-b.dom",
      {"shortfall_m2": "+", "missing": 0, "token": 0, "connected": 0}),
     ("stair stopped below the top storey", BEST1, "stair_short",
-     {"stair_storeys": -1, "missing": 0, "token": 0, "shortfall_m2": 0}),
+     {"stair_storeys": -1, "missing": 0, "token": 0, "shortfall_m2": 0,
+      "circ_orphan_m2": "+"}),
+    ("a corridor cell that joins two parts made outside", CLEAN9, "corridor_cut",
+     {"circ_pieces": "+", "missing": 0}),
 ]
 
 
@@ -327,7 +372,27 @@ def stair_short(root):
             shaft[-1].type = "C"
 
 
-EDITS = {"stair_short": stair_short}
+def _circ_cut_vertex(root):
+    """The first corridor cell (by storey, then id) whose removal splits its
+    storey's circulation, in the plain adjacency graph."""
+    import networkx as nx
+    for lvl in dom.levels(root):
+        G = geometry.leaf_graph(lvl, 0.0)
+        H = G.subgraph([n for n in G.nodes() if n.type == "C"])
+        for n in sorted(nx.articulation_points(H), key=lambda n: n.id):
+            return n
+    return None
+
+
+def corridor_cut(root):
+    """Retype a corridor cell that joins two parts of a storey's circulation
+    as a store: the circulation is now in two pieces."""
+    n = _circ_cut_vertex(root)
+    if n is not None:
+        n.type = "O"
+
+
+EDITS = {"stair_short": stair_short, "corridor_cut": corridor_cut}
 
 
 def self_test(progs):

@@ -221,7 +221,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (318 of them, 21479 lines)
+## Every section of DESIGN.md (319 of them, 21526 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -590,4 +590,5 @@ below are the most recent work.
 - §39.210 · 21249-21300 · Round 1 answered: between twins the sliver decides, and the scorer charges nothing for a stair too small to climb (`homemaker-py-5fje.10`)
 - §39.211 · 21301-21349 · Owner's ruling: every stair is scored for fit, and a stair that cannot hold a flight is a missing stair (`homemaker-py-5fje.11`)
 - §39.212 · 21350-21406 · Why P1 shrinks rooms: every room's daylight factor is a vote for 2.5 m of depth per lit wall (`homemaker-py-5fje.9`)
-- §39.213 · 21407-21479 · Owner's ruling: daylight is a minimum, and with it P1's shrink is left to the size factor alone (`homemaker-py-5fje.13`)
+- §39.213 · 21407-21480 · Owner's ruling: daylight is a minimum, and with it P1's shrink is left to the size factor alone (`homemaker-py-5fje.13`)
+- §39.214 · 21481-21526 · Circulation as a network: pieces of corridor track the judge's choices, amount does not (`homemaker-py-5fje.7`)

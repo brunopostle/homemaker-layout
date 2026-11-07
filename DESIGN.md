@@ -21477,3 +21477,50 @@ pipeline's daylight filter (§39.145-§39.155). What P1 adds is that it lets the
 size, where A0's area-additive value does not. Whether that is the right trade is the owner's to judge, not
 the card's. Rounds 0 and 1 suggest the judge does not see the shortfall (§39.207, §39.210), and the ruling of
 §39.204 says it matters.
+
+### 39.214 Circulation as a network: pieces of corridor track the judge's choices, amount does not (`homemaker-py-5fje.7`)
+
+Asked whether circulation and stairs should cost more (§39.213), the answer was that today's score already
+charges circulation more than rooms (200 per m² built, 50 of value against a room's 300), and that P1 has no
+cost to raise. The owner's notes are about how circulation is CONNECTED, not how much there is. So, as the
+bead asks, these are plan facts first, with no objective change. `report_card.py` gains two columns, read
+from the scorer's trimmed access graph (each room keeps the door it is served by), per storey, before a
+stair joins storeys:
+
+- `circ_pieces`: pieces of indoor circulation (`C` and `E` cells) beyond one per storey that has any;
+- `circ_orphan_m2`: area of the pieces that reach no stair and, on the ground storey, nothing outside.
+
+Each has a negative control in `--self-test`. `corridor_cut` retypes a corridor cell that joins two parts
+of a storey's circulation, and `circ_pieces` rises (clean-9: 9 -> 10). Stopping a stair below the top storey,
+the existing control, orphans that storey's circulation (BEST1: 0 -> 140 m²). Columns that no control moves
+are the same three as before.
+
+**A third measure was tried and dropped.** "Spare" circulation was the area on no route joining the stairs,
+the way out and every room's door: an approximate node-weighted Steiner tree, each cell counting whole. It
+is zero on 90 of the 98 designs. Nearly every scrap of corridor is some room's door, so it is "needed",
+which is the owner's R0-30 observation in numbers: adjacency to `c` is met by a scrap beside the room. A
+control meant to move it (a room retyped as a corridor spur) instead joined an orphaned piece. A measure
+that cannot see the thing it was built for is dropped, not kept as a column of zeros.
+
+**Baseline**, the 98 re-ranked designs (`report-card.tsv` regenerated; no other column changed):
+
+| programme | n | extra pieces, median | designs with any | orphaned m², median | designs with any |
+|---|---|---|---|---|---|
+| harbor-house | 20 | 7 | 20 | 153 | 20 |
+| health-centre | 18 | 6 | 18 | 17 | 16 |
+| maple-court | 41 | 4 | 41 | 0 | 20 |
+| programme-house | 19 | 0 | 0 | 0 | 1 |
+
+**Against the judge** (rounds 0 and 1, decisive answers, ties left out): the plan chosen has **fewer pieces
+in 11 of 14** round-0 pairs where they differ (p = 0.057), and 12 of 15 with round 1's single such pair
+(p = 0.035). Orphaned area (12 of 23), circulation area (19 of 42) and circulation share (21 of 42) say
+nothing. **The judge's choices follow fragmentation, not the amount of circulation.** That is what the
+notes said, and it is why a cost on circulation area would not reach it.
+
+**A confound, stated plainly.** In 6 of the 14 round-0 pairs the chosen plan had fewer pieces but MORE
+missing rooms. Round 0's missing-rooms finding (§39.207) is the same pairs, seen from the other side. A plan
+with fewer rooms is simpler, and the notes on those pairs are about "coherent shape" and "credible
+courtyard". Where missing rooms are equal, fewer pieces won 4 of 5: suggestive, but too few to separate
+fragmentation from shape (`homemaker-py-5fje.8`). The bead's next step stands: an owner question on what a
+working circulation is, before any objective change. Today `level N not connected` asks only whether a
+storey's circulation is one piece, with stairs counted, and it is one fail however many pieces there are.
