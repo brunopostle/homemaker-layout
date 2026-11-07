@@ -9,7 +9,8 @@ design already on disk is not tuned again), and judged on the report card
 (§39.205), never on any arm's own score.
 
 Arms (``--arms``): A0 today's score; P1 at phi 1e-3; P1u, P1 unfloored
-(phi 1e-20, so a room far from its brief still has a gradient back).
+(phi 1e-20, so a room far from its brief still has a gradient back); P1t,
+P1 with daylight as a threshold, a counterfactual (§39.212).
 
     # tune (default designs: the 25 race finalists, the 12 c836457+orth
     # cold-start designs and the hand-drawn programme-house)
@@ -34,12 +35,16 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 OUT = HERE / "results" / "phase1"
-ARMS = {"A0": ("A0", None), "P1": ("P1", 1e-3), "P1u": ("P1", 1e-20)}
+ARMS = {"A0": ("A0", None), "P1": ("P1", 1e-3), "P1u": ("P1", 1e-20), "P1t": ("P1", 1e-3)}
+# arms that tune against a counterfactual objective, not the live one
+# (§39.212): P1t is P1 with the daylight factor a pass/fail threshold -- 1.0
+# for a cell that passes, its gaussian only where it fails
+DAYLIGHT_THRESHOLD = {"P1t"}
 RERANK = HERE / "results" / "aggregation" / "rerank-phi1e-3.tsv"
 HAND = "examples/programme-house/hand-3storey.dom"
 # columns compared between twins; the sign says which way is better for the
 # reader, nothing is summed
-COLS = ["token", "sliver", "missing", "shortfall_m2", "surplus_m2", "ratio_big5",
+COLS = ["token", "sliver", "missing", "shortfall_m2", "surplus_m2", "room_m2", "ratio_big5",
         "adj_share", "no_door", "unlit", "deep", "connected", "stair_storeys",
         "circ_share", "inside_m2", "wall_per_m2", "cost"]
 
@@ -80,6 +85,13 @@ def tune_one(task):
             fitness.Fitness.score_with_fails = score_with_fails
         return got[which], got["fail_lines"]
 
+    if arm in DAYLIGHT_THRESHOLD:
+        day = fitness.Fitness.quality_uncrinkliness
+
+        def threshold(self, leaf, G, groups):
+            f = day(self, leaf, G, groups)
+            return 1.0 if f >= fitness.FAIL_THRESHOLD else f
+        fitness.Fitness.quality_uncrinkliness = threshold
     t = time.process_time()
     if which != "A0":
         fitness.Fitness.score_with_fails = score_with_fails
@@ -134,28 +146,29 @@ def report(a):
             cards[path, arm] = (prog, row)
             lines.append(f"{path}\t{arm}\t{prog}\t" + "\t".join(rc.fmt(row[c]) for c in rc.DESIGN_COLS))
     (out / "cards.tsv").write_text("\n".join(lines) + "\n")
-    for arm in [x for x in run["arms"] if x != "A0"]:
-        both = [p for p in run["designs"] if (p, "A0") in cards and (p, arm) in cards]
-        print(f"\n== {arm}-tuned against A0-tuned twins, {len(both)} designs"
-              " (diff = A0 minus " + arm + "; '+' means lower under " + arm + ")")
-        print(f"  {'column':14s} {'A0 med':>9s} {arm + ' med':>9s} {'lower':>6s} {'higher':>6s}"
+    base = "A0" if "A0" in run["arms"] else "found"
+    for arm in [x for x in run["arms"] if x != base]:
+        both = [p for p in run["designs"] if (p, base) in cards and (p, arm) in cards]
+        print(f"\n== {arm}-tuned against {base}, {len(both)} designs"
+              f" (diff = {base} minus {arm}; '+' means lower under {arm})")
+        print(f"  {'column':14s} {base + ' med':>9s} {arm + ' med':>9s} {'lower':>6s} {'higher':>6s}"
               f" {'mean diff':>10s} {'MDD':>9s}  verdict")
         for c in COLS:
-            x = [cards[p, "A0"][1][c] for p in both]
+            x = [cards[p, base][1][c] for p in both]
             y = [cards[p, arm][1][c] for p in both]
             lower = sum(b < aa for aa, b in zip(x, y))
             higher = sum(b > aa for aa, b in zip(x, y))
-            r = paired_report(x, y, "A0", arm)
+            r = paired_report(x, y, base, arm)
             sig = "resolved" if abs(r["mean_diff"]) > r["mdd"] else "within MDD"
             print(f"  {c:14s} {statistics.median(x):9.4g} {statistics.median(y):9.4g} "
                   f"{lower:6d} {higher:6d} {r['mean_diff']:10.4g} {r['mdd']:9.3g}  {sig}")
         by = {}
         for p in both:
-            by.setdefault(cards[p, "A0"][0], []).append(p)
-        print("  by programme, medians A0 -> " + arm + ":")
+            by.setdefault(cards[p, base][0], []).append(p)
+        print(f"  by programme, medians {base} -> {arm}:")
         for prog, ps in sorted(by.items()):
             print(f"    {prog:16s} n={len(ps):2d}  " + "  ".join(
-                f"{c} {statistics.median(cards[p, 'A0'][1][c] for p in ps):.3g}->"
+                f"{c} {statistics.median(cards[p, base][1][c] for p in ps):.3g}->"
                 f"{statistics.median(cards[p, arm][1][c] for p in ps):.3g}"
                 for c in ("token", "sliver", "missing", "adj_share", "circ_share", "connected")))
     return 0

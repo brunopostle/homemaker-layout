@@ -21346,3 +21346,60 @@ twins, each case with its control. One older test had to change: `tests/test_sta
 0.71), so it was now missing for that reason as well as for its separation. The two separation tests set
 the flight rule aside, and a third test pins that the stair is missing on its own account. Full suite: 1025
 passed before that fix, with only that failure.
+
+### 39.212 Why P1 shrinks rooms: every room's daylight factor is a vote for 2.5 m of depth per lit wall (`homemaker-py-5fje.9`)
+
+§39.208 found that tuning under P1 shrinks rooms below their brief: room area fell on 35 of 38 designs and
+shortfall rose on 30. The size factor is a symmetric gaussian on the target, so something else must buy the
+loss. `experiments/diag_p1_shrink.py` reads P1's own ledger. For each design, it takes the change in
+log(max(phi, factor)) of each voting room, cell for cell (same topology, same ids), between the P1 twin and
+the design as found (or its A0 twin).
+
+| factor | median per design, P1 twin vs found | designs gained / paid |
+|---|---|---|
+| crinkliness (daylight) | **+4.32** | 37 / 1 |
+| proportion | +4.25 | 34 / 4 |
+| size | +2.14 (rooms above target shrink towards it) | 26 / 12 |
+| building factor, building fails, shape, access | ~0 | |
+
+On the 738 voting rooms that shrank below their target, size lost 169 in log and their own daylight
+gained 119. 606 of 743 such rooms were deeper than 2.5 m per lit wall before tuning, and 479 moved towards
+it (median 3.36 -> 3.12 m, the report card's `depth`). The daylight factor is the two-sided gaussian of
+§39.16, peaking at A/(L·h) = 0.833: 2.5 m of floor depth per metre of lit wall at h = 3 m, failing at 4.86 m.
+Under P1 every required room's daylight factor is an equal vote, and the floor area given up goes to
+circulation, which P1 does not price. Under A0, value is area-additive and circulation costs money, which
+masks the same pull: A0 tuning also shrank 512 rooms below target, but no more towards 2.5 m than away
+(224 / 288).
+
+**The control, written down before it ran** (bead notes, 2026-11-07). `phase1_tune.py` gains an arm P1t:
+P1 with daylight as a pass/fail threshold, 1.0 for any cell that passes and its gaussian only where it
+fails. P1 and P1t were both re-tuned on the 38 designs at today's objective (`2647f03+orth`, so the stair
+ruling of §39.211 applies to both). They are in `experiments/results/phase1-daylight/`.
+
+| P1t against P1, paired, 38 designs | P1t lower | P1t higher | |
+|---|---|---|---|
+| shortfall m² | **30** | 7 | resolved |
+| room area m² | 9 | **29** | resolved |
+| token rooms | **9** | 0 | resolved |
+| sliver rooms | 0 | 4 | resolved, just |
+| rooms too deep for daylight (`deep`) | 3 | 18 | within MDD |
+| circulation share | 25 | 13 | within MDD |
+
+Against the design as found, P1 re-tuned again raises shortfall on 30 of 38, which reproduces §39.208. P1t
+leaves it level (19 / 19). The expectation was "room area lower on no more than about half": P1t lowers it
+on 26 of 38, which misses, but by 21 m² on average where P1 took 38, and the median rises. "Shortfall roughly
+level": met. "The circulation rise mostly gone": met, inside the MDD.
+
+**So the cause is the daylight factor's shape, not P1's aggregation.** A gaussian with a peak is a target,
+and an aggregation that gives each room's factors an equal vote chases every target. The shallow side was
+argued over in §39.16: Alexander 159 is a minimum, and the existing `crinkliness_shape="daylight"` clips the
+shallow side. That clip would not have helped here, because P1 shrinks rooms from the DEEP side, towards the
+peak, while they still pass. The question it leaves is a ruling: is daylight a threshold (any depth that
+passes is as good as any other, and only a failing room is graded) or a target (2.5 m per lit wall is best,
+and a room 3.4 m deep is worse than one 2.5 m deep)? The owner's rulings so far lean to threshold: "a room is
+usable once it clears a threshold" (§39.204), and a room's depth limit is "only a limit for low ceilings",
+with "the daylight threshold" standing (§39.125). Both speak of the daylight check as a threshold, but
+neither ruled on the shape of the factor. As
+measured here, a threshold costs a few slivers (4 designs) and lets rooms sit deeper, still passing. A plain
+threshold is also a cliff, from 1.0 to the 0.1 fail at the edge; a ruled version would want a graded band
+before the fail, which is a design question for after the ruling. Filed as `homemaker-py-5fje.13`.

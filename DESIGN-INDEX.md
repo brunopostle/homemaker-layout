@@ -220,7 +220,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (316 of them, 21348 lines)
+## Every section of DESIGN.md (317 of them, 21405 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -587,4 +587,5 @@ below are the most recent work.
 - §39.208 · 21163-21224 · Phase 1, tuned twins: P1 does not make the slivers A0 does, but it shrinks rooms below their brief (`homemaker-py-5fje.4`)
 - §39.209 · 21225-21248 · Judging round 1, built: tuned twins of one plan, A0's walls against P1's or P1u's (`homemaker-py-5fje.10`)
 - §39.210 · 21249-21300 · Round 1 answered: between twins the sliver decides, and the scorer charges nothing for a stair too small to climb (`homemaker-py-5fje.10`)
-- §39.211 · 21301-21348 · Owner's ruling: every stair is scored for fit, and a stair that cannot hold a flight is a missing stair (`homemaker-py-5fje.11`)
+- §39.211 · 21301-21349 · Owner's ruling: every stair is scored for fit, and a stair that cannot hold a flight is a missing stair (`homemaker-py-5fje.11`)
+- §39.212 · 21350-21405 · Why P1 shrinks rooms: every room's daylight factor is a vote for 2.5 m of depth per lit wall (`homemaker-py-5fje.9`)
