@@ -21245,3 +21245,55 @@ short of their brief (the drawings print built area against asked) are the ones 
 At about 10 decisive answers per matchup, no difference between P1 and P1u can be resolved. If the A0
 twins win most decisive pairs, shrinking rooms costs P1 more in the judge's eyes than slivers cost A0, and
 `homemaker-py-5fje.9` becomes the priority.
+
+### 39.210 Round 1 answered: between twins the sliver decides, and the scorer charges nothing for a stair too small to climb (`homemaker-py-5fje.10`)
+
+The owner judged all 30 pairs of §39.209 on 2026-11-07: 17 decisive, 13 "about equal", a note on 23.
+`judge_pairs.py report --round 1`:
+
+| | decisive pairs won | about equal |
+|---|---|---|
+| A0 twin against P1 twin | A0 4, P1 4 | 7 |
+| A0 twin against P1u twin | A0 2, **P1u 7** (p = 0.18) | 6 |
+| P1's own score agrees with the judge | 11 of 17 (p = 0.33) | |
+| by programme, P1's score agrees | maple-court 8/9, programme-house 3/4, **harbor-house 0/4** | |
+
+**Against the expectations of §39.209.** A third or more "about equal": yes, 13 of 30. The P1/P1u twin
+chosen on more than half of the decisive pairs: yes, 11 of 17, not significant. "Carried by the sliver
+pairs": yes. **The plan chosen never had more slivers: 0 of 7, p = 0.016.** The slivers differ in 9 pairs,
+but §39.209's "the A0 twin has one in all 9" was a miscount: the A0 twin carried the only sliver in 8, and
+the P1 twin in 1 (R1-11, which went to A0). Of the 8, six went to the other twin, and two were "about
+equal", both offset by a stair
+the judge called "improbably small" in the other twin (R1-17, R1-30). "The pairs where the P1 twin's rooms
+are visibly short go to A0": **no**. Shortfall splits 8 of 17 again, as in round 0. R1-03 and R1-06, where
+P1u doubled the shortfall (100 -> 203 and 117 -> 237 m²), were both judged about equal. The judge does see
+size, but as small rooms made unusable, not as square metres in total: "tiny toilet", "toilets better
+sized", "a tiny room" (R1-01, R1-07, R1-26). That is §39.204's usability threshold, not a size gaussian.
+
+So the wall-level reading of §39.208 holds in the judge's eyes. A0 tuning carves slivers and the judge
+rejects them. P1's shrinking of rooms below their brief, which the card makes so plain, mostly goes
+unnoticed. The ruling that a smaller room is not a saving (§39.204) stands, so `homemaker-py-5fje.9` still
+matters, but it is not what decides these plans.
+
+**Harbor-house went 4 of 4 to A0's twin**, and the notes say why. Two are about the outside: "a very
+awkward triangular sliver yard" (R1-08) and "an awkward triangle open yard" (R1-05). Harbor-house's plot is
+skew, and P1 tuning moved walls so as to leave thin triangles of yard against the boundary. The card's
+`sliver` counts rooms only, so it saw none of this. One is a stair "of better proportion" (R1-14: the P1
+twin's stair is 22.0 m² against 15.3), and one is a sliver room in the P1 twin (R1-11).
+
+**Stairs, three notes, and a scorer gap behind them.** "An improbably tiny stair" (R1-17, R1-30, both P1
+twins) and "the stair takes up about a third of the building" (R1-04, P1 twin, 17.7 m² against 14.2).
+Maple-court asks for two stairs (`staircase_min: 2`). In R1-17 and R1-30 the P1 twin's second stair is
+1.5 m² and 2.0 m², with a stair fit of 0.33 and 0.39, at the 0.09 floor of `quality_staircase_volume`.
+**Neither design carries a stair fail, and the second stair costs nothing.** `quality_staircase_volume`
+takes the BEST stair's fit ("Best-stair gaussian", as Perl's), so once one stair fits, every other one can
+be any size. Each still counts towards `staircase_min`. P1 tuning found this and gave the second stair's
+area to rooms. A0 tuning leaves it at 4.9-5.1 m², 1.2 m wide, which `_stair_fit` reports as a good fit
+(1.07-1.12) although the cell is narrower than the 1.25 m stair width it assumes. Both look like defects of
+the objective, not of the aggregation. They are filed as `homemaker-py-5fje.11` with these numbers, for the
+owner to rule on before anything changes.
+
+**Next for this review.** Across rounds 0 and 1, the facts the judge's choices follow are missing rooms,
+slivers and, through the notes, stairs and outside space of usable shape. The candidates differ on slivers
+mainly because A0 makes them. The open threads are `5fje.9` (P1 shrinking rooms), `5fje.11` (stairs),
+`5fje.7` (circulation as a network) and `5fje.8` (shape, which now includes triangular yards).

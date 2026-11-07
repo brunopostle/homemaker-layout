@@ -219,7 +219,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (314 of them, 21247 lines)
+## Every section of DESIGN.md (315 of them, 21299 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -584,4 +584,5 @@ below are the most recent work.
 - §39.206 · 21051-21090 · The blind judging kit, and a round 0 ready to ask (`homemaker-py-5fje.3`)
 - §39.207 · 21091-21162 · Round 0 answered: P1 sides with the owner on 18 of 25 whole plans, today's score on 7 (`homemaker-py-5fje.3`)
 - §39.208 · 21163-21224 · Phase 1, tuned twins: P1 does not make the slivers A0 does, but it shrinks rooms below their brief (`homemaker-py-5fje.4`)
-- §39.209 · 21225-21247 · Judging round 1, built: tuned twins of one plan, A0's walls against P1's or P1u's (`homemaker-py-5fje.10`)
+- §39.209 · 21225-21248 · Judging round 1, built: tuned twins of one plan, A0's walls against P1's or P1u's (`homemaker-py-5fje.10`)
+- §39.210 · 21249-21299 · Round 1 answered: between twins the sliver decides, and the scorer charges nothing for a stair too small to climb (`homemaker-py-5fje.10`)
