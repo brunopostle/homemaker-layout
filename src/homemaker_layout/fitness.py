@@ -24,6 +24,7 @@ from __future__ import annotations
 import functools
 import itertools
 import math
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -447,6 +448,41 @@ CONF_DEFAULTS: dict = {
 
 AGGREGATIONS = ("A0", "P1", "P2")
 
+# The run-time switch for the two keys above (homemaker-py-5fje.14), read by
+# `load_config` after the config files and before explicit overrides. An
+# environment variable, as HOMEMAKER_ORTHOGONAL_DIVISION is, because a search's
+# workers start by forkserver on Python 3.14 and inherit the environment but
+# not a module global; `homemaker-evolve --aggregation` sets it. It changes the
+# objective, so `aggregation_suffix` goes into the objective stamp.
+AGGREGATION_ENV = "HOMEMAKER_AGGREGATION"
+AGGREGATION_PHI_ENV = "HOMEMAKER_AGGREGATION_PHI"
+
+
+def aggregation_from_env() -> dict:
+    """The aggregation keys the environment sets, validated; ``{}`` if none."""
+    ov: dict = {}
+    arm = os.environ.get(AGGREGATION_ENV, "").strip()
+    if arm:
+        if arm not in AGGREGATIONS:
+            raise ValueError(f"{AGGREGATION_ENV}={arm!r}: not one of "
+                             f"{', '.join(AGGREGATIONS)}")
+        ov["aggregation"] = arm
+    phi = os.environ.get(AGGREGATION_PHI_ENV, "").strip()
+    if phi:
+        ov["aggregation_phi"] = float(phi)
+    return ov
+
+
+def aggregation_suffix() -> str:
+    """The objective-stamp suffix for the environment's aggregation: ``""``
+    for A0, ``+P1`` at the default phi, ``+P1phi1e-20`` otherwise."""
+    ov = aggregation_from_env()
+    arm = ov.get("aggregation", "A0")
+    if arm == "A0":
+        return ""
+    phi = ov.get("aggregation_phi", CONF_DEFAULTS["aggregation_phi"])
+    return f"+{arm}" + ("" if phi == CONF_DEFAULTS["aggregation_phi"] else f"phi{phi:g}")
+
 # Urb::Dom::Fitness::Base $COST
 COST_DEFAULTS: dict = {
     "plot": 10.0,
@@ -574,6 +610,7 @@ def load_config(directory: str | Path,
             if p.is_file():
                 with open(p) as fh:
                     target.update(yaml.safe_load(fh) or {})
+    conf.update(aggregation_from_env())
     if overrides:
         conf.update(overrides)
     return conf, cost

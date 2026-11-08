@@ -21678,3 +21678,64 @@ a finding.
 
 The owner deferred the token-room question (`homemaker-py-hlm1`, §39.199) to this phase on 2026-11-08,
 rather than grading or thresholding the `size` fail. So it now waits on Phase 3.
+
+### 39.218 The ranking order under a programme-centric score is an experiment: `--rank` and `--aggregation` (`homemaker-py-5fje.14`)
+
+§39.217 left open how a search under P1 or P2 should rank designs, and that is Q2. The owner, 2026-11-08:
+**"This ranking order question needs to be answered by experiment."** So no ranking order is chosen for the
+P arms. Each is a flag, and Phase 3 searches under them.
+
+**What landed:**
+
+- `homemaker-evolve --rank {fails, tiers, score}`, default `fails`, or `$HOMEMAKER_RANK`. `fails` is
+  today's `(-n_fails, score)`. `tiers` is `(-n_hard, -n_soft, score)`, the same as `--use-tiers` (which
+  stays, as an alias, and is refused with `--rank score`). `score` is the score alone: `driver.search`'s
+  `use_lex=False`, which existed and no flag reached. Under A0 the fail count is still in the score, as
+  `0.5**n`. Under P only the building fails are, as `0.5**n_bld`, and a room's own fails sit in its vote.
+  It applies to the plain search; `--anneal-grain` refuses it. `rank` is a search knob (`SEARCH_KNOBS`), so
+  `search_config`'s hash moves for every run, the default included (now `10ad64f603`). Adding a knob always
+  does that.
+- `homemaker-evolve --aggregation {A0, P1, P2}` and `--aggregation-phi`. They set `$HOMEMAKER_AGGREGATION` /
+  `$HOMEMAKER_AGGREGATION_PHI`, which `fitness.load_config` applies after the config files and before
+  explicit overrides. **An environment variable, as `HOMEMAKER_ORTHOGONAL_DIVISION` is, for the same
+  reason:** a pool's workers start by forkserver on Python 3.14, so they inherit the environment but not a
+  module global. The alternative was threading two more arguments through `driver._overrides_for`'s ~30
+  callers. The environment also reaches every scorer in a process that is not `homemaker-evolve`.
+  `successive_halving.py` ranks a stage in its own process; its `--conf aggregation=P1` already reached
+  both its searches and its ranking, and it gains `--rank score`.
+- **The stamp carries the arm**, as it carries `+orth`: `objective_commit()` appends
+  `fitness.aggregation_suffix()`, giving `0511b4b+orth+P1`, or `+P1phi1e-20` for P1u, and nothing for A0.
+  A P row can never share a stamp with an A0 one. The two flags are a third kind of evolve option,
+  `OBJECTIVE_OPTIONS`, beside `SEARCH_KNOBS` and `RUN_OPTIONS`, and `tests/test_search_config.py` now
+  requires every flag to be in exactly one.
+
+**Smoke**, programme-house from `init.dom`, 3,000 evaluations, seed 1, `--workers 2`, so that the
+environment is shown to cross into the pool: P1 with `fails`, P1 with `score`, A0 with `score`. All three
+finish. Both P1 runs report P1-scale scores (0.0038 against A0's 0.0023). `tests/test_aggregation.py` adds
+the environment path with its control, the suffix for each arm, a bad value refused, and `--use-tiers`
+refused with `--rank score`.
+
+**The Q2 experiment, proposed for Phase 3** (`5fje.6`). The cells are (aggregation, rank). Ranking is a
+property of the search, and its effect may differ by aggregation, so the design is factorial:
+
+| | `fails` | `score` | `tiers` |
+|---|---|---|---|
+| A0 | control: today's search | separates the rank effect from the aggregation's | optional |
+| P1 | P1 led by A0's yardstick | P1 on its own terms | optional |
+
+The 2 × 2 core is four arms. At §39.201's ~30 run-hours an arm (128k evaluations, three seeds, all four
+programmes, halving for harbor-house and maple-court), that is ~120 run-hours, about 15-16 h of makespan at
+eight slots. `tiers` adds two more. P1u or P2 in place of P1 is the same table again. Each arm is judged on
+report cards paired by seed (§39.201), never by its own score or by A0's.
+
+**Expectations, written before it runs** (distributions over report-card columns, by programme):
+
+- **P1 `score` against P1 `fails`:** fewer token rooms (under 25% of target) per maple-court finalist,
+  because a token room's vote is near φ and no longer costs just one line of a count that leads the
+  ranking. More fails in total, as §39.200's re-tuning found (best-3 10 → 16).
+- **A0 `score` against A0 `fails`:** little difference, because `0.5**n` already makes the fail count
+  dominate A0's score within a few fails. If they differ a lot, the lexicographic order is doing work the
+  score does not, and that is a finding about today's search.
+- **Storeys connected and stairs no worse** under any P arm. These are building fails, so they stay in
+  `0.5**n_bld` under every rank. If P `score` leaves storeys disconnected, the building fails are too cheap
+  beside the room votes, and that is Q2's answer against score-only ranking.

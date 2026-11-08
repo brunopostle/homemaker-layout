@@ -149,7 +149,7 @@ def main(argv=None) -> int:
     ap.add_argument("--final", type=int, default=128000, help="last stage's budget")
     ap.add_argument("--eta", type=int, default=2, help="keep 1/eta, multiply budget by eta")
     ap.add_argument("--slots", type=int, default=os.cpu_count() or 4)
-    ap.add_argument("--rank", choices=("structural", "total", "weighted"),
+    ap.add_argument("--rank", choices=("structural", "total", "weighted", "score"),
                     default="structural")
     ap.add_argument("--conf", action="append", default=[], metavar="KEY=VALUE",
                     help="override a patterns.config key for the searches and the "
@@ -270,6 +270,8 @@ def main(argv=None) -> int:
             key = lambda r: (r[0], r[1], -r[2])  # noqa: E731
         elif args.rank == "weighted":
             key = lambda r: (r[4], -r[2])  # noqa: E731
+        elif args.rank == "score":       # the score alone (§39.218): pair with
+            key = lambda r: -r[2]  # noqa: E731   evolve's --rank score
         else:
             key = lambda r: (r[1], -r[2])  # noqa: E731
         ranked = sorted(results, key=lambda n: key(results[n]))

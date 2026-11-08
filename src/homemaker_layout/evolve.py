@@ -38,6 +38,7 @@ import time
 from pathlib import Path
 
 from . import dom, driver
+from . import fitness as _fitness
 
 
 def _env_int(name: str, default: int) -> int:
@@ -171,6 +172,27 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "storey limits, public access) remain unfixed. Does not "
                         "change the scalar fitness or total fail count "
                         "(default: off)")
+    p.add_argument("--rank", choices=("fails", "tiers", "score"),
+                   default=os.environ.get("HOMEMAKER_RANK", "fails"),
+                   help="homemaker-py-5fje.14 (DESIGN.md §39.218): how the outer "
+                        "search ranks designs. 'fails' is (-n_fails, score), the "
+                        "default; 'tiers' is (-n_hard, -n_soft, score), the same as "
+                        "--use-tiers; 'score' is the score alone, so the fail count "
+                        "matters only through it. Which one a programme-centric "
+                        "score (--aggregation P1/P2) wants is an experiment, not a "
+                        "default (default: $HOMEMAKER_RANK or fails)")
+    p.add_argument("--aggregation", choices=("A0", "P1", "P2"), default=None,
+                   help="homemaker-py-5fje.14 (DESIGN.md §39.217-§39.218): how a "
+                        "design's score is added up -- A0 today's value / cost x "
+                        "0.5^fails, P1/P2 the programme-centric candidates. Sets "
+                        "$HOMEMAKER_AGGREGATION for this run and its workers. It "
+                        "changes the OBJECTIVE, and the stamp carries it as +P1 "
+                        "(default: $HOMEMAKER_AGGREGATION, else the config's, A0)")
+    p.add_argument("--aggregation-phi", dest="aggregation_phi", type=float,
+                   default=None,
+                   help="the P arms' floor on each factor of a room's satisfaction; "
+                        "1e-20 is Phase 1's P1u (default: $HOMEMAKER_AGGREGATION_PHI, "
+                        "else 1e-3)")
     p.add_argument("--bridge-circulation", dest="bridge_circulation",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_BRIDGE_CIRCULATION", False),
@@ -500,6 +522,24 @@ def main(argv=None) -> int:
     os.environ["HOMEMAKER_AIM_UNDIVIDE"] = "1" if args.aim_undivide else "0"
     driver.AIM_UNDIVIDE = bool(args.aim_undivide)
 
+    # The aggregation is an objective switch: set it in the environment before
+    # any scorer is built, so the inner loop, the workers and every finishing
+    # step read the same one (homemaker-py-5fje.14).
+    if args.aggregation is not None:
+        os.environ[_fitness.AGGREGATION_ENV] = args.aggregation
+    if args.aggregation_phi is not None:
+        os.environ[_fitness.AGGREGATION_PHI_ENV] = repr(args.aggregation_phi)
+    _fitness.aggregation_from_env()            # refuse a bad value now, not mid-run
+    rank = args.rank
+    if args.use_tiers:
+        if rank == "score":
+            print("ERROR: --use-tiers with --rank score", file=sys.stderr)
+            return 2
+        rank = "tiers"
+    if rank != "fails" and args.anneal_grain:
+        print("ERROR: --rank applies to the plain search, not --anneal-grain",
+              file=sys.stderr)
+        return 2
     seed_file = args.seed_dom.resolve()
     if not seed_file.exists():
         print(f"ERROR: seed not found: {seed_file}", file=sys.stderr)
@@ -570,6 +610,11 @@ def main(argv=None) -> int:
     print(f"multi_use    : {args.multi_use}", file=sys.stderr)
     print(f"conn grade   : {args.conn_grade}", file=sys.stderr)
     print(f"use tiers    : {args.use_tiers}", file=sys.stderr)
+    print(f"rank         : {rank}", file=sys.stderr)
+    _agg = _fitness.aggregation_from_env()
+    print(f"aggregation  : {_agg.get('aggregation', 'config (A0 unless set)')}"
+          + (f" (phi {_agg['aggregation_phi']:g})" if "aggregation_phi" in _agg else ""),
+          file=sys.stderr)
     print(f"bridge circulation : {args.bridge_circulation}", file=sys.stderr)
     print(f"ruin recreate      : {args.ruin_recreate}", file=sys.stderr)
     print(f"support outside    : {args.support_outside}", file=sys.stderr)
@@ -650,7 +695,8 @@ def main(argv=None) -> int:
             superpose=args.superpose,
             multi_use=args.multi_use,
             conn_grade=args.conn_grade,
-            use_tiers=args.use_tiers,
+            use_lex=rank != "score",
+            use_tiers=rank == "tiers",
             enable_bridge_circulation=args.bridge_circulation,
             enable_ruin_recreate=args.ruin_recreate,
             enable_support_outside=args.support_outside,

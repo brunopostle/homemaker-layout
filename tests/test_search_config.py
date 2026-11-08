@@ -96,12 +96,16 @@ def test_every_evolve_option_is_a_knob_or_a_run_option():
     from homemaker_layout import evolve
     opts = set(vars(evolve._parse_args(["init.dom"])))
     knobs, run = set(mod.SEARCH_KNOBS), set(mod.RUN_OPTIONS)
+    objective = set(mod.OBJECTIVE_OPTIONS)
     assert not (knobs & run), f"both a knob and a run option: {sorted(knobs & run)}"
-    loose = sorted(opts - knobs - run)
+    assert not (objective & (knobs | run)), "an objective option in another list"
+    loose = sorted(opts - knobs - run - objective)
     assert not loose, (
         f"{loose}: no stamp records these. Add each to SEARCH_KNOBS (it changes "
-        "how the search moves) or RUN_OPTIONS (it is what to run, not how)")
-    assert not (knobs | run) - opts, f"not evolve options: {sorted((knobs | run) - opts)}"
+        "how the search moves), RUN_OPTIONS (it is what to run, not how) or "
+        "OBJECTIVE_OPTIONS (it changes the score, and the stamp must say so)")
+    every = knobs | run | objective
+    assert not every - opts, f"not evolve options: {sorted(every - opts)}"
 
 
 # --------------------------------------------------------------------------- #

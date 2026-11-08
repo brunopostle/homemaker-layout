@@ -167,7 +167,7 @@ SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
                 "shapecurve_prune", "shapecurve_warmstart", "superpose",
                 "support_outside", "use_tiers", "anneal_grain", "polish_budget",
                 "tune_heights", "light_well", "label_writeback", "aim_undivide",
-                "retype_kind", "pivot", "pivot3", "swap_cells", "split_stair", "guard_connection")
+                "retype_kind", "pivot", "pivot3", "swap_cells", "split_stair", "guard_connection", "rank")
 # evolve's options that are the RUN, not the search: what to read, where to
 # write, how long, how parallel. `native` is a different representation, and
 # flag_ab passes it explicitly. Every other option is a knob, and
@@ -175,6 +175,10 @@ SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
 # went unrecorded for two days because nothing asked (§39.174).
 RUN_OPTIONS = ("budget", "checkpoint_every", "native", "output", "programme_dir",
                "seed", "seed_dom", "workers")
+# evolve's options that change the OBJECTIVE, not the search. Neither list
+# above may hold them: `objective_commit` records them, as a suffix on the
+# stamp, because they set the environment every scorer reads (§39.218).
+OBJECTIVE_OPTIONS = ("aggregation", "aggregation_phi")
 
 
 def search_commit() -> str:
@@ -247,7 +251,10 @@ def objective_commit() -> str:
     # which one ran.
     if os.environ.get(ORTH_ENV, "") == "1":
         stamp += ORTH_SUFFIX
-    return stamp
+    # The aggregation is the same kind of switch (homemaker-py-5fje.14,
+    # §39.218): +P1, +P2, +P1phi1e-20, nothing for A0.
+    from homemaker_layout.fitness import aggregation_suffix
+    return stamp + aggregation_suffix()
 
 
 def uncommitted(paths, repo: Path = REPO) -> "list[str]":

@@ -75,3 +75,49 @@ def test_p_arms_equal_the_diagnostic(diag, prog, path, arm, phi):
 def test_unknown_aggregation_is_refused():
     with pytest.raises(ValueError, match="unknown aggregation"):
         _fit("programme-house", aggregation="P3")
+
+
+# --- the run-time switch (homemaker-py-5fje.14, DESIGN.md §39.218) ---------
+
+def test_environment_sets_the_aggregation(monkeypatch):
+    from homemaker_layout import fitness
+    monkeypatch.setenv(fitness.AGGREGATION_ENV, "P2")
+    monkeypatch.setenv(fitness.AGGREGATION_PHI_ENV, "1e-20")
+    conf, _ = load_config(REPO / "examples" / "programme-house")
+    assert (conf["aggregation"], conf["aggregation_phi"]) == ("P2", 1e-20)
+    # an explicit override still wins over the environment
+    conf, _ = load_config(REPO / "examples" / "programme-house",
+                          overrides={"aggregation": "A0"})
+    assert conf["aggregation"] == "A0"
+    # control: without the environment the key is the config's, absent
+    monkeypatch.delenv(fitness.AGGREGATION_ENV)
+    monkeypatch.delenv(fitness.AGGREGATION_PHI_ENV)
+    conf, _ = load_config(REPO / "examples" / "programme-house")
+    assert "aggregation" not in conf
+
+
+@pytest.mark.parametrize("arm,phi,suffix", [
+    (None, None, ""), ("A0", None, ""), ("P1", None, "+P1"),
+    ("P2", "1e-3", "+P2"), ("P1", "1e-20", "+P1phi1e-20")])
+def test_the_stamp_names_the_aggregation(monkeypatch, arm, phi, suffix):
+    from homemaker_layout import fitness
+    for env, v in ((fitness.AGGREGATION_ENV, arm), (fitness.AGGREGATION_PHI_ENV, phi)):
+        if v is None:
+            monkeypatch.delenv(env, raising=False)
+        else:
+            monkeypatch.setenv(env, v)
+    assert fitness.aggregation_suffix() == suffix
+
+
+def test_a_bad_environment_is_refused(monkeypatch):
+    from homemaker_layout import fitness
+    monkeypatch.setenv(fitness.AGGREGATION_ENV, "p1")
+    with pytest.raises(ValueError, match="HOMEMAKER_AGGREGATION"):
+        load_config(REPO / "examples" / "programme-house")
+
+
+def test_evolve_refuses_tiers_with_score_ranking(tmp_path, capsys):
+    from homemaker_layout import evolve
+    rc = evolve.main([str(REPO / "examples/programme-house/init.dom"),
+                      "--use-tiers", "--rank", "score", "--budget", "1"])
+    assert rc == 2 and "--use-tiers with --rank score" in capsys.readouterr().err
