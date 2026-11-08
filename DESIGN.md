@@ -21739,3 +21739,44 @@ report cards paired by seed (§39.201), never by its own score or by A0's.
 - **Storeys connected and stairs no worse** under any P arm. These are building fails, so they stay in
   `0.5**n_bld` under every rank. If P `score` leaves storeys disconnected, the building fails are too cheap
   beside the room votes, and that is Q2's answer against score-only ranking.
+
+### 39.219 Phase 3 launched: the full (aggregation, rank) factorial, nine arms at six slots (`homemaker-py-5fje.6`)
+
+The owner, 2026-11-08, on §39.218's proposal: **"Let's do them all, but use six cores as we are using the box
+for other things."** So nine arms, not four: {A0, P1, P1u} × {fails, score, tiers}, where P1u is P1 with
+φ = 1e-20.
+
+**The runner** is `experiments/run_phase3_q2.py`. Every arm is twelve runs of 128k evaluations, one worker
+each. The starts:
+
+- **harbor-house:** `dealt-1`, `dealt-2` and `cap-1`, the seeds of `halving-harbor-split` that reached its
+  128k stage with the fewest fails;
+- **maple-court:** `single-1`, `single-2` and `single-3`, the three that finished `halving-maple-single`;
+- **health-centre and programme-house:** cold, from `init.dom`.
+
+These are the raw catalogue seeds, not the races' converged winners. A winner was optimised under A0 and
+would start every arm with A0's answer. Start k always runs with rng seed k, so run k of any two arms
+differs only in the arm, and those are the pairs.
+
+The queue is arm-major, with the 2 × 2 core first: A0-fails, A0-score, P1-fails, P1-score, then the two
+tiers arms, then P1u. Within an arm the longest programmes go first. Each finished run is scored twice,
+under A0 and under its own arm, and goes into `experiments/results/phase3-q2/results.tsv` with the arm's
+stamp (`9a14624+orth`, `+P1`, `+P1phi1e-20`) and search config (`10ad64f603` fails, `a49e566c1a` score,
+`85bc2e8b70` tiers). Each run is committed and pushed as it finishes. A0-fails is the default search at
+128k, from the same starts, so it is the control.
+
+**Cost:** the §39.82 runs scaled to 128k give about 33 run-hours an arm, so about 290 run-hours, roughly
+49 h at six slots. The core is in after about 22 h. The box is shared, so these are floors.
+
+**Expectations for the added arms**, written before they run, beside §39.218's for the core:
+
+- **A0-tiers against A0-fails:** little difference, as with `score`. Tiers only reorders designs with
+  equal total fails, and §39.68 found the hard/soft split inert for the largest family.
+- **P1-tiers:** between P1-fails and P1-score on token rooms. Hard fails still lead; soft ones no longer
+  outrank a room's vote.
+- **P1u against P1, under `score`:** fewer missing and token rooms than P1-score. At φ = 1e-20 a room at
+  its floor puts the geomean near zero, so the search should treat it as a building fail. It may also
+  stall, because one floored room flattens the landscape around it. That would show as P1u-score ending
+  with more total fails than P1-score on maple-court, the programme with the most token rooms.
+- **P1u against P1, under `fails` or `tiers`:** close to P1. The count leads, and φ only orders designs
+  with equal counts.

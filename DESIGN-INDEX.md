@@ -223,7 +223,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (323 of them, 21741 lines)
+## Every section of DESIGN.md (324 of them, 21782 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -597,4 +597,5 @@ below are the most recent work.
 - §39.215 · 21528-21565 · Owner's ruling: one fail per extra piece of circulation (`homemaker-py-5fje.7`)
 - §39.216 · 21566-21631 · Owner's ruling: a stair may turn fewer times than its doors allow, and its flights narrow to fit (`homemaker-py-5fje.12`)
 - §39.217 · 21632-21681 · Phase 2: the aggregation is a config key, and today's score is bit-identical under its default (`homemaker-py-5fje.5`)
-- §39.218 · 21682-21741 · The ranking order under a programme-centric score is an experiment: `--rank` and `--aggregation` (`homemaker-py-5fje.14`)
+- §39.218 · 21682-21742 · The ranking order under a programme-centric score is an experiment: `--rank` and `--aggregation` (`homemaker-py-5fje.14`)
+- §39.219 · 21743-21782 · Phase 3 launched: the full (aggregation, rank) factorial, nine arms at six slots (`homemaker-py-5fje.6`)
