@@ -24,6 +24,7 @@ from __future__ import annotations
 import functools
 import itertools
 import math
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -430,7 +431,21 @@ CONF_DEFAULTS: dict = {
     "perpendicular_outside": None,
     "allow_sahn_circulation": 0,
     "force_roof_garden": 1,
+    # homemaker-py-5fje.5 (DESIGN.md §39.200-§39.201, §39.217): how a building's
+    # score is added up. "A0" is today's area-additive
+    # `value * building_factor * 0.5**fails / cost`, the default, and the code
+    # path under it is the one it always was. "P1" and "P2" are the
+    # programme-centric candidates of `experiments/diag_aggregation.py`, moved
+    # here unchanged so a search can run under them (`Fitness._aggregate_p`).
+    # An EXPERIMENT switch for Phase 3, not a ruling: which one is the
+    # objective is the owner's choice after that phase.
+    "aggregation": "A0",
+    # P arms: the floor on each factor of a room's satisfaction; a missing
+    # room votes PHI**2. 1e-3 is "P1"; 1e-20 is Phase 1's "P1u" (unfloored).
+    "aggregation_phi": 1e-3,
 }
+
+AGGREGATIONS = ("A0", "P1", "P2")
 
 # Urb::Dom::Fitness::Base $COST
 COST_DEFAULTS: dict = {
@@ -747,6 +762,10 @@ class Fitness:
         # then, and made the peak a target (§39.212).
         # §38.1's superseded modes were measured under the gaussian and refuse
         # to compose with "daylight", so a mode set without a shape keeps it.
+        self._aggregation = str(self.conf("aggregation") or "A0")
+        if self._aggregation not in AGGREGATIONS:
+            raise ValueError(f"unknown aggregation: {self._aggregation!r} "
+                             f"(one of {', '.join(AGGREGATIONS)})")
         self._crinkliness_shape = str(
             self.conf("crinkliness_shape")
             or ("daylight" if self._crinkliness_mode == "urb" else "gaussian"))
@@ -2678,6 +2697,7 @@ class Fitness:
         cost = self.plot_cost(root)
         value = 0.0
         grade = 0.0
+        storey_leaves: list[LeafEval] = []
         lvls = dom_mod.levels(root)
 
         for li, lvl in enumerate(lvls):
@@ -2690,6 +2710,7 @@ class Fitness:
             )
             cost += se.cost
             value += se.value
+            storey_leaves.extend(se.leaves)
             if want_grade and not self._conn_grade:  # §11.4 signal; off by default
                 for le in se.leaves:
                     grade += _leaf_grade(le.factors)
@@ -2704,6 +2725,10 @@ class Fitness:
 
         building_factor = self.evaluate_building(root, tracking)
         value *= building_factor
+
+        if self._aggregation != "A0":
+            score = self._aggregate_p(failures, storey_leaves, building_factor)
+            return score, tuple(sorted(failures)), grade
 
         # 0.5^n failure penalty (programme-driven mode, not 0.1^n).
         #
@@ -2725,6 +2750,63 @@ class Fitness:
 
         score = value / cost if cost != 0.0 else 0.0
         return score, tuple(sorted(failures)), grade
+
+    _CELL_FAIL = re.compile(r"^(\d+)/([lr]*) (\w+)$")
+    _ADJ_FAIL = re.compile(r"^(\d+)/([lr]*) \((\w+)\) not adjacent to (\w+)$")
+
+    def _aggregate_p(self, failures: list[str], leaves: list[LeafEval],
+                     building_factor: float) -> float:
+        """The programme-centric score (DESIGN.md §39.200), ``aggregation``
+        "P1" (equal votes) or "P2" (votes weighted by declared target area).
+
+        Each REQUIRED room instance votes its satisfaction: the product of its
+        cell's factors, each floored at ``aggregation_phi``, times 0.5 per
+        adjacency it misses; a missing instance votes ``phi**2``. Extra
+        instances get no vote -- the best ``count`` cells of a code vote. The
+        score is the (weighted) geometric mean of the votes, times
+        ``building_factor``, times 0.5 per fail no room carries (connectivity,
+        stairs, covered outside, geometry fails on generic cells, ...). There
+        is no cost term. A room's own fails are not ALSO counted in that
+        power: they are in its vote already.
+
+        This is ``experiments/diag_aggregation.arms`` moved into the scorer,
+        and ``tests/test_aggregation.py`` holds the two to the same number."""
+        phi = float(self.conf("aggregation_phi"))
+        rooms = {c: r for c, r in (self._programme or {}).items()
+                 if not dom_mod.is_generic(c)}
+        by_cell = {(le.level, le.id): le for le in leaves}
+        adj_miss: dict = {}
+        n_bld = 0
+        for f in failures:
+            m = self._ADJ_FAIL.match(f)
+            if m and (int(m[1]), m[2]) in by_cell and by_cell[int(m[1]), m[2]].type in rooms:
+                adj_miss[int(m[1]), m[2]] = adj_miss.get((int(m[1]), m[2]), 0) + 1
+                continue
+            m = self._CELL_FAIL.match(f)
+            if m and (int(m[1]), m[2]) in by_cell and by_cell[int(m[1]), m[2]].type in rooms:
+                continue
+            if f.startswith("missing"):
+                continue
+            n_bld += 1
+        sat: dict = {}
+        for le in leaves:
+            if le.type in rooms:
+                v = math.prod(max(phi, x) for x in le.factors.values())
+                v *= 0.5 ** adj_miss.get((le.level, le.id), 0)
+                sat.setdefault(le.type, []).append(v)
+        votes = []
+        for code, r in rooms.items():
+            got = sorted(sat.get(code, []), reverse=True)[: r.count]
+            got += [phi ** 2] * (r.count - len(got))
+            votes += [(r.size or 1.0, v) for v in got]
+        if not votes:
+            return building_factor * 0.5 ** n_bld
+        if self._aggregation == "P2":
+            w = sum(t for t, _ in votes)
+            mean = math.exp(sum(t * math.log(v) for t, v in votes) / w)
+        else:
+            mean = math.exp(sum(math.log(v) for _, v in votes) / len(votes))
+        return mean * building_factor * 0.5 ** n_bld
 
     @property
     def _programme(self) -> dict | None:

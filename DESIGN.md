@@ -21628,3 +21628,53 @@ reads it above 1.1), the hand design's stair (the 1.25 m arm makes it missing), 
 1.17-1.6 m, because a 2.0 m or wider cell now holds a U-stair that fits, and narrower cells are short or
 missing. Programme-house is unchanged in shape. If maple-court's second stairs stay narrow, the search has
 no move that widens a stair column without breaking a shaft (§39.74-§39.75), and the lever is an operator.
+
+### 39.217 Phase 2: the aggregation is a config key, and today's score is bit-identical under its default (`homemaker-py-5fje.5`)
+
+§39.201's Phase 2 puts the surviving candidates into the scorer so a search can run under them. Phase 1
+left P1 (φ 1e-3) and P1u (φ 1e-20) unranked against each other (§39.208-§39.210), with P2 defined beside
+them.
+
+**What landed, in `fitness.py`:**
+
+- `aggregation`, one of `A0` / `P1` / `P2`, defaulting to `A0`. Anything else is refused at construction.
+  `aggregation_phi` defaults to 1e-3, and P1u is `P1` at 1e-20.
+- `Fitness._aggregate_p` is `experiments/diag_aggregation.arms`' P1/P2, moved unchanged. Every required room
+  instance votes the product of its cell's factors (each floored at φ), times 0.5 per adjacency it misses.
+  A missing instance votes φ². The score is the vote's geometric mean (weighted by declared target area under
+  P2), times `building_factor`, times 0.5 per fail no room carries. There is no cost term. The fail list is
+  the same under every arm; only the number made of it differs.
+- Under `A0` the code path is the one it was. The only addition on it is collecting each storey's leaves,
+  which `process_storey` already built.
+
+**Proved, not assumed.** `diag_8b2u_score_cost.py --snapshot` before and after, `--diff`: **0 of 432**
+entries moved, compared bit for bit, quad and native trees of every orthogonal artefact. The tool's
+`--self-test` control moves 432 of 432. `tests/test_aggregation.py` pins the default on five designs (one per
+programme, plus a second maple-court), and holds the scorer's P1, P2 and P1u to the diagnostic's numbers on
+the same five (relative 1e-12), with a control that each P arm is not A0 under another name. The objective
+stamp moves with this commit, because `fitness.py` changed; no score did.
+
+**Smoke run**, as Phase 2 asks (it checks that the search runs, not what it finds). `homemaker-evolve`
+ran on programme-house from `init.dom`, 3,000 evaluations, seed 1, one run per arm, each from a copy of the
+programme directory whose `patterns.config` sets `aggregation`. All three finish, in 28.6-29.5 s wall-clock
+each, run side by side, so a P score costs what A0's does. Each run's log reports its own arm's score, so
+the inner loop and the outer loop both optimise it. Re-scored under all three arms, the P1 run's design is
+the best of the three under every arm (A0 0.0246 against the A0 run's 0.0023, all at 4 fails), from one
+`repair_shaft` at 440 evaluations that the other two runs never drew. At 3,000 evaluations that is luck, not
+a finding.
+
+**Not done here, and filed** as `homemaker-py-5fje.14`, which blocks Phase 3 (`5fje.6`):
+
+- **A CLI flag.** The key is reachable today only through a programme directory's `patterns.config`. A
+  module-level override would not reach the workers: on Python 3.14 a `ProcessPoolExecutor` starts by
+  forkserver, not fork. So the flag has to travel the way `multi_use` does, through `driver._overrides_for`
+  and its ~30 callers.
+- **The stamp.** `run_coldstart_baseline.py` and `successive_halving.py` do not record the arm, so a P run
+  would be stamped as A0's objective. It needs a suffix, as `+orth` has.
+- **The comparator under P.** `driver` ranks by `(-n_fails, score)`, so a P run is still led by the fail
+  count first, which §39.200 found is A0's own yardstick. `--use-tiers` is a CLI flag; score-only ranking
+  (`use_lex=False`) exists in `driver` but no flag reaches it. Which one a P search uses is Q2, and Phase 3
+  is where it is settled.
+
+The owner deferred the token-room question (`homemaker-py-hlm1`, §39.199) to this phase on 2026-11-08,
+rather than grading or thresholding the `size` fail. So it now waits on Phase 3.
