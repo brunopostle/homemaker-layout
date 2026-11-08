@@ -174,6 +174,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Every stair is scored for fit, not the best one; a stair that cannot hold a flight is a MISSING stair (it counts towards no `staircase_min`). Too narrow means under 0.9 m, a domestic flight, not the 1.25 m `stair_width`; too short means too short in every orientation. A stair too long still holds its flight and is scored as oversized. Pinned in `tests/test_every_stair_scored.py` | §39.211 |
 | Every space occupied all the time, circulation and stairs included, must pass Alexander 159 (light on two sides), instrumented by `crinkliness`. More light than needed is no better; less fails. 1.0 up to 2.5 m per lit wall at a 3 m ceiling (scale-invariant: deeper with higher ceilings), graded beyond, failing at 4.86 m. `crinkliness_shape="daylight"` is the default | §39.213 |
 | A storey's circulation pays one `not connected` fail per piece beyond the first (stairs joining storeys), not one per storey: "an incremental way to resolve the problem" | §39.215 |
+| A stair may take any flight shape with no more turns than its doors allow; a turned shape has two flights across its base, each `min(stair_width, base / 2)` wide and at least 0.9 m, its landings with it. Urb's model of two 1.25 m landings is kept, but a flight narrows to fit: at a fixed 1.25 m, the owner's own 2.29 m U-stair would have been a missing stair. Pinned in `tests/test_stair_shapes.py` | §39.216 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -222,7 +223,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (320 of them, 21564 lines)
+## Every section of DESIGN.md (321 of them, 21630 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -593,4 +594,5 @@ below are the most recent work.
 - §39.212 · 21350-21406 · Why P1 shrinks rooms: every room's daylight factor is a vote for 2.5 m of depth per lit wall (`homemaker-py-5fje.9`)
 - §39.213 · 21407-21480 · Owner's ruling: daylight is a minimum, and with it P1's shrink is left to the size factor alone (`homemaker-py-5fje.13`)
 - §39.214 · 21481-21527 · Circulation as a network: pieces of corridor track the judge's choices, amount does not (`homemaker-py-5fje.7`)
-- §39.215 · 21528-21564 · Owner's ruling: one fail per extra piece of circulation (`homemaker-py-5fje.7`)
+- §39.215 · 21528-21565 · Owner's ruling: one fail per extra piece of circulation (`homemaker-py-5fje.7`)
+- §39.216 · 21566-21630 · Owner's ruling: a stair may turn fewer times than its doors allow, and its flights narrow to fit (`homemaker-py-5fje.12`)

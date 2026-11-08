@@ -21562,3 +21562,69 @@ design fall below this table's re-scored baseline on harbor-house and health-cen
 fragmented today, and the cold-start corpus's per-storey piece count (`circ_pieces` on the card) falls with
 them. If the pieces do not fall, the search has no move that joins circulation without a missing-room
 cascade (§18), and the lever is an operator, not the objective.
+
+### 39.216 Owner's ruling: a stair may turn fewer times than its doors allow, and its flights narrow to fit (`homemaker-py-5fje.12`)
+
+§39.211 left a defect in `_stair_fits`: Urb's model puts two `stair_width` landings across the base of every
+stair (`going_a = int((base - 2 * width) / going)`), and the door count fixes one flight shape (one corner in
+use: three turns; two: U; three: L; four: straight). On a base under 2.5 m `going_a` goes negative, and the
+turn functions ask for *fewer* treads along the length: a 1.17 m × 4.4 m cell read as a U-stair at fit 1.12
+(the split-stair-race A0 twins).
+
+**The rulings, 2026-11-08,** in three questions:
+
+1. **The turn count the doors imply is a maximum.** A stair may take any shape with no more turns than its
+   doors allow, and the best fit wins. This follows §39.100, where a core whose doors take all four corners
+   gets a straight flight: fewer turns is always door-compatible.
+2. **Urb's landings stand.** Every turned shape (L included) keeps its far landing inside the shaft, as a
+   straight flight keeps both, so every turned shape has two flights' width across its base. (The first
+   question offered L a base of one width. That was a misreading of Urb's arithmetic, corrected and asked
+   again.)
+3. **A flight narrows to fit, down to the 0.9 m `MIN_FLIGHT_WIDTH`.** The owner's first answer was to
+   measure every flight at `stair_width` (1.25 m). Priced, that answer made the owner's programme-house hand
+   design (§39.70) lose its staircase: a 2.29 m U-stair has two 1.15 m flights, which 1.25 m flights cannot
+   fit, and as a straight flight it is too short (fit 0.73), so `too few stairs (0, min 1)`, ×0.019. Every
+   evolved programme-house core, 2.0-2.4 m wide, went the same way. Shown that, the owner chose to narrow
+   the flight: it is `min(stair_width, base / 2)` wide for a turned shape, which exists only if that is at
+   least 0.9 m, and `min(stair_width, base)` for a straight one. Landings are a flight wide, so a narrower
+   flight needs less length.
+
+**Priced** on §39.211's 212 designs (`experiments/diag_5fje12_stair_shapes.py`; `--self-test`, the old rule
+against itself, moves none; `--fixed-width` is the arm turned down):
+
+| | narrow to fit (landed) | flights always 1.25 m (turned down) |
+|---|---|---|
+| designs moved | 86 of 212 | 75 of 212 |
+| programme-house | 15, median ×0.97 (×0.90-×1.01); hand design ×1.00 | 12, median ×0.019; hand design's stair missing |
+| maple-court | 63, median ×0.76 (×0.13-×3.9) | 55, median ×0.42 |
+| harbor-house | 8, median ×1.35 (×0.76-×1.53) | 8, median ×1.09 (×0.04-×1.53) |
+| fails | +18 / −11 `too few stairs (1, min 2)` | +45 `too few stairs`, +13 `staircase volume`, −2 |
+
+Health-centre does not move. What moves, under the rule that landed:
+
+- **Narrow cells read short, not well-fitted.** The 1.17-1.19 m, ~5 m² stairs of the split-stair-race
+  `double` designs go from fit 1.07-1.15 to 0.76-0.82, as straight flights. At 0.80 they still hold a flight
+  and are scored as short (×0.13-×0.20). At 0.76-0.77 they are missing (`too few stairs (1, min 2)`, ×0.42).
+  Their stairs sit at the edge of `_holds_flight`'s threshold (about 0.78).
+- **1.5-1.6 m stairs lose their U.** Two 0.75-0.8 m flights are under the 0.9 m minimum. The `best` designs'
+  ~6 m² second stairs drop from fit 1.00 to 0.64 and go missing (×0.37-×0.41).
+- **Stairs 2.0-2.4 m wide fit better.** Narrower flights need shorter landings, so programme-house cores
+  read 1.04-1.15 instead of an exact 1.00, and the join-clean9 stairs, which read 0.70-0.84 under Urb's
+  rule, read 0.79-0.93. Some that were missing count again (the −11), but a stair that counts at fit 0.79
+  also multiplies in its short factor, so a design can lose a fail and still score less (join-clean9
+  `final-joined-3` A0: 13 → 12 fails, ×0.25).
+- **Oversized stairs read less oversized.** A 3.5-4.3 m base now considers a U or a straight flight where
+  Urb forced three turns. final-single-7's 10.8 m² stair goes from fit 1.80 to 1.16 (×3.45).
+
+**Against the judge**, re-scored (the `report` command reads the scores stored when a round was built, so
+it has to be re-scored by hand): A0 agrees on 8 of round 0's 25 decisive pairs under both rules, and on 8 of
+round 1's 17, up from 6.
+
+`tests/test_stair_shapes.py` pins the three rulings, each with its control: the 1.17 m cell (Urb's rule
+reads it above 1.1), the hand design's stair (the 1.25 m arm makes it missing), and turns as a maximum
+(Urb's shapes per door count are not nested). The objective stamp moves with this commit.
+
+**Expectation for the next sweep, written now:** maple-court's second stairs widen. Fewer of them sit at
+1.17-1.6 m, because a 2.0 m or wider cell now holds a U-stair that fits, and narrower cells are short or
+missing. Programme-house is unchanged in shape. If maple-court's second stairs stay narrow, the search has
+no move that widens a stair column without breaking a shaft (§39.74-§39.75), and the lever is an operator.

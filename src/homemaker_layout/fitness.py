@@ -2045,8 +2045,29 @@ class Fitness:
         return best[1]
 
     def _stair_fits(self, leaf: Node, corners: list[int]) -> list[float]:
-        """The fit of every orientation `_stair_fit` chooses among: each edge
-        as the base, either neighbour as the length."""
+        """The fit of every orientation and flight shape `_stair_fit` chooses
+        among: each edge as the base, either neighbour as the length, and
+        every shape the doors allow that the base can hold.
+
+        Owner's rulings, 2026-11-08 (DESIGN.md §39.216, ``homemaker-py-5fje.12``):
+
+        * **the turn count the doors imply is a maximum, not a requirement.** A
+          stair whose doors leave it one corner may turn three times, twice,
+          once or not at all, and the best fit wins;
+        * **a flight narrows to fit its cell, down to ``MIN_FLIGHT_WIDTH``.** A
+          turned shape -- L, U or three turns -- has two flights side by side
+          across its base (Urb's model: the corner landing and the far
+          landing), so each is ``min(stair_width, base / 2)`` wide, and the
+          shape exists only if that is at least 0.9 m. A straight flight is
+          ``min(stair_width, base)`` wide; a cell too narrow for it is
+          ``_holds_flight``'s to reject. Landings are a flight wide, so a
+          narrower flight needs less length.
+
+        Urb's rule put two ``stair_width`` landings across every base, so below
+        2.5 m ``going_a`` went negative and the turn functions read a 1.17 m
+        cell as a good U-stair. Measuring at a fixed 1.25 m instead, the other
+        arm priced, made the owner's 2.29 m programme-house U-stair a missing
+        stair."""
         root = dom_mod._level_root(leaf)
         while root.below is not None:
             root = root.below
@@ -2056,19 +2077,26 @@ class Fitness:
         height = _height(leaf)
         risers = self._risers_number(height, max_riser)
         going = self._ideal_going(height / risers)
-        turns = {1: self._three_turn, 2: self._two_turn,
-                 3: self._one_turn}.get(len(set(corners)), self._zero_turn)
+        max_turns = {1: 3, 2: 2, 3: 1}.get(len(set(corners)), 0)
+        shapes = (self._zero_turn, self._one_turn,
+                  self._two_turn, self._three_turn)[:max_turns + 1]
 
         quad = geometry.quad_corners(leaf)
         sides = [math.dist(quad[i], quad[(i + 1) % 4]) for i in range(4)]
         fits = []
         for edge in range(4):
             base = sides[edge]
-            going_a = int((base - 2 * width) / going)
-            going_b = turns(risers, going_a)
-            for side in (1, 3):                       # the next edge, or the last
-                length = sides[(edge + side) % 4]
-                fits.append(length / (width * 2 + going * going_b))
+            for n_turns, turns in enumerate(shapes):
+                # A turned shape has two flights across its base, a straight
+                # one a single flight; each narrows to fit, landings with it.
+                flight = min(width, base / 2 if n_turns else base)
+                if n_turns and flight < MIN_FLIGHT_WIDTH:
+                    continue
+                going_a = int((base - 2 * flight) / going)
+                going_b = turns(risers, going_a)
+                for side in (1, 3):                   # the next edge, or the last
+                    length = sides[(edge + side) % 4]
+                    fits.append(length / (flight * 2 + going * going_b))
         return fits
 
     # ----------------------------------------------------------------------- #
