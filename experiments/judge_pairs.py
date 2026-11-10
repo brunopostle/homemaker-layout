@@ -30,6 +30,17 @@ keeping, as above, only pairs on which A0 and P1 disagree, one pair per
 design. The report then also says which tuning the judge chose:
 
     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/judge_pairs.py build --round 1 --twins
+
+Phase 3's arms (§39.220) are judged by ``build --arms``: every paired start
+(programme, k) of each contrast, the files ``<arm>--<programme>--<k>.dom`` of
+``--arms-dir``. Nothing is filtered on the scores, because the question is
+which ARM gives the better building and a filtered sample would answer a
+different one. Only pairs whose two files are byte-identical are dropped (a
+run that the arm did not change has nothing to judge). The report says which
+arm the judge chose, per contrast:
+
+    HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/judge_pairs.py build --round 2 \
+        --arms A0-fails:P1-fails,A0-fails:A0-tiers,P1-fails:P1-score
 """
 import argparse
 import datetime
@@ -194,6 +205,47 @@ def choose_twins(scored, twins, labels, n_pairs, arm_pairs):
     return _take(cands, n_pairs, 1, key=lambda path: twins[path][0])
 
 
+def choose_arms(scored, runs, labels, contrasts):
+    """Every paired start of each contrast. ``runs`` {path: (arm, programme,
+    k)}; ``contrasts`` [(x, y)]. Pairs come back interleaved -- contrast by
+    contrast, then programme by programme -- so a round stopped early still
+    covers every contrast. Byte-identical pairs are left out."""
+    by = {(arm, prog, k): path for path, (arm, prog, k) in runs.items() if path in scored}
+    starts = sorted({(prog, k) for _, prog, k in by})
+    per = []
+    for x, y in contrasts:
+        rows = []
+        for prog, k in starts:
+            a, b = by.get((x, prog, k)), by.get((y, prog, k))
+            if a is None or b is None:
+                continue
+            if _same_bytes(a, b):
+                continue
+            z = {}
+            for lab in labels:
+                ps = [p for p in scored if scored[p]["programme"] == prog]
+                logs = [math.log(max(scored[p]["scores"][lab], 1e-300)) for p in ps]
+                spread = statistics.pstdev(logs) or 1.0
+                z[lab] = (math.log(max(scored[a]["scores"][lab], 1e-300))
+                          - math.log(max(scored[b]["scores"][lab], 1e-300))) / spread
+            rows.append((prog, 0.0, a, b, z))
+        per.append(rows)
+    out = []
+    while any(per):
+        for rows in per:
+            if rows:
+                out.append(rows.pop(0))
+    return out
+
+
+def _same_bytes(a, b):
+    import report_card as rc
+    pa, pb = Path(a), Path(b)
+    pa = pa if pa.is_absolute() else rc.REPO / pa
+    pb = pb if pb.is_absolute() else rc.REPO / pb
+    return pa.read_bytes() == pb.read_bytes()
+
+
 def build(a):
     from homemaker_layout import geometry
     import plan_svg
@@ -202,6 +254,8 @@ def build(a):
     if not geometry.ORTHOGONAL_DIVISION:
         sys.exit("set HOMEMAKER_ORTHOGONAL_DIVISION=1")
     twins, progs_of = {}, {}
+    if a.twins and a.arms:
+        sys.exit("--twins and --arms are two different rounds; give one")
     if a.twins:
         import phase1_tune
         run = json.loads((Path(a.twins_dir) / "run.json").read_text())
@@ -215,6 +269,18 @@ def build(a):
                     twins[path] = (design, arm)
                     progs_of[path] = prog
         designs = list(twins)
+    elif a.arms:
+        import re
+        pat = re.compile(r"(?P<arm>[^/]+?)--(?P<prog>[a-z-]+)--(?P<k>\d+)\.dom$")
+        contrasts = [tuple(c.split(":")) for c in a.arms.split(",")]
+        wanted = {x for c in contrasts for x in c}
+        for f in sorted(Path(a.arms_dir).glob("*--*--*.dom")):
+            m = pat.search(f.name)
+            if m and m["arm"] in wanted:
+                path = str(f.resolve().relative_to(rc.REPO))
+                twins[path] = (m["arm"], m["prog"], m["k"])
+                progs_of[path] = m["prog"]
+        designs = list(twins)
     else:
         designs = a.designs or [line.split("\t")[1] for line in
                                 DEFAULT_DESIGNS.read_text().splitlines()[1:] if line.strip()]
@@ -227,6 +293,8 @@ def build(a):
     if a.twins:
         arm_pairs = [tuple(x.split("-")) for x in a.twins.split(",")]
         chosen = choose_twins(scored, twins, labels, a.pairs, arm_pairs)
+    elif a.arms:
+        chosen = choose_arms(scored, twins, labels, contrasts)
     else:
         exclude = judged_before() - (set() if not (out / "pairs.json").exists() else {
             frozenset((p["a"], p["b"])) for p in json.loads((out / "pairs.json").read_text())})
@@ -248,7 +316,11 @@ def build(a):
             sides=side))
         if a.twins:
             manifest[-1].update(design=twins[pa][0], arms=dict(a=twins[pa][1], b=twins[pb][1]))
-        print(f"{pid} {prog:16s} strength {strength:5.2f}  "
+        elif a.arms:
+            manifest[-1].update(design=f"{prog}--{twins[pa][2]}",
+                                arms=dict(a=twins[pa][0], b=twins[pb][0]))
+        print(f"{pid} {prog:16s} "
+              + (f"{twins[pa][0]} vs {twins[pb][0]}  " if a.arms else f"strength {strength:5.2f}  ")
               + "  ".join(f"{lab} prefers {'A' if z[lab] > 0 else 'B'} ({z[lab]:+.2f})"
                           for lab in labels)
               + f"\n      A {pa}\n      B {pb}")
@@ -397,10 +469,10 @@ def report(a):
                   f"   (p = {binom_two_sided(more, more + less):.3g})")
     twin = [(p, r) for p, r in rows if "arms" in p]
     if twin:
-        print("\n  tuned twins: which tuning the judge chose")
+        print("\n  arms: which one the judge chose")
         tally = {}
         for p, r in twin:
-            match = "-".join(sorted(p["arms"].values()))
+            match = tuple(sorted(p["arms"].values()))
             t = tally.setdefault(match, {"=": 0})
             if r["better"] in ("A", "B"):
                 arm = p["arms"][r["better"].lower()]
@@ -408,10 +480,9 @@ def report(a):
             else:
                 t["="] += 1
         for match, t in sorted(tally.items()):
-            arms_ = match.split("-")
-            k = t.get(arms_[0], 0)
-            n = sum(t.get(x, 0) for x in arms_)
-            print(f"    {match:8s} " + "  ".join(f"{x} {t.get(x, 0)}" for x in arms_)
+            k = t.get(match[0], 0)
+            n = sum(t.get(x, 0) for x in match)
+            print(f"    {' vs '.join(match):22s} " + "  ".join(f"{x} {t.get(x, 0)}" for x in match)
                   + f"  about equal {t['=']}"
                   + (f"   (p = {binom_two_sided(k, n):.3g})" if n else ""))
     notes = [(p["id"], r["note"]) for p, r in rows if r.get("note")]
@@ -435,6 +506,10 @@ def main() -> int:
                    help="pair Phase 1's tuned twins of one design; the arm pairs to "
                         "consider (default: A0-P1,A0-P1u)")
     b.add_argument("--twins-dir", default=str(HERE / "results" / "phase1"))
+    b.add_argument("--arms", default=None,
+                   help="judge whole arms: contrasts x:y,... over the paired starts of "
+                        "--arms-dir, e.g. A0-fails:P1-fails")
+    b.add_argument("--arms-dir", default=str(HERE / "results" / "phase3-q2"))
     k = sub.add_parser("ask", help="put a round's pairs to the judge")
     k.add_argument("--round")
     k.add_argument("--no-browser", action="store_true")

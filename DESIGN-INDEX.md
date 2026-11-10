@@ -223,7 +223,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (325 of them, 21848 lines)
+## Every section of DESIGN.md (325 of them, 21855 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -599,4 +599,4 @@ below are the most recent work.
 - §39.217 · 21632-21681 · Phase 2: the aggregation is a config key, and today's score is bit-identical under its default (`homemaker-py-5fje.5`)
 - §39.218 · 21682-21742 · The ranking order under a programme-centric score is an experiment: `--rank` and `--aggregation` (`homemaker-py-5fje.14`)
 - §39.219 · 21743-21783 · Phase 3 launched: the full (aggregation, rank) factorial, nine arms at six slots (`homemaker-py-5fje.6`)
-- §39.220 · 21784-21848 · Phase 3 results: all nine arms, paired report cards (`homemaker-py-5fje.6`)
+- §39.220 · 21784-21855 · Phase 3 results: all nine arms, paired report cards (`homemaker-py-5fje.6`)

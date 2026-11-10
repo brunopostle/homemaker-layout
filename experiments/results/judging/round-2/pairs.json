@@ -1,0 +1,3854 @@
+[
+ {
+  "id": "R2-01",
+  "round": "2",
+  "programme": "harbor-house",
+  "a": "experiments/results/phase3-q2/A0-fails--harbor-house--1.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--harbor-house--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.3184029927779087,
+   "P1": -0.28192974010261834
+  },
+  "better": {
+   "A0": "A",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--harbor-house--1.dom",
+    "svg": "R2-01-a.svg",
+    "scores": {
+     "A0": 7.572251409340487e-06,
+     "P1": 0.00013775684440827044
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 0,
+     "shortfall_m2": 254.44105023645122,
+     "surplus_m2": 18.209356386574214,
+     "ratio_med": 0.9561784202991198,
+     "ratio_min": 0.07094600626255404,
+     "ratio_big5": 0.4178224665061008,
+     "narrowest": 1.233264549071409,
+     "sliver": 0,
+     "long": 15,
+     "unlit": 1,
+     "deep": 20,
+     "depth_med": 3.3707860010815343,
+     "adj_asked": 54,
+     "adj_met": 54,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 0,
+     "stair_storeys": 2,
+     "room_m2": 589.7683061501232,
+     "circ_m2": 293.9486797197439,
+     "circ_share": 0.498413829048522,
+     "inside_m2": 883.7169858698669,
+     "wall_per_m2": 1.5772664944565198,
+     "roof_per_m2": 0.8201530588030395,
+     "cost": 358045.14449942077,
+     "adj_share": 1.0,
+     "circ_pieces": 6,
+     "circ_orphan_m2": 71.08628711851753
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--harbor-house--1.dom",
+    "svg": "R2-01-b.svg",
+    "scores": {
+     "A0": 9.480738584808695e-07,
+     "P1": 0.0004143630001898602
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 0,
+     "shortfall_m2": 253.94891538430247,
+     "surplus_m2": 11.204349576132975,
+     "ratio_med": 0.9345462360171254,
+     "ratio_min": 0.07632008755276867,
+     "ratio_big5": 0.4375098051391185,
+     "narrowest": 1.185454252880195,
+     "sliver": 0,
+     "long": 19,
+     "unlit": 4,
+     "deep": 21,
+     "depth_med": 3.0152391706828947,
+     "adj_asked": 54,
+     "adj_met": 53,
+     "no_door": 1,
+     "storeys": 3,
+     "connected": 1,
+     "stair_storeys": 3,
+     "room_m2": 583.2554341918307,
+     "circ_m2": 646.0512283963354,
+     "circ_share": 1.1076643105632025,
+     "inside_m2": 1229.306662588166,
+     "wall_per_m2": 2.533099425399906,
+     "roof_per_m2": 0.8235111333478564,
+     "cost": 514521.3074641649,
+     "adj_share": 0.9814814814814815,
+     "circ_pieces": 6,
+     "circ_orphan_m2": 43.11811423878518
+    }
+   }
+  },
+  "design": "harbor-house--1",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-02",
+  "round": "2",
+  "programme": "harbor-house",
+  "a": "experiments/results/phase3-q2/A0-fails--harbor-house--1.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--harbor-house--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 3.0683916222128613,
+   "P1": 1.6640913871234784
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--harbor-house--1.dom",
+    "svg": "R2-02-a.svg",
+    "scores": {
+     "A0": 7.572251409340487e-06,
+     "P1": 0.00013775684440827044
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 0,
+     "shortfall_m2": 254.44105023645122,
+     "surplus_m2": 18.209356386574214,
+     "ratio_med": 0.9561784202991198,
+     "ratio_min": 0.07094600626255404,
+     "ratio_big5": 0.4178224665061008,
+     "narrowest": 1.233264549071409,
+     "sliver": 0,
+     "long": 15,
+     "unlit": 1,
+     "deep": 20,
+     "depth_med": 3.3707860010815343,
+     "adj_asked": 54,
+     "adj_met": 54,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 0,
+     "stair_storeys": 2,
+     "room_m2": 589.7683061501232,
+     "circ_m2": 293.9486797197439,
+     "circ_share": 0.498413829048522,
+     "inside_m2": 883.7169858698669,
+     "wall_per_m2": 1.5772664944565198,
+     "roof_per_m2": 0.8201530588030395,
+     "cost": 358045.14449942077,
+     "adj_share": 1.0,
+     "circ_pieces": 6,
+     "circ_orphan_m2": 71.08628711851753
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--harbor-house--1.dom",
+    "svg": "R2-02-b.svg",
+    "scores": {
+     "A0": 1.5244946440188764e-14,
+     "P1": 2.0707884633552287e-07
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 5,
+     "over": 1,
+     "shortfall_m2": 315.3979735932868,
+     "surplus_m2": 38.8548627730021,
+     "ratio_med": 0.8640661914207665,
+     "ratio_min": 0.013588174837051038,
+     "ratio_big5": 0.1496142571380774,
+     "narrowest": 0.5869053854416038,
+     "sliver": 3,
+     "long": 21,
+     "unlit": 15,
+     "deep": 24,
+     "depth_med": 2.3819821621364987,
+     "adj_asked": 54,
+     "adj_met": 51,
+     "no_door": 2,
+     "storeys": 2,
+     "connected": 1,
+     "stair_storeys": 2,
+     "room_m2": 549.4568891797153,
+     "circ_m2": 509.43211906035725,
+     "circ_share": 0.9271557588819915,
+     "inside_m2": 1058.8890082400726,
+     "wall_per_m2": 1.6694322411272788,
+     "roof_per_m2": 1.2406966873084566,
+     "cost": 426952.4772159498,
+     "adj_share": 0.9444444444444444,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 7.173562616235027
+    }
+   }
+  },
+  "design": "harbor-house--1",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-03",
+  "round": "2",
+  "programme": "harbor-house",
+  "a": "experiments/results/phase3-q2/P1-fails--harbor-house--1.dom",
+  "b": "experiments/results/phase3-q2/P1-score--harbor-house--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.3927814850513548,
+   "P1": -0.16835776445580145
+  },
+  "better": {
+   "A0": "A",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--harbor-house--1.dom",
+    "svg": "R2-03-a.svg",
+    "scores": {
+     "A0": 9.480738584808695e-07,
+     "P1": 0.0004143630001898602
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 0,
+     "shortfall_m2": 253.94891538430247,
+     "surplus_m2": 11.204349576132975,
+     "ratio_med": 0.9345462360171254,
+     "ratio_min": 0.07632008755276867,
+     "ratio_big5": 0.4375098051391185,
+     "narrowest": 1.185454252880195,
+     "sliver": 0,
+     "long": 19,
+     "unlit": 4,
+     "deep": 21,
+     "depth_med": 3.0152391706828947,
+     "adj_asked": 54,
+     "adj_met": 53,
+     "no_door": 1,
+     "storeys": 3,
+     "connected": 1,
+     "stair_storeys": 3,
+     "room_m2": 583.2554341918307,
+     "circ_m2": 646.0512283963354,
+     "circ_share": 1.1076643105632025,
+     "inside_m2": 1229.306662588166,
+     "wall_per_m2": 2.533099425399906,
+     "roof_per_m2": 0.8235111333478564,
+     "cost": 514521.3074641649,
+     "adj_share": 0.9814814814814815,
+     "circ_pieces": 6,
+     "circ_orphan_m2": 43.11811423878518
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--harbor-house--1.dom",
+    "svg": "R2-03-b.svg",
+    "scores": {
+     "A0": 7.305735602240787e-08,
+     "P1": 0.0007998054838521759
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 4,
+     "over": 0,
+     "shortfall_m2": 307.2531568023074,
+     "surplus_m2": 34.219198179523566,
+     "ratio_med": 0.995244995926366,
+     "ratio_min": 0.052239855896910645,
+     "ratio_big5": 0.2322238323828187,
+     "narrowest": 1.3454311230264047,
+     "sliver": 0,
+     "long": 17,
+     "unlit": 0,
+     "deep": 25,
+     "depth_med": 3.3534701954953783,
+     "adj_asked": 54,
+     "adj_met": 49,
+     "no_door": 5,
+     "storeys": 2,
+     "connected": 0,
+     "stair_storeys": 2,
+     "room_m2": 552.9660413772161,
+     "circ_m2": 259.10161946541115,
+     "circ_share": 0.4685669644741532,
+     "inside_m2": 812.0676608426272,
+     "wall_per_m2": 1.7144166712723041,
+     "roof_per_m2": 0.80534512786043,
+     "cost": 342279.0742276691,
+     "adj_share": 0.9074074074074074,
+     "circ_pieces": 6,
+     "circ_orphan_m2": 77.00615031784267
+    }
+   }
+  },
+  "design": "harbor-house--1",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-04",
+  "round": "2",
+  "programme": "harbor-house",
+  "a": "experiments/results/phase3-q2/A0-fails--harbor-house--2.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--harbor-house--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.047568295106748766,
+   "P1": -1.0261267554992428
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--harbor-house--2.dom",
+    "svg": "R2-04-a.svg",
+    "scores": {
+     "A0": 8.6857796327626e-07,
+     "P1": 8.431682356550047e-05
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 3,
+     "over": 2,
+     "shortfall_m2": 269.1246185134012,
+     "surplus_m2": 32.252357752857705,
+     "ratio_med": 1.0343707057557712,
+     "ratio_min": 0.06987028616380883,
+     "ratio_big5": 0.151359678054056,
+     "narrowest": 1.1867071069672193,
+     "sliver": 0,
+     "long": 22,
+     "unlit": 0,
+     "deep": 22,
+     "depth_med": 3.1201161837950515,
+     "adj_asked": 54,
+     "adj_met": 53,
+     "no_door": 1,
+     "storeys": 2,
+     "connected": 0,
+     "stair_storeys": 2,
+     "room_m2": 589.1277392394564,
+     "circ_m2": 254.07518296900042,
+     "circ_share": 0.4312735015618221,
+     "inside_m2": 843.2029222084569,
+     "wall_per_m2": 1.5695601200077185,
+     "roof_per_m2": 0.731094830978296,
+     "cost": 343712.84351875633,
+     "adj_share": 0.9814814814814815,
+     "circ_pieces": 8,
+     "circ_orphan_m2": 82.13706781796536
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--harbor-house--2.dom",
+    "svg": "R2-04-b.svg",
+    "scores": {
+     "A0": 1.184736185463581e-06,
+     "P1": 0.004641341994665381
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 6,
+     "over": 0,
+     "shortfall_m2": 373.3350974440862,
+     "surplus_m2": 8.209066636439731,
+     "ratio_med": 0.8834384748990044,
+     "ratio_min": 0.07262295500342783,
+     "ratio_big5": 0.18062809998261595,
+     "narrowest": 1.5856746047843933,
+     "sliver": 0,
+     "long": 13,
+     "unlit": 1,
+     "deep": 29,
+     "depth_med": 2.8439746965428148,
+     "adj_asked": 54,
+     "adj_met": 50,
+     "no_door": 3,
+     "storeys": 2,
+     "connected": 0,
+     "stair_storeys": 2,
+     "room_m2": 460.87396919235346,
+     "circ_m2": 272.2762198277487,
+     "circ_share": 0.5907823787594081,
+     "inside_m2": 733.1501890201022,
+     "wall_per_m2": 1.9259469191780185,
+     "roof_per_m2": 0.8164768307339311,
+     "cost": 313164.74297342397,
+     "adj_share": 0.9259259259259259,
+     "circ_pieces": 5,
+     "circ_orphan_m2": 76.28453904350378
+    }
+   }
+  },
+  "design": "harbor-house--2",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-05",
+  "round": "2",
+  "programme": "harbor-house",
+  "a": "experiments/results/phase3-q2/A0-fails--harbor-house--2.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--harbor-house--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 1.4527934190640186,
+   "P1": 0.4908418279066963
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--harbor-house--2.dom",
+    "svg": "R2-05-a.svg",
+    "scores": {
+     "A0": 8.6857796327626e-07,
+     "P1": 8.431682356550047e-05
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 3,
+     "over": 2,
+     "shortfall_m2": 269.1246185134012,
+     "surplus_m2": 32.252357752857705,
+     "ratio_med": 1.0343707057557712,
+     "ratio_min": 0.06987028616380883,
+     "ratio_big5": 0.151359678054056,
+     "narrowest": 1.1867071069672193,
+     "sliver": 0,
+     "long": 22,
+     "unlit": 0,
+     "deep": 22,
+     "depth_med": 3.1201161837950515,
+     "adj_asked": 54,
+     "adj_met": 53,
+     "no_door": 1,
+     "storeys": 2,
+     "connected": 0,
+     "stair_storeys": 2,
+     "room_m2": 589.1277392394564,
+     "circ_m2": 254.07518296900042,
+     "circ_share": 0.4312735015618221,
+     "inside_m2": 843.2029222084569,
+     "wall_per_m2": 1.5695601200077185,
+     "roof_per_m2": 0.731094830978296,
+     "cost": 343712.84351875633,
+     "adj_share": 0.9814814814814815,
+     "circ_pieces": 8,
+     "circ_orphan_m2": 82.13706781796536
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--harbor-house--2.dom",
+    "svg": "R2-05-b.svg",
+    "scores": {
+     "A0": 6.629197844128924e-11,
+     "P1": 1.2394995656928871e-05
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 4,
+     "over": 0,
+     "shortfall_m2": 309.4303627956294,
+     "surplus_m2": 20.62981199587675,
+     "ratio_med": 0.9482063035262334,
+     "ratio_min": 0.03167650935996853,
+     "ratio_big5": 0.13962016970308086,
+     "narrowest": 0.5942557879713775,
+     "sliver": 2,
+     "long": 19,
+     "unlit": 6,
+     "deep": 22,
+     "depth_med": 2.544691674515256,
+     "adj_asked": 54,
+     "adj_met": 51,
+     "no_door": 2,
+     "storeys": 2,
+     "connected": 0,
+     "stair_storeys": 2,
+     "room_m2": 537.1994492002473,
+     "circ_m2": 434.3352350462802,
+     "circ_share": 0.8085176477617287,
+     "inside_m2": 971.5346842465273,
+     "wall_per_m2": 1.7824665771772101,
+     "roof_per_m2": 1.189434534012476,
+     "cost": 403863.21639575274,
+     "adj_share": 0.9444444444444444,
+     "circ_pieces": 5,
+     "circ_orphan_m2": 4.005260614426717
+    }
+   }
+  },
+  "design": "harbor-house--2",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-06",
+  "round": "2",
+  "programme": "harbor-house",
+  "a": "experiments/results/phase3-q2/P1-fails--harbor-house--2.dom",
+  "b": "experiments/results/phase3-q2/P1-score--harbor-house--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 1.0040541455461591,
+   "P1": -0.3918337853414075
+  },
+  "better": {
+   "A0": "A",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--harbor-house--2.dom",
+    "svg": "R2-06-a.svg",
+    "scores": {
+     "A0": 1.184736185463581e-06,
+     "P1": 0.004641341994665381
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 6,
+     "over": 0,
+     "shortfall_m2": 373.3350974440862,
+     "surplus_m2": 8.209066636439731,
+     "ratio_med": 0.8834384748990044,
+     "ratio_min": 0.07262295500342783,
+     "ratio_big5": 0.18062809998261595,
+     "narrowest": 1.5856746047843933,
+     "sliver": 0,
+     "long": 13,
+     "unlit": 1,
+     "deep": 29,
+     "depth_med": 2.8439746965428148,
+     "adj_asked": 54,
+     "adj_met": 50,
+     "no_door": 3,
+     "storeys": 2,
+     "connected": 0,
+     "stair_storeys": 2,
+     "room_m2": 460.87396919235346,
+     "circ_m2": 272.2762198277487,
+     "circ_share": 0.5907823787594081,
+     "inside_m2": 733.1501890201022,
+     "wall_per_m2": 1.9259469191780185,
+     "roof_per_m2": 0.8164768307339311,
+     "cost": 313164.74297342397,
+     "adj_share": 0.9259259259259259,
+     "circ_pieces": 5,
+     "circ_orphan_m2": 76.28453904350378
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--harbor-house--2.dom",
+    "svg": "R2-06-b.svg",
+    "scores": {
+     "A0": 1.6906023838697393e-09,
+     "P1": 0.02144635163566951
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 3,
+     "over": 1,
+     "shortfall_m2": 280.000641154187,
+     "surplus_m2": 26.162068609901418,
+     "ratio_med": 0.9325304396583924,
+     "ratio_min": 0.052750088948612085,
+     "ratio_big5": 0.5673850572317264,
+     "narrowest": 1.269327822726298,
+     "sliver": 0,
+     "long": 20,
+     "unlit": 0,
+     "deep": 22,
+     "depth_med": 2.9698564197519546,
+     "adj_asked": 54,
+     "adj_met": 43,
+     "no_door": 9,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 572.1614274557144,
+     "circ_m2": 277.1534949823428,
+     "circ_share": 0.4843973775282058,
+     "inside_m2": 849.3149224380572,
+     "wall_per_m2": 1.790693136093003,
+     "roof_per_m2": 0.838227500541793,
+     "cost": 356381.1868855761,
+     "adj_share": 0.7962962962962963,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "harbor-house--2",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-07",
+  "round": "2",
+  "programme": "harbor-house",
+  "a": "experiments/results/phase3-q2/A0-fails--harbor-house--3.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--harbor-house--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.20793996933065204,
+   "P1": 0.14322228802630946
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--harbor-house--3.dom",
+    "svg": "R2-07-a.svg",
+    "scores": {
+     "A0": 3.4019516859105126e-08,
+     "P1": 0.00014160510779856058
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 1,
+     "shortfall_m2": 272.7287503341617,
+     "surplus_m2": 47.816748426049756,
+     "ratio_med": 0.8837458227298599,
+     "ratio_min": 0.07759507261345266,
+     "ratio_big5": 0.35000551680686637,
+     "narrowest": 1.2624898557072264,
+     "sliver": 0,
+     "long": 17,
+     "unlit": 1,
+     "deep": 20,
+     "depth_med": 2.8738780628018104,
+     "adj_asked": 54,
+     "adj_met": 51,
+     "no_door": 2,
+     "storeys": 3,
+     "connected": 0,
+     "stair_storeys": 3,
+     "room_m2": 601.0879980918879,
+     "circ_m2": 290.87310729420227,
+     "circ_share": 0.48391102170989725,
+     "inside_m2": 891.9611053860906,
+     "wall_per_m2": 1.6783900605572695,
+     "roof_per_m2": 0.5627275531525013,
+     "cost": 370067.0307686641,
+     "adj_share": 0.9444444444444444,
+     "circ_pieces": 7,
+     "circ_orphan_m2": 90.50196903981953
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--harbor-house--3.dom",
+    "svg": "R2-07-b.svg",
+    "scores": {
+     "A0": 8.75805117790481e-09,
+     "P1": 8.093111544831504e-05
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 3,
+     "shortfall_m2": 225.85951403227804,
+     "surplus_m2": 62.75939531318386,
+     "ratio_med": 0.9048091750642886,
+     "ratio_min": 0.15754094829100188,
+     "ratio_big5": 0.38572174028234574,
+     "narrowest": 1.2467344048738003,
+     "sliver": 0,
+     "long": 17,
+     "unlit": 0,
+     "deep": 24,
+     "depth_med": 3.1669502349086702,
+     "adj_asked": 54,
+     "adj_met": 49,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 0,
+     "stair_storeys": 3,
+     "room_m2": 662.8998812809058,
+     "circ_m2": 289.8394331801589,
+     "circ_share": 0.4372295747287041,
+     "inside_m2": 952.7393144610647,
+     "wall_per_m2": 1.551465312582143,
+     "roof_per_m2": 0.5088306701009218,
+     "cost": 379548.9530174178,
+     "adj_share": 0.9074074074074074,
+     "circ_pieces": 6,
+     "circ_orphan_m2": 45.183508566428266
+    }
+   }
+  },
+  "design": "harbor-house--3",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-08",
+  "round": "2",
+  "programme": "harbor-house",
+  "a": "experiments/results/phase3-q2/A0-fails--harbor-house--3.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--harbor-house--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 2.3176817366787175,
+   "P1": 2.551073303870631
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--harbor-house--3.dom",
+    "svg": "R2-08-a.svg",
+    "scores": {
+     "A0": 3.4019516859105126e-08,
+     "P1": 0.00014160510779856058
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 1,
+     "shortfall_m2": 272.7287503341617,
+     "surplus_m2": 47.816748426049756,
+     "ratio_med": 0.8837458227298599,
+     "ratio_min": 0.07759507261345266,
+     "ratio_big5": 0.35000551680686637,
+     "narrowest": 1.2624898557072264,
+     "sliver": 0,
+     "long": 17,
+     "unlit": 1,
+     "deep": 20,
+     "depth_med": 2.8738780628018104,
+     "adj_asked": 54,
+     "adj_met": 51,
+     "no_door": 2,
+     "storeys": 3,
+     "connected": 0,
+     "stair_storeys": 3,
+     "room_m2": 601.0879980918879,
+     "circ_m2": 290.87310729420227,
+     "circ_share": 0.48391102170989725,
+     "inside_m2": 891.9611053860906,
+     "wall_per_m2": 1.6783900605572695,
+     "roof_per_m2": 0.5627275531525013,
+     "cost": 370067.0307686641,
+     "adj_share": 0.9444444444444444,
+     "circ_pieces": 7,
+     "circ_orphan_m2": 90.50196903981953
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--harbor-house--3.dom",
+    "svg": "R2-08-b.svg",
+    "scores": {
+     "A0": 9.187739445873987e-15,
+     "P1": 6.65914563745478e-09
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 2,
+     "shortfall_m2": 217.79631516260105,
+     "surplus_m2": 76.3887356218691,
+     "ratio_med": 0.8929593609373847,
+     "ratio_min": 0.0772974414004107,
+     "ratio_big5": 0.7165669219891357,
+     "narrowest": 0.8808763684362955,
+     "sliver": 0,
+     "long": 22,
+     "unlit": 16,
+     "deep": 26,
+     "depth_med": 3.6467626079894226,
+     "adj_asked": 54,
+     "adj_met": 53,
+     "no_door": 1,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 684.5924204592679,
+     "circ_m2": 702.4015470755104,
+     "circ_share": 1.0260142036108069,
+     "inside_m2": 1386.993967534779,
+     "wall_per_m2": 1.4146545477680839,
+     "roof_per_m2": 1.0140532467333674,
+     "cost": 552366.9708219769,
+     "adj_share": 0.9814814814814815,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "harbor-house--3",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-09",
+  "round": "2",
+  "programme": "harbor-house",
+  "a": "experiments/results/phase3-q2/P1-fails--harbor-house--3.dom",
+  "b": "experiments/results/phase3-q2/P1-score--harbor-house--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.5627784215103474,
+   "P1": 0.0005375112446403859
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--harbor-house--3.dom",
+    "svg": "R2-09-a.svg",
+    "scores": {
+     "A0": 8.75805117790481e-09,
+     "P1": 8.093111544831504e-05
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 3,
+     "shortfall_m2": 225.85951403227804,
+     "surplus_m2": 62.75939531318386,
+     "ratio_med": 0.9048091750642886,
+     "ratio_min": 0.15754094829100188,
+     "ratio_big5": 0.38572174028234574,
+     "narrowest": 1.2467344048738003,
+     "sliver": 0,
+     "long": 17,
+     "unlit": 0,
+     "deep": 24,
+     "depth_med": 3.1669502349086702,
+     "adj_asked": 54,
+     "adj_met": 49,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 0,
+     "stair_storeys": 3,
+     "room_m2": 662.8998812809058,
+     "circ_m2": 289.8394331801589,
+     "circ_share": 0.4372295747287041,
+     "inside_m2": 952.7393144610647,
+     "wall_per_m2": 1.551465312582143,
+     "roof_per_m2": 0.5088306701009218,
+     "cost": 379548.9530174178,
+     "adj_share": 0.9074074074074074,
+     "circ_pieces": 6,
+     "circ_orphan_m2": 45.183508566428266
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--harbor-house--3.dom",
+    "svg": "R2-09-b.svg",
+    "scores": {
+     "A0": 2.225576764859617e-10,
+     "P1": 8.07613719433e-05
+    },
+    "card": {
+     "rooms_asked": 37,
+     "missing": 0,
+     "extra": 0,
+     "token": 3,
+     "over": 1,
+     "shortfall_m2": 247.75386046297584,
+     "surplus_m2": 59.95160273135768,
+     "ratio_med": 0.9851029013855707,
+     "ratio_min": 0.02447817118166528,
+     "ratio_big5": 0.18327346030114378,
+     "narrowest": 0.22519080575245987,
+     "sliver": 1,
+     "long": 25,
+     "unlit": 5,
+     "deep": 24,
+     "depth_med": 3.0274494800632867,
+     "adj_asked": 54,
+     "adj_met": 49,
+     "no_door": 2,
+     "storeys": 2,
+     "connected": 0,
+     "stair_storeys": 2,
+     "room_m2": 638.197742268382,
+     "circ_m2": 179.08062263822154,
+     "circ_share": 0.28060366055465075,
+     "inside_m2": 817.2783649066037,
+     "wall_per_m2": 1.4822202245154956,
+     "roof_per_m2": 0.6456308376389577,
+     "cost": 336030.1806538884,
+     "adj_share": 0.9074074074074074,
+     "circ_pieces": 4,
+     "circ_orphan_m2": 59.12474565720628
+    }
+   }
+  },
+  "design": "harbor-house--3",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-10",
+  "round": "2",
+  "programme": "health-centre",
+  "a": "experiments/results/phase3-q2/A0-fails--health-centre--1.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--health-centre--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.26259075912328006,
+   "P1": -0.713507718210272
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--health-centre--1.dom",
+    "svg": "R2-10-a.svg",
+    "scores": {
+     "A0": 0.003830897749290704,
+     "P1": 0.005258291072876015
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 17.373350532713946,
+     "surplus_m2": 7.214276352958486,
+     "ratio_med": 0.9893734807567964,
+     "ratio_min": 0.6024960308446782,
+     "ratio_big5": 0.9988348105106211,
+     "narrowest": 0.9389004519878261,
+     "sliver": 0,
+     "long": 12,
+     "unlit": 0,
+     "deep": 5,
+     "depth_med": 1.9407122016555463,
+     "adj_asked": 30,
+     "adj_met": 29,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 232.84092582024454,
+     "circ_m2": 71.38208414857675,
+     "circ_share": 0.30657017831858485,
+     "inside_m2": 304.2230099688212,
+     "wall_per_m2": 1.83246119675885,
+     "roof_per_m2": 1.3065701783185852,
+     "cost": 136680.92472305242,
+     "adj_share": 0.9666666666666667,
+     "circ_pieces": 5,
+     "circ_orphan_m2": 32.41329610369635
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--health-centre--1.dom",
+    "svg": "R2-10-b.svg",
+    "scores": {
+     "A0": 0.007804532403364832,
+     "P1": 0.014062138393367028
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 34.10766407307693,
+     "surplus_m2": 2.388745619799305,
+     "ratio_med": 0.8883161315749148,
+     "ratio_min": 0.5302297637354358,
+     "ratio_big5": 0.8883161315749148,
+     "narrowest": 1.296993406350058,
+     "sliver": 0,
+     "long": 14,
+     "unlit": 0,
+     "deep": 5,
+     "depth_med": 2.0325934100354295,
+     "adj_asked": 30,
+     "adj_met": 30,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 211.28108154672242,
+     "circ_m2": 80.32469624377451,
+     "circ_share": 0.3801793121075614,
+     "inside_m2": 291.6057777904969,
+     "wall_per_m2": 2.102257154520481,
+     "roof_per_m2": 1.3801793121075605,
+     "cost": 134859.38899891317,
+     "adj_share": 1.0,
+     "circ_pieces": 4,
+     "circ_orphan_m2": 52.652585976469204
+    }
+   }
+  },
+  "design": "health-centre--1",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-11",
+  "round": "2",
+  "programme": "health-centre",
+  "a": "experiments/results/phase3-q2/A0-fails--health-centre--1.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--health-centre--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 1.5409161589081948,
+   "P1": -0.13122753866825118
+  },
+  "better": {
+   "A0": "A",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--health-centre--1.dom",
+    "svg": "R2-11-a.svg",
+    "scores": {
+     "A0": 0.003830897749290704,
+     "P1": 0.005258291072876015
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 17.373350532713946,
+     "surplus_m2": 7.214276352958486,
+     "ratio_med": 0.9893734807567964,
+     "ratio_min": 0.6024960308446782,
+     "ratio_big5": 0.9988348105106211,
+     "narrowest": 0.9389004519878261,
+     "sliver": 0,
+     "long": 12,
+     "unlit": 0,
+     "deep": 5,
+     "depth_med": 1.9407122016555463,
+     "adj_asked": 30,
+     "adj_met": 29,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 232.84092582024454,
+     "circ_m2": 71.38208414857675,
+     "circ_share": 0.30657017831858485,
+     "inside_m2": 304.2230099688212,
+     "wall_per_m2": 1.83246119675885,
+     "roof_per_m2": 1.3065701783185852,
+     "cost": 136680.92472305242,
+     "adj_share": 0.9666666666666667,
+     "circ_pieces": 5,
+     "circ_orphan_m2": 32.41329610369635
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--health-centre--1.dom",
+    "svg": "R2-11-b.svg",
+    "scores": {
+     "A0": 5.885416241187712e-05,
+     "P1": 0.006301094716015764
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 22.991883294323635,
+     "surplus_m2": 10.526158946727193,
+     "ratio_med": 0.9613949506240802,
+     "ratio_min": 0.6412549621818048,
+     "ratio_big5": 0.971087391523131,
+     "narrowest": 1.054739589107058,
+     "sliver": 0,
+     "long": 12,
+     "unlit": 2,
+     "deep": 10,
+     "depth_med": 2.667118732507653,
+     "adj_asked": 30,
+     "adj_met": 25,
+     "no_door": 2,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 230.53427565240355,
+     "circ_m2": 69.76301506041963,
+     "circ_share": 0.3026145021732359,
+     "inside_m2": 300.29729071282327,
+     "wall_per_m2": 1.5729782977063798,
+     "roof_per_m2": 1.302614502173236,
+     "cost": 130447.79132080295,
+     "adj_share": 0.8333333333333334,
+     "circ_pieces": 3,
+     "circ_orphan_m2": 6.740299054049025
+    }
+   }
+  },
+  "design": "health-centre--1",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-12",
+  "round": "2",
+  "programme": "health-centre",
+  "a": "experiments/results/phase3-q2/P1-fails--health-centre--1.dom",
+  "b": "experiments/results/phase3-q2/P1-score--health-centre--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.6286887176874851,
+   "P1": -0.9399761031155847
+  },
+  "better": {
+   "A0": "A",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--health-centre--1.dom",
+    "svg": "R2-12-a.svg",
+    "scores": {
+     "A0": 0.007804532403364832,
+     "P1": 0.014062138393367028
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 34.10766407307693,
+     "surplus_m2": 2.388745619799305,
+     "ratio_med": 0.8883161315749148,
+     "ratio_min": 0.5302297637354358,
+     "ratio_big5": 0.8883161315749148,
+     "narrowest": 1.296993406350058,
+     "sliver": 0,
+     "long": 14,
+     "unlit": 0,
+     "deep": 5,
+     "depth_med": 2.0325934100354295,
+     "adj_asked": 30,
+     "adj_met": 30,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 211.28108154672242,
+     "circ_m2": 80.32469624377451,
+     "circ_share": 0.3801793121075614,
+     "inside_m2": 291.6057777904969,
+     "wall_per_m2": 2.102257154520481,
+     "roof_per_m2": 1.3801793121075605,
+     "cost": 134859.38899891317,
+     "adj_share": 1.0,
+     "circ_pieces": 4,
+     "circ_orphan_m2": 52.652585976469204
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--health-centre--1.dom",
+    "svg": "R2-12-b.svg",
+    "scores": {
+     "A0": 0.0014204806539580394,
+     "P1": 0.05138710521644296
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 1,
+     "over": 0,
+     "shortfall_m2": 47.654243275618065,
+     "surplus_m2": 0.31293739966153833,
+     "ratio_med": 0.9063585695139444,
+     "ratio_min": 0.24802730861995134,
+     "ratio_big5": 0.8001766154595847,
+     "narrowest": 1.2006308179963305,
+     "sliver": 0,
+     "long": 7,
+     "unlit": 0,
+     "deep": 6,
+     "depth_med": 2.1982598726984888,
+     "adj_asked": 30,
+     "adj_met": 27,
+     "no_door": 2,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 195.65869412404345,
+     "circ_m2": 118.95305035602681,
+     "circ_share": 0.6079619967238108,
+     "inside_m2": 314.61174448007023,
+     "wall_per_m2": 2.254441883859407,
+     "roof_per_m2": 1.607961996723811,
+     "cost": 142022.82256370567,
+     "adj_share": 0.9,
+     "circ_pieces": 1,
+     "circ_orphan_m2": 5.2782633026911245
+    }
+   }
+  },
+  "design": "health-centre--1",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-13",
+  "round": "2",
+  "programme": "health-centre",
+  "a": "experiments/results/phase3-q2/A0-fails--health-centre--2.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--health-centre--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -1.045259832443024,
+   "P1": -1.1419878231084042
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--health-centre--2.dom",
+    "svg": "R2-13-a.svg",
+    "scores": {
+     "A0": 3.05309105425052e-05,
+     "P1": 0.0016496848394091253
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 11.772203985147653,
+     "surplus_m2": 3.4145153645209483,
+     "ratio_med": 0.9995252203739449,
+     "ratio_min": 0.6498973972579851,
+     "ratio_big5": 0.9995252203739449,
+     "narrowest": 0.8078746560655929,
+     "sliver": 0,
+     "long": 11,
+     "unlit": 1,
+     "deep": 12,
+     "depth_med": 2.862204459800862,
+     "adj_asked": 30,
+     "adj_met": 27,
+     "no_door": 1,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 234.64231137937327,
+     "circ_m2": 60.47348881138042,
+     "circ_share": 0.25772627475360127,
+     "inside_m2": 295.11580019075365,
+     "wall_per_m2": 1.6101900491472898,
+     "roof_per_m2": 1.2577262747536013,
+     "cost": 132607.95250546894,
+     "adj_share": 0.9,
+     "circ_pieces": 3,
+     "circ_orphan_m2": 14.778101911994405
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--health-centre--2.dom",
+    "svg": "R2-13-b.svg",
+    "scores": {
+     "A0": 0.000518703338678572,
+     "P1": 0.007964464613848685
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 20.61145885446506,
+     "surplus_m2": 4.551355050396566,
+     "ratio_med": 0.9751470157926603,
+     "ratio_min": 0.7453856550341246,
+     "ratio_big5": 0.8422628975651429,
+     "narrowest": 0.5660718249747507,
+     "sliver": 1,
+     "long": 12,
+     "unlit": 1,
+     "deep": 11,
+     "depth_med": 2.543610192333708,
+     "adj_asked": 30,
+     "adj_met": 27,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 226.9398961959315,
+     "circ_m2": 59.88740622726563,
+     "circ_share": 0.26389104441803857,
+     "inside_m2": 286.82730242319707,
+     "wall_per_m2": 1.8272110608748575,
+     "roof_per_m2": 1.2638910444180382,
+     "cost": 133496.1561756152,
+     "adj_share": 0.9,
+     "circ_pieces": 5,
+     "circ_orphan_m2": 17.566917250446053
+    }
+   }
+  },
+  "design": "health-centre--2",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-14",
+  "round": "2",
+  "programme": "health-centre",
+  "a": "experiments/results/phase3-q2/A0-fails--health-centre--2.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--health-centre--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.24287349940341643,
+   "P1": 0.542656906208094
+  },
+  "better": {
+   "A0": "B",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--health-centre--2.dom",
+    "svg": "R2-14-a.svg",
+    "scores": {
+     "A0": 3.05309105425052e-05,
+     "P1": 0.0016496848394091253
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 11.772203985147653,
+     "surplus_m2": 3.4145153645209483,
+     "ratio_med": 0.9995252203739449,
+     "ratio_min": 0.6498973972579851,
+     "ratio_big5": 0.9995252203739449,
+     "narrowest": 0.8078746560655929,
+     "sliver": 0,
+     "long": 11,
+     "unlit": 1,
+     "deep": 12,
+     "depth_med": 2.862204459800862,
+     "adj_asked": 30,
+     "adj_met": 27,
+     "no_door": 1,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 234.64231137937327,
+     "circ_m2": 60.47348881138042,
+     "circ_share": 0.25772627475360127,
+     "inside_m2": 295.11580019075365,
+     "wall_per_m2": 1.6101900491472898,
+     "roof_per_m2": 1.2577262747536013,
+     "cost": 132607.95250546894,
+     "adj_share": 0.9,
+     "circ_pieces": 3,
+     "circ_orphan_m2": 14.778101911994405
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--health-centre--2.dom",
+    "svg": "R2-14-b.svg",
+    "scores": {
+     "A0": 5.89631390826844e-05,
+     "P1": 0.0007807099690101344
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 1,
+     "over": 0,
+     "shortfall_m2": 31.22660787156767,
+     "surplus_m2": 11.242592310618088,
+     "ratio_med": 1.0301726342559245,
+     "ratio_min": 0.23116786474002066,
+     "ratio_big5": 0.946668532199987,
+     "narrowest": 0.4449010549902699,
+     "sliver": 1,
+     "long": 16,
+     "unlit": 0,
+     "deep": 8,
+     "depth_med": 2.358014834524146,
+     "adj_asked": 30,
+     "adj_met": 30,
+     "no_door": 1,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 223.01598443905044,
+     "circ_m2": 59.01683780741507,
+     "circ_share": 0.2646305284164247,
+     "inside_m2": 282.0328222464655,
+     "wall_per_m2": 2.21993696896465,
+     "roof_per_m2": 1.2646305284164243,
+     "cost": 138333.52671086387,
+     "adj_share": 1.0,
+     "circ_pieces": 4,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "health-centre--2",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-15",
+  "round": "2",
+  "programme": "health-centre",
+  "a": "experiments/results/phase3-q2/P1-fails--health-centre--2.dom",
+  "b": "experiments/results/phase3-q2/P1-score--health-centre--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 1.5899921864925883,
+   "P1": -1.405165787993452
+  },
+  "better": {
+   "A0": "A",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--health-centre--2.dom",
+    "svg": "R2-15-a.svg",
+    "scores": {
+     "A0": 0.000518703338678572,
+     "P1": 0.007964464613848685
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 20.61145885446506,
+     "surplus_m2": 4.551355050396566,
+     "ratio_med": 0.9751470157926603,
+     "ratio_min": 0.7453856550341246,
+     "ratio_big5": 0.8422628975651429,
+     "narrowest": 0.5660718249747507,
+     "sliver": 1,
+     "long": 12,
+     "unlit": 1,
+     "deep": 11,
+     "depth_med": 2.543610192333708,
+     "adj_asked": 30,
+     "adj_met": 27,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 226.9398961959315,
+     "circ_m2": 59.88740622726563,
+     "circ_share": 0.26389104441803857,
+     "inside_m2": 286.82730242319707,
+     "wall_per_m2": 1.8272110608748575,
+     "roof_per_m2": 1.2638910444180382,
+     "cost": 133496.1561756152,
+     "adj_share": 0.9,
+     "circ_pieces": 5,
+     "circ_orphan_m2": 17.566917250446053
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--health-centre--2.dom",
+    "svg": "R2-15-b.svg",
+    "scores": {
+     "A0": 6.976498089709171e-06,
+     "P1": 0.05526978608294932
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 18.645886744362297,
+     "surplus_m2": 8.292267575770186,
+     "ratio_med": 0.956760479333057,
+     "ratio_min": 0.7275376840579358,
+     "ratio_big5": 0.9040170016175652,
+     "narrowest": 1.1649046344469873,
+     "sliver": 0,
+     "long": 11,
+     "unlit": 0,
+     "deep": 7,
+     "depth_med": 2.4534461007506225,
+     "adj_asked": 30,
+     "adj_met": 21,
+     "no_door": 6,
+     "storeys": 1,
+     "connected": 1,
+     "stair_storeys": 0,
+     "room_m2": 232.64638083140787,
+     "circ_m2": 63.08099800370237,
+     "circ_share": 0.27114540865957143,
+     "inside_m2": 295.7273788351102,
+     "wall_per_m2": 1.727829047455945,
+     "roof_per_m2": 1.2711454086595715,
+     "cost": 131603.60843010317,
+     "adj_share": 0.7,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "health-centre--2",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-16",
+  "round": "2",
+  "programme": "health-centre",
+  "a": "experiments/results/phase3-q2/A0-fails--health-centre--3.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--health-centre--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -1.2895443959395434,
+   "P1": -1.3260868101699295
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--health-centre--3.dom",
+    "svg": "R2-16-a.svg",
+    "scores": {
+     "A0": 0.0002608300543290783,
+     "P1": 0.00661171952232831
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 26.87088893534937,
+     "surplus_m2": 6.84013666489066,
+     "ratio_med": 0.9596049192224133,
+     "ratio_min": 0.31667143431373607,
+     "ratio_big5": 0.9537583740732293,
+     "narrowest": 0.997344594493141,
+     "sliver": 0,
+     "long": 10,
+     "unlit": 0,
+     "deep": 9,
+     "depth_med": 2.5015917094913007,
+     "adj_asked": 30,
+     "adj_met": 27,
+     "no_door": 2,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 222.96924772954125,
+     "circ_m2": 60.626589749993336,
+     "circ_share": 0.2719056119502748,
+     "inside_m2": 283.5958374795347,
+     "wall_per_m2": 1.8160423072741614,
+     "roof_per_m2": 1.2719056119502747,
+     "cost": 129075.3830810891,
+     "adj_share": 0.9,
+     "circ_pieces": 3,
+     "circ_orphan_m2": 23.191566563053904
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--health-centre--3.dom",
+    "svg": "R2-16-b.svg",
+    "scores": {
+     "A0": 0.008590895911200875,
+     "P1": 0.04114316958255424
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 13.743543856897444,
+     "surplus_m2": 4.569440065369928,
+     "ratio_med": 0.999695679840648,
+     "ratio_min": 0.7972028935868131,
+     "ratio_big5": 0.8590875544431986,
+     "narrowest": 1.2634500642378548,
+     "sliver": 0,
+     "long": 10,
+     "unlit": 0,
+     "deep": 10,
+     "depth_med": 2.5943843049651907,
+     "adj_asked": 30,
+     "adj_met": 28,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 233.82589620847244,
+     "circ_m2": 66.02143273628666,
+     "circ_share": 0.2823529549414144,
+     "inside_m2": 299.84732894475917,
+     "wall_per_m2": 1.7179065412303678,
+     "roof_per_m2": 1.2823529549414145,
+     "cost": 134737.92974994294,
+     "adj_share": 0.9333333333333333,
+     "circ_pieces": 4,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "health-centre--3",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-17",
+  "round": "2",
+  "programme": "health-centre",
+  "a": "experiments/results/phase3-q2/A0-fails--health-centre--3.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--health-centre--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -1.522991649449512,
+   "P1": -0.326570013930044
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--health-centre--3.dom",
+    "svg": "R2-17-a.svg",
+    "scores": {
+     "A0": 0.0002608300543290783,
+     "P1": 0.00661171952232831
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 26.87088893534937,
+     "surplus_m2": 6.84013666489066,
+     "ratio_med": 0.9596049192224133,
+     "ratio_min": 0.31667143431373607,
+     "ratio_big5": 0.9537583740732293,
+     "narrowest": 0.997344594493141,
+     "sliver": 0,
+     "long": 10,
+     "unlit": 0,
+     "deep": 9,
+     "depth_med": 2.5015917094913007,
+     "adj_asked": 30,
+     "adj_met": 27,
+     "no_door": 2,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 222.96924772954125,
+     "circ_m2": 60.626589749993336,
+     "circ_share": 0.2719056119502748,
+     "inside_m2": 283.5958374795347,
+     "wall_per_m2": 1.8160423072741614,
+     "roof_per_m2": 1.2719056119502747,
+     "cost": 129075.3830810891,
+     "adj_share": 0.9,
+     "circ_pieces": 3,
+     "circ_orphan_m2": 23.191566563053904
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--health-centre--3.dom",
+    "svg": "R2-17-b.svg",
+    "scores": {
+     "A0": 0.016172808005329876,
+     "P1": 0.010371593121090459
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 21.5221338908277,
+     "surplus_m2": 4.6980524397879355,
+     "ratio_med": 0.914448928891634,
+     "ratio_min": 0.6500438059368265,
+     "ratio_big5": 0.9955850562075238,
+     "narrowest": 1.2310245945692344,
+     "sliver": 0,
+     "long": 9,
+     "unlit": 0,
+     "deep": 8,
+     "depth_med": 2.2698542683228777,
+     "adj_asked": 30,
+     "adj_met": 30,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 226.17591854896023,
+     "circ_m2": 73.20637028467871,
+     "circ_share": 0.32367004743182576,
+     "inside_m2": 299.38228883363894,
+     "wall_per_m2": 1.5415245182367716,
+     "roof_per_m2": 1.323670047431826,
+     "cost": 129727.64687887128,
+     "adj_share": 1.0,
+     "circ_pieces": 3,
+     "circ_orphan_m2": 9.150819475573217
+    }
+   }
+  },
+  "design": "health-centre--3",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-18",
+  "round": "2",
+  "programme": "health-centre",
+  "a": "experiments/results/phase3-q2/P1-fails--health-centre--3.dom",
+  "b": "experiments/results/phase3-q2/P1-score--health-centre--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.6601483740339904,
+   "P1": -0.5306138690726384
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--health-centre--3.dom",
+    "svg": "R2-18-a.svg",
+    "scores": {
+     "A0": 0.008590895911200875,
+     "P1": 0.04114316958255424
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 13.743543856897444,
+     "surplus_m2": 4.569440065369928,
+     "ratio_med": 0.999695679840648,
+     "ratio_min": 0.7972028935868131,
+     "ratio_big5": 0.8590875544431986,
+     "narrowest": 1.2634500642378548,
+     "sliver": 0,
+     "long": 10,
+     "unlit": 0,
+     "deep": 10,
+     "depth_med": 2.5943843049651907,
+     "adj_asked": 30,
+     "adj_met": 28,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 233.82589620847244,
+     "circ_m2": 66.02143273628666,
+     "circ_share": 0.2823529549414144,
+     "inside_m2": 299.84732894475917,
+     "wall_per_m2": 1.7179065412303678,
+     "roof_per_m2": 1.2823529549414145,
+     "cost": 134737.92974994294,
+     "adj_share": 0.9333333333333333,
+     "circ_pieces": 4,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--health-centre--3.dom",
+    "svg": "R2-18-b.svg",
+    "scores": {
+     "A0": 0.0514014395937584,
+     "P1": 0.08550634384037882
+    },
+    "card": {
+     "rooms_asked": 21,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 31.357902358422628,
+     "surplus_m2": 3.808180720087719,
+     "ratio_med": 0.9050828277481301,
+     "ratio_min": 0.6122113359184246,
+     "ratio_big5": 0.9714212278749832,
+     "narrowest": 1.2886083459824818,
+     "sliver": 0,
+     "long": 13,
+     "unlit": 0,
+     "deep": 6,
+     "depth_med": 1.964225547084153,
+     "adj_asked": 30,
+     "adj_met": 29,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 0,
+     "stair_storeys": 0,
+     "room_m2": 215.45027836166514,
+     "circ_m2": 95.99147138843648,
+     "circ_share": 0.4455388599094804,
+     "inside_m2": 311.4417497501017,
+     "wall_per_m2": 2.1297509725377934,
+     "roof_per_m2": 1.44553885990948,
+     "cost": 143213.4568504851,
+     "adj_share": 0.9666666666666667,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "health-centre--3",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-19",
+  "round": "2",
+  "programme": "maple-court",
+  "a": "experiments/results/phase3-q2/A0-fails--maple-court--1.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--maple-court--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.3378796097232746,
+   "P1": 0.08091672423417237
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--maple-court--1.dom",
+    "svg": "R2-19-a.svg",
+    "scores": {
+     "A0": 1.7669073043851312e-05,
+     "P1": 0.010187548132547264
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 1,
+     "over": 3,
+     "shortfall_m2": 230.23767929271057,
+     "surplus_m2": 128.6920796850753,
+     "ratio_med": 1.0385657971762081,
+     "ratio_min": 0.09234350848857001,
+     "ratio_big5": 0.5773816575033709,
+     "narrowest": 1.7175833911595966,
+     "sliver": 0,
+     "long": 29,
+     "unlit": 0,
+     "deep": 44,
+     "depth_med": 3.4603300589820263,
+     "adj_asked": 71,
+     "adj_met": 67,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 922.4544003923645,
+     "circ_m2": 345.1608838795406,
+     "circ_share": 0.3741766354333905,
+     "inside_m2": 1267.6152842719055,
+     "wall_per_m2": 1.481935902548475,
+     "roof_per_m2": 0.4635114849577612,
+     "cost": 520385.4735526883,
+     "adj_share": 0.9436619718309859,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--maple-court--1.dom",
+    "svg": "R2-19-b.svg",
+    "scores": {
+     "A0": 5.241009908866725e-07,
+     "P1": 0.006284845188873354
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 1,
+     "over": 4,
+     "shortfall_m2": 281.36997972258865,
+     "surplus_m2": 85.34033409135864,
+     "ratio_med": 0.9433130412144145,
+     "ratio_min": 0.026385488113166676,
+     "ratio_big5": 0.45331554918572675,
+     "narrowest": 1.0037036341251326,
+     "sliver": 0,
+     "long": 34,
+     "unlit": 5,
+     "deep": 38,
+     "depth_med": 3.2560196360269447,
+     "adj_asked": 71,
+     "adj_met": 68,
+     "no_door": 1,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 827.97035436877,
+     "circ_m2": 387.83221049299266,
+     "circ_share": 0.4684131605033964,
+     "inside_m2": 1215.802564861763,
+     "wall_per_m2": 1.6413479404697684,
+     "roof_per_m2": 0.4940480434498719,
+     "cost": 506022.8865621044,
+     "adj_share": 0.9577464788732394,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "maple-court--1",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-20",
+  "round": "2",
+  "programme": "maple-court",
+  "a": "experiments/results/phase3-q2/A0-fails--maple-court--1.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--maple-court--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 2.7243525662799772,
+   "P1": 3.072017934780544
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--maple-court--1.dom",
+    "svg": "R2-20-a.svg",
+    "scores": {
+     "A0": 1.7669073043851312e-05,
+     "P1": 0.010187548132547264
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 1,
+     "over": 3,
+     "shortfall_m2": 230.23767929271057,
+     "surplus_m2": 128.6920796850753,
+     "ratio_med": 1.0385657971762081,
+     "ratio_min": 0.09234350848857001,
+     "ratio_big5": 0.5773816575033709,
+     "narrowest": 1.7175833911595966,
+     "sliver": 0,
+     "long": 29,
+     "unlit": 0,
+     "deep": 44,
+     "depth_med": 3.4603300589820263,
+     "adj_asked": 71,
+     "adj_met": 67,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 922.4544003923645,
+     "circ_m2": 345.1608838795406,
+     "circ_share": 0.3741766354333905,
+     "inside_m2": 1267.6152842719055,
+     "wall_per_m2": 1.481935902548475,
+     "roof_per_m2": 0.4635114849577612,
+     "cost": 520385.4735526883,
+     "adj_share": 0.9436619718309859,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--maple-court--1.dom",
+    "svg": "R2-20-b.svg",
+    "scores": {
+     "A0": 8.480858071051412e-18,
+     "P1": 1.1064220500590556e-10
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 6,
+     "shortfall_m2": 288.5401009563516,
+     "surplus_m2": 327.6780192444614,
+     "ratio_med": 0.9786140899081321,
+     "ratio_min": 0.1664985171337791,
+     "ratio_big5": 0.4243046110557065,
+     "narrowest": 1.1391658089168253,
+     "sliver": 0,
+     "long": 30,
+     "unlit": 12,
+     "deep": 39,
+     "depth_med": 2.747038940785421,
+     "adj_asked": 71,
+     "adj_met": 69,
+     "no_door": 1,
+     "storeys": 4,
+     "connected": 4,
+     "stair_storeys": 4,
+     "room_m2": 1063.13791828811,
+     "circ_m2": 811.7559538001008,
+     "circ_share": 0.763547174676273,
+     "inside_m2": 1874.893872088212,
+     "wall_per_m2": 1.511461654469929,
+     "roof_per_m2": 0.56553722199632,
+     "cost": 758112.6526041086,
+     "adj_share": 0.971830985915493,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "maple-court--1",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-21",
+  "round": "2",
+  "programme": "maple-court",
+  "a": "experiments/results/phase3-q2/P1-fails--maple-court--1.dom",
+  "b": "experiments/results/phase3-q2/P1-score--maple-court--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.27780075258924203,
+   "P1": -0.20258062840149405
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--maple-court--1.dom",
+    "svg": "R2-21-a.svg",
+    "scores": {
+     "A0": 5.241009908866725e-07,
+     "P1": 0.006284845188873354
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 1,
+     "over": 4,
+     "shortfall_m2": 281.36997972258865,
+     "surplus_m2": 85.34033409135864,
+     "ratio_med": 0.9433130412144145,
+     "ratio_min": 0.026385488113166676,
+     "ratio_big5": 0.45331554918572675,
+     "narrowest": 1.0037036341251326,
+     "sliver": 0,
+     "long": 34,
+     "unlit": 5,
+     "deep": 38,
+     "depth_med": 3.2560196360269447,
+     "adj_asked": 71,
+     "adj_met": 68,
+     "no_door": 1,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 827.97035436877,
+     "circ_m2": 387.83221049299266,
+     "circ_share": 0.4684131605033964,
+     "inside_m2": 1215.802564861763,
+     "wall_per_m2": 1.6413479404697684,
+     "roof_per_m2": 0.4940480434498719,
+     "cost": 506022.8865621044,
+     "adj_share": 0.9577464788732394,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--maple-court--1.dom",
+    "svg": "R2-21-b.svg",
+    "scores": {
+     "A0": 9.4526521567284e-06,
+     "P1": 0.021061100583816866
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 3,
+     "over": 1,
+     "shortfall_m2": 296.63367851555523,
+     "surplus_m2": 60.18144765463376,
+     "ratio_med": 0.9712553888862676,
+     "ratio_min": 0.0958830558367583,
+     "ratio_big5": 0.17762783783522498,
+     "narrowest": 1.75703549045571,
+     "sliver": 0,
+     "long": 35,
+     "unlit": 0,
+     "deep": 39,
+     "depth_med": 3.1379621343448605,
+     "adj_asked": 71,
+     "adj_met": 67,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 787.5477691390784,
+     "circ_m2": 392.8090169542383,
+     "circ_share": 0.49877484559907315,
+     "inside_m2": 1180.3567860933163,
+     "wall_per_m2": 1.7183331670407445,
+     "roof_per_m2": 0.5047766731658112,
+     "cost": 496433.08956438943,
+     "adj_share": 0.9436619718309859,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "maple-court--1",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-22",
+  "round": "2",
+  "programme": "maple-court",
+  "a": "experiments/results/phase3-q2/A0-fails--maple-court--2.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--maple-court--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.6672778808412895,
+   "P1": -0.6097260351418091
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--maple-court--2.dom",
+    "svg": "R2-22-a.svg",
+    "scores": {
+     "A0": 5.622272204051064e-07,
+     "P1": 0.0016119487323481088
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 1,
+     "token": 5,
+     "over": 0,
+     "shortfall_m2": 346.6935650946415,
+     "surplus_m2": 44.15392277921682,
+     "ratio_med": 1.0224355983249154,
+     "ratio_min": 0.02936493833024305,
+     "ratio_big5": 0.14021935568859104,
+     "narrowest": 1.235531389577094,
+     "sliver": 0,
+     "long": 30,
+     "unlit": 0,
+     "deep": 22,
+     "depth_med": 2.1675748798586216,
+     "adj_asked": 72,
+     "adj_met": 69,
+     "no_door": 1,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 736.7933655610459,
+     "circ_m2": 406.4694691504237,
+     "circ_share": 0.5516736281154072,
+     "inside_m2": 1143.2628347114696,
+     "wall_per_m2": 1.861462810278578,
+     "roof_per_m2": 0.5889474737051876,
+     "cost": 493097.63235240546,
+     "adj_share": 0.9583333333333334,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--maple-court--2.dom",
+    "svg": "R2-22-b.svg",
+    "scores": {
+     "A0": 0.0005850044308057522,
+     "P1": 0.061383907395776795
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 3,
+     "over": 0,
+     "shortfall_m2": 226.38421094987154,
+     "surplus_m2": 22.39032657030379,
+     "ratio_med": 0.9431887090861036,
+     "ratio_min": 0.15473921920887432,
+     "ratio_big5": 0.2469954411164254,
+     "narrowest": 1.6624606192335243,
+     "sliver": 0,
+     "long": 23,
+     "unlit": 0,
+     "deep": 38,
+     "depth_med": 2.8249353631175573,
+     "adj_asked": 71,
+     "adj_met": 69,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 820.0061156204323,
+     "circ_m2": 393.8736679858728,
+     "circ_share": 0.4803301591084604,
+     "inside_m2": 1213.8797836063056,
+     "wall_per_m2": 1.762748811822726,
+     "roof_per_m2": 0.6098016086591468,
+     "cost": 514331.55956996395,
+     "adj_share": 0.971830985915493,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "maple-court--2",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-23",
+  "round": "2",
+  "programme": "maple-court",
+  "a": "experiments/results/phase3-q2/A0-fails--maple-court--2.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--maple-court--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 1.9847191284213328,
+   "P1": 1.5217037610927848
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--maple-court--2.dom",
+    "svg": "R2-23-a.svg",
+    "scores": {
+     "A0": 5.622272204051064e-07,
+     "P1": 0.0016119487323481088
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 1,
+     "token": 5,
+     "over": 0,
+     "shortfall_m2": 346.6935650946415,
+     "surplus_m2": 44.15392277921682,
+     "ratio_med": 1.0224355983249154,
+     "ratio_min": 0.02936493833024305,
+     "ratio_big5": 0.14021935568859104,
+     "narrowest": 1.235531389577094,
+     "sliver": 0,
+     "long": 30,
+     "unlit": 0,
+     "deep": 22,
+     "depth_med": 2.1675748798586216,
+     "adj_asked": 72,
+     "adj_met": 69,
+     "no_door": 1,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 736.7933655610459,
+     "circ_m2": 406.4694691504237,
+     "circ_share": 0.5516736281154072,
+     "inside_m2": 1143.2628347114696,
+     "wall_per_m2": 1.861462810278578,
+     "roof_per_m2": 0.5889474737051876,
+     "cost": 493097.63235240546,
+     "adj_share": 0.9583333333333334,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--maple-court--2.dom",
+    "svg": "R2-23-b.svg",
+    "scores": {
+     "A0": 5.964267843790656e-16,
+     "P1": 1.8296279171905895e-07
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 1,
+     "token": 2,
+     "over": 3,
+     "shortfall_m2": 354.9305525195211,
+     "surplus_m2": 81.28183956834191,
+     "ratio_med": 0.8990176744988068,
+     "ratio_min": 0.051822667395267266,
+     "ratio_big5": 0.3219016739891064,
+     "narrowest": 0.5150327372382719,
+     "sliver": 5,
+     "long": 38,
+     "unlit": 10,
+     "deep": 34,
+     "depth_med": 2.7323427579933703,
+     "adj_asked": 72,
+     "adj_met": 71,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 2,
+     "stair_storeys": 3,
+     "room_m2": 763.1525302305671,
+     "circ_m2": 627.272412124592,
+     "circ_share": 0.8219489384842604,
+     "inside_m2": 1390.4249423551591,
+     "wall_per_m2": 2.039963235172644,
+     "roof_per_m2": 0.8488172620564117,
+     "cost": 606223.4282875585,
+     "adj_share": 0.9861111111111112,
+     "circ_pieces": 3,
+     "circ_orphan_m2": 5.735582196654795
+    }
+   }
+  },
+  "design": "maple-court--2",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-24",
+  "round": "2",
+  "programme": "maple-court",
+  "a": "experiments/results/phase3-q2/P1-fails--maple-court--2.dom",
+  "b": "experiments/results/phase3-q2/P1-score--maple-court--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.1325999135194525,
+   "P1": 0.03162616180754653
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--maple-court--2.dom",
+    "svg": "R2-24-a.svg",
+    "scores": {
+     "A0": 0.0005850044308057522,
+     "P1": 0.061383907395776795
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 3,
+     "over": 0,
+     "shortfall_m2": 226.38421094987154,
+     "surplus_m2": 22.39032657030379,
+     "ratio_med": 0.9431887090861036,
+     "ratio_min": 0.15473921920887432,
+     "ratio_big5": 0.2469954411164254,
+     "narrowest": 1.6624606192335243,
+     "sliver": 0,
+     "long": 23,
+     "unlit": 0,
+     "deep": 38,
+     "depth_med": 2.8249353631175573,
+     "adj_asked": 71,
+     "adj_met": 69,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 820.0061156204323,
+     "circ_m2": 393.8736679858728,
+     "circ_share": 0.4803301591084604,
+     "inside_m2": 1213.8797836063056,
+     "wall_per_m2": 1.762748811822726,
+     "roof_per_m2": 0.6098016086591468,
+     "cost": 514331.55956996395,
+     "adj_share": 0.971830985915493,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--maple-court--2.dom",
+    "svg": "R2-24-b.svg",
+    "scores": {
+     "A0": 0.00014708851706357417,
+     "P1": 0.05082346830959075
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 4,
+     "over": 0,
+     "shortfall_m2": 308.4684778242729,
+     "surplus_m2": 18.04606115599079,
+     "ratio_med": 0.9805645851244883,
+     "ratio_min": 0.1482928193732473,
+     "ratio_big5": 0.22769370293991933,
+     "narrowest": 1.675767525197779,
+     "sliver": 0,
+     "long": 24,
+     "unlit": 0,
+     "deep": 37,
+     "depth_med": 3.022845911468909,
+     "adj_asked": 71,
+     "adj_met": 67,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 733.5775833317183,
+     "circ_m2": 489.75014012165053,
+     "circ_share": 0.6676187376082745,
+     "inside_m2": 1223.3277234533684,
+     "wall_per_m2": 1.898686594409831,
+     "roof_per_m2": 0.5862441930840694,
+     "cost": 509638.1205097913,
+     "adj_share": 0.9436619718309859,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "maple-court--2",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-25",
+  "round": "2",
+  "programme": "maple-court",
+  "a": "experiments/results/phase3-q2/A0-fails--maple-court--3.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--maple-court--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -1.1549176248463882,
+   "P1": -0.674397612612434
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--maple-court--3.dom",
+    "svg": "R2-25-a.svg",
+    "scores": {
+     "A0": 2.8072076045305518e-12,
+     "P1": 0.00023717374161866885
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 4,
+     "over": 2,
+     "shortfall_m2": 313.0178300352597,
+     "surplus_m2": 85.90051088301598,
+     "ratio_med": 0.9302764391919668,
+     "ratio_min": 0.01547854393824114,
+     "ratio_big5": 0.5138889840565161,
+     "narrowest": 0.05426788347193323,
+     "sliver": 2,
+     "long": 31,
+     "unlit": 12,
+     "deep": 39,
+     "depth_med": 3.3414483807680773,
+     "adj_asked": 71,
+     "adj_met": 66,
+     "no_door": 4,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 796.8826808477564,
+     "circ_m2": 520.7169697992917,
+     "circ_share": 0.6534424480719442,
+     "inside_m2": 1317.5996506470485,
+     "wall_per_m2": 1.7960517359435277,
+     "roof_per_m2": 0.7025153884045182,
+     "cost": 553697.1560958581,
+     "adj_share": 0.9295774647887324,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--maple-court--3.dom",
+    "svg": "R2-25-b.svg",
+    "scores": {
+     "A0": 4.6826833892457765e-07,
+     "P1": 0.013287086461113975
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 2,
+     "shortfall_m2": 242.57157339393507,
+     "surplus_m2": 73.6718973976487,
+     "ratio_med": 0.9517179224259653,
+     "ratio_min": 0.15415342150962133,
+     "ratio_big5": 0.5789034947798832,
+     "narrowest": 1.3750863677951948,
+     "sliver": 0,
+     "long": 28,
+     "unlit": 6,
+     "deep": 40,
+     "depth_med": 3.2818786942324176,
+     "adj_asked": 71,
+     "adj_met": 68,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 855.1003240037139,
+     "circ_m2": 403.48832526691547,
+     "circ_share": 0.4718608026923903,
+     "inside_m2": 1258.5886492706288,
+     "wall_per_m2": 1.544927734674703,
+     "roof_per_m2": 0.6064025073241776,
+     "cost": 512775.6729369912,
+     "adj_share": 0.9577464788732394,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "maple-court--3",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-26",
+  "round": "2",
+  "programme": "maple-court",
+  "a": "experiments/results/phase3-q2/A0-fails--maple-court--3.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--maple-court--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.40212187484585454,
+   "P1": 0.7058729596620248
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--maple-court--3.dom",
+    "svg": "R2-26-a.svg",
+    "scores": {
+     "A0": 2.8072076045305518e-12,
+     "P1": 0.00023717374161866885
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 4,
+     "over": 2,
+     "shortfall_m2": 313.0178300352597,
+     "surplus_m2": 85.90051088301598,
+     "ratio_med": 0.9302764391919668,
+     "ratio_min": 0.01547854393824114,
+     "ratio_big5": 0.5138889840565161,
+     "narrowest": 0.05426788347193323,
+     "sliver": 2,
+     "long": 31,
+     "unlit": 12,
+     "deep": 39,
+     "depth_med": 3.3414483807680773,
+     "adj_asked": 71,
+     "adj_met": 66,
+     "no_door": 4,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 796.8826808477564,
+     "circ_m2": 520.7169697992917,
+     "circ_share": 0.6534424480719442,
+     "inside_m2": 1317.5996506470485,
+     "wall_per_m2": 1.7960517359435277,
+     "roof_per_m2": 0.7025153884045182,
+     "cost": 553697.1560958581,
+     "adj_share": 0.9295774647887324,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--maple-court--3.dom",
+    "svg": "R2-26-b.svg",
+    "scores": {
+     "A0": 4.2656956862514744e-14,
+     "P1": 3.5083604163797813e-06
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 1,
+     "over": 3,
+     "shortfall_m2": 299.6312452317703,
+     "surplus_m2": 79.85149433298182,
+     "ratio_med": 0.9291373346706231,
+     "ratio_min": 0.14014297962074948,
+     "ratio_big5": 0.358161390438429,
+     "narrowest": 0.8097920774287057,
+     "sliver": 0,
+     "long": 31,
+     "unlit": 15,
+     "deep": 41,
+     "depth_med": 2.916261330559975,
+     "adj_asked": 71,
+     "adj_met": 69,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 804.2202491012113,
+     "circ_m2": 644.98115728552,
+     "circ_share": 0.8019956697264768,
+     "inside_m2": 1449.2014063867312,
+     "wall_per_m2": 1.788820795151658,
+     "roof_per_m2": 0.6721359640297007,
+     "cost": 592489.1005916668,
+     "adj_share": 0.971830985915493,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "maple-court--3",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-27",
+  "round": "2",
+  "programme": "maple-court",
+  "a": "experiments/results/phase3-q2/P1-fails--maple-court--3.dom",
+  "b": "experiments/results/phase3-q2/P1-score--maple-court--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.04789745596028171,
+   "P1": -0.18211720654062738
+  },
+  "better": {
+   "A0": "A",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--maple-court--3.dom",
+    "svg": "R2-27-a.svg",
+    "scores": {
+     "A0": 4.6826833892457765e-07,
+     "P1": 0.013287086461113975
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 2,
+     "shortfall_m2": 242.57157339393507,
+     "surplus_m2": 73.6718973976487,
+     "ratio_med": 0.9517179224259653,
+     "ratio_min": 0.15415342150962133,
+     "ratio_big5": 0.5789034947798832,
+     "narrowest": 1.3750863677951948,
+     "sliver": 0,
+     "long": 28,
+     "unlit": 6,
+     "deep": 40,
+     "depth_med": 3.2818786942324176,
+     "adj_asked": 71,
+     "adj_met": 68,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 855.1003240037139,
+     "circ_m2": 403.48832526691547,
+     "circ_share": 0.4718608026923903,
+     "inside_m2": 1258.5886492706288,
+     "wall_per_m2": 1.544927734674703,
+     "roof_per_m2": 0.6064025073241776,
+     "cost": 512775.6729369912,
+     "adj_share": 0.9577464788732394,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--maple-court--3.dom",
+    "svg": "R2-27-b.svg",
+    "scores": {
+     "A0": 2.8439087375248587e-07,
+     "P1": 0.039406258476301956
+    },
+    "card": {
+     "rooms_asked": 55,
+     "missing": 0,
+     "extra": 0,
+     "token": 2,
+     "over": 2,
+     "shortfall_m2": 299.21795420248935,
+     "surplus_m2": 83.14968031316445,
+     "ratio_med": 0.9531677075030074,
+     "ratio_min": 0.025446270414041915,
+     "ratio_big5": 0.3355167476810531,
+     "narrowest": 1.258425187393681,
+     "sliver": 0,
+     "long": 28,
+     "unlit": 3,
+     "deep": 40,
+     "depth_med": 2.937126896998772,
+     "adj_asked": 71,
+     "adj_met": 65,
+     "no_door": 3,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 807.9317261106752,
+     "circ_m2": 425.53339599375187,
+     "circ_share": 0.5266947468967939,
+     "inside_m2": 1233.465122104427,
+     "wall_per_m2": 1.6254129003596456,
+     "roof_per_m2": 0.5309262920767747,
+     "cost": 503241.0248297624,
+     "adj_share": 0.9154929577464789,
+     "circ_pieces": 2,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "maple-court--3",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-28",
+  "round": "2",
+  "programme": "programme-house",
+  "a": "experiments/results/phase3-q2/A0-fails--programme-house--1.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--programme-house--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.020523340444744614,
+   "P1": -0.32574511533648576
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--programme-house--1.dom",
+    "svg": "R2-28-a.svg",
+    "scores": {
+     "A0": 0.46231792909244634,
+     "P1": 0.5519827418238428
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 20.995315706650548,
+     "surplus_m2": 2.382583401665756,
+     "ratio_med": 0.8776154514259571,
+     "ratio_min": 0.519383567889789,
+     "ratio_big5": 0.8092821363433323,
+     "narrowest": 1.5519975105848154,
+     "sliver": 0,
+     "long": 4,
+     "unlit": 0,
+     "deep": 2,
+     "depth_med": 1.2636000705555404,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 56.387267695015204,
+     "circ_m2": 19.209127954671946,
+     "circ_share": 0.34066428007417154,
+     "inside_m2": 75.59639564968714,
+     "wall_per_m2": 3.0563631112487495,
+     "roof_per_m2": 0.9178234301500052,
+     "cost": 45365.111675447115,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--programme-house--1.dom",
+    "svg": "R2-28-b.svg",
+    "scores": {
+     "A0": 0.47031622054490246,
+     "P1": 0.7002620568970453
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 18.514018474916472,
+     "surplus_m2": 2.38134361529227,
+     "ratio_med": 0.8788543193915586,
+     "ratio_min": 0.5428982740017907,
+     "ratio_big5": 0.8669095792575137,
+     "narrowest": 1.4912794364340272,
+     "sliver": 0,
+     "long": 3,
+     "unlit": 0,
+     "deep": 2,
+     "depth_med": 1.34985862867246,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 58.8673251403758,
+     "circ_m2": 18.414229590857413,
+     "circ_share": 0.3128090081712835,
+     "inside_m2": 77.2815547312332,
+     "wall_per_m2": 2.939436372964849,
+     "roof_per_m2": 0.8791558870598116,
+     "cost": 45635.690206223546,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "programme-house--1",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-29",
+  "round": "2",
+  "programme": "programme-house",
+  "a": "experiments/results/phase3-q2/A0-fails--programme-house--1.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--programme-house--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.03929064814503407,
+   "P1": -0.24111215918698453
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--programme-house--1.dom",
+    "svg": "R2-29-a.svg",
+    "scores": {
+     "A0": 0.46231792909244634,
+     "P1": 0.5519827418238428
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 20.995315706650548,
+     "surplus_m2": 2.382583401665756,
+     "ratio_med": 0.8776154514259571,
+     "ratio_min": 0.519383567889789,
+     "ratio_big5": 0.8092821363433323,
+     "narrowest": 1.5519975105848154,
+     "sliver": 0,
+     "long": 4,
+     "unlit": 0,
+     "deep": 2,
+     "depth_med": 1.2636000705555404,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 56.387267695015204,
+     "circ_m2": 19.209127954671946,
+     "circ_share": 0.34066428007417154,
+     "inside_m2": 75.59639564968714,
+     "wall_per_m2": 3.0563631112487495,
+     "roof_per_m2": 0.9178234301500052,
+     "cost": 45365.111675447115,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--programme-house--1.dom",
+    "svg": "R2-29-b.svg",
+    "scores": {
+     "A0": 0.47775121779019614,
+     "P1": 0.6582831661665475
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 21.073203040669558,
+     "surplus_m2": 1.9233285026543046,
+     "ratio_med": 0.910955833374061,
+     "ratio_min": 0.5557062400046541,
+     "ratio_big5": 0.8888971004873251,
+     "narrowest": 1.487032398859352,
+     "sliver": 0,
+     "long": 3,
+     "unlit": 0,
+     "deep": 2,
+     "depth_med": 1.9451566601664192,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 55.850125461984746,
+     "circ_m2": 16.0620265210876,
+     "circ_share": 0.28759159246688654,
+     "inside_m2": 71.91215198307236,
+     "wall_per_m2": 3.0538565583249233,
+     "roof_per_m2": 0.9266506569954315,
+     "cost": 44478.893529391564,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "programme-house--1",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-30",
+  "round": "2",
+  "programme": "programme-house",
+  "a": "experiments/results/phase3-q2/P1-fails--programme-house--1.dom",
+  "b": "experiments/results/phase3-q2/P1-score--programme-house--1.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.8545743287724011,
+   "P1": 0.9101590396298448
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--programme-house--1.dom",
+    "svg": "R2-30-a.svg",
+    "scores": {
+     "A0": 0.47031622054490246,
+     "P1": 0.7002620568970453
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 18.514018474916472,
+     "surplus_m2": 2.38134361529227,
+     "ratio_med": 0.8788543193915586,
+     "ratio_min": 0.5428982740017907,
+     "ratio_big5": 0.8669095792575137,
+     "narrowest": 1.4912794364340272,
+     "sliver": 0,
+     "long": 3,
+     "unlit": 0,
+     "deep": 2,
+     "depth_med": 1.34985862867246,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 58.8673251403758,
+     "circ_m2": 18.414229590857413,
+     "circ_share": 0.3128090081712835,
+     "inside_m2": 77.2815547312332,
+     "wall_per_m2": 2.939436372964849,
+     "roof_per_m2": 0.8791558870598116,
+     "cost": 45635.690206223546,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--programme-house--1.dom",
+    "svg": "R2-30-b.svg",
+    "scores": {
+     "A0": 0.2302558992402219,
+     "P1": 0.36019170999624706
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 16.31381168857023,
+     "surplus_m2": 3.718507213972492,
+     "ratio_med": 0.9530996554010221,
+     "ratio_min": 0.5589208141661638,
+     "ratio_big5": 0.9050096717465319,
+     "narrowest": 1.4020025658174795,
+     "sliver": 0,
+     "long": 2,
+     "unlit": 0,
+     "deep": 2,
+     "depth_med": 1.4222421818470545,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 62.40469552540227,
+     "circ_m2": 22.700009665854907,
+     "circ_share": 0.363754834067169,
+     "inside_m2": 85.10470519125717,
+     "wall_per_m2": 2.9736551711769974,
+     "roof_per_m2": 0.82932149603324,
+     "cost": 48475.198774596654,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "programme-house--1",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-31",
+  "round": "2",
+  "programme": "programme-house",
+  "a": "experiments/results/phase3-q2/A0-fails--programme-house--2.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--programme-house--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 0.01783506512208837,
+   "P1": -0.7742018824117055
+  },
+  "better": {
+   "A0": "A",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--programme-house--2.dom",
+    "svg": "R2-31-a.svg",
+    "scores": {
+     "A0": 0.20359306474789485,
+     "P1": 0.28406663448858555
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 1,
+     "shortfall_m2": 24.231764991082308,
+     "surplus_m2": 3.233055793528231,
+     "ratio_med": 1.02676122890917,
+     "ratio_min": 0.3278315496961086,
+     "ratio_big5": 0.9854678612424754,
+     "narrowest": 1.4022259786240143,
+     "sliver": 0,
+     "long": 5,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 1.367107435181313,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 54.00129080244592,
+     "circ_m2": 26.816739911331144,
+     "circ_share": 0.4965944241858106,
+     "inside_m2": 80.81803071377706,
+     "wall_per_m2": 3.482786270450446,
+     "roof_per_m2": 0.9583762662629045,
+     "cost": 47934.012873866086,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--programme-house--2.dom",
+    "svg": "R2-31-b.svg",
+    "scores": {
+     "A0": 0.20058086708136694,
+     "P1": 0.5000550847699754
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 22.59555349424607,
+     "surplus_m2": 5.086249937202073,
+     "ratio_med": 1.112772315058186,
+     "ratio_min": 0.3544127573072552,
+     "ratio_big5": 1.1131910046835338,
+     "narrowest": 1.492444083291331,
+     "sliver": 0,
+     "long": 2,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 1.9554232819406607,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 57.49069644295601,
+     "circ_m2": 30.04486032358226,
+     "circ_share": 0.522603867799613,
+     "inside_m2": 87.53555676653826,
+     "wall_per_m2": 2.9705527370271847,
+     "roof_per_m2": 0.9002074884233987,
+     "cost": 47971.325521250896,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "programme-house--2",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-32",
+  "round": "2",
+  "programme": "programme-house",
+  "a": "experiments/results/phase3-q2/A0-fails--programme-house--2.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--programme-house--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.8391297666030941,
+   "P1": -1.1483453156070567
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--programme-house--2.dom",
+    "svg": "R2-32-a.svg",
+    "scores": {
+     "A0": 0.20359306474789485,
+     "P1": 0.28406663448858555
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 1,
+     "shortfall_m2": 24.231764991082308,
+     "surplus_m2": 3.233055793528231,
+     "ratio_med": 1.02676122890917,
+     "ratio_min": 0.3278315496961086,
+     "ratio_big5": 0.9854678612424754,
+     "narrowest": 1.4022259786240143,
+     "sliver": 0,
+     "long": 5,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 1.367107435181313,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 54.00129080244592,
+     "circ_m2": 26.816739911331144,
+     "circ_share": 0.4965944241858106,
+     "inside_m2": 80.81803071377706,
+     "wall_per_m2": 3.482786270450446,
+     "roof_per_m2": 0.9583762662629045,
+     "cost": 47934.012873866086,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--programme-house--2.dom",
+    "svg": "R2-32-b.svg",
+    "scores": {
+     "A0": 0.4105219288948062,
+     "P1": 0.6572130662769025
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 14.98904363678334,
+     "surplus_m2": 1.4000987141800447,
+     "ratio_med": 0.9106142319813281,
+     "ratio_min": 0.7157037893459588,
+     "ratio_big5": 0.9364133222920745,
+     "narrowest": 1.1578675986948035,
+     "sliver": 0,
+     "long": 3,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 1.4595802918772218,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 3,
+     "connected": 3,
+     "stair_storeys": 3,
+     "room_m2": 61.41105507739671,
+     "circ_m2": 29.12185318731221,
+     "circ_share": 0.47421190127102963,
+     "inside_m2": 90.53290826470892,
+     "wall_per_m2": 3.508955861265051,
+     "roof_per_m2": 0.8427400471690337,
+     "cost": 56193.99255656825,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "programme-house--2",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-33",
+  "round": "2",
+  "programme": "programme-house",
+  "a": "experiments/results/phase3-q2/P1-fails--programme-house--2.dom",
+  "b": "experiments/results/phase3-q2/P1-score--programme-house--2.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": 2.4690109581261193,
+   "P1": 2.745345491773641
+  },
+  "better": {
+   "A0": "A",
+   "P1": "A"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--programme-house--2.dom",
+    "svg": "R2-33-a.svg",
+    "scores": {
+     "A0": 0.20058086708136694,
+     "P1": 0.5000550847699754
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 22.59555349424607,
+     "surplus_m2": 5.086249937202073,
+     "ratio_med": 1.112772315058186,
+     "ratio_min": 0.3544127573072552,
+     "ratio_big5": 1.1131910046835338,
+     "narrowest": 1.492444083291331,
+     "sliver": 0,
+     "long": 2,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 1.9554232819406607,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 57.49069644295601,
+     "circ_m2": 30.04486032358226,
+     "circ_share": 0.522603867799613,
+     "inside_m2": 87.53555676653826,
+     "wall_per_m2": 2.9705527370271847,
+     "roof_per_m2": 0.9002074884233987,
+     "cost": 47971.325521250896,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--programme-house--2.dom",
+    "svg": "R2-33-b.svg",
+    "scores": {
+     "A0": 0.02547586439437546,
+     "P1": 0.06731634919268024
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 1,
+     "over": 0,
+     "shortfall_m2": 38.29131943846677,
+     "surplus_m2": 0.0,
+     "ratio_med": 0.9084644888607885,
+     "ratio_min": 0.021420846209120974,
+     "ratio_big5": 0.9022266148832321,
+     "narrowest": 0.6245189410074055,
+     "sliver": 1,
+     "long": 0,
+     "unlit": 0,
+     "deep": 0,
+     "depth_med": 1.740559438785844,
+     "adj_asked": 6,
+     "adj_met": 5,
+     "no_door": 0,
+     "storeys": 1,
+     "connected": 1,
+     "stair_storeys": 0,
+     "room_m2": 36.70868056153323,
+     "circ_m2": 13.412275562220652,
+     "circ_share": 0.36537067955189,
+     "inside_m2": 50.12095612375388,
+     "wall_per_m2": 2.578283856006218,
+     "roof_per_m2": 1.36537067955189,
+     "cost": 26690.52380450352,
+     "adj_share": 0.8333333333333334,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 13.412275562220652
+    }
+   }
+  },
+  "design": "programme-house--2",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ },
+ {
+  "id": "R2-34",
+  "round": "2",
+  "programme": "programme-house",
+  "a": "experiments/results/phase3-q2/A0-fails--programme-house--3.dom",
+  "b": "experiments/results/phase3-q2/P1-fails--programme-house--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.7926494027974189,
+   "P1": -1.325231947538644
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--programme-house--3.dom",
+    "svg": "R2-34-a.svg",
+    "scores": {
+     "A0": 0.12036238661619074,
+     "P1": 0.14655138647021032
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 18.393190279441797,
+     "surplus_m2": 5.0300575558428555,
+     "ratio_med": 1.1256012354903413,
+     "ratio_min": 0.509495638568377,
+     "ratio_big5": 1.1121291371545148,
+     "narrowest": 1.5284104723899627,
+     "sliver": 0,
+     "long": 3,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 2.256669920149786,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 1,
+     "stair_storeys": 2,
+     "room_m2": 61.63686727640106,
+     "circ_m2": 12.735775621208658,
+     "circ_share": 0.20662593970094276,
+     "inside_m2": 74.37264289760972,
+     "wall_per_m2": 2.793699137025061,
+     "roof_per_m2": 0.7187014262855212,
+     "cost": 43378.275984694905,
+     "adj_share": 1.0,
+     "circ_pieces": 1,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-fails--programme-house--3.dom",
+    "svg": "R2-34-b.svg",
+    "scores": {
+     "A0": 0.23344979733641683,
+     "P1": 0.3858238613867331
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 14.752632187131098,
+     "surplus_m2": 6.363504213526354,
+     "ratio_med": 1.0816435203246229,
+     "ratio_min": 0.5956938932493061,
+     "ratio_big5": 1.0637666533634487,
+     "narrowest": 1.4180533312952726,
+     "sliver": 0,
+     "long": 2,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 2.3083925345652205,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 66.61087202639526,
+     "circ_m2": 20.78010247819819,
+     "circ_share": 0.3119626248094134,
+     "inside_m2": 87.39097450459344,
+     "wall_per_m2": 2.597390313290958,
+     "roof_per_m2": 0.7769535794714947,
+     "cost": 47257.23890018239,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "programme-house--3",
+  "arms": {
+   "a": "A0-fails",
+   "b": "P1-fails"
+  }
+ },
+ {
+  "id": "R2-35",
+  "round": "2",
+  "programme": "programme-house",
+  "a": "experiments/results/phase3-q2/A0-fails--programme-house--3.dom",
+  "b": "experiments/results/phase3-q2/A0-tiers--programme-house--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -1.9410001473821277,
+   "P1": -2.522511163376262
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/A0-fails--programme-house--3.dom",
+    "svg": "R2-35-a.svg",
+    "scores": {
+     "A0": 0.12036238661619074,
+     "P1": 0.14655138647021032
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 18.393190279441797,
+     "surplus_m2": 5.0300575558428555,
+     "ratio_med": 1.1256012354903413,
+     "ratio_min": 0.509495638568377,
+     "ratio_big5": 1.1121291371545148,
+     "narrowest": 1.5284104723899627,
+     "sliver": 0,
+     "long": 3,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 2.256669920149786,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 1,
+     "stair_storeys": 2,
+     "room_m2": 61.63686727640106,
+     "circ_m2": 12.735775621208658,
+     "circ_share": 0.20662593970094276,
+     "inside_m2": 74.37264289760972,
+     "wall_per_m2": 2.793699137025061,
+     "roof_per_m2": 0.7187014262855212,
+     "cost": 43378.275984694905,
+     "adj_share": 1.0,
+     "circ_pieces": 1,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/A0-tiers--programme-house--3.dom",
+    "svg": "R2-35-b.svg",
+    "scores": {
+     "A0": 0.6095407921119373,
+     "P1": 0.9251202627158155
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 3.4814814573743327,
+     "surplus_m2": 2.6796765036079355,
+     "ratio_med": 1.0445859961758786,
+     "ratio_min": 0.7314743634858809,
+     "ratio_big5": 1.0428428824829652,
+     "narrowest": 1.7518668040706302,
+     "sliver": 0,
+     "long": 1,
+     "unlit": 0,
+     "deep": 2,
+     "depth_med": 1.827911465824315,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 74.1981950462336,
+     "circ_m2": 14.40771065485004,
+     "circ_share": 0.1941787215426529,
+     "inside_m2": 88.60590570108364,
+     "wall_per_m2": 2.3260741979718227,
+     "roof_per_m2": 0.6975042374060088,
+     "cost": 46680.746638588535,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "programme-house--3",
+  "arms": {
+   "a": "A0-fails",
+   "b": "A0-tiers"
+  }
+ },
+ {
+  "id": "R2-36",
+  "round": "2",
+  "programme": "programme-house",
+  "a": "experiments/results/phase3-q2/P1-fails--programme-house--3.dom",
+  "b": "experiments/results/phase3-q2/P1-score--programme-house--3.dom",
+  "strength": 0.0,
+  "z": {
+   "A0": -0.7346575341050449,
+   "P1": -0.9504840155975538
+  },
+  "better": {
+   "A0": "B",
+   "P1": "B"
+  },
+  "sides": {
+   "a": {
+    "path": "experiments/results/phase3-q2/P1-fails--programme-house--3.dom",
+    "svg": "R2-36-a.svg",
+    "scores": {
+     "A0": 0.23344979733641683,
+     "P1": 0.3858238613867331
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 14.752632187131098,
+     "surplus_m2": 6.363504213526354,
+     "ratio_med": 1.0816435203246229,
+     "ratio_min": 0.5956938932493061,
+     "ratio_big5": 1.0637666533634487,
+     "narrowest": 1.4180533312952726,
+     "sliver": 0,
+     "long": 2,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 2.3083925345652205,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 66.61087202639526,
+     "circ_m2": 20.78010247819819,
+     "circ_share": 0.3119626248094134,
+     "inside_m2": 87.39097450459344,
+     "wall_per_m2": 2.597390313290958,
+     "roof_per_m2": 0.7769535794714947,
+     "cost": 47257.23890018239,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   },
+   "b": {
+    "path": "experiments/results/phase3-q2/P1-score--programme-house--3.dom",
+    "svg": "R2-36-b.svg",
+    "scores": {
+     "A0": 0.43136736633827083,
+     "P1": 0.7725171510489388
+    },
+    "card": {
+     "rooms_asked": 6,
+     "missing": 0,
+     "extra": 0,
+     "token": 0,
+     "over": 0,
+     "shortfall_m2": 17.47405577040201,
+     "surplus_m2": 0.7237923076144037,
+     "ratio_med": 0.92934859701518,
+     "ratio_min": 0.5715015077906872,
+     "ratio_big5": 0.9277491171267591,
+     "narrowest": 1.651339579484663,
+     "sliver": 0,
+     "long": 1,
+     "unlit": 0,
+     "deep": 1,
+     "depth_med": 1.8284932523947286,
+     "adj_asked": 6,
+     "adj_met": 6,
+     "no_door": 0,
+     "storeys": 2,
+     "connected": 2,
+     "stair_storeys": 2,
+     "room_m2": 58.24973653721239,
+     "circ_m2": 19.98493531559811,
+     "circ_share": 0.3430905700806199,
+     "inside_m2": 78.2346718528105,
+     "wall_per_m2": 2.9641626212958694,
+     "roof_per_m2": 0.8884770735325661,
+     "cost": 45793.63001610921,
+     "adj_share": 1.0,
+     "circ_pieces": 0,
+     "circ_orphan_m2": 0.0
+    }
+   }
+  },
+  "design": "programme-house--3",
+  "arms": {
+   "a": "P1-fails",
+   "b": "P1-score"
+  }
+ }
+]

@@ -100,3 +100,41 @@ def test_twins_arm_pairs_alternate(jp):
     chosen = jp.choose_twins(scored, twins, ["A0", "P1"], 30, [("A0", "P1"), ("A0", "P1u")])
     arms = sorted(twins[b][1] for _, _, a, b, _ in chosen)
     assert arms == ["P1", "P1", "P1u", "P1u"]
+
+
+# --- whole arms (Phase 3, §39.220) ------------------------------------------ #
+
+def _arm_runs(tmp_path, arms, progs=("p", "q"), ks=("1", "2", "3"), same=()):
+    """A file per (arm, programme, k); ``same`` lists (prog, k) where every
+    arm's file has the same bytes."""
+    runs, scored = {}, {}
+    for i, arm in enumerate(arms):
+        for prog in progs:
+            for k in ks:
+                f = tmp_path / f"{arm}--{prog}--{k}.dom"
+                f.write_text("x" if (prog, k) in same else f"{arm}{prog}{k}")
+                runs[str(f)] = (arm, prog, k)
+                scored[str(f)] = dict(programme=prog,
+                                      scores=dict(A0=1.0 + i + int(k), P1=2.0 + int(k)))
+    return runs, scored
+
+
+def test_arms_pair_every_start_regardless_of_scores(jp, tmp_path):
+    runs, scored = _arm_runs(tmp_path, ["X", "Y", "Z"])
+    chosen = jp.choose_arms(scored, runs, ["A0", "P1"], [("X", "Y"), ("X", "Z")])
+    assert len(chosen) == 12                     # 2 contrasts x 2 programmes x 3 starts
+    for prog, _, a, b, _ in chosen:
+        ra, rb = runs[a], runs[b]
+        assert ra[1:] == rb[1:] == (prog, ra[2]) # same programme and start
+    # interleaved: a round stopped early has both contrasts
+    assert {runs[chosen[0][3]][0], runs[chosen[1][3]][0]} == {"Y", "Z"}
+
+
+def test_arms_drop_byte_identical_pairs(jp, tmp_path):
+    runs, scored = _arm_runs(tmp_path, ["X", "Y"], same={("p", "2")})
+    chosen = jp.choose_arms(scored, runs, ["A0", "P1"], [("X", "Y")])
+    assert len(chosen) == 5
+    assert ("p", "2") not in {runs[a][1:] for _, _, a, _, _ in chosen}
+    # negative control: without the identical start, nothing is dropped
+    runs, scored = _arm_runs(tmp_path, ["X", "Y"])
+    assert len(jp.choose_arms(scored, runs, ["A0", "P1"], [("X", "Y")])) == 6

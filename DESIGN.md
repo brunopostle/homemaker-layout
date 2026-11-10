@@ -21846,3 +21846,10 @@ on these cards. `tiers` is a real trade, fewer hard fails for many more soft one
 programmes, and whether that is better is a judgement, not a count. Both questions go to blind judging
 round 2, which the bead names as the decider: P1-fails against A0-fails, and a tiers arm against its
 fails arm.
+
+**Round 2 is built** (`homemaker-py-5fje.15`). `judge_pairs.py build --arms` is a new mode that pairs
+every start of each contrast. Unlike rounds 0 and 1, it does not filter on whether the scores disagree:
+the question is which arm gives the better building, and a filtered sample would answer a different one.
+It drops only byte-identical pairs, and none were dropped here. There are 36 pairs, 12 per contrast:
+A0-fails : P1-fails, A0-fails : A0-tiers and P1-fails : P1-score. They are in
+`experiments/results/judging/round-2/`. The report tallies which arm the judge chose, per contrast.
