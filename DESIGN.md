@@ -21780,3 +21780,69 @@ stamp (`9a14624+orth`, `+P1`, `+P1phi1e-20`) and search config (`10ad64f603` fai
   with more total fails than P1-score on maple-court, the programme with the most token rooms.
 - **P1u against P1, under `fails` or `tiers`:** close to P1. The count leads, and φ only orders designs
   with equal counts.
+
+### 39.220 Phase 3 results: all nine arms, paired report cards (`homemaker-py-5fje.6`)
+
+The sweep finished 2026-11-10 20:19: 108 runs, nine arms × four programmes × three starts, 128k each,
+objective `9a14624+orth` (A0), `+P1`, `+P1phi1e-20` (P1u), search `9a14624`. Cards are in
+`experiments/results/phase3-q2/cards.tsv` (`report_card.py` over every design), paired by
+`pair_phase3_q2.py`; hard/soft come from `results.tsv`. Twelve pairs per contrast; **"resolved" means
+beyond `ab_report`'s MDD**, and everything else is a direction only. `missing` is 0 in all 108 designs,
+so no arm can be told apart on omitted rooms.
+
+**Arm means** (fails as recorded in `results.tsv`; lower is better except `adj_share` and `ratio_min`):
+
+| arm | fails | hard | soft | token | no_door | adj_share | ratio_min | unlit | disconnected | circ_pieces | cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A0-fails | 13.8 | 5.67 | 8.08 | 1.42 | 0.92 | 0.960 | 0.273 | 1.25 | 0.92 | 3.25 | 265k |
+| A0-score | 12.5 | 5.50 | 7.00 | 1.58 | 0.67 | 0.954 | 0.259 | 1.42 | 0.83 | 3.50 | 262k |
+| A0-tiers | 23.3 | 3.83 | 19.5 | 1.42 | 0.75 | 0.969 | 0.334 | 6.33 | 0.58 | 2.17 | 324k |
+| P1-fails | 11.3 | 4.42 | 6.92 | 1.33 | 0.42 | 0.961 | 0.351 | 1.42 | 0.83 | 3.00 | 274k |
+| P1-score | 13.6 | 5.83 | 7.75 | 1.75 | 2.25 | 0.901 | 0.262 | 0.67 | 0.50 | 1.75 | 257k |
+| P1-tiers | 23.3 | 2.83 | 20.5 | 2.00 | 0.83 | 0.963 | 0.312 | 8.17 | 0.50 | 1.83 | 316k |
+| P1u-fails | 12.2 | 5.17 | 7.00 | 1.00 | 0.50 | 0.960 | 0.328 | 0.42 | 0.83 | 3.42 | 286k |
+| P1u-score | 15.8 | 7.00 | 8.83 | 0.92 | 3.08 | 0.893 | 0.303 | 0.17 | 0.42 | 1.75 | 258k |
+| P1u-tiers | 24.8 | 3.67 | 21.1 | 0.83 | 0.92 | 0.956 | 0.286 | 7.92 | 0.42 | 2.17 | 324k |
+
+**Against the expectations of §39.218 and §39.219:**
+
+- **A0-score against A0-fails: little difference. Met.** Health-centre's runs are bit-identical (all
+  three seeds), and nothing is resolved elsewhere (fails −1.25, MDD 1.96). The lexicographic order does
+  almost no work that `0.5**n` does not already do.
+- **P1-score against P1-fails: fewer token rooms. Not met.** Token rooms go up, +0.42 (MDD 0.83), and
+  +1 on maple-court. More fails in total: direction met, +2.25 (MDD 2.44), not resolved. Four columns
+  are resolved, three of them worse: `no_door` +1.83 (MDD 1.55), `adj_share` −0.060 (MDD 0.047) and
+  `ratio_min` −0.089 (MDD 0.079). `circ_pieces` −1.25 (MDD 1.09) is better. Ranked by the score alone,
+  P1 gives up doors and adjacencies, which are room votes, for fewer pieces of circulation.
+- **Storeys connected and stairs no worse under any P arm. Met for connection, stairs unresolved.**
+  `disconnected` falls in every P arm (0.92 under A0-fails, 0.42–0.83 under P), most under `score`.
+  `stair_storeys` falls by 0.33 under P1-score (MDD 0.41: harbor-house −0.67, programme-house −0.67),
+  so stairs are a direction to watch, not a finding.
+- **A0-tiers against A0-fails: little difference. Not met, and by the widest margin in the sweep.**
+  Hard fails −1.83 (MDD 1.71) and soft +11.4 (MDD 8.6), both resolved, so total fails +9.6 (MDD 8.5).
+  Also resolved: `unlit` +5.1, `circ_share` +0.18, `ratio_med` −0.047 and cost +59k (MDD 51k). All of it
+  is on harbor-house and maple-court; health-centre and programme-house barely move. P1 and P1u do the
+  same: soft +13.6 and +14.1 (resolved), hard −1.6 and −1.5 (not resolved). Tiers works as designed and
+  trades about seven soft fails for each hard one. §39.68 found the hard/soft split inert as a
+  WEIGHTING of crinkliness, but as the leading key of the ranking it is the strongest lever measured here.
+- **P1-tiers between P1-fails and P1-score on token rooms. Not met.** It has the most, 2.00, against
+  1.33 and 1.75, within MDD.
+- **P1u against P1 under `score`: fewer token rooms. Direction met**, −0.83 (MDD 0.93). There are no
+  missing rooms to have fewer of. **Stall on maple-court: direction met but small**, fails 18.3 against
+  16.3. The overall +2.25 fails (MDD 2.70) is mostly health-centre, +7.3.
+- **P1u against P1 under `fails` or `tiers`: close. Met**, apart from two things. `circ_share` rises by
+  +0.145 under `fails` (MDD 0.140, borderline). Under `tiers`, token rooms fall by −1.17 (MDD 0.85) and
+  `ratio_med` rises by +0.035 (MDD 0.023), both resolved.
+
+**One contrast outside the expectations: A0-fails against P1-fails.** With the ranking held at
+`fails`, P1 has fewer hard fails, −1.25 (MDD 1.09, resolved). Every other column is within MDD, and the
+directions mostly favour P1: fails −2.42, `ratio_min` +0.077, `no_door` −0.5. P1-fails has the lowest
+fail count and the lowest `no_door` of the nine arms.
+
+**What this says about Q2, provisionally.** Do not rank by the score alone under P. Its card is
+resolved-worse on doors and adjacency, and its gains (circulation pieces, connected storeys) are a
+building-level saving that the fail-led arms do not pay for. `fails` is the defensible default under P
+on these cards. `tiers` is a real trade, fewer hard fails for many more soft ones on the two big
+programmes, and whether that is better is a judgement, not a count. Both questions go to blind judging
+round 2, which the bead names as the decider: P1-fails against A0-fails, and a tiers arm against its
+fails arm.
