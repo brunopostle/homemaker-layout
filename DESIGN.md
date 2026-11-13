@@ -22008,3 +22008,26 @@ storey's own: a bedroom squeezed to 0.39 m moves `sliver` and `sliver_cells` by 
 same cell made corridor moves `sliver_cells` alone (and `missing`, as a room has gone). Before
 this, no control moved `sliver` at all. The regenerated `phase3-q2/cards.tsv` differs from the
 committed one only by the new column. Search-side: no objective source is touched.
+
+### 39.224 Phase 3 again at the sliver objective: the four core arms, expectations written first (`homemaker-py-5fje.6`)
+
+Asked for by the owner 2026-11-13, at six cores. The four arms round 2 could not separate, A0 and P1
+ranked by `fails` and by `score`; tiers is out (§39.221). 48 runs, 128k each, the same starts and rng
+seeds as §39.220, objective `2d4f3d4+orth` (`+P1`), search `9a14624`, so the same search as Phase 3:
+each run pairs with its Phase 3 twin and only the objective differs.
+`run_phase3_q2.py --arms A0-fails A0-score P1-fails P1-score --out experiments/results/phase3-sliver`,
+about 20 h.
+
+**Expected, before it runs.** Phase 3's 48 designs in these arms hold 6 sliver rooms and 10 sliver
+cells (`report_card.py`, §39.223): A0-fails 2/4, A0-score 1/1, P1-fails 1/2, P1-score 2/3.
+
+1. **Sliver rooms: 0 in all 48**, or at most one or two in designs whose last improvement came
+   late. The fail is graded and a wall move clears one (§39.222).
+2. **Sliver cells of other types: no change**, about 4 over 48. Corridor, stair and outside slivers
+   already failed `width` in Phase 3.
+3. **Every other card column within MDD of its Phase 3 twin**, arm by arm. Six rooms in 48 designs
+   is too few to show up anywhere else, so any resolved move means the trajectories diverged, not
+   that the objective changed something.
+4. **The four-arm contrasts as in §39.220**, in direction: P1-score worse than P1-fails on
+   `no_door` and `adj_share`, better on `circ_pieces`; A0-score close to A0-fails, with
+   health-centre bit-identical if it has no sliver room to clear.

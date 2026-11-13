@@ -224,7 +224,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (328 of them, 22010 lines)
+## Every section of DESIGN.md (329 of them, 22033 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -603,4 +603,5 @@ below are the most recent work.
 - §39.220 · 21784-21856 · Phase 3 results: all nine arms, paired report cards (`homemaker-py-5fje.6`)
 - §39.221 · 21857-21930 · Round 2 answered: tiers loses, A0 and P1 under `fails` tie, and the judge's "sliver" is any cell under 0.8 m (`homemaker-py-5fje.15`)
 - §39.222 · 21931-21988 · Owner's rulings on round 2: a sliver room fails, a stair cell in no shaft is circulation, a run of them is a corridor (`homemaker-py-5fje.16`, `homemaker-py-5fje.17`)
-- §39.223 · 21989-22010 · The report card counts slivers of every type (`homemaker-py-5fje.16`)
+- §39.223 · 21989-22011 · The report card counts slivers of every type (`homemaker-py-5fje.16`)
+- §39.224 · 22012-22033 · Phase 3 again at the sliver objective: the four core arms, expectations written first (`homemaker-py-5fje.6`)
