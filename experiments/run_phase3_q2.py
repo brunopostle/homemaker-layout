@@ -161,7 +161,8 @@ def main() -> int:
                     help="results directory (default experiments/results/phase3-q2)")
     ap.add_argument("--no-push", action="store_true", help="smoke runs: commit nothing")
     args = ap.parse_args()
-    OUT, TSV = args.out, args.out / "results.tsv"
+    OUT = args.out.resolve()   # relative_to(REPO) below needs it absolute
+    TSV = OUT / "results.tsv"
 
     if os.environ.get(rcb.ORTH_ENV) != "1":
         print("!!! set HOMEMAKER_ORTHOGONAL_DIVISION=1", file=sys.stderr)
