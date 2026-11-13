@@ -53,7 +53,8 @@ def test_rooms_are_width_exempt_but_circulation_and_outside_are_not(name):
         for leaf in _leaves(dom_mod.load(str(p))):
             k = _klass(leaf)
             seen.add(k)
-            if k == "room":
+            # a sliver room is the exception, §39.222 (tests/test_sliver_room.py)
+            if k == "room" and geometry.usable_width(leaf) >= 0.8:
                 assert fit.quality_width(leaf) == 1.0, (
                     f"{p.name} {leaf.id}: a room's width must not be scored")
     assert "room" in seen

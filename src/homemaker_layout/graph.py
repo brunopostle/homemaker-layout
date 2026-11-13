@@ -537,7 +537,8 @@ def stack_corners_in_use(
 
     Returns [] if ``leaf`` is not the foot of a staircase: a cell labelled
     ``E`` with the same ``E`` cell on the storey above (:func:`stair_shaft`).
-    In a building of one storey the cell alone is the shaft.
+    A stair cell in no shaft -- including every one in a building of one
+    storey -- is circulation and nothing else (owner's ruling, §39.222).
 
     Each storey of the shaft has doors to keep clear, and so one or more
     equally small runs of corners (:func:`_corner_runs`). Urb took the first
@@ -557,9 +558,11 @@ def stack_corners_in_use(
 
     stack = stair_shaft(leaf)
 
-    # A stair goes somewhere: it reaches the storey above, if there is one.
+    # A stair goes somewhere: it reaches the storey above. One that does not
+    # is "functionally a circulation cell and should be considered as such"
+    # (§39.222); a one-storey building needs no stair at all (§39.177).
     li = _level_index(leaf, all_levels)
-    if len(stack) < min(2, len(all_levels) - li):
+    if len(stack) < 2:
         return []
 
     options: list[list[frozenset]] = []

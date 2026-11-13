@@ -51,3 +51,23 @@ def test_a_two_storey_building_without_a_stair_still_is():
     root, fails = _score("harbor-house", "two-storeys-no-stair.dom")
     assert len(dom.levels(root)) == 2
     assert [f for f in fails if f.startswith("too few stairs")] == ["too few stairs (0, min 2)"]
+
+
+def test_a_stair_cell_in_a_one_storey_building_is_circulation():
+    """Owner's ruling, §39.222: "a stair cell that belongs to no shaft is
+    functionally a circulation cell and should be considered as such". In one
+    storey nothing is climbed, so relabelling corridor cells `E` must move
+    neither the score nor the fails. A pin, not a fix: the scorer already
+    looked for stairs only in a ground cell with something built over it, so
+    this held before the ruling too, and has no negative control that fires."""
+    conf, cost = load_config(DATA / "health-centre")
+    root = dom.load(str(DATA / "health-centre" / "one-storey.dom"))
+    corridors = [t for t in root.leaves() if t.type == "C"]
+    assert len(corridors) >= 2, "the fixture needs two corridor cells"
+    geometry.clear_cache()
+    plain = Fitness(conf, cost).score_with_fails(root)
+    for t in corridors:
+        t.type = "E"
+    geometry.clear_cache()
+    relabelled = Fitness(conf, cost).score_with_fails(root)
+    assert relabelled == plain

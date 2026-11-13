@@ -21927,3 +21927,61 @@ between A0 and P1 when both rank by fails. Of the nine arms, the judge rules out
 and `score` under P1, and between A0 and P1 under `fails`, round 2 cannot separate them. The levers left
 are in the objective, not its aggregation: slivers counted on every cell, and circulation as a network
 (§39.214-§39.215).
+
+### 39.222 Owner's rulings on round 2: a sliver room fails, a stair cell in no shaft is circulation, a run of them is a corridor (`homemaker-py-5fje.16`, `homemaker-py-5fje.17`)
+
+Given 2026-11-13 on §39.221's two questions, in the owner's words:
+
+> a sliver room is a fail in a finished design, I can see that it might be ok in an intermediate step. a
+> stair cell that belongs to no shaft is functionally a circulation cell and should be considered as
+> such, a run of stair cells and or mixed stair cells and corridors is effectively a long composite
+> corridor
+
+**1. A sliver room fails `width`.** Rooms have had no width target since §39.37, so a room cell 0.05 m
+wide was scored on size and proportion alone and often failed neither. Circulation and outside cells
+were never the gap: their own width gaussians (`width_circulation` 1.6 m, `width_outside` 2.3 m) fail
+far above 0.8 m, and every corridor, stair and outside sliver the judge named in round 2 already carried
+a `width` fail. Over the 108 Phase 3 designs, 31 cells are under 0.8 m and the **22 without a fail are
+all rooms**. Now `quality_width` returns `FAIL_THRESHOLD * w / sliver_width` for a room cell under
+`sliver_width` (a new default, 0.8 m, the owner's "no use for anything" of §39.204), and 1.0 otherwise.
+The factor is graded by how near the cell is to passing, which is the reading of "ok in an intermediate
+step" built here: the search pays a fail for it, as for any other, and can see the way out. With a
+room width target restored (`width_inside` set) the sliver still fails, whatever the gaussian says.
+
+Two consequences are held to zero. **`factor_is_asked("width")` is True for a room only when it is a
+sliver**, so every other room keeps its five-factor geometric mean (§39.37.2) and its score bit for bit.
+And a MISSING room is not billed for it, because `score_with_fails` asks the question on a probe node
+with no geometry, which is never a sliver (§38.12: a missing room pays only for what every present room
+faces).
+
+**Measured before landing**, scored before and after on all 108 Phase 3 designs, quad and native: 14
+designs change, by exactly the 22 new `<id> width` fails and nothing else. A0-tiers--maple-court--2
+gains five (its `t`/`tn`/`tt` column of 0.52 m toilets), A0-tiers--harbor-house--1 three. Every other
+design's score is bit-identical. Pinned in `tests/test_sliver_room.py`, with `sliver_width: 0` as the
+negative control that removes exactly those fails.
+
+**2. A stair cell in no shaft is circulation. Already true in the scorer.** Checked rather than assumed:
+the scorer looks for stairs only in a ground-floor `E` cell with something built over it
+(`is_covered`), and `stack_corners_in_use` returns nothing for one whose shaft does not reach the storey
+above. Such a cell takes every circulation parameter (§39.125) and is never a stair. The one clause that
+said otherwise, "in a building of one storey the cell alone is the shaft", was unreachable through the
+cover gate; it now says what the ruling says, and `tests/test_single_storey_stairs.py` pins that
+relabelling corridor cells `E` in a one-storey building moves nothing. That test has no negative control
+that fires, and says so: it is a pin, not a fix. No committed design (2,265 checked) is a one-storey
+building with an `E` cell. **The drawings did not agree**: `plan_svg.py` hatched every `E`, which is
+what the judge read as "spurious stair spaces" in eight notes. It now draws an `E` cell in no shaft as
+`C`, circulation. This sits with §39.197 (a single-storey stair is "neither relabelled nor charged"):
+the tree is not relabelled, only drawn as what it is.
+
+**3. A run of stair and corridor cells is one composite corridor. Already how it is scored.** Adjacent
+`C` and `E` cells are one piece of circulation to `circulation_pieces` (§39.215), and a shaft that
+cannot hold a flight is circulation (§39.211). It is also the reading behind §39.193's split of a long
+stair into a stair and a circulation cell. The one case the ruling does not settle is two FULL stairs
+side by side: each still counts as a stair towards `staircase_max`. It occurs in 2 of the 53 Phase 3
+designs with two or more shafts, so it is recorded, not changed.
+
+**The objective stamp moves** (`fitness.py`, `graph.py`): every earlier corpus, Phase 3's included, is
+now at an older objective. What to expect of the next search at this stamp: no sliver rooms in the
+finished design of any arm, at little cost elsewhere, since the 22 slivers are 0.15-6.4 m² each
+and the search can move a wall to clear one; the tiers arms, which made most of them (A0-tiers 11),
+should change most.

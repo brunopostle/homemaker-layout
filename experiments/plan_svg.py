@@ -22,7 +22,7 @@ import sys
 from html import escape
 from pathlib import Path
 
-from homemaker_layout import dom, geometry
+from homemaker_layout import dom, geometry, graph
 from homemaker_layout.fitness import Fitness, load_config
 from homemaker_layout.programme import load_programme_dir
 from homemaker_layout.rooms_export import rooms
@@ -81,6 +81,19 @@ def programme_for(path: Path) -> Path:
     return path.parent
 
 
+def shaft_cells(root):
+    """``"level/path"`` of every stair cell that is in a shaft. Any other ``E``
+    cell is circulation and is drawn as such: "a stair cell that belongs to no
+    shaft is functionally a circulation cell" (owner's ruling, §39.222)."""
+    lvls = dom.levels(root)
+    out = set()
+    for leaf in lvls[0].leaves():
+        shaft = graph.stair_shaft(leaf)
+        if len(shaft) > 1:
+            out.update(f"{k}/{leaf.id}" for k in range(len(shaft)))
+    return out
+
+
 def is_indoor(r):
     return not (r["usage"] in ("open", "outside") or r["code"] in ("O", "S"))
 
@@ -123,6 +136,8 @@ def render(dom_path: Path, programme_dir: Path, title: str,
     with those ``dom_id``s (``"level/path"``) in red. ``note`` replaces the
     blind drawing's line about that outline (`judge_pairs.py` outlines nothing)."""
     root = dom.load(str(dom_path), native=True)
+    dom.link(root)
+    shafts = shaft_cells(root)
     reqs = load_programme_dir(str(programme_dir))
     made = rooms(root, programme_dir)
     yards = open_outside(root, programme_dir)
@@ -175,6 +190,8 @@ def render(dom_path: Path, programme_dir: Path, title: str,
             poly = r["vertices"]
             usage = r["usage"]
             code = r["code"]
+            if code == "E" and r["dom_id"] not in shafts:
+                code, usage = "C", "circulation"
             fill = "url(#stair)" if code == "E" else FILL.get(usage, "#eeeeee")
             if usage == "open":
                 fill = FILL["open"]

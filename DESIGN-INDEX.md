@@ -175,6 +175,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Every space occupied all the time, circulation and stairs included, must pass Alexander 159 (light on two sides), instrumented by `crinkliness`. More light than needed is no better; less fails. 1.0 up to 2.5 m per lit wall at a 3 m ceiling (scale-invariant: deeper with higher ceilings), graded beyond, failing at 4.86 m. `crinkliness_shape="daylight"` is the default | §39.213 |
 | A storey's circulation pays one `not connected` fail per piece beyond the first (stairs joining storeys), not one per storey: "an incremental way to resolve the problem" | §39.215 |
 | A stair may take any flight shape with no more turns than its doors allow; a turned shape has two flights across its base, each `min(stair_width, base / 2)` wide and at least 0.9 m, its landings with it. Urb's model of two 1.25 m landings is kept, but a flight narrows to fit: at a fixed 1.25 m, the owner's own 2.29 m U-stair would have been a missing stair. Pinned in `tests/test_stair_shapes.py` | §39.216 |
+| A sliver room is a fail in a finished design ("might be ok in an intermediate step"): a room cell under 0.8 m usable width fails `width`, graded towards passing. A stair cell in no shaft is circulation; a run of stair and corridor cells is one composite corridor. Pinned in `tests/test_sliver_room.py` | §39.222 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -223,7 +224,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (326 of them, 21929 lines)
+## Every section of DESIGN.md (327 of them, 21987 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -600,4 +601,5 @@ below are the most recent work.
 - §39.218 · 21682-21742 · The ranking order under a programme-centric score is an experiment: `--rank` and `--aggregation` (`homemaker-py-5fje.14`)
 - §39.219 · 21743-21783 · Phase 3 launched: the full (aggregation, rank) factorial, nine arms at six slots (`homemaker-py-5fje.6`)
 - §39.220 · 21784-21856 · Phase 3 results: all nine arms, paired report cards (`homemaker-py-5fje.6`)
-- §39.221 · 21857-21929 · Round 2 answered: tiers loses, A0 and P1 under `fails` tie, and the judge's "sliver" is any cell under 0.8 m (`homemaker-py-5fje.15`)
+- §39.221 · 21857-21930 · Round 2 answered: tiers loses, A0 and P1 under `fails` tie, and the judge's "sliver" is any cell under 0.8 m (`homemaker-py-5fje.15`)
+- §39.222 · 21931-21987 · Owner's rulings on round 2: a sliver room fails, a stair cell in no shaft is circulation, a run of them is a corridor (`homemaker-py-5fje.16`, `homemaker-py-5fje.17`)

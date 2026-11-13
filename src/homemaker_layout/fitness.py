@@ -421,6 +421,14 @@ CONF_DEFAULTS: dict = {
     #
     # Set a [target, sigma] pair to restore the old behaviour.
     "width_inside": None,
+    # Owner's ruling (§39.222): "a sliver room is a fail in a finished
+    # design". A room whose usable rectangle is narrower than this fails
+    # `width` even though rooms have no width target (§39.37). 0.8 m is the
+    # owner's "no use for anything" (§39.204), the width at which the judge
+    # called a cell a sliver in round 2 (§39.221). Circulation and outside
+    # cells already fail their own width gaussians far above it. 0 turns the
+    # check off (None in a programme's config falls back to this default).
+    "sliver_width": 0.8,
     # RETIRED (§39.50, homemaker-py-2nr). Null, not absent: §39.22's idiom for
     # "no requirement", which `quality_perpendicular` and `factor_is_asked` both
     # already honour. Retired in the DEFAULTS rather than per programme because
@@ -1580,6 +1588,17 @@ class Fitness:
             G.graph["lobby"] = found
         return G.graph["lobby"]
 
+    def _room_sliver(self, leaf: Node) -> bool:
+        """Is this room cell narrower than ``sliver_width`` (§39.222)? False
+        for a node with no geometry, which is what `score_with_fails` asks on
+        behalf of a MISSING room: a room that is not built is not a sliver, and
+        §38.12 bills a missing room only for what every present room faces."""
+        limit = self.conf("sliver_width")
+        if not limit or (leaf.parent is None and leaf.below is None
+                         and leaf.node is None and leaf.plot is None):
+            return False
+        return geometry.usable_width(leaf) < limit
+
     def quality_width(self, leaf: Node, lobby: bool = False) -> float:
         t0 = _generic_class(leaf)
         if (
@@ -1595,7 +1614,12 @@ class Fitness:
             params = self.conf("width_lobby" if lobby else "width_circulation")
         else:
             if self.conf("width_inside") is None:
-                return 1.0      # no room width requirement -- §39.37
+                # no room width requirement (§39.37), but a sliver fails, graded
+                # by how near it is to passing so a search can still climb out
+                # (§39.222: "it might be ok in an intermediate step")
+                if self._room_sliver(leaf):
+                    return FAIL_THRESHOLD * geometry.usable_width(leaf) / self.conf("sliver_width")
+                return 1.0
             params = self.get_space_params(leaf.type, "width")
             co_type = self._leaf_co_type(leaf)
             if co_type:
@@ -1605,7 +1629,11 @@ class Fitness:
                 params = _gaussian_product(params[0], params[1],
                                            co_params[0], co_params[1])
         width = geometry.usable_width(leaf)
-        return _clipped_gaussian(width, params[0], params[1], "above")
+        f = _clipped_gaussian(width, params[0], params[1], "above")
+        if t0 not in ("o", "s", "c") and self._room_sliver(leaf):
+            # a sliver fails whatever room width target is set (§39.222)
+            f = min(f, FAIL_THRESHOLD * width / self.conf("sliver_width"))
+        return f
 
     # --- simple crinkliness (URB_NO_OCCLUSION: illumination factor = 1) --- #
 
@@ -1915,8 +1943,12 @@ class Fitness:
             # §39.37: a room's width is fixed by its area and aspect, so it is
             # not asked. Circulation and outside still are -- for them size and
             # proportion are absent or inert and width is the only shape control.
-            return not (_generic_class(leaf) not in ("o", "s", "c")
-                        and self.conf("width_inside") is None)
+            # A room is asked only whether it is a sliver (§39.222), so a
+            # room that is not one keeps its five-factor mean.
+            if (_generic_class(leaf) not in ("o", "s", "c")
+                    and self.conf("width_inside") is None):
+                return self._room_sliver(leaf)
+            return True
         if name == "crinkliness":
             if dom_mod.is_outside(leaf) and not dom_mod.is_covered(leaf):
                 return False                # uncovered outside is lit by definition
