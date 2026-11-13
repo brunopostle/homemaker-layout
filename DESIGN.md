@@ -22031,3 +22031,36 @@ cells (`report_card.py`, §39.223): A0-fails 2/4, A0-score 1/1, P1-fails 1/2, P1
 4. **The four-arm contrasts as in §39.220**, in direction: P1-score worse than P1-fails on
    `no_door` and `adj_share`, better on `circ_pieces`; A0-score close to A0-fails, with
    health-centre bit-identical if it has no sliver room to clear.
+
+### 39.225 `judge_pairs.py report --rescore`: rounds 0-2 at today's objective (`homemaker-py-n4kk`)
+
+`report` read the scores and cards frozen in each round's `pairs.json`, so after an objective change it
+kept printing the old agreement (§39.216 re-scored by hand). Now `report` prints the stamp each round
+was built at: from the pairs, which `build` now records, or for older rounds derived from git, as the
+last commit to `OBJECTIVE_SOURCES` before the pairs were last written. `--rescore` scores every design
+under A0 and P1 with today's code, sets each pair's preference from those scores (a tie is `=`, which
+agrees with no decisive answer), rebuilds every card, and says how many preferences moved.
+`tests/test_judge_pairs.py` checks that a stored preference forged to the other side is ignored and
+that a design paired with itself is a tie.
+
+At `2d4f3d4+orth`, against the stamps the rounds were built at:
+
+| round | built at | preferences moved (A0, P1) | A0 agrees, as built → today | P1 agrees, as built → today |
+|---|---|---|---|---|
+| 0 | `c73dfde+orth` | 3, 2 of 30 | 7 → **9** of 25 | 18 → **16** of 25 (p 0.043 → 0.23) |
+| 1 | `c73dfde+orth` | 4, 2 of 30 | 6 → **8** of 17 | 11 → **10** of 17 |
+| 2 | `9a14624+orth` | 1, 0 of 36 | 21 → 21 of 29 | 20 → 20 of 29 |
+
+**Round 0's case for P1 has weakened as the objective moved.** As built it was 18 to 7 and significant;
+at today's objective it is 16 to 9 and not significant. The objective changes since `c73dfde`
+(§39.211-§39.222: stairs scored for fit, a stair that cannot hold a flight counts as missing,
+circulation as a network, sliver rooms) moved A0 towards the judge on exactly the pairs P1 had won. Pooled
+over the three rounds at today's objective, A0 agrees on 38 of 71 decisive pairs and P1 on 46: a lead
+for P1 that no single round now resolves. This sits with §39.221's reading that the levers left are
+in the objective rather than in its aggregation.
+
+**Slivers of any type are the strongest fact on the card, in every round.** The plan the judge chose
+has more cells under 0.8 m in 1 of 9 pairs (round 0), 0 of 7 (round 1) and 1 of 11 (round 2): **2 of
+27 pooled, p = 6e-6**. Rooms alone (`sliver`): 2 of 22, p = 1e-4. Round 0's other findings stand
+re-scored: `missing` larger in the chosen plan in 11 of 13 (a room left out over a token room,
+§39.207) and `adj_share` larger in 2 of 15.

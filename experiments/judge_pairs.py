@@ -49,6 +49,7 @@ import json
 import math
 import random
 import statistics
+import subprocess
 import sys
 import webbrowser
 from itertools import combinations
@@ -289,6 +290,7 @@ def build(a):
     if (out / "pairs.json").exists() and not a.force:
         sys.exit(f"{out / 'pairs.json'} exists; --force to rebuild (answers keep their pair ids)")
     labels = [c[0] for c in CANDIDATES]
+    stamp = _rcb().objective_commit()
     print(f"scoring {len(designs)} designs under {', '.join(labels)}", file=sys.stderr)
     scored = score_all(designs, CANDIDATES, progs_of)
     if a.twins:
@@ -314,7 +316,7 @@ def build(a):
         manifest.append(dict(
             id=pid, round=a.round, programme=prog, a=pa, b=pb, strength=strength, z=z,
             better={lab: ("A" if z[lab] > 0 else "B") for lab in labels},
-            sides=side))
+            sides=side, objective=stamp))
         if a.twins:
             manifest[-1].update(design=twins[pa][0], arms=dict(a=twins[pa][1], b=twins[pb][1]))
         elif a.arms:
@@ -432,6 +434,58 @@ def binom_two_sided(k, n):
     return min(1.0, 2 * tail)
 
 
+def _rcb():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("rcb", HERE / "run_coldstart_baseline.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def build_stamp(rnd):
+    """The objective a round's pairs were scored at. Rounds built since
+    `homemaker-py-n4kk` carry it; for older ones it is derived from git: the
+    last commit to touch OBJECTIVE_SOURCES at or before the last commit to
+    touch the round's pairs.json. Every round so far was built with
+    orthogonal division on."""
+    f = OUT / f"round-{rnd}" / "pairs.json"
+    stored = {p.get("objective") for p in json.loads(f.read_text())}
+    if stored != {None}:
+        return "/".join(sorted(x for x in stored if x))
+    git = lambda *a: subprocess.run(["git", *a], cwd=HERE.parent, capture_output=True,  # noqa: E731
+                                    text=True).stdout.strip()
+    at = git("log", "-1", "--format=%H", "--", str(f.relative_to(HERE.parent)))
+    if not at:
+        return "uncommitted"
+    obj = git("log", "-1", "--format=%h", at, "--", *_rcb().OBJECTIVE_SOURCES)
+    return f"{obj}+orth (from git)"
+
+
+def rescore(rows):
+    """Re-score every design in ``rows`` at today's objective and code:
+    ``better`` from today's scores (a tie is '=', which agrees with no
+    decisive answer) and every side's card from today's report_card."""
+    paths, progs_of = [], {}
+    for p, _ in rows:
+        for s in "ab":
+            path = p["sides"][s]["path"]
+            if path not in progs_of:
+                paths.append(path)
+                progs_of[path] = p["programme"]
+    print(f"re-scoring {len(paths)} designs at {_rcb().objective_commit()}", file=sys.stderr)
+    scored = score_all(paths, CANDIDATES, progs_of)
+    out = []
+    for p, r in rows:
+        q = dict(p, sides={s: dict(p["sides"][s], **{k: scored[p["sides"][s]["path"]][k]
+                                                      for k in ("scores", "card")})
+                           for s in "ab"})
+        sa, sb = q["sides"]["a"]["scores"], q["sides"]["b"]["scores"]
+        q["better"] = {lab: "A" if sa[lab] > sb[lab] else "B" if sa[lab] < sb[lab] else "="
+                       for lab in p["better"]}
+        out.append((q, r))
+    return out
+
+
 def report(a):
     pairs, got = load_pairs(), load_answers()
     rows = [(pairs[k], r) for k, r in got.items() if k in pairs
@@ -439,6 +493,23 @@ def report(a):
     if not rows:
         print("no answers yet")
         return 0
+    rounds = sorted({str(p["round"]) for p, _ in rows})
+    if a.rescore:
+        from homemaker_layout import geometry
+        if not geometry.ORTHOGONAL_DIVISION:
+            sys.exit("set HOMEMAKER_ORTHOGONAL_DIVISION=1")
+        before = rows
+        rows = rescore(rows)
+        flips = {lab: sum(p["better"][lab] != q["better"][lab] for (p, _), (q, _) in zip(before, rows))
+                 for lab in rows[0][0]["better"]}
+        print(f"\n== re-scored at {_rcb().objective_commit()}; built at "
+              + "; ".join(f"round {x} {build_stamp(x)}" for x in rounds)
+              + "\n   scores' preference changed on "
+              + ", ".join(f"{lab} {n} of {len(rows)}" for lab, n in flips.items()))
+    else:
+        print("\n== scores and cards as built, at "
+              + "; ".join(f"round {x} {build_stamp(x)}" for x in rounds)
+              + " (--rescore for today's objective)")
     decisive = [(p, r) for p, r in rows if r["better"] in ("A", "B")]
     print(f"\n== {len(rows)} pairs answered: {len(decisive)} decisive, "
           f"{len(rows) - len(decisive)} 'about equal'")
@@ -516,6 +587,8 @@ def main() -> int:
     k.add_argument("--no-browser", action="store_true")
     r = sub.add_parser("report", help="what the answers say")
     r.add_argument("--round")
+    r.add_argument("--rescore", action="store_true",
+                   help="score every design and its card with today's code, not as built")
     a = ap.parse_args()
     return {"build": build, "ask": ask, "report": report}[a.cmd](a)
 

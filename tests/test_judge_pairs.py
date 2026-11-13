@@ -138,3 +138,36 @@ def test_arms_drop_byte_identical_pairs(jp, tmp_path):
     # negative control: without the identical start, nothing is dropped
     runs, scored = _arm_runs(tmp_path, ["X", "Y"])
     assert len(jp.choose_arms(scored, runs, ["A0", "P1"], [("X", "Y")])) == 6
+
+
+R2 = REPO / "experiments" / "results" / "judging" / "round-2" / "pairs.json"
+
+
+@pytest.mark.skipif(not R2.is_file(), reason="no round-2 pairs")
+def test_rescore_reads_todays_scores(jp, monkeypatch):
+    """`report --rescore` (`homemaker-py-n4kk`): ``better`` comes from the
+    scores it computes, not the ones frozen at build: a stored preference
+    forged to the other side is ignored, and a design paired with itself is a
+    tie, which agrees with no decisive answer."""
+    import json
+    from homemaker_layout import geometry
+    monkeypatch.setattr(geometry, "ORTHOGONAL_DIVISION", True)
+    geometry.clear_cache()
+    p = json.loads(R2.read_text())[0]
+    forged = dict(p, better={lab: "B" if v == "A" else "A" for lab, v in p["better"].items()})
+    same = dict(p, sides=dict(a=p["sides"]["a"], b=p["sides"]["a"]))
+    (q, _), (t, _) = jp.rescore([(forged, {}), (same, {})])
+    for lab in p["better"]:
+        s = q["sides"]
+        want = "A" if s["a"]["scores"][lab] > s["b"]["scores"][lab] else "B"
+        assert q["better"][lab] == want
+    assert set(t["better"].values()) == {"="}
+    assert "sliver_cells" in q["sides"]["a"]["card"]
+    geometry.clear_cache()
+
+
+def test_build_stamp_of_an_old_round(jp):
+    """A round built before pairs carried their objective gets it from git."""
+    if not R2.is_file():
+        pytest.skip("no round-2 pairs")
+    assert jp.build_stamp(2) == "9a14624+orth (from git)"
