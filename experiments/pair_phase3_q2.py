@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from ab_report import paired_report  # noqa: E402
 
 COLS = ["fails", "missing", "token", "shortfall_m2", "surplus_m2", "ratio_med",
-        "ratio_min", "ratio_big5", "sliver", "long", "unlit", "deep", "adj_share",
+        "ratio_min", "ratio_big5", "sliver", "sliver_cells", "long", "unlit", "deep", "adj_share",
         "no_door", "disconnected", "stair_storeys", "circ_pieces", "circ_share",
         "wall_per_m2", "cost"]
 CONTRASTS = [("A0-fails", "A0-score"), ("P1-fails", "P1-score"),

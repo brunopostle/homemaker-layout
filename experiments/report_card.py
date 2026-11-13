@@ -34,6 +34,10 @@ aggregation):
   sliver        rooms whose usable rectangle is under 0.8 m wide, the owner's
                 "no use for anything" (§39.204); "sliver rooms" is the
                 commonest note on round 0 of judging (§39.207)
+  sliver_cells  cells of ANY type (room, corridor, stair, outside) under 0.8 m
+                wide: the judge's "sliver" is any of them, and in round 2
+                chose the side without one in 10 of 11 decisive pairs where
+                only one side had one (§39.221). `sliver` is its room subset
   long          rooms whose usable rectangle is longer than the brief's
                 proportion (the per-space value, else `proportion_inside`)
   unlit         rooms that need light (any but `crinkliness: none`) with no
@@ -107,7 +111,7 @@ TOKEN, OVER = 0.25, 1.5
 
 DESIGN_COLS = ["rooms_asked", "missing", "extra", "token", "over",
                "shortfall_m2", "surplus_m2",
-               "ratio_med", "ratio_min", "ratio_big5", "narrowest", "sliver", "long",
+               "ratio_med", "ratio_min", "ratio_big5", "narrowest", "sliver", "sliver_cells", "long",
                "unlit", "deep", "depth_med", "adj_asked", "adj_met", "adj_share", "no_door",
                "storeys", "connected", "stair_storeys",
                "room_m2", "circ_m2", "circ_share", "inside_m2",
@@ -171,11 +175,13 @@ def card(fit, reqs, root):
     usages = {c: r.usage for c, r in reqs.items()}
     room_rows = []
     room_m2 = circ_m2 = inside_m2 = wall_m2 = 0.0
+    sliver_cells = 0
     inside_by_level = []
     for li, (lvl, G, _) in enumerate(storeys):
         h = _height(lvl)
         polys = []
         for leaf in lvl.leaves():
+            sliver_cells += geometry.usable_width(leaf) < SLIVER
             if dom.is_outside(leaf):
                 continue
             a = geometry.area(leaf)
@@ -251,6 +257,7 @@ def card(fit, reqs, root):
         ratio_big5=statistics.median(r["ratio"] for r in big) if big else float("nan"),
         narrowest=min((r["width"] for r in room_rows), default=float("nan")),
         sliver=sum(r["width"] < SLIVER for r in room_rows),
+        sliver_cells=sliver_cells,
         long=sum(r["aspect"] > r["aspect_max"] for r in room_rows),
         unlit=sum(r["exposed_m"] == 0 for r in lit),
         deep=sum(r["depth"] > DEPTH_PER_WINDOW for r in lit),
@@ -359,6 +366,10 @@ CONTROLS = [
       "circ_orphan_m2": "+"}),
     ("a corridor cell that joins two parts made outside", CLEAN9, "corridor_cut",
      {"circ_pieces": "+", "missing": 0}),
+    ("a top-storey room squeezed to 0.39 m", CLEAN9, "room_squeezed",
+     {"sliver": 1, "sliver_cells": 1, "missing": 0}),
+    ("the same cell squeezed and made corridor", CLEAN9, "corridor_squeezed",
+     {"sliver": 0, "sliver_cells": 1}),
 ]
 
 
@@ -392,7 +403,29 @@ def corridor_cut(root):
         n.type = "O"
 
 
-EDITS = {"stair_short": stair_short, "corridor_cut": corridor_cut}
+def _squeeze(root):
+    """Move the top storey's cut at ``rrrrll`` (CLEAN9: a cut no storey below
+    has, so it is the top storey's own) until its left cell, a bedroom ``r``,
+    is 0.39 m wide. Returns that cell."""
+    n = dom.levels(root)[-1]
+    for step in "rrrrll":
+        n = n.left if step == "l" else n.right
+    n.division = [0.1, 0.1]
+    return n.left
+
+
+def room_squeezed(root):
+    _squeeze(root)
+
+
+def corridor_squeezed(root):
+    """As ``room_squeezed``, and the cell is retyped corridor: a sliver the
+    room column cannot see and ``sliver_cells`` must."""
+    _squeeze(root).type = "C"
+
+
+EDITS = {"stair_short": stair_short, "corridor_cut": corridor_cut,
+         "room_squeezed": room_squeezed, "corridor_squeezed": corridor_squeezed}
 
 
 def self_test(progs):

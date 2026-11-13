@@ -21985,3 +21985,26 @@ now at an older objective. What to expect of the next search at this stamp: no s
 finished design of any arm, at little cost elsewhere, since the 22 slivers are 0.15-6.4 m² each
 and the search can move a wall to clear one; the tiers arms, which made most of them (A0-tiers 11),
 should change most.
+
+### 39.223 The report card counts slivers of every type (`homemaker-py-5fje.16`)
+
+The search-side half of §39.221's sliver finding. `report_card.py` gains `sliver_cells`: cells of
+any type (room, corridor, stair, outside) whose usable rectangle is under 0.8 m wide. `sliver`
+stays as its room subset, so the two together say whether a sliver is a room, which since §39.222
+the objective fails, or circulation and outside, which already failed `width`. `judge_pairs.py`
+and `pair_phase3_q2.py` carry the column; cards frozen in a round's `pairs.json` before it read
+None, as `sliver` did once (`homemaker-py-n4kk` is the re-score).
+
+**It counts the tree the scorer and the drawings see, after the outdoor merge.** §39.221's per-arm
+figures counted the unmerged tree and so differ in one place: P1-tiers 0.58 per design there,
+0.33 on the card. The three cells between them are adjacent outside strips 0.55-0.66 m wide in
+P1-tiers--programme-house--2, which the merge joins into one yard and `plan_svg.py` draws as one.
+Every other arm agrees, and so does the total of 31 that §39.222 quotes. On the card's count, round
+2's answers give the same **10 of 11** decisive pairs to the side without a sliver, the exception
+again R2-08.
+
+The self-test gains two controls on CLEAN9's top storey, where the cut at `rrrrll` is that
+storey's own: a bedroom squeezed to 0.39 m moves `sliver` and `sliver_cells` by one each, and the
+same cell made corridor moves `sliver_cells` alone (and `missing`, as a room has gone). Before
+this, no control moved `sliver` at all. The regenerated `phase3-q2/cards.tsv` differs from the
+committed one only by the new column. Search-side: no objective source is touched.

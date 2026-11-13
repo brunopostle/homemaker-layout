@@ -63,7 +63,7 @@ DEFAULT_DESIGNS = HERE / "results" / "aggregation" / "report-card.tsv"
 # (label, arm in diag_aggregation.arms, phi)
 CANDIDATES = [("A0", "A0", 1e-3), ("P1", "P1", 1e-3)]
 # report-card columns compared in the report, against the owner's choices
-FACTS = ["missing", "token", "sliver", "shortfall_m2", "surplus_m2", "deep", "unlit",
+FACTS = ["missing", "token", "sliver", "sliver_cells", "shortfall_m2", "surplus_m2", "deep", "unlit",
          "adj_share", "no_door", "connected", "stair_storeys", "circ_share",
          "narrowest", "wall_per_m2", "cost"]
 
@@ -71,7 +71,8 @@ FACTS = ["missing", "token", "sliver", "shortfall_m2", "surplus_m2", "deep", "un
 def fact(card, c):
     """A report-card value; ``adj_share`` is derived for cards frozen in a
     round's pairs.json before the column existed. ``sliver`` cannot be, and
-    reads None on those."""
+    reads None on those, and ``sliver_cells`` (§39.223) on every round
+    built before it."""
     if c == "adj_share" and c not in card:
         return card["adj_met"] / card["adj_asked"] if card.get("adj_asked") else None
     return card.get(c)
