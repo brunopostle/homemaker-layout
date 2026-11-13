@@ -21853,3 +21853,77 @@ the question is which arm gives the better building, and a filtered sample would
 It drops only byte-identical pairs, and none were dropped here. There are 36 pairs, 12 per contrast:
 A0-fails : P1-fails, A0-fails : A0-tiers and P1-fails : P1-score. They are in
 `experiments/results/judging/round-2/`. The report tallies which arm the judge chose, per contrast.
+
+### 39.221 Round 2 answered: tiers loses, A0 and P1 under `fails` tie, and the judge's "sliver" is any cell under 0.8 m (`homemaker-py-5fje.15`)
+
+The owner judged all 36 pairs of §39.220 on 2026-11-13: 29 decisive, 7 "about equal", a note on 34.
+Before answering, the drawings gained a heavy dotted line on every outside wall (the boundary of each
+storey's indoor cells, less the party walls), because without it the plans were hard to read;
+`plan_svg.py` draws it from now on, and only round 2 was redrawn. `judge_pairs.py report --round 2`:
+
+| contrast | judge chose | about equal | sign test |
+|---|---|---|---|
+| A0-fails : A0-tiers | **A0-fails 7**, A0-tiers 2 | 3 | p = 0.18 |
+| A0-fails : P1-fails | A0-fails 4, P1-fails 4 | 4 | p = 1 |
+| P1-fails : P1-score | P1-fails 5, P1-score 7 | 0 | p = 0.77 |
+| A0's score agrees with the judge | 21 of 29 | | p = 0.024 |
+| P1's score agrees with the judge | 20 of 29 | | p = 0.061 |
+| by programme, A0 / P1 | programme-house 7/7, 7/7; maple-court 6/7, 5/7; harbor-house 6/8, 5/8; **health-centre 2/7, 3/7** | | |
+
+No expectations were written for this round before it was answered (§39.220 named the contrasts, not
+what they should show), so what follows is a description, not a check.
+
+**Tiers loses, and where it changes the building it loses every time.** On harbor-house and maple-court,
+the two programmes where §39.220 found tiers trading seven soft fails for each hard one, the judge chose
+the fails arm in 5 of 5 decisive pairs, with one "about equal" (p = 0.0625). The notes name what the soft
+fails look like: "sliver rooms" (R2-05, R2-23), "an enormous circulation area" (R2-05), and courtyards
+"filled in with huge rooms" (R2-08, R2-20, R2-23), with one covered outside cell enclosed on every side
+(R2-02). Tiers' two wins are both on programme-house, where tiers barely moves the card. **Fewer hard
+fails bought with many more soft ones is not a better building to the judge.** `tiers` should not be
+the ranking.
+
+**A0 against P1, both ranked by `fails`: no preference, 4-4 and 4 "about equal".** That matches the
+card, where only hard fails were resolved (P1 −1.25). The aggregation does not decide these buildings in
+the judge's eyes; what the notes do discuss is circulation and slivers, which neither arm has an edge on.
+
+**P1-fails against P1-score: score chosen 7 of 12, not resolved,** despite a card resolved-worse on
+doors and adjacency (§39.220). Health-centre went 3-0 to P1-score, and all three
+notes are about circulation: "nearly a circulation system" (R2-12, R2-15), "something nearer a
+circulation system" (R2-18). P1-score has fewer pieces of circulation (§39.220: −1.25, resolved), and
+that is what the judge sees. So the provisional reading of §39.220, "do not rank by the score alone
+under P", is not borne out by the judge; it is not contradicted either.
+
+**Both scores fail on health-centre (2 and 3 of 7) and the notes say why.** "Neither has anything like a
+circulation system" (R2-11); "chaotic, with meandering outside walls" (R2-10, new: the dotted line made
+this visible). The judge's choices there follow circulation and slivers, not the fail count.
+
+**The judge's "sliver room" is any cell under 0.8 m wide, of any type.** The card's `sliver` counts
+programme rooms only (`report_card.py`, §39.204), so it saw none in R2-34, R2-35 and R2-30, where the
+notes name one. Counting every leaf under 0.8 m: in R2-34 and R2-35 it is a stair cell 0.09 m wide
+(0.39 m², A0-fails--programme-house--3), in R2-30 an outside cell 0.21 m wide, in R2-07 and R2-08
+corridor cells 0.21-0.23 m wide. **In the 11 decisive pairs where only one side has such a cell, the
+judge chose the clean side in 10** (p = 0.012); the exception, R2-08, is a sliver accepted over courtyards
+filled in. Rounds 0 and 1 found the sliver deciding too (§39.210: 0 of 7 chosen with more slivers), and
+this round says the card under-counts them. Per design over the nine arms, cells under 0.8 m: A0-tiers
+1.00, P1-tiers 0.58, the rest 0.08-0.33.
+
+**Stair cells standing in for circulation: eight notes**, the most common complaint after circulation
+itself ("lots of spurious stair spaces to make up the circulation", R2-09; "a long stair instead of a
+long corridor", R2-24; also R2-06, R2-21, R2-26, R2-30, R2-31, R2-32). Every arm has about four `E`
+cells per design against 1.25-1.58 shafts, and an `E` cell in no shaft (one with no `E` above or below
+at the same path) occurs in 0.42-0.83 per design in every arm but P1-tiers (0.00) and P1u-fails (0.17).
+There are none on health-centre (one storey); they are commonest on maple-court (0.89). Since §39.125 `E` takes
+every circulation parameter, so the search loses nothing by spelling a corridor as stair, but the
+judge reads it as stair. Not an aggregation question; filed for the owner (see below).
+
+**Notes on things the objective has never represented**, recorded rather than filed: a living room
+with nothing built over it, beside an outside space with a bedroom over it, an "awkward structural detail" (R2-29);
+bathrooms upstairs "where they would be more useful", which the programme does not say (R2-36); a
+covered outside cell enclosed on every side, "effectively an indoor outside space" (R2-02).
+
+**What this says about Q2.** Across rounds 0-2 the judge's choices follow missing rooms, slivers of any
+kind, and circulation that works as a network; never the hard/soft split, and not the aggregation
+between A0 and P1 when both rank by fails. Of the nine arms, the judge rules out tiers; between `fails`
+and `score` under P1, and between A0 and P1 under `fails`, round 2 cannot separate them. The levers left
+are in the objective, not its aggregation: slivers counted on every cell, and circulation as a network
+(§39.214-§39.215).
