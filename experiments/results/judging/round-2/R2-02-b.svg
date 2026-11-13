@@ -125,6 +125,9 @@
 <text x="507.4" y="561.5" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="507.4" y="572.5" font-size="8" text-anchor="middle" fill="#333">open yard</text>
 <text x="507.4" y="581.5" font-size="8" text-anchor="middle" fill="#666">12.5 m²</text>
+<polyline points="339.9,622.6 284.7,622.6 86.8,622.6 28.0,622.6 28.0,463.4 28.0,432.9 28.0,313.8 28.0,127.3" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="103.4,122.1 103.4,148.6 209.8,148.6 209.8,295.1 327.2,295.1 327.2,148.6 386.8,148.6 546.5,148.6 604.1,148.6 660.6,148.6" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="698.5,622.6 627.5,622.6 533.0,622.6 533.0,536.5 533.0,504.3 481.8,504.3 481.8,622.6 430.6,622.6 339.9,622.6" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <text x="754.5424286" y="70.0" font-size="12" font-weight="bold">Storey 1 (elev 3.0 m)</text>
 <polygon points="754.5,622.6 813.3,622.6 813.3,463.4 754.5,463.4" fill="url(#stair)" stroke="#333" stroke-width="1"/>
 <text x="783.9" y="541.0" font-size="10" text-anchor="middle" font-weight="bold">E</text>
@@ -260,6 +263,9 @@
 <text x="1118.8" y="402.1" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="1118.8" y="413.1" font-size="8" text-anchor="middle" fill="#333">open to the sky</text>
 <text x="1118.8" y="422.1" font-size="8" text-anchor="middle" fill="#666">142.0 m²</text>
+<polyline points="1011.2,489.8 1011.2,463.4 1037.4,463.4 1066.5,463.4 1157.2,463.4 1259.5,463.4 1354.0,463.4 1412.3,463.4" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="1416.1,510.0 1354.0,510.0 1354.0,536.5 1354.0,622.6 1259.5,622.6 1259.5,536.5 1259.5,504.3 1157.2,504.3 1157.2,622.6 1066.5,622.6 1011.2,622.6 813.3,622.6 754.5,622.6 754.5,463.4 754.5,432.9 754.5,361.2 754.5,313.8 754.5,127.3" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="1402.8,344.4 1330.6,344.4 1136.1,344.4 1113.3,344.4 1053.8,344.4 936.3,344.4 829.9,344.4 829.9,361.2 829.9,432.9 829.9,463.4 817.0,463.4 813.3,463.4 813.3,577.5 1011.2,577.5 1011.2,535.2 1011.2,489.8" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <line x1="28.0" y1="660.6387512" x2="138.0" y2="660.6387512" stroke="#000" stroke-width="2"/>
-<text x="144.0" y="664.6387512" font-size="10">5 m (heavy line: party wall; hatched: stair; green: outside, darker where a storey is built over it)</text>
+<text x="144.0" y="664.6387512" font-size="10">5 m (heavy line: party wall; heavy dotted: outside wall; hatched: stair; green: outside, darker where a storey is built over it)</text>
 </svg>

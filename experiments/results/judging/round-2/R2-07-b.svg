@@ -91,6 +91,9 @@
 <text x="399.0" y="214.5" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="399.0" y="225.5" font-size="8" text-anchor="middle" fill="#333">open yard</text>
 <text x="399.0" y="234.5" font-size="8" text-anchor="middle" fill="#666">257.5 m²</text>
+<polyline points="28.0,511.3 28.0,413.2 28.0,373.5 28.0,254.6 28.0,188.3 28.0,127.3" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="117.6,121.1 117.6,188.3 117.6,254.6 117.6,329.8 177.9,329.8 292.0,329.8 418.0,329.8 554.9,329.8 675.1,329.8" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="691.9,539.3 554.9,539.3 479.5,539.3 418.0,539.3 355.0,539.3 292.0,539.3 177.9,539.3 117.6,539.3 117.6,622.6 28.0,622.6 28.0,511.3" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <text x="754.5424280702468" y="70.0" font-size="12" font-weight="bold">Storey 1 (elev 3.0 m)</text>
 <polygon points="844.1,539.3 904.4,539.3 904.4,329.8 844.1,329.8" fill="url(#stair)" stroke="#333" stroke-width="1"/>
 <text x="874.3" y="432.5" font-size="10" text-anchor="middle" font-weight="bold">E</text>
@@ -226,6 +229,10 @@
 <text x="1125.6" y="214.5" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="1125.6" y="225.5" font-size="8" text-anchor="middle" fill="#333">open to the sky</text>
 <text x="1125.6" y="234.5" font-size="8" text-anchor="middle" fill="#666">257.5 m²</text>
+<polyline points="754.5,622.6 754.5,511.3 754.5,456.1 754.5,413.2 754.5,373.5 754.5,254.6 754.5,188.3 754.5,127.3" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="844.1,121.1 844.1,188.3 844.1,254.6 844.1,329.8 904.4,329.8 970.2,329.8 1018.5,329.8 1066.7,329.8 1104.9,329.8 1144.6,329.8 1184.3,329.8 1281.4,329.8 1401.6,329.8" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="1418.4,539.3 1281.4,539.3 1244.4,539.3 1206.0,539.3 1172.0,539.3 1144.6,539.3 1018.5,539.3 980.8,539.3 904.4,539.3 844.1,539.3 844.1,622.6 814.0,622.6 754.5,622.6" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="1281.4,398.8 1281.4,384.0 1144.6,384.0 1144.6,420.2 1281.4,420.2 1281.4,398.8" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <text x="1481.0848561404937" y="70.0" font-size="12" font-weight="bold">Storey 2 (elev 6.0 m)</text>
 <polygon points="1570.7,539.3 1631.0,539.3 1631.0,329.8 1570.7,329.8" fill="url(#stair)" stroke="#333" stroke-width="1"/>
 <text x="1600.8" y="432.5" font-size="10" text-anchor="middle" font-weight="bold">E</text>
@@ -277,6 +284,9 @@
 <text x="1525.9" y="219.4" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="1525.9" y="230.4" font-size="8" text-anchor="middle" fill="#333">open to the sky</text>
 <text x="1525.9" y="239.4" font-size="8" text-anchor="middle" fill="#666">12.3 m²</text>
+<polyline points="1631.0,329.8 1745.1,329.8 1871.1,329.8 1871.1,459.4 2008.0,459.4 2008.0,329.8 2128.2,329.8" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="2144.9,539.3 2008.0,539.3 1871.1,539.3 1745.1,539.3 1631.0,539.3 1570.7,539.3 1570.7,622.6 1481.1,622.6 1481.1,413.2 1481.1,254.6 1570.7,254.6 1570.7,329.8 1631.0,329.8" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="1570.7,121.1 1570.7,188.3 1481.1,188.3 1481.1,127.3" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <line x1="28.0" y1="660.6387515689046" x2="138.0" y2="660.6387515689046" stroke="#000" stroke-width="2"/>
-<text x="144.0" y="664.6387515689046" font-size="10">5 m (heavy line: party wall; hatched: stair; green: outside, darker where a storey is built over it)</text>
+<text x="144.0" y="664.6387515689046" font-size="10">5 m (heavy line: party wall; heavy dotted: outside wall; hatched: stair; green: outside, darker where a storey is built over it)</text>
 </svg>

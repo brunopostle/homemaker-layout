@@ -116,6 +116,8 @@
 <text x="397.6" y="339.6" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="397.6" y="350.6" font-size="8" text-anchor="middle" fill="#333">open yard</text>
 <text x="397.6" y="359.6" font-size="8" text-anchor="middle" fill="#666">213.3 m²</text>
+<polyline points="28.0,666.2 33.5,557.0 39.7,432.6 52.4,177.3 53.8,150.0 57.1,84.0 129.1,85.1 272.9,87.3 412.6,89.5 466.9,90.3 603.4,92.5 684.6,93.7" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="682.7,250.8 628.4,250.8 514.8,250.8 473.6,250.8 270.6,250.8 188.0,250.8 113.5,250.8 113.5,432.6 680.4,432.6" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <text x="740.6170028" y="70.0" font-size="12" font-weight="bold">Storey 1 (elev 3.0 m)</text>
 <polygon points="746.1,557.0 809.7,557.0 809.7,432.6 752.3,432.6" fill="url(#stair)" stroke="#333" stroke-width="1"/>
 <text x="779.4" y="493.9" font-size="10" text-anchor="middle" font-weight="bold">E</text>
@@ -221,6 +223,9 @@
 <text x="1110.2" y="339.6" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="1110.2" y="350.6" font-size="8" text-anchor="middle" fill="#333">open to the sky</text>
 <text x="1110.2" y="359.6" font-size="8" text-anchor="middle" fill="#666">213.3 m²</text>
+<polyline points="961.4,557.0 919.9,557.0 809.7,557.0 746.1,557.0 752.3,432.6 757.0,338.7 760.5,268.0 765.1,177.3 766.4,150.0 769.7,84.0 841.7,85.1 985.5,87.3 1179.5,90.3 1316.1,92.5 1397.2,93.7" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="1395.3,250.8 1341.0,250.8 1227.4,250.8 1186.2,250.8 983.2,250.8 900.6,250.8 900.6,177.3 826.1,177.3 826.1,268.0 826.1,338.7 826.1,432.6 1393.1,432.6" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="1391.5,557.0 1264.2,557.0 1201.4,557.0 961.4,557.0" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <text x="1453.2340056" y="70.0" font-size="12" font-weight="bold">Storey 2 (elev 6.0 m)</text>
 <polygon points="1458.7,557.0 1522.4,557.0 1522.4,432.6 1464.9,432.6" fill="url(#stair)" stroke="#333" stroke-width="1"/>
 <text x="1492.1" y="493.9" font-size="10" text-anchor="middle" font-weight="bold">E</text>
@@ -339,6 +344,9 @@
 <text x="1794.3" y="117.4" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="1794.3" y="128.4" font-size="8" text-anchor="middle" fill="#333">open to the sky</text>
 <text x="1794.3" y="137.4" font-size="8" text-anchor="middle" fill="#666">24.5 m²</text>
+<polyline points="1632.5,557.0 1573.4,557.0 1522.4,557.0 1458.7,557.0 1464.9,432.6 1469.6,338.7 1473.1,268.0 1477.7,177.3 1479.0,150.0 1482.3,84.0 1554.3,85.1 1698.1,87.3 1698.1,150.0 1892.2,150.0 1892.2,90.3 2028.7,92.5 2109.8,93.7" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="2107.9,250.8 2053.6,250.8 1940.0,250.8 1898.9,250.8 1777.3,250.8 1695.9,250.8 1613.2,250.8 1538.8,250.8 1538.8,268.0 1538.8,338.7 1538.8,432.6 2105.7,432.6" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="2104.2,557.0 1976.8,557.0 1914.1,557.0 1674.0,557.0 1632.5,557.0" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <line x1="28.0" y1="704.1772483999999" x2="138.0" y2="704.1772483999999" stroke="#000" stroke-width="2"/>
-<text x="144.0" y="708.1772483999999" font-size="10">5 m (heavy line: party wall; hatched: stair; green: outside, darker where a storey is built over it)</text>
+<text x="144.0" y="708.1772483999999" font-size="10">5 m (heavy line: party wall; heavy dotted: outside wall; hatched: stair; green: outside, darker where a storey is built over it)</text>
 </svg>

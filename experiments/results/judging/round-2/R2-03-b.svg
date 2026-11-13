@@ -119,6 +119,10 @@
 <text x="411.7" y="145.3" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="411.7" y="156.3" font-size="8" text-anchor="middle" fill="#333">open yard</text>
 <text x="411.7" y="165.3" font-size="8" text-anchor="middle" fill="#666">100.4 m²</text>
+<polyline points="90.6,622.6 28.0,622.6 28.0,475.9 28.0,421.6 28.0,377.5 28.0,127.3" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="128.0,120.4 128.0,193.4 188.9,193.4 390.1,193.4 390.1,245.5 463.6,245.5 463.6,193.4 591.9,193.4 664.2,193.4" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="676.4,346.1 591.9,346.1 463.6,346.1 390.1,346.1 247.0,346.1 188.9,346.1 128.0,346.1 128.0,377.5 128.0,420.6 128.0,475.9 276.5,475.9 306.1,475.9 343.4,475.9 532.0,475.9 634.4,475.9 686.8,475.9" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="698.5,622.6 634.4,622.6 532.0,622.6 403.1,622.6 343.4,622.6 276.5,622.6 90.6,622.6" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <text x="754.5424286" y="70.0" font-size="12" font-weight="bold">Storey 1 (elev 3.0 m)</text>
 <polygon points="754.5,622.6 817.2,622.6 817.2,475.9 754.5,475.9" fill="url(#stair)" stroke="#333" stroke-width="1"/>
 <text x="785.9" y="547.3" font-size="10" text-anchor="middle" font-weight="bold">E</text>
@@ -267,6 +271,9 @@
 <text x="805.0" y="191.5" font-size="10" text-anchor="middle" font-weight="bold">O</text>
 <text x="805.0" y="202.5" font-size="8" text-anchor="middle" fill="#333">open to the sky</text>
 <text x="805.0" y="211.5" font-size="8" text-anchor="middle" fill="#666">28.8 m²</text>
+<polyline points="817.2,534.0 817.2,622.6 754.5,622.6 754.5,475.9 754.5,377.5 754.5,317.0 754.5,263.3 854.6,263.3 854.6,193.4 915.4,193.4 957.3,193.4 998.7,193.4 1116.7,193.4 1190.2,193.4 1318.4,193.4 1390.7,193.4" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="1402.9,346.1 1318.4,346.1 1190.2,346.1 1159.2,346.1 1116.7,346.1 1054.0,346.1 973.5,346.1 915.4,346.1 854.6,346.1 854.6,377.5 854.6,475.9 922.3,475.9 1003.0,475.9 1032.6,475.9 1069.9,475.9 1163.2,475.9 1258.5,475.9 1360.9,475.9 1413.3,475.9" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
+<polyline points="1420.1,561.1 1360.9,561.1 1360.9,622.6 1258.5,622.6 1201.3,622.6 1129.6,622.6 1069.9,622.6 1003.0,622.6 1003.0,544.2 1003.0,534.0 922.3,534.0 817.2,534.0" fill="none" stroke="#000" stroke-width="4" stroke-dasharray="0.1 7" stroke-linecap="round"/>
 <line x1="28.0" y1="660.6387515689046" x2="138.0" y2="660.6387515689046" stroke="#000" stroke-width="2"/>
-<text x="144.0" y="664.6387515689046" font-size="10">5 m (heavy line: party wall; hatched: stair; green: outside, darker where a storey is built over it)</text>
+<text x="144.0" y="664.6387515689046" font-size="10">5 m (heavy line: party wall; heavy dotted: outside wall; hatched: stair; green: outside, darker where a storey is built over it)</text>
 </svg>

@@ -4,7 +4,8 @@
 No IFC on the way: the rooms come from `rooms_export.rooms` -- the cells the
 scorer sees, after its outdoor merge, in the layout's frame -- and each is
 drawn as a filled polygon labelled with its code, its programme name and its
-area. Party walls (perimeter `private`) are drawn heavy, stairs hatched. The
+area. Party walls (perimeter `private`) are drawn heavy, outside walls
+(indoor cell against outside, open or plot edge) heavy dotted, stairs hatched. The
 score and fail list are re-scored with today's code and printed under the
 plans. A stop-gap for the drawings `homemaker-py-m1mv` is blocked on.
 
@@ -25,6 +26,9 @@ from homemaker_layout import dom, geometry
 from homemaker_layout.fitness import Fitness, load_config
 from homemaker_layout.programme import load_programme_dir
 from homemaker_layout.rooms_export import rooms
+from shapely import set_precision
+from shapely.geometry import LineString, Polygon
+from shapely.ops import unary_union
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -75,6 +79,25 @@ def programme_for(path: Path) -> Path:
     if not (path.parent / "patterns.config").exists():
         sys.exit(f"{path}: no programme found; pass --programme")
     return path.parent
+
+
+def is_indoor(r):
+    return not (r["usage"] in ("open", "outside") or r["code"] in ("O", "S"))
+
+
+def envelope(rooms_of_storey, party):
+    """The outside walls of one storey: the boundary of the union of its
+    indoor cells, less the party walls (``party``, frame segments), which are
+    drawn heavy already. Covers walls onto a yard, a covered outside cell, an
+    open-to-the-sky cell and the plot boundary alike."""
+    inside = [set_precision(Polygon(r["vertices"]), 1e-6) for r in rooms_of_storey if is_indoor(r)]
+    if not inside:
+        return []
+    walls = unary_union(inside).boundary
+    if party:
+        walls = walls.difference(unary_union([LineString(s) for s in party]).buffer(1e-3))
+    lines = getattr(walls, "geoms", [walls])
+    return [list(g.coords) for g in lines if g.length > 1e-3]
 
 
 def area(poly):
@@ -147,6 +170,7 @@ def render(dom_path: Path, programme_dir: Path, title: str,
         cx, _ = pt(x0, y1, k)
         out.append(f'<text x="{cx}" y="{top + 14}" font-size="12" font-weight="bold">'
                    f'Storey {li} (elev {elev[li]:.1f} m)</text>')
+        party = []
         for r in storeys[li]:
             poly = r["vertices"]
             usage = r["usage"]
@@ -163,6 +187,7 @@ def render(dom_path: Path, programme_dir: Path, title: str,
             walls = r["face_styles"][2:]
             for i, s in enumerate(walls):
                 if s == "blank":
+                    party.append((poly[i], poly[(i + 1) % len(poly)]))
                     (ax, ay), (bx, by) = pt(*poly[i], k), pt(*poly[(i + 1) % len(poly)], k)
                     out.append(f'<line x1="{ax:.1f}" y1="{ay:.1f}" x2="{bx:.1f}" y2="{by:.1f}" '
                                'stroke="#000" stroke-width="4"/>')
@@ -187,13 +212,17 @@ def render(dom_path: Path, programme_dir: Path, title: str,
             elif blind and code in reqs:
                 out.append(f'<text x="{mx:.1f}" y="{my + 9:.1f}" font-size="7" '
                            f'text-anchor="middle" fill="#d00">{a:.1f} of {reqs[code].size:g} m²</text>')
+        for line in envelope(storeys[li], party):
+            pts = " ".join("%.1f,%.1f" % pt(x, y, k) for x, y in line)
+            out.append(f'<polyline points="{pts}" fill="none" stroke="#000" stroke-width="4" '
+                       'stroke-dasharray="0.1 7" stroke-linecap="round"/>')
     out += marked
     # scale bar
     sy = top + h + 2 * PAD + 10
     out.append(f'<line x1="{PAD}" y1="{sy}" x2="{PAD + 5 * SCALE}" y2="{sy}" stroke="#000" '
                'stroke-width="2"/>')
     out.append(f'<text x="{PAD + 5 * SCALE + 6}" y="{sy + 4}" font-size="10">5 m '
-               '(heavy line: party wall; hatched: stair; green: outside, darker where a '
+               '(heavy line: party wall; heavy dotted: outside wall; hatched: stair; green: outside, darker where a '
                'storey is built over it)</text>')
     for i, line in enumerate([] if blind else ["fails:"] + (fail_lines or ["none"])):
         out.append(f'<text x="{PAD}" y="{sy + 22 + 14 * i}" font-size="10" fill="#444">'
