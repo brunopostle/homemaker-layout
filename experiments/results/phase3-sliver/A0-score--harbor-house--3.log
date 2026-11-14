@@ -1,0 +1,251 @@
+WARNING: 413 m2 per storey needs ~85 m of daylit wall; the plot's non-private perimeter gives 53 m. Roughly 48 m2 of courtyard closes the gap. (DESIGN.md §38.3)
+WARNING: 332 m2 is pinned to level 0 by the programme and needs ~68 m of daylit wall, against the 53 m the plot perimeter gives. The ground floor cannot set itself back to buy more, so a square courtyard of roughly 15 m2 (3.8 m a side) is what closes it. (DESIGN.md §39.17)
+seed         : /home/bruno/src/homemaker-layout/experiments/results/halving-harbor-split/cap-1.dom
+programme    : harbor-house
+budget       : 128000
+pop          : 16
+child_budget : 80
+workers      : 1
+rng seed     : 3
+leaf sharing : True (factor=3)
+superpose    : False
+multi_use    : False
+conn grade   : False
+use tiers    : False
+rank         : score
+aggregation  : A0
+bridge circulation : False
+ruin recreate      : False
+support outside    : True
+level add+migrate  : False
+repair shaft       : True
+light well         : False
+retype kind        : False
+pivot              : False
+pivot3             : False
+swap cells         : False
+split stair        : False
+guard connection   : connected
+tune storey heights: False
+core_undivide repaired : True
+seed solver        : False
+label write-back   : True
+aim undivide       : True
+collapse in-search : True
+shapecurve warmstart : False
+shapecurve prune     : False
+output       : /home/bruno/src/homemaker-layout/experiments/results/phase3-sliver/A0-score--harbor-house--3.dom
+[   200 evals] best 2.44222e-14 (fails 44) via seed
+[   280 evals] best 4.89675e-14 (fails 43) via core_undivide noop
+[   360 evals] best 4.93565e-14 (fails 43) via repair_shaft noop (shaft intact)
+[  2680 evals] best 5.35392e-14 (fails 43) via core_undivide noop
+[  3080 evals] best 5.40037e-14 (fails 43) via retype 0/rrrr->k1
+[  4040 evals] best 5.42956e-14 (fails 43) via place_missing noop
+[  4360 evals] best 1.0797e-13 (fails 42) via rotate 1/lrlrlllrl
+[  6680 evals] best 1.10756e-13 (fails 42) via undivide 1/lrlrllrlr aimed
+[  7160 evals] best 1.11159e-13 (fails 42) via crossover lrlrlrlr<->lrlrrlrr
+[  7560 evals] best 1.11524e-13 (fails 42) via level_fix noop
+[  7720 evals] best 1.11851e-13 (fails 42) via place_missing noop
+[  7880 evals] best 1.12163e-13 (fails 42) via place_missing noop
+[  7960 evals] best 1.12506e-13 (fails 42) via repair_shaft noop (shaft intact)
+[  8600 evals] best 1.12891e-13 (fails 42) via crossover rrrr<->lrlrlrll
+[  8920 evals] best 1.1324e-13 (fails 42) via level_fix noop
+[  9000 evals] best 1.13568e-13 (fails 42) via level_compound_fix noop
+[  9080 evals] best 9.32388e-13 (fails 39) via crossover lrlrlrr<->lrlrlllr
+[  9800 evals] best 9.3513e-13 (fails 39) via repair_shaft noop (shaft intact)
+[ 10760 evals] best 9.43012e-13 (fails 39) via repair_shaft noop (shaft intact)
+[ 11640 evals] best 9.50633e-13 (fails 39) via crossover lrlrrll<->lrlrllll
+[ 12120 evals] best 9.70827e-13 (fails 39) via place_missing noop
+[ 13400 evals] best 9.8425e-13 (fails 39) via place_missing noop
+[ 14360 evals] best 2.08284e-12 (fails 38) via crossover rrlr<->lrlrlrr
+[ 15480 evals] best 2.09361e-12 (fails 38) via level_compound_fix noop
+[ 16520 evals] best 2.10371e-12 (fails 38) via level_compound_fix noop
+[ 16520 evals] checkpoint -> A0-score--harbor-house--3.dom.checkpoint (38 fails)
+[ 18920 evals] best 2.1113e-12 (fails 38) via place_missing noop
+[ 19320 evals] best 3.95804e-12 (fails 37) via undivide 0/lrlrlrr aimed
+[ 22840 evals] best 3.98303e-12 (fails 37) via crossover lrlrlrlr<->lrlrlrlr
+[ 23560 evals] best 7.91427e-12 (fails 36) via place_missing noop
+[ 24040 evals] best 7.96465e-12 (fails 36) via repair_shaft noop (shaft intact)
+[ 24520 evals] best 3.30871e-11 (fails 34) via undivide 1/lrlrlrrlr aimed
+[ 25640 evals] best 6.64394e-11 (fails 33) via undivide 0/lrlrrlr aimed
+[ 26600 evals] best 6.67723e-11 (fails 33) via place_missing noop
+[ 28440 evals] best 6.68022e-11 (fails 33) via place_missing noop
+[ 34600 evals] best 1.33446e-10 (fails 32) via crossover lrlrlrrl<->lrlrrlr
+[ 34600 evals] checkpoint -> A0-score--harbor-house--3.dom.checkpoint (32 fails)
+[ 36840 evals] best 1.34186e-10 (fails 32) via place_missing noop
+[ 37320 evals] best 1.35273e-10 (fails 32) via swap 0/rrr
+[ 37400 evals] best 1.38548e-10 (fails 32) via retype 1/lrlrllrrr->k1
+[ 38440 evals] best 2.77846e-10 (fails 31) via core_undivide noop
+[ 44360 evals] best 2.80153e-10 (fails 31) via level_compound_fix noop
+[ 46840 evals] best 2.81707e-10 (fails 31) via crossover rrrr<->lrlrlllrl
+[ 47320 evals] best 2.82787e-10 (fails 31) via crossover lrlrrr<->lrlrrll
+[ 47480 evals] best 2.84855e-10 (fails 31) via crossover rrrl<->rrlrr
+[ 47880 evals] best 5.68301e-10 (fails 30) via undivide 0/lrlrrlr
+[ 51320 evals] best 5.69669e-10 (fails 30) via level_compound_fix noop
+[ 51320 evals] checkpoint -> A0-score--harbor-house--3.dom.checkpoint (30 fails)
+[ 51960 evals] best 5.70838e-10 (fails 30) via level_retype 1/lrlrlrrrrl<->2/lrlrlll
+[ 55080 evals] best 5.71732e-10 (fails 30) via retype 1/lrlrllllr->m
+[ 56040 evals] best 5.72242e-10 (fails 30) via level_compound_fix noop
+[ 58600 evals] best 5.72945e-10 (fails 30) via level_fix noop
+[ 60680 evals] best 5.7366e-10 (fails 30) via retype 0/rrrl->ut1
+[ 64120 evals] best 5.74232e-10 (fails 30) via core_undivide noop
+[ 69640 evals] best 5.74872e-10 (fails 30) via retype 0/lrlrrll->n
+[ 69640 evals] checkpoint -> A0-score--harbor-house--3.dom.checkpoint (30 fails)
+[ 70440 evals] best 5.75491e-10 (fails 30) via repair_shaft noop (shaft intact)
+[ 72280 evals] best 5.76056e-10 (fails 30) via level_retype 1/rrrrr<->0/rrrl
+[ 72680 evals] best 2.30969e-09 (fails 28) via rotate 1/lrlrlrrrr
+[ 74200 evals] best 2.3117e-09 (fails 28) via level_fix noop
+[ 75000 evals] best 2.31358e-09 (fails 28) via repair_shaft noop (shaft intact)
+[ 77000 evals] best 2.31527e-09 (fails 28) via level_fix noop
+[ 77960 evals] best 2.31716e-09 (fails 28) via repair_shaft noop (shaft intact)
+[ 78040 evals] best 2.32076e-09 (fails 28) via retype 1/lrlrrrl->k1
+[ 80520 evals] best 2.32336e-09 (fails 28) via core_undivide noop
+[ 81240 evals] best 2.34309e-09 (fails 28) via rotate 0/rrll
+[ 82280 evals] best 2.34542e-09 (fails 28) via place_missing noop
+[ 83960 evals] best 2.34781e-09 (fails 28) via repair_shaft noop (shaft intact)
+[ 84200 evals] best 2.35036e-09 (fails 28) via core_undivide noop
+[ 84600 evals] best 2.35304e-09 (fails 28) via crossover lrlrlrr<->lrlrlrr
+[ 85480 evals] best 2.35545e-09 (fails 28) via core_undivide noop
+[ 89400 evals] best 2.35725e-09 (fails 28) via repair_shaft noop (shaft intact)
+[ 89400 evals] checkpoint -> A0-score--harbor-house--3.dom.checkpoint (28 fails)
+[ 90200 evals] best 2.35968e-09 (fails 28) via place_missing noop
+[ 90440 evals] best 2.36144e-09 (fails 28) via level_compound_fix noop
+[ 90520 evals] best 2.36227e-09 (fails 28) via core_undivide noop
+[ 91880 evals] best 2.3626e-09 (fails 28) via retype 1/lrlrlrlrl->cr1
+[ 92280 evals] best 2.36274e-09 (fails 28) via place_missing noop
+[ 95880 evals] best 2.36274e-09 (fails 28) via level_fix noop
+[ 99400 evals] best 2.36462e-09 (fails 28) via undivide 0/lrlrlllrr
+[107960 evals] best 4.64689e-09 (fails 27) via divide 1/lrlrlrrrl
+[107960 evals] checkpoint -> A0-score--harbor-house--3.dom.checkpoint (27 fails)
+[108120 evals] best 4.64856e-09 (fails 27) via place_missing noop
+[108680 evals] best 9.61784e-09 (fails 26) via crossover rrrr<->lrlrrll
+[111000 evals] best 9.61895e-09 (fails 26) via place_missing noop
+[113160 evals] best 9.6191e-09 (fails 26) via place_missing noop
+[128040 evals] connection guard (connected) declined 0 children
+
+--- finishing (homemaker-py-3l6): unfold + polish 64000 evals ---
+[finish] unfold: materialised 0 shared-leaf copies
+[   200 evals] best 9.64289e-09 (fails 26) via seed
+[   280 evals] best 9.64289e-09 (fails 26) via core_undivide noop
+[ 13640 evals] best 9.66283e-09 (fails 26) via crossover lrlrlrl<->lrlrlrl
+[ 14440 evals] best 9.66628e-09 (fails 26) via crossover rrlll<->rrlrr
+[ 20120 evals] best 9.67488e-09 (fails 26) via retype 1/lrlrlrlrl->ut1
+[ 22440 evals] best 9.67561e-09 (fails 26) via level_compound_fix noop
+[ 22520 evals] best 9.67611e-09 (fails 26) via place_missing noop
+[ 42120 evals] best 9.76849e-09 (fails 26) via core_undivide noop
+[ 44840 evals] best 9.77779e-09 (fails 26) via level_compound_fix noop
+[ 47880 evals] best 9.78579e-09 (fails 26) via core_undivide noop
+[ 53400 evals] best 1.89363e-08 (fails 25) via level_retype 1/lrlrllrrr<->2/lrlrlll
+[ 54120 evals] best 1.89363e-08 (fails 25) via level_fix noop
+[ 54680 evals] best 3.77289e-08 (fails 24) via level_compound_fix noop
+[ 57560 evals] best 3.77553e-08 (fails 24) via crossover rrlr<->rrlr
+[ 58520 evals] best 7.54958e-08 (fails 23) via place_missing noop
+[ 58680 evals] best 7.55167e-08 (fails 23) via place_missing noop
+[ 64040 evals] connection guard (connected) declined 0 children
+
+--- collapse (homemaker-py-94g): finish-time cell→room relabel ---
+[finish] collapse: 23 → 23 fails (applied)
+
+--- done ---
+elapsed      : 13806.1s
+evals        : 192080 across 2398 topologies
+best         : 7.55167e-08 (23 fails) via place_missing noop+collapse
+
+improvement history:
+  [   200] 2.44222e-14  (share:seed)
+  [   280] 4.89675e-14  (share:core_undivide noop)
+  [   360] 4.93565e-14  (share:repair_shaft noop (shaft intact))
+  [  2680] 5.35392e-14  (share:core_undivide noop)
+  [  3080] 5.40037e-14  (share:retype 0/rrrr->k1)
+  [  4040] 5.42956e-14  (share:place_missing noop)
+  [  4360] 1.0797e-13  (share:rotate 1/lrlrlllrl)
+  [  6680] 1.10756e-13  (share:undivide 1/lrlrllrlr aimed)
+  [  7160] 1.11159e-13  (share:crossover lrlrlrlr<->lrlrrlrr)
+  [  7560] 1.11524e-13  (share:level_fix noop)
+  [  7720] 1.11851e-13  (share:place_missing noop)
+  [  7880] 1.12163e-13  (share:place_missing noop)
+  [  7960] 1.12506e-13  (share:repair_shaft noop (shaft intact))
+  [  8600] 1.12891e-13  (share:crossover rrrr<->lrlrlrll)
+  [  8920] 1.1324e-13  (share:level_fix noop)
+  [  9000] 1.13568e-13  (share:level_compound_fix noop)
+  [  9080] 9.32388e-13  (share:crossover lrlrlrr<->lrlrlllr)
+  [  9800] 9.3513e-13  (share:repair_shaft noop (shaft intact))
+  [ 10760] 9.43012e-13  (share:repair_shaft noop (shaft intact))
+  [ 11640] 9.50633e-13  (share:crossover lrlrrll<->lrlrllll)
+  [ 12120] 9.70827e-13  (share:place_missing noop)
+  [ 13400] 9.8425e-13  (share:place_missing noop)
+  [ 14360] 2.08284e-12  (share:crossover rrlr<->lrlrlrr)
+  [ 15480] 2.09361e-12  (share:level_compound_fix noop)
+  [ 16520] 2.10371e-12  (share:level_compound_fix noop)
+  [ 18920] 2.1113e-12  (share:place_missing noop)
+  [ 19320] 3.95804e-12  (share:undivide 0/lrlrlrr aimed)
+  [ 22840] 3.98303e-12  (share:crossover lrlrlrlr<->lrlrlrlr)
+  [ 23560] 7.91427e-12  (share:place_missing noop)
+  [ 24040] 7.96465e-12  (share:repair_shaft noop (shaft intact))
+  [ 24520] 3.30871e-11  (share:undivide 1/lrlrlrrlr aimed)
+  [ 25640] 6.64394e-11  (share:undivide 0/lrlrrlr aimed)
+  [ 26600] 6.67723e-11  (share:place_missing noop)
+  [ 28440] 6.68022e-11  (share:place_missing noop)
+  [ 34600] 1.33446e-10  (share:crossover lrlrlrrl<->lrlrrlr)
+  [ 36840] 1.34186e-10  (share:place_missing noop)
+  [ 37320] 1.35273e-10  (share:swap 0/rrr)
+  [ 37400] 1.38548e-10  (share:retype 1/lrlrllrrr->k1)
+  [ 38440] 2.77846e-10  (share:core_undivide noop)
+  [ 44360] 2.80153e-10  (share:level_compound_fix noop)
+  [ 46840] 2.81707e-10  (share:crossover rrrr<->lrlrlllrl)
+  [ 47320] 2.82787e-10  (share:crossover lrlrrr<->lrlrrll)
+  [ 47480] 2.84855e-10  (share:crossover rrrl<->rrlrr)
+  [ 47880] 5.68301e-10  (share:undivide 0/lrlrrlr)
+  [ 51320] 5.69669e-10  (share:level_compound_fix noop)
+  [ 51960] 5.70838e-10  (share:level_retype 1/lrlrlrrrrl<->2/lrlrlll)
+  [ 55080] 5.71732e-10  (share:retype 1/lrlrllllr->m)
+  [ 56040] 5.72242e-10  (share:level_compound_fix noop)
+  [ 58600] 5.72945e-10  (share:level_fix noop)
+  [ 60680] 5.7366e-10  (share:retype 0/rrrl->ut1)
+  [ 64120] 5.74232e-10  (share:core_undivide noop)
+  [ 69640] 5.74872e-10  (share:retype 0/lrlrrll->n)
+  [ 70440] 5.75491e-10  (share:repair_shaft noop (shaft intact))
+  [ 72280] 5.76056e-10  (share:level_retype 1/rrrrr<->0/rrrl)
+  [ 72680] 2.30969e-09  (share:rotate 1/lrlrlrrrr)
+  [ 74200] 2.3117e-09  (share:level_fix noop)
+  [ 75000] 2.31358e-09  (share:repair_shaft noop (shaft intact))
+  [ 77000] 2.31527e-09  (share:level_fix noop)
+  [ 77960] 2.31716e-09  (share:repair_shaft noop (shaft intact))
+  [ 78040] 2.32076e-09  (share:retype 1/lrlrrrl->k1)
+  [ 80520] 2.32336e-09  (share:core_undivide noop)
+  [ 81240] 2.34309e-09  (share:rotate 0/rrll)
+  [ 82280] 2.34542e-09  (share:place_missing noop)
+  [ 83960] 2.34781e-09  (share:repair_shaft noop (shaft intact))
+  [ 84200] 2.35036e-09  (share:core_undivide noop)
+  [ 84600] 2.35304e-09  (share:crossover lrlrlrr<->lrlrlrr)
+  [ 85480] 2.35545e-09  (share:core_undivide noop)
+  [ 89400] 2.35725e-09  (share:repair_shaft noop (shaft intact))
+  [ 90200] 2.35968e-09  (share:place_missing noop)
+  [ 90440] 2.36144e-09  (share:level_compound_fix noop)
+  [ 90520] 2.36227e-09  (share:core_undivide noop)
+  [ 91880] 2.3626e-09  (share:retype 1/lrlrlrlrl->cr1)
+  [ 92280] 2.36274e-09  (share:place_missing noop)
+  [ 95880] 2.36274e-09  (share:level_fix noop)
+  [ 99400] 2.36462e-09  (share:undivide 0/lrlrlllrr)
+  [107960] 4.64689e-09  (share:divide 1/lrlrlrrrl)
+  [108120] 4.64856e-09  (share:place_missing noop)
+  [108680] 9.61784e-09  (share:crossover rrrr<->lrlrrll)
+  [111000] 9.61895e-09  (share:place_missing noop)
+  [113160] 9.6191e-09  (share:place_missing noop)
+  [128240] 9.64289e-09  (polish:seed)
+  [128320] 9.64289e-09  (polish:core_undivide noop)
+  [141680] 9.66283e-09  (polish:crossover lrlrlrl<->lrlrlrl)
+  [142480] 9.66628e-09  (polish:crossover rrlll<->rrlrr)
+  [148160] 9.67488e-09  (polish:retype 1/lrlrlrlrl->ut1)
+  [150480] 9.67561e-09  (polish:level_compound_fix noop)
+  [150560] 9.67611e-09  (polish:place_missing noop)
+  [170160] 9.76849e-09  (polish:core_undivide noop)
+  [172880] 9.77779e-09  (polish:level_compound_fix noop)
+  [175920] 9.78579e-09  (polish:core_undivide noop)
+  [181440] 1.89363e-08  (polish:level_retype 1/lrlrllrrr<->2/lrlrlll)
+  [182160] 1.89363e-08  (polish:level_fix noop)
+  [182720] 3.77289e-08  (polish:level_compound_fix noop)
+  [185600] 3.77553e-08  (polish:crossover rrlr<->rrlr)
+  [186560] 7.54958e-08  (polish:place_missing noop)
+  [186720] 7.55167e-08  (polish:place_missing noop)
+written      : /home/bruno/src/homemaker-layout/experiments/results/phase3-sliver/A0-score--harbor-house--3.dom
