@@ -22138,3 +22138,63 @@ switch, or not yet. First come the levers the judging points to, which are about
 is added up: shape (`homemaker-py-5fje.8`, the commonest note in round 0) and token rooms
 (`homemaker-py-hlm1`, deferred to this phase on 2026-11-08 and not settled by it). The aggregation
 question comes back once those have moved the objective, with fresh Phase 3 arms against it.
+
+### 39.228 What "shape" means, measured: the columns see what the notes name, and decide nothing (`homemaker-py-5fje.8`)
+
+Asked on 2026-11-15 what a building's "shape" is (§39.207's commonest note, 11 of 27), the owner
+chose all four readings offered: **an outline with few jogs** ("meandering outside walls"); **few
+large, well-proportioned courtyards**, not many small or triangular ones; **yards that stay open
+the full height**, not "filled in with huge rooms"; and **storeys that stack**. Each is now a column
+of `report_card.py`, read off the union of each storey's indoor cells (definitions in its
+docstring): `jogs`; `yards`, `yard_m2`, `yard_share` and `yard_big_share` for ground-storey outside
+open to the sky; `yard_usable_share` and `yard_awkward` for how much of a yard is 2.3 m wide every
+way (§39.87's outdoor width); `yard_walled` and `covered_m2` for full height; `overhang_m2` for
+stacking. `judge_pairs.py`'s FACTS carry them. Cards frozen in earlier rounds lack them, so
+`report --rescore` is needed to read them.
+
+**Two columns were shaped by notes, and so the notes cannot also test them.** `yard_awkward`'s
+threshold (under half usable) came from R1-05 and R1-08. Their "awkward triangle" yards are 20 m²,
+24 m long and 1.7 m at the wide end, with nothing usable at 2.3 m. Their twins' 48 m² trapezoid is
+0.67 usable and drew no note. `yard_walled` was added after `covered_m2` disagreed with R0-21's
+"courtyards running entire height". There the chosen plan's main court has walls on 100% of its
+edge upstairs, and the other plan's yards 27-65%. So "full height" means the court's walls rise
+the full height, not merely that nothing is built over it. The self-test's synthetic controls (an L
+with its yard, an enclosed court stacked and with one upper wing, R1-05's triangle, a cantilever)
+show every column firing. Two real edits of CLEAN9 (a yard built on, a room built over it) move
+`yard_m2`, `covered_m2` and `overhang_m2` the way they must.
+
+**Against the notes that name a column, the column agrees, 11 of 12.** `jogs` on both "chaotic"
+pairs (R0-25: 10 against 24; R2-10: 14 against 28). `yard_big_share` on "one big courtyard" (R0-26:
+0.73 against 0.29) and on R0-17's "more credible courtyard". `yard_awkward` on R1-05 and R1-08.
+`yard_m2` on all three "filled in" pairs (R2-08: 356 against 0 m²). `yard_walled` on R0-21. The one
+miss is `covered_m2` on R0-21, which is how `yard_walled` came to be. On the twelve decisive pairs
+whose note just says "better shape" or "chaotic", the chosen plan has fewer jogs in 9 of 12 (p =
+0.15) and less covered yard in 7 of 8 (p = 0.07). Both are suggestive, and neither is resolved.
+
+**Against the choices, all 71 decisive pairs of rounds 0-2, no shape column follows the judge.**
+Re-carded at `2d4f3d4+orth`:
+
+| column | chosen plan larger in | p |
+|---|---|---|
+| jogs | 21 of 47 | 0.56 |
+| yard_m2 | 29 of 60 | 0.90 |
+| yard_big_share | 18 of 47 | 0.14 |
+| yard_walled | 19 of 34 | 0.61 |
+| covered_m2 / overhang_m2 | 17 of 39 / 18 of 42 | 0.52 / 0.44 |
+| *for comparison:* sliver_cells | 2 of 27 | 6e-6 |
+| missing | 11 of 13 | 0.022 |
+| circ_pieces | 9 of 30 | 0.043 |
+
+The one subset with a resolved shape column is harbor-house and maple-court, where the chosen plan
+has more yards in 11 of 12 (p = 0.006). That subset was found by looking, one of some sixty column-by-subset tests,
+so it is a lead, not a finding. It also runs against "one big courtyard": there the chosen plan has
+the smaller `yard_big_share` in 22 of 33.
+
+**What this says.** The owner's four readings are measurable, and the columns see what each note
+names. But they say nothing about which plan the judge preferred. The judge's choices follow
+slivers, missing rooms and pieces of circulation, and a plan's shape is remarked on, not decisive,
+at least while those differ. The pairs were not drawn to test it: no pair is matched on the deciding
+facts and different in shape. So there is no case for shape in the objective on this evidence, and
+none against. The test that would settle it is a judging round of pairs matched on `sliver_cells`,
+`missing` and `circ_pieces` that differ in `jogs` and the yard columns, filed as
+`homemaker-py-5fje.18`.

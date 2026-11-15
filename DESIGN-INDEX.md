@@ -176,6 +176,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A storey's circulation pays one `not connected` fail per piece beyond the first (stairs joining storeys), not one per storey: "an incremental way to resolve the problem" | §39.215 |
 | A stair may take any flight shape with no more turns than its doors allow; a turned shape has two flights across its base, each `min(stair_width, base / 2)` wide and at least 0.9 m, its landings with it. Urb's model of two 1.25 m landings is kept, but a flight narrows to fit: at a fixed 1.25 m, the owner's own 2.29 m U-stair would have been a missing stair. Pinned in `tests/test_stair_shapes.py` | §39.216 |
 | A sliver room is a fail in a finished design ("might be ok in an intermediate step"): a room cell under 0.8 m usable width fails `width`, graded towards passing. A stair cell in no shaft is circulation; a run of stair and corridor cells is one composite corridor. Pinned in `tests/test_sliver_room.py` | §39.222 |
+| A building's "shape" is four things: an outline with few jogs, few large well-proportioned courtyards, yards open and walled the full height, storeys that stack (2026-11-15) | §39.228 |
 | No aggregation switch yet (2026-11-15): A0 stays the default while shape and token rooms are worked; the question returns with fresh Phase 3 arms | §39.227 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
@@ -195,6 +196,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | CP-SAT seeding | §37.7, §38.20 | loses in a full run |
 | Shape-curve DP warm start as wired | §38.24, §39.78, §39.106 | cannot pay as wired; inexact; wrong point on a native tree |
 | Re-weighting the crinkliness tail (three attempts) | §38.1, §39.13, §39.68 | inert; the tail is 0.034% of corpus value |
+| Shape as a decider: four measured readings of it | §39.228 | they agree with the notes that name them (11 of 12) and follow none of 71 decisive choices; untested on pairs matched on slivers/missing/circulation |
 | Connectivity weighting | §39.8 | null, premise retracted |
 | `support_outside` paying for itself | §39.81, §39.86, §39.91, §39.111 | clears a fail that is now rare; a wash on fails and score |
 | Skipping the crop for whole cells | §39.105 | declined: under 2% of a score |
@@ -226,7 +228,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (332 of them, 22140 lines)
+## Every section of DESIGN.md (333 of them, 22200 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -609,4 +611,5 @@ below are the most recent work.
 - §39.224 · 22012-22034 · Phase 3 again at the sliver objective: the four core arms, expectations written first (`homemaker-py-5fje.6`)
 - §39.225 · 22035-22067 · `judge_pairs.py report --rescore`: rounds 0-2 at today's objective (`homemaker-py-n4kk`)
 - §39.226 · 22068-22125 · Phase 3 at the sliver objective: results against §39.224's expectations (`homemaker-py-5fje.6`)
-- §39.227 · 22126-22140 · Phase 4 deferred: no aggregation switch until the measured levers are worked (owner's ruling, `homemaker-py-5fje`)
+- §39.227 · 22126-22141 · Phase 4 deferred: no aggregation switch until the measured levers are worked (owner's ruling, `homemaker-py-5fje`)
+- §39.228 · 22142-22200 · What "shape" means, measured: the columns see what the notes name, and decide nothing (`homemaker-py-5fje.8`)

@@ -72,6 +72,33 @@ by), per storey, before a stair joins storeys:
                 area of the pieces that reach no stair and, on the ground
                 storey, no outside: scraps that join nothing
 
+The building's shape, the owner's four readings of it (2026-11-15,
+`homemaker-py-5fje.8`), read off the union of each storey's indoor cells:
+
+  jogs          corners of every storey's indoor outline beyond four per ring
+                (outer outline and each enclosed court), seams under 5 cm
+                dropped: "meandering outside walls" (R2-10). The plot's own
+                corners count wherever the building meets them
+  yards, yard_m2, yard_share
+                ground-storey outside open to the sky (no indoor cell on any
+                storey above), in pieces of at least 1 m2; their area, and its
+                share of the plot. "Filled in with huge rooms" (R2-20, R2-23)
+  yard_big_share
+                the largest yard's share of yard_m2: "one big courtyard" (R0-26)
+  yard_usable_share, yard_awkward
+                the part of the yards at least 2.3 m wide every way (a
+                morphological opening, the outdoor width of §39.87), and yards
+                under half usable: "awkward triangle open yard" (R1-05, R1-08)
+  yard_walled   of the yards' edges off the plot boundary, the share with an
+                indoor cell against it, over the storeys above the ground: a
+                court whose walls rise the full height (R0-21, where the yard
+                chosen is walled 100% upstairs and the other's 27-65%). None on
+                one storey
+  covered_m2    ground-storey outside with an indoor cell over it on some
+                storey: a yard that does not run the full height (R0-15, R0-21)
+  overhang_m2   indoor area on each upper storey not over indoor area on the
+                storey below: storeys that do not stack
+
 A third measure was tried and dropped: circulation on no route joining the
 stairs, the way out and every room's door (an approximate Steiner tree, a
 cell counting whole). It was zero on 90 of the 98 designs, because nearly
@@ -116,7 +143,9 @@ DESIGN_COLS = ["rooms_asked", "missing", "extra", "token", "over",
                "storeys", "connected", "stair_storeys",
                "room_m2", "circ_m2", "circ_share", "inside_m2",
                "wall_per_m2", "roof_per_m2", "cost",
-               "circ_pieces", "circ_orphan_m2"]
+               "circ_pieces", "circ_orphan_m2",
+               "jogs", "yards", "yard_m2", "yard_share", "yard_big_share", "yard_usable_share",
+               "yard_awkward", "yard_walled", "covered_m2", "overhang_m2"]
 ROOM_COLS = ["level", "id", "code", "usage", "area", "target", "ratio",
              "width", "aspect", "aspect_max",
              "exposed_m", "depth", "needs_light",
@@ -176,11 +205,12 @@ def card(fit, reqs, root):
     room_rows = []
     room_m2 = circ_m2 = inside_m2 = wall_m2 = 0.0
     sliver_cells = 0
-    inside_by_level = []
+    inside_by_level, plot_by_level = [], []
     for li, (lvl, G, _) in enumerate(storeys):
         h = _height(lvl)
-        polys = []
+        polys, everything = [], []
         for leaf in lvl.leaves():
+            everything.append(outline(leaf))
             sliver_cells += geometry.usable_width(leaf) < SLIVER
             if dom.is_outside(leaf):
                 continue
@@ -218,6 +248,7 @@ def card(fit, reqs, root):
                 adj_missed=",".join(missed),
                 door=int(bool(fit.access(leaf, G)))))
         inside_by_level.append(unary_union(polys) if polys else Polygon())
+        plot_by_level.append(unary_union(everything) if everything else Polygon())
 
     roof = 0.0
     for i, here in enumerate(inside_by_level):
@@ -278,10 +309,75 @@ def card(fit, reqs, root):
         cost=cost)
     row["adj_share"] = row["adj_met"] / row["adj_asked"] if row["adj_asked"] else float("nan")
     row["circ_pieces"], row["circ_orphan_m2"] = circulation_network(storeys, rooms)
+    row.update(shape_columns(inside_by_level, plot_by_level))
     return row, room_rows
 
 
 CIRC = set(dom.GENERIC_INDOOR_CIRCULATION)
+SNAP = 0.05       # m: corners closer than this, or off a straight line by less, are one
+YARD_MIN = 1.0    # m2: an outside scrap smaller than this is not a yard
+OUTDOOR_WIDTH = 2.3   # m: the owner's six-foot balcony (§39.87), the width a yard is usable at
+
+
+def _polys(g):
+    return [x for x in getattr(g, "geoms", [g]) if x.geom_type == "Polygon" and not x.is_empty]
+
+
+def _corners(ring):
+    """Corners of a closed ring, after dropping vertices within SNAP of the
+    line through their neighbours (the seams between cells)."""
+    pts = list(ring.coords)[:-1]
+    changed = True
+    while changed and len(pts) > 3:
+        changed = False
+        for i in range(len(pts)):
+            a, b, c = pts[i - 1], pts[i], pts[(i + 1) % len(pts)]
+            ab = ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) ** 0.5
+            ac = ((c[0] - a[0]) ** 2 + (c[1] - a[1]) ** 2) ** 0.5
+            cross = abs((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0]))
+            if ab < SNAP or ac == 0 or cross / ac < SNAP:
+                del pts[i]
+                changed = True
+                break
+    return len(pts)
+
+
+def shape_columns(inside_by_level, plot_by_level):
+    """The building's form, the owner's four readings of "shape" (2026-11-15,
+    `homemaker-py-5fje.8`). See the module docstring."""
+    clean = [g.buffer(1e-6).buffer(-1e-6) for g in inside_by_level]
+    jogs = 0
+    for g in clean:
+        for p in _polys(g):
+            for ring in [p.exterior, *p.interiors]:
+                jogs += max(0, _corners(ring) - 4)
+    plot = plot_by_level[0].buffer(1e-6).buffer(-1e-6) if plot_by_level else Polygon()
+    ground = clean[0] if clean else Polygon()
+    upper = unary_union(clean[1:]) if len(clean) > 1 else Polygon()
+    outside = plot.difference(ground)
+    open_ = outside.difference(upper)
+    yards = [p for p in _polys(open_.buffer(1e-6).buffer(-1e-6)) if p.area >= YARD_MIN]
+    yard_m2 = sum(p.area for p in yards)
+    r = OUTDOOR_WIDTH / 2
+    usable = [p.buffer(-r, join_style=2).buffer(r, join_style=2).intersection(p).area
+              for p in yards]
+    # each yard's edge off the plot boundary, and how much of it has an
+    # indoor cell against it on each storey above the ground
+    edges = [p.exterior.difference(plot.exterior.buffer(SNAP)) for p in yards]
+    edge_m = sum(e.length for e in edges) * (len(clean) - 1)
+    walled = sum(e.intersection(g.buffer(1e-4)).length for e in edges for g in clean[1:])
+    overhang = sum(clean[i].difference(clean[i - 1]).area for i in range(1, len(clean)))
+    tidy = lambda x: 0.0 if abs(x) < 1e-6 else x  # noqa: E731  shapely's seam dust
+    return dict(
+        jogs=jogs, yards=len(yards), yard_m2=yard_m2,
+        yard_share=yard_m2 / plot.area if plot.area else float("nan"),
+        yard_big_share=max((p.area for p in yards), default=0.0) / yard_m2
+        if yard_m2 else float("nan"),
+        yard_usable_share=sum(usable) / yard_m2 if yard_m2 else float("nan"),
+        yard_awkward=sum(u < 0.5 * p.area for u, p in zip(usable, yards)),
+        yard_walled=walled / edge_m if edge_m else float("nan"),
+        covered_m2=tidy(outside.intersection(upper).area),
+        overhang_m2=tidy(overhang))
 
 
 def circulation_network(storeys, rooms):
@@ -370,7 +466,54 @@ CONTROLS = [
      {"sliver": 1, "sliver_cells": 1, "missing": 0}),
     ("the same cell squeezed and made corridor", CLEAN9, "corridor_squeezed",
      {"sliver": 0, "sliver_cells": 1}),
+    ("the largest open yard cell built on", CLEAN9, "yard_filled",
+     {"yard_m2": "-", "covered_m2": 0, "overhang_m2": 0, "missing": 0}),
+    ("a top-storey room built over that yard cell", CLEAN9, "yard_covered",
+     {"yard_m2": "-", "covered_m2": "+", "overhang_m2": "+", "missing": 0}),
 ]
+
+
+def _rect(x0, y0, x1, y1):
+    return Polygon([(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
+
+
+# (what, [indoor per storey], plot, {column: exact value}); synthetic, so the
+# columns the real edits cannot aim at (corners, a yard's shape) are shown to fire
+SHAPE_CONTROLS = [
+    ("a rectangle filling its plot, seams in its outline",
+     [unary_union([_rect(0, 0, 5, 10), _rect(5, 0, 10, 10)])], _rect(0, 0, 10, 10),
+     {"jogs": 0, "yards": 0, "yard_m2": 0.0, "overhang_m2": 0.0}),
+    ("an L of building, a 6 m square yard in its corner",
+     [_rect(0, 0, 10, 10).difference(_rect(4, 4, 10, 10))], _rect(0, 0, 10, 10),
+     {"jogs": 2, "yards": 1, "yard_m2": 36.0, "yard_usable_share": 1.0, "yard_awkward": 0}),
+    ("a court enclosed on four sides, two storeys stacked",
+     [_rect(0, 0, 12, 12).difference(_rect(4, 4, 8, 8))] * 2, _rect(0, 0, 12, 12),
+     {"jogs": 0, "yards": 1, "yard_m2": 16.0, "covered_m2": 0.0, "overhang_m2": 0.0,
+      "yard_walled": 1.0}),
+    ("the same court, the upper storey one wing only",
+     [_rect(0, 0, 12, 12).difference(_rect(4, 4, 8, 8)), _rect(0, 0, 4, 12)], _rect(0, 0, 12, 12),
+     {"yards": 1, "yard_walled": 0.25, "overhang_m2": 0.0}),
+    # R1-05 and R1-08's "awkward triangle open yard": 24 m long, 1.7 m at its
+    # wide end, 20 m2. Their twins' 48 m2 trapezoid, 0.67 usable, drew no note
+    ("a triangular yard against a skew boundary, as in R1-05",
+     [_rect(0, 0, 24, 2)], Polygon([(0, 0), (24, 0), (24, 3.7), (0, 2)]),
+     {"yards": 1, "yard_awkward": 1, "yard_usable_share": 0.0}),
+    ("an upper storey cantilevered 2 m over a yard",
+     [_rect(0, 0, 6, 10), _rect(0, 0, 8, 10)], _rect(0, 0, 12, 10),
+     {"overhang_m2": 20.0, "covered_m2": 20.0, "yard_m2": 40.0, "yard_big_share": 1.0}),
+]
+
+
+def shape_self_test():
+    ok = True
+    for what, levels, plot, want in SHAPE_CONTROLS:
+        got = shape_columns(levels, [plot] * len(levels))
+        print(f"\n{what}")
+        for c, need in want.items():
+            good = abs(got[c] - need) < 1e-3
+            ok &= good
+            print(f"  {'ok ' if good else 'BAD'} {c}: {fmt(got[c])} (want {fmt(need)})")
+    return ok
 
 
 def stair_short(root):
@@ -424,8 +567,34 @@ def corridor_squeezed(root):
     _squeeze(root).type = "C"
 
 
+def _open_yard_cells(root):
+    """Ground-storey outside cells with no indoor cell on any storey above,
+    largest first."""
+    return sorted((n for n in dom.levels(root)[0].leaves()
+                   if dom.is_outside(n) and not dom.is_covered(n)),
+                  key=lambda n: -geometry.area(n))
+
+
+def yard_filled(root):
+    """Build a bedroom on the largest open ground-storey yard cell: a yard
+    filled in, with nothing built over it."""
+    _open_yard_cells(root)[0].type = "r"
+
+
+def yard_covered(root):
+    """Build a bedroom on the top storey over the largest open yard cell:
+    the yard no longer runs the full height, and the top storey overhangs."""
+    below = _open_yard_cells(root)[0]
+    c = geometry.centroid(below)
+    from shapely.geometry import Point
+    top = next(n for n in dom.levels(root)[-1].leaves()
+               if dom.is_outside(n) and outline(n).contains(Point(c)))
+    top.type = "r"
+
+
 EDITS = {"stair_short": stair_short, "corridor_cut": corridor_cut,
-         "room_squeezed": room_squeezed, "corridor_squeezed": corridor_squeezed}
+         "room_squeezed": room_squeezed, "corridor_squeezed": corridor_squeezed,
+         "yard_filled": yard_filled, "yard_covered": yard_covered}
 
 
 def self_test(progs):
@@ -452,6 +621,7 @@ def self_test(progs):
     # a column that no control moves is a column nothing has shown can move
     still = [c for c in DESIGN_COLS if c not in ever]
     print(f"\ncolumns no control moved: {', '.join(still) or 'none'}")
+    ok &= shape_self_test()
     print("negative control:", "PASS" if ok else "FAIL")
     return ok
 

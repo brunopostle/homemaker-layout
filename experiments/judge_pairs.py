@@ -66,7 +66,11 @@ CANDIDATES = [("A0", "A0", 1e-3), ("P1", "P1", 1e-3)]
 # report-card columns compared in the report, against the owner's choices
 FACTS = ["missing", "token", "sliver", "sliver_cells", "shortfall_m2", "surplus_m2", "deep", "unlit",
          "adj_share", "no_door", "connected", "stair_storeys", "circ_share",
-         "narrowest", "wall_per_m2", "cost"]
+         "narrowest", "wall_per_m2", "cost",
+         # the building's shape (homemaker-py-5fje.8): cards frozen before
+         # these columns read None; --rescore fills them
+         "jogs", "yards", "yard_m2", "yard_share", "yard_big_share", "yard_usable_share",
+         "yard_awkward", "yard_walled", "covered_m2", "overhang_m2"]
 
 
 def fact(card, c):
