@@ -130,7 +130,7 @@ from successive_halving import REPO, load_config  # noqa: E402
 from homemaker_layout import dom, geometry, programme  # noqa: E402
 from homemaker_layout import graph as graph_mod  # noqa: E402
 from homemaker_layout import programme as _pr  # noqa: E402
-from homemaker_layout.fitness import Fitness, _height  # noqa: E402
+from homemaker_layout.fitness import Fitness, _height, _ring_corners, union_cells  # noqa: E402
 
 DEPTH_PER_WINDOW = 2.5   # m of floor per window wall, Alexander 159 (§39.16)
 SLIVER = 0.8             # m: below this a room holds nothing, not even a wc stall (§39.204)
@@ -247,8 +247,8 @@ def card(fit, reqs, root):
                 needs_light=int(req_light), adj_asked=len(r.adjacency),
                 adj_missed=",".join(missed),
                 door=int(bool(fit.access(leaf, G)))))
-        inside_by_level.append(unary_union(polys) if polys else Polygon())
-        plot_by_level.append(unary_union(everything) if everything else Polygon())
+        inside_by_level.append(union_cells(polys))
+        plot_by_level.append(union_cells(everything))
 
     roof = 0.0
     for i, here in enumerate(inside_by_level):
@@ -324,28 +324,15 @@ def _polys(g):
 
 
 def _corners(ring):
-    """Corners of a closed ring, after dropping vertices within SNAP of the
-    line through their neighbours (the seams between cells)."""
-    pts = list(ring.coords)[:-1]
-    changed = True
-    while changed and len(pts) > 3:
-        changed = False
-        for i in range(len(pts)):
-            a, b, c = pts[i - 1], pts[i], pts[(i + 1) % len(pts)]
-            ab = ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) ** 0.5
-            ac = ((c[0] - a[0]) ** 2 + (c[1] - a[1]) ** 2) ** 0.5
-            cross = abs((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0]))
-            if ab < SNAP or ac == 0 or cross / ac < SNAP:
-                del pts[i]
-                changed = True
-                break
-    return len(pts)
+    """Corners of a closed ring: the scorer's own count (``fitness._ring_corners``,
+    which prices corners since §39.231), so the card and the cost agree."""
+    return _ring_corners(ring.coords)
 
 
 def shape_columns(inside_by_level, plot_by_level):
     """The building's form, the owner's four readings of "shape" (2026-11-15,
     `homemaker-py-5fje.8`). See the module docstring."""
-    clean = [g.buffer(1e-6).buffer(-1e-6) for g in inside_by_level]
+    clean = [g.buffer(1e-6, join_style=2).buffer(-1e-6, join_style=2) for g in inside_by_level]
     jogs = 0
     for g in clean:
         for p in _polys(g):

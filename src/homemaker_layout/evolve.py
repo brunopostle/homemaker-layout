@@ -317,11 +317,12 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "it has not been run (default: off)")
     p.add_argument("--split-stair", dest="split_stair",
                    action=argparse.BooleanOptionalAction,
-                   default=_env_bool("HOMEMAKER_SPLIT_STAIR", False),
+                   default=_env_bool("HOMEMAKER_SPLIT_STAIR", True),
                    help="homemaker-py-yd6t: a move that splits a long stair into a "
                         "stair and a circulation cell on every storey it climbs. "
-                        "Changes what a search does; the A/B that decides it has "
-                        "not been run (default: off)")
+                        "Default on since §39.231 (owner's ruling, §39.198: "
+                        "switched on with the next change that forced new "
+                        "controls, which was the roof/slab/corner cost)")
     p.add_argument("--repair-shaft", dest="repair_shaft",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_REPAIR_SHAFT", True),

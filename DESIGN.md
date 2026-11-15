@@ -22303,3 +22303,75 @@ Nothing here touches `src/`. To land: `COST_DEFAULTS` gains `roof`, `slab` and `
 can price none of these, because each is a property of a storey's outline, so they join
 `plot_cost`'s building-level term. The fail joins `process_storey` on the ground storey. Both go with
 `--split-stair` default-on, in one stamp, before health-centre's race.
+
+### 39.231 Landed: roof, slab and corners in the cost, the enclosed-outdoor fail, and `--split-stair` on (`homemaker-py-5fje.20`, `5fje.21`, `lycb`)
+
+The owner approved §39.230's proposal on 2026-11-15, and it lands as one objective change with the
+search default that was waiting for it (§39.198):
+
+- **`COST_DEFAULTS` gains `roof` 100, `slab` 75 and `corner` 100.** `Fitness.envelope_cost(lvls)`
+  reads them off the union of each storey's indoor cells: roof over indoor area with no indoor area
+  on the storey above, slab under the ground storey's indoor area, and each corner of each storey's
+  outline (courts included) at `corner` × storey height. `_evaluate_full` adds it to the cost before
+  the A0 ratio. P aggregations have no cost term and do not see it. A brief's `costs.config` can
+  override all three. None of the examples has one.
+- **`enclosed outside`, a hard fail**, on a ground-storey outdoor cell with indoor space above, no
+  outdoor neighbour and no open plot side (`Fitness._enclosed_outside`). Above the ground,
+  `covered outside above ground` already fails every covered outdoor cell. Note that this sits
+  awkwardly with §39.229's "covered outdoor areas can be useful … for outdoor space on every
+  storey", which is a question for the owner, not part of this change.
+- **`--split-stair` is on by default** (`homemaker-py-lycb`).
+
+**Checks.** With the three rates zeroed and the new fail's factor undone, all 60 designs of §39.230
+score bit-identically to the previous commit (checked before the union fix below, which touches
+only the new terms). With the rates set, every score matches §39.230's
+prediction to the four significant figures its table carries.
+
+**One outline, one corner count, shared by the scorer and the tools.** `fitness.union_cells` and
+`fitness.indoor_outline` build a storey's outline, and `fitness._ring_corners` counts its corners.
+`report_card` and `diag_5fje20_roof_corners` call them, so the card's `jogs` and the scorer's cost
+cannot drift apart. Getting the outline right took three fixes, each found by a check rather than by
+reading:
+
+- **GEOS's plain union loses area.** On 3 of 874 storeys (192 corpus designs, quad and native) it
+  lost up to 58 m². `test_native_tree`'s quad-against-native gate caught it, because the two trees
+  of one building had different roofs. Snapping to a micron grid (`union_all(grid_size=1e-6)`) makes
+  the union's area equal the cells' summed area on all 874.
+- **Cells meeting along a skew wall can stay a sub-micron apart.** The grid does not close that gap,
+  so one building came out as two pieces and both sides of the seam were counted as corners. A
+  micron's grow-and-shrink closes it. The buffer is mitred, because round joins turn every corner
+  into an arc of about seventeen points within a micron, and the first corner count divided by that
+  micron. The count now merges points within 5 cm before testing for seams.
+- **Collinear spikes leave rings of no area**, which counted three corners. Rings under 1 cm² are
+  dropped.
+
+After all three, quad and native score identically on all 192 designs, as before this change.
+
+**Corrections to §39.228 and §39.230**, which used the plain union and the first corner count.
+§39.230's table is unchanged at its precision. Its worked example, A0-fails--health-centre--1, has a
+roof of 297 m² and 28 corners (not 284 and 30). Its arithmetic used the card's 297 m² of inside
+area, so the conclusion stands. §39.228's notes-against-columns checks are unchanged. Over all 71
+decisive pairs, some counts move: `yard_m2` 31 of 65 (was 29 of 60), `yards` 20 of 34, `covered_m2`
+23 of 49, `overhang_m2` 24 of 53, `yard_awkward` 9 of 18. Every p-value stays above 0.39, so the
+finding stands: no shape column follows the choices.
+
+**Cost of a score: about +3 ms, +17-23%** (CPU time over 120 designs; 17% with the first union on an
+idle box, 23% with the final one while the test suite ran). Of that, about 0.9 ms is building
+polygons, 1.1 ms the union, and the rest the buffer and the corners. GEOS's `coverage_union` would
+be faster, but it refuses these cells, which meet at T-junctions. Maple-court's 17-hour runs would
+take about three hours longer at the same budget, so the next sweep should budget for it.
+
+**The stamp moves**, and there is no corpus at it. The first run at this stamp is meant to be
+health-centre's catalogue race (`homemaker-py-5fje.19`). Expectations, written before it runs:
+
+1. Some health-centre finalists have two storeys. Today none of its runs do.
+2. Median `jogs` per storey no higher than in phase3-sliver's A0-fails, on every programme. A corner
+   is about 0.2% of a design's cost, so this is a nudge, not a rule.
+3. Fail counts within MDD of the matching phase3-sliver arm, since the cost reorders nothing across
+   a fail (§39.230).
+4. `enclosed outside` in no finalist.
+
+`tests/test_envelope_cost.py` pins it, each rule with its control: a seam is no corner and an L has
+six, a court counts its own corners, cells a hair apart on a skew wall are one outline (the plain
+union fails this), a walled-in ground yard fails while a loggia does not, and zero rates add
+nothing. The full suite passes: 1072, 1 skipped, 5 xfailed.

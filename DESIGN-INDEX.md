@@ -178,6 +178,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A sliver room is a fail in a finished design ("might be ok in an intermediate step"): a room cell under 0.8 m usable width fails `width`, graded towards passing. A stair cell in no shaft is circulation; a run of stair and corridor cells is one composite corridor. Pinned in `tests/test_sliver_room.py` | §39.222 |
 | A building's "shape" is four things: an outline with few jogs, few large well-proportioned courtyards, yards open and walled the full height, storeys that stack (2026-11-15) | §39.228 |
 | Many small yards are good; a big one only for a purpose (assembly). Corners cost to build and complicate the roof; two storeys beat one (half the roof, less perimeter), accessibility aside. An outdoor cell enclosed on every side, above and below, is not outside space. Open-topped outdoor space is generally more versatile than covered. Good shape is wings of light: a few plan types (C, F, 8 ...) assembled in a fixed number of slicing ways | §39.229 |
+| The cost charges a roof (100/m²), a ground slab (75/m²) and every corner of every storey's outline (1 m of exterior wall); a ground-floor outdoor cell walled and built over is a fail; `--split-stair` is on. One stamp | §39.230, §39.231 |
 | No aggregation switch yet (2026-11-15): A0 stays the default while shape and token rooms are worked; the question returns with fresh Phase 3 arms | §39.227 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
@@ -229,7 +230,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (335 of them, 22305 lines)
+## Every section of DESIGN.md (336 of them, 22377 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -615,4 +616,5 @@ below are the most recent work.
 - §39.227 · 22126-22141 · Phase 4 deferred: no aggregation switch until the measured levers are worked (owner's ruling, `homemaker-py-5fje`)
 - §39.228 · 22142-22201 · What "shape" means, measured: the columns see what the notes name, and decide nothing (`homemaker-py-5fje.8`)
 - §39.229 · 22202-22248 · The owner on §39.228: yards, corners, storeys, enclosed "outside", and wings of light (owner's rulings, 2026-11-15)
-- §39.230 · 22249-22305 · Roof, slab and corners priced over 60 designs: a cost is inert on finished designs, and what flips one storey to two (`homemaker-py-5fje.20`, `5fje.21`)
+- §39.230 · 22249-22306 · Roof, slab and corners priced over 60 designs: a cost is inert on finished designs, and what flips one storey to two (`homemaker-py-5fje.20`, `5fje.21`)
+- §39.231 · 22307-22377 · Landed: roof, slab and corners in the cost, the enclosed-outdoor fail, and `--split-stair` on (`homemaker-py-5fje.20`, `5fje.21`, `lycb`)

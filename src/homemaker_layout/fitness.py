@@ -110,6 +110,7 @@ _HARD_FAIL_MARKERS = (
     "no outside space",
     "unsupported covered outside",
     "covered outside above ground",
+    "enclosed outside",  # §39.231: a ground-floor carriage arch is not outside space
     "too few stairs",
     "too many stairs",
     "storey limit",
@@ -503,7 +504,81 @@ COST_DEFAULTS: dict = {
     "exterior_wall": 100.0,
     "boundary": 50.0 / 3,
     "boundary_wall": 400.0 / 3,
+    # §39.229-§39.231 (owner's rulings, homemaker-py-5fje.20): what a storey's
+    # outline costs beyond its walls. A roof over indoor area with nothing
+    # indoor above it, a ground slab under the ground storey's indoor area,
+    # and each corner of each storey's indoor outline at one metre of
+    # exterior wall over the storey's height. Before these, corners were
+    # free and there was no roof or slab, so the model favoured one storey.
+    "roof": 100.0,
+    "slab": 75.0,
+    "corner": 100.0,
 }
+
+_CORNER_SNAP = 0.05   # m: vertices off a straight line by less are seams, not corners
+
+
+def union_cells(polygons):
+    """The union of cells that tile a region, as one shapely geometry, with
+    no zero-area ring. Three things go wrong with a plain union of these
+    cells, and each is handled (§39.231):
+
+    - GEOS's cascaded union loses area on a few storeys (3 of 874 in the
+      corpus, up to 58 m2), so vertices are snapped to a micron grid first,
+      after which the area equals the cells' summed area on every storey;
+    - two cells meeting along a skew wall can stay a sub-micron apart, which
+      the grid does not close, so the union is grown and shrunk by a micron
+      (mitred, so a corner stays one vertex rather than an arc);
+    - collinear spikes leave rings of no area, which are dropped."""
+    import shapely
+    from shapely.geometry import MultiPolygon, Polygon
+    if not polygons:
+        return Polygon()
+    u = shapely.union_all(polygons, grid_size=1e-6)
+    u = u.buffer(1e-6, join_style=2).buffer(-1e-6, join_style=2)
+    parts = []
+    for p in getattr(u, "geoms", [u]):
+        if p.geom_type != "Polygon" or p.area < 1e-4:
+            continue
+        holes = [h for h in p.interiors if Polygon(h).area >= 1e-4]
+        parts.append(Polygon(p.exterior, holes))
+    return parts[0] if len(parts) == 1 else MultiPolygon(parts) if parts else Polygon()
+
+
+def indoor_outline(lvl):
+    """The union of a storey's indoor cells (DESIGN.md §39.231)."""
+    from shapely.geometry import Polygon
+    return union_cells([Polygon([geometry.coordinate(n, i) for i in range(geometry.n_edges(n))])
+                        for n in lvl.leaves() if not dom_mod.is_outside(n)])
+
+
+def _ring_corners(coords) -> int:
+    """Corners of a closed ring (shapely coords, first point repeated): first
+    points within ``_CORNER_SNAP`` of the last one kept are merged, then any
+    vertex within ``_CORNER_SNAP`` of the line through its neighbours is
+    dropped -- the seams between cells along a straight wall -- sweeping
+    until a pass drops nothing."""
+    pts: list = []
+    for q in list(coords)[:-1]:
+        if not pts or math.hypot(q[0] - pts[-1][0], q[1] - pts[-1][1]) >= _CORNER_SNAP:
+            pts.append(q)
+    while len(pts) > 1 and math.hypot(pts[0][0] - pts[-1][0],
+                                      pts[0][1] - pts[-1][1]) < _CORNER_SNAP:
+        pts.pop()
+    while len(pts) > 3:
+        kept: list = []
+        for i, b in enumerate(pts):
+            a = kept[-1] if kept else pts[-1]
+            c = pts[(i + 1) % len(pts)]
+            ac = math.hypot(c[0] - a[0], c[1] - a[1])
+            off = abs((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])) / ac \
+                if ac else 0.0
+            if off >= _CORNER_SNAP:
+                kept.append(b)
+        if len(kept) == len(pts) or len(kept) < 3:
+            break
+        pts = kept
+    return len(pts)
 
 # ProgrammeDriven::default_params ultimate fallbacks
 _PARAM_FALLBACKS = {
@@ -2066,6 +2141,52 @@ class Fitness:
         """The 'initial cost' term: plot rate x lowest-root area."""
         return self.cost("plot") * geometry.area(root)
 
+    def envelope_cost(self, lvls: list) -> float:
+        """Roof, ground slab and corners, read off each storey's indoor
+        outline (DESIGN.md §39.230-§39.231, owner's rulings). None of these is
+        a property of one leaf: a roof is indoor area with no indoor area
+        above it on the next storey, a corner a vertex of the union of a
+        storey's indoor cells. Covered outdoor cells already carry their roof
+        in ``outside_covered*``."""
+        roof, slab, corner = self.cost("roof"), self.cost("slab"), self.cost("corner")
+        if not (roof or slab or corner):
+            return 0.0
+        outlines, heights = [], []
+        for lvl in lvls:
+            outlines.append(indoor_outline(lvl))
+            heights.append(_height(lvl))
+        total = 0.0
+        for i, u in enumerate(outlines):
+            if u.is_empty:
+                continue
+            above = outlines[i + 1] if i + 1 < len(outlines) else None
+            total += roof * (u.area if above is None or above.is_empty
+                             else u.difference(above).area)
+            n = sum(_ring_corners(r.coords)
+                    for p in getattr(u, "geoms", [u]) if p.geom_type == "Polygon"
+                    for r in (p.exterior, *p.interiors))
+            total += corner * n * heights[i]
+        if outlines:
+            total += slab * outlines[0].area
+        return total
+
+    def _enclosed_outside(self, leaf: Node, G: nx.Graph) -> bool:
+        """A ground-storey outdoor cell with indoor space over it, no outdoor
+        neighbour and no open plot side (a party or private side is a wall):
+        "not an outside space" (owner's ruling, §39.229). Above the ground
+        any covered outdoor cell already fails."""
+        if not dom_mod.is_outside(leaf) or not dom_mod.is_covered(leaf):
+            return False
+        if any(dom_mod.is_outside(nb) for nb in G.neighbors(leaf)):
+            return False
+        per = _perimeter(leaf)
+        for e in range(geometry.n_edges(leaf)):
+            bid = geometry.boundary_id(leaf, e)
+            if geometry.is_external(bid) and \
+                    (per.get(bid) or "").lower() not in ("private", "fortified"):
+                return False
+        return True
+
     # ----------------------------------------------------------------------- #
     # Stair geometry (Urb::Misc::Stairs + Urb::Dom::Stair_Fit)
     # ----------------------------------------------------------------------- #
@@ -2451,6 +2572,8 @@ class Fitness:
                 if not dom_mod.is_supported(leaf):
                     fail(f"{level_id}/{leaf.id} unsupported covered outside")
                 fail(f"{level_id}/{leaf.id} covered outside above ground")
+            elif not level_id and dom_mod.is_usable(leaf) and self._enclosed_outside(leaf, G):
+                fail(f"{level_id}/{leaf.id} enclosed outside")
 
             cost += self.leaf_cost(leaf)
             if not dom_mod.is_usable(leaf):
@@ -2792,6 +2915,7 @@ class Fitness:
             for gc in graph_circ:
                 grade += graph_mod.circulation_connectivity(gc)
 
+        cost += self.envelope_cost(lvls)
         building_factor = self.evaluate_building(root, tracking)
         value *= building_factor
 

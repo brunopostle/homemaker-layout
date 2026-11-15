@@ -27,6 +27,11 @@ The terms, in the scorer's units (an exterior wall is 100 per m2 of wall):
                 Above the ground a covered outdoor cell already fails
                 (`covered outside above ground`)
 
+Since §39.231 the scorer prices these itself (`Fitness.envelope_cost`) and
+the outline is its `indoor_outline`; this tool is kept as the record of how
+the rates were chosen, and its numbers before that landed came from GEOS's
+plain union, which lost area on 3 of 874 storeys.
+
 Arms are (roof rate, ground rate, corner_m). For each, per programme: the
 median extra cost, Kendall's tau between the old and new A0 order, and
 whether the best design changes. Single- against multi-storey designs are
@@ -46,7 +51,7 @@ from shapely.ops import unary_union
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import report_card as rc  # noqa: E402
 from homemaker_layout import dom, geometry  # noqa: E402
-from homemaker_layout.fitness import _height, _perimeter  # noqa: E402
+from homemaker_layout.fitness import _height, _perimeter, indoor_outline  # noqa: E402
 
 ARMS = [  # (label, roof per m2, ground slab per m2, corner as m of exterior wall)
     ("roof100", 100.0, 0.0, 0.0),
@@ -78,8 +83,7 @@ def terms(storeys):
     polys = []
     heights = []
     for lvl, _, _ in storeys:
-        cells = [rc.outline(n) for n in lvl.leaves() if not dom.is_outside(n)]
-        polys.append(unary_union(cells).buffer(1e-6).buffer(-1e-6) if cells else rc.Polygon())
+        polys.append(indoor_outline(lvl))
         heights.append(_height(lvl))
     roof = sum(p.difference(polys[i + 1] if i + 1 < len(polys) else rc.Polygon()).area
                for i, p in enumerate(polys))
@@ -120,7 +124,9 @@ def measure(progs, path, edit=None):
     for label, roof, slab, cm in ARMS:
         x = roof * t["roof_m2"] + slab * t["ground_m2"] + wall * cm * t["corner_m"]
         row[f"extra_{label}"] = x / cost
-        row[f"score_{label}"] = score * cost / (cost + x) * 0.5 ** t["enclosed"]
+        # the scorer already fails an enclosed cell (§39.231), so the
+        # factor is not applied twice
+        row[f"score_{label}"] = score * cost / (cost + x)
     return row
 
 
@@ -225,6 +231,11 @@ def main() -> int:
     a = ap.parse_args()
     if not geometry.ORTHOGONAL_DIVISION:
         sys.exit("set HOMEMAKER_ORTHOGONAL_DIVISION=1")
+    # price against the objective before §39.231: the scorer now charges these
+    # terms itself, so they are zeroed here and added by arithmetic
+    from homemaker_layout import fitness
+    for k in ("roof", "slab", "corner"):
+        fitness.COST_DEFAULTS[k] = 0.0
     progs = rc.Programmes()
     if a.self_test:
         return 0 if self_test(progs) else 1
