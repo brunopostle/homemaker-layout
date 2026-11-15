@@ -22375,3 +22375,31 @@ health-centre's catalogue race (`homemaker-py-5fje.19`). Expectations, written b
 six, a court counts its own corners, cells a hair apart on a skew wall are one outline (the plain
 union fails this), a walled-in ground yard fails while a loggia does not, and zero rates add
 nothing. The full suite passes: 1072, 1 skipped, 5 xfailed.
+
+### 39.232 health-centre through the catalogue, at `0c8446f+orth`: the race and its expectations (`homemaker-py-5fje.19`)
+
+This is the first run at §39.231's objective, and the first time health-centre has had catalogue seeds.
+The filter (`seed_from_catalogue.py --filter-only`) wants 76% ground cover at one storey and 38% at two.
+It passes 199 outlines at one storey (court partis such as `H(V(B O B) B)`) and 1,269 at two (bars and
+Ls). The field is both counts, plus a cold control, in one successive-halving race
+(`run_halving_health.sh`: `--rank total`, 4k doubling to 128k, today's default search, `--split-stair`
+included):
+
+- 24 `one-*` seeds, `--storeys 1`, the 24 best plans, one build each;
+- 24 `two-*` seeds, `--storeys 2`, the 8 best plans × 3 stair placements;
+- 3 `cold-*` seeds, copies of `init.dom`.
+
+**Expectations, written before it runs.** Phase3-sliver's cold health-centre runs at 128k (A0-fails,
+`2d4f3d4+orth`) are the reference. They are a different stamp, so the comparison is about direction
+only. They ended at 9, 10 and 14 fails, single-storey, with 20-30 corners.
+
+1. **A two-storey seed reaches the last four.** Under the old cost one storey was always cheaper.
+   Under the new one a two-storey wing plan saves about 13k against one storey (§39.230).
+2. **The winner is a catalogue seed, not a cold one**, as on harbor-house and maple-court.
+3. **The winner has no more corners per storey than the cold references' median (28)**, and reads as
+   one of the catalogue's partis. That is the owner's test, so the winner and the cold control's
+   best go to the owner as drawings.
+4. **The winner's fail count is no worse than the cold references' best (9).** With seeds from the
+   catalogue, crinkliness should fall. This is the weakest of the four: a single winner against three
+   runs at another stamp.
+5. **`enclosed outside` appears in no finalist.**
