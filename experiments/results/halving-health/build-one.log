@@ -1,0 +1,292 @@
+health-centre: plot 19.0 x 21.1 m, storey 3 m -> 6.25h x 7h pooo; cover needed 1 storeys 76%
+  1 storeys: 199 outlines pass the filter
+  [1/24] 1 storeys, H(B V(B H(O B))), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around: cover 73%, 42 fails raw -> 41 tuned, 0 storeys not connected
+  [2/24] 1 storeys, H(V(B O B) B), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around: cover 76%, 38 fails raw -> 33 tuned, 0 storeys not connected
+  [3/24] 1 storeys, V(B H(O B) B), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around: cover 76%, 56 fails raw -> 42 tuned, 0 storeys not connected
+  [4/24] 1 storeys, V(B H(V(O B) B)), cores none (v0, sep 1.00), bridged rooms 2 cut / 0 retyped / 0 routed around: cover 76%, 46 fails raw -> 42 tuned, 0 storeys not connected
+  [5/24] 1 storeys, H(B V(B H(O B O))), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 1 routed around: cover 73%, 42 fails raw -> 38 tuned, 0 storeys not connected
+  [6/24] 1 storeys, H(B V(B H(O B) B)), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around: cover 76%, 39 fails raw -> 30 tuned, 0 storeys not connected
+  [7/24] 1 storeys, H(B V(B O B) B), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around: cover 76%, 41 fails raw -> 36 tuned, 0 storeys not connected
+  [8/24] 1 storeys, H(O B V(B O) B), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around: cover 75%, 37 fails raw -> 36 tuned, 0 storeys not connected
+  [9/24] 1 storeys, H(O V(B H(B O)) B), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around: cover 75%, 42 fails raw -> 37 tuned, 0 storeys not connected
+  [10/24] 1 storeys, H(O V(B H(B V(O B)))), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around: cover 75%, 38 fails raw -> 35 tuned, 0 storeys not connected
+  [11/24] 1 storeys, H(O V(B H(V(O B) B))), cores none (v0, sep 1.00), bridged rooms 4 cut / 0 retyped / 0 routed around: cover 75%, 33 fails raw -> 33 tuned, 0 storeys not connected
+  [12/24] 1 storeys, H(O V(B O B) B), cores none (v0, sep 1.00), bridged rooms 5 cut / 0 retyped / 2 routed around: cover 75%, 36 fails raw -> 28 tuned, 0 storeys not connected
+  [13/24] 1 storeys, H(V(B H(B V(O B))) B), cores none (v0, sep 1.00), bridged rooms 4 cut / 0 retyped / 1 routed around: cover 76%, 39 fails raw -> 35 tuned, 0 storeys not connected
+  [14/24] 1 storeys, H(V(B H(O B O)) B), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 3 routed around: cover 76%, 50 fails raw -> 41 tuned, 2 storeys not connected
+  [15/24] 1 storeys, H(V(B H(O B) B) O), cores none (v0, sep 1.00), bridged rooms 2 cut / 0 retyped / 0 routed around: cover 72%, 48 fails raw -> 43 tuned, 0 storeys not connected
+  [16/24] 1 storeys, H(V(B H(O V(O B))) B), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around: cover 76%, 43 fails raw -> 32 tuned, 0 storeys not connected
+  [17/24] 1 storeys, H(V(B O B O) B), cores none (v0, sep 1.00), bridged rooms 2 cut / 0 retyped / 0 routed around: cover 75%, 27 fails raw -> 21 tuned, 0 storeys not connected
+  [18/24] 1 storeys, H(V(B O B) B O), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 1 routed around: cover 75%, 48 fails raw -> 41 tuned, 0 storeys not connected
+  [19/24] 1 storeys, H(V(B O B) V(B O)), cores none (v0, sep 1.00), bridged rooms 3 cut / 0 retyped / 2 routed around: cover 76%, 53 fails raw -> 50 tuned, 1 storeys not connected
+  [20/24] 1 storeys, V(B H(B O B O)), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around: cover 73%, 46 fails raw -> 41 tuned, 0 storeys not connected
+  [21/24] 1 storeys, V(B H(B V(H(O B) B))), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around: cover 76%, 34 fails raw -> 33 tuned, 0 storeys not connected
+  [22/24] 1 storeys, V(B H(B V(O B) B)), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around: cover 76%, 38 fails raw -> 34 tuned, 0 storeys not connected
+  [23/24] 1 storeys, V(B H(O B O B)), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around: cover 76%, 58 fails raw -> 50 tuned, 0 storeys not connected
+  [24/24] 1 storeys, V(B H(O B V(O B))), cores none (v0, sep 1.00), bridged rooms 3 cut / 0 retyped / 2 routed around: cover 71%, 40 fails raw -> 32 tuned, 0 storeys not connected
+
+24 seeds, 200 inner-loop evaluations each; tuned fails median 36.0
+  #1: 21 fails, score 1.26e-07, 1 storeys, H(V(B O B O) B), cover 75%, cores none (v0, sep 1.00), bridged rooms 2 cut / 0 retyped / 0 routed around
+      not adjacent to 7, crinkliness 4, proportion 4, access 2, size 2, inaccessible usable space 1
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+        ########....#########....
+  #2: 28 fails, score 9.41e-10, 1 storeys, H(O V(B O B) B), cover 75%, cores none (v0, sep 1.00), bridged rooms 5 cut / 0 retyped / 2 routed around
+      not adjacent to 11, crinkliness 8, access 3, proportion 2, width 2, inaccessible usable space 1
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        ##########....###########
+        .........................
+        .........................
+        .........................
+        .........................
+  #3: 30 fails, score 1.45e-10, 1 storeys, H(B V(B H(O B) B)), cover 76%, cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around
+      not adjacent to 11, crinkliness 5, size 5, proportion 4, access 4, inaccessible usable space 1
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        ######.............######
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+  #4: 32 fails, score 5.49e-11, 1 storeys, V(B H(O B V(O B))), cover 71%, cores none (v0, sep 1.00), bridged rooms 3 cut / 0 retyped / 2 routed around
+      not adjacent to 13, access 6, crinkliness 5, size 4, proportion 3, inaccessible usable space 1
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        ######.......############
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        ######...................
+        ######...................
+        ######...................
+        ######...................
+  #5: 32 fails, score 4.77e-11, 1 storeys, H(V(B H(O V(O B))) B), cover 76%, cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around
+      not adjacent to 10, access 7, crinkliness 7, size 5, inaccessible usable space 1, proportion 1
+        #########################
+        #########################
+        #########################
+        #########################
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########.....##########
+        ##########...............
+        ##########...............
+        ##########...............
+        ##########...............
+        ##########...............
+  #6: 33 fails, score 2.47e-11, 1 storeys, V(B H(B V(H(O B) B))), cover 76%, cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around
+      not adjacent to 11, proportion 7, access 7, crinkliness 6, inaccessible usable space 1, width 1
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #####..............######
+        #####..............######
+        #####..............######
+        #####..............######
+        #####..............######
+        #####..............######
+        #####..............######
+        #####..............######
+        #####..............######
+        #####..............######
+        #####..............######
+        #####..............######
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+  #7: 33 fails, score 2.35e-11, 1 storeys, H(O V(B H(V(O B) B))), cover 75%, cores none (v0, sep 1.00), bridged rooms 4 cut / 0 retyped / 0 routed around
+      not adjacent to 14, access 9, crinkliness 7, proportion 2, inaccessible usable space 1
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        #########################
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        ###########....##########
+        .........................
+        .........................
+        .........................
+        .........................
+  #8: 33 fails, score 2.06e-11, 1 storeys, H(V(B O B) B), cover 76%, cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around
+      not adjacent to 15, access 6, crinkliness 4, proportion 4, size 2, inaccessible usable space 1
+        #########################
+        #########################
+        #########################
+        #########################
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+        ############.......######
+wrote experiments/results/halving-health/one-1.dom  (H(V(B O B O) B), cores none (v0, sep 1.00), bridged rooms 2 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-2.dom  (H(O V(B O B) B), cores none (v0, sep 1.00), bridged rooms 5 cut / 0 retyped / 2 routed around)
+wrote experiments/results/halving-health/one-3.dom  (H(B V(B H(O B) B)), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-4.dom  (V(B H(O B V(O B))), cores none (v0, sep 1.00), bridged rooms 3 cut / 0 retyped / 2 routed around)
+wrote experiments/results/halving-health/one-5.dom  (H(V(B H(O V(O B))) B), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-6.dom  (V(B H(B V(H(O B) B))), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-7.dom  (H(O V(B H(V(O B) B))), cores none (v0, sep 1.00), bridged rooms 4 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-8.dom  (H(V(B O B) B), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-9.dom  (V(B H(B V(O B) B)), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-10.dom  (H(O V(B H(B V(O B)))), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-11.dom  (H(V(B H(B V(O B))) B), cores none (v0, sep 1.00), bridged rooms 4 cut / 0 retyped / 1 routed around)
+wrote experiments/results/halving-health/one-12.dom  (H(O B V(B O) B), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-13.dom  (H(B V(B O B) B), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-14.dom  (H(O V(B H(B O)) B), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-15.dom  (H(B V(B H(O B O))), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 1 routed around)
+wrote experiments/results/halving-health/one-16.dom  (V(B H(B O B O)), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-17.dom  (H(V(B H(O B O)) B), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 3 routed around)
+wrote experiments/results/halving-health/one-18.dom  (H(B V(B H(O B))), cores none (v0, sep 1.00), bridged rooms 0 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-19.dom  (H(V(B O B) B O), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 1 routed around)
+wrote experiments/results/halving-health/one-20.dom  (V(B H(O B) B), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-21.dom  (V(B H(V(O B) B)), cores none (v0, sep 1.00), bridged rooms 2 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-22.dom  (H(V(B H(O B) B) O), cores none (v0, sep 1.00), bridged rooms 2 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-23.dom  (V(B H(O B O B)), cores none (v0, sep 1.00), bridged rooms 1 cut / 0 retyped / 0 routed around)
+wrote experiments/results/halving-health/one-24.dom  (H(V(B O B) V(B O)), cores none (v0, sep 1.00), bridged rooms 3 cut / 0 retyped / 2 routed around)
