@@ -214,6 +214,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | `--retype-kind` | §39.158 (addendum) | null at n = 4 on maple-court, as expected |
 | Divide and conquer: a wing solved on its own, or searched inside the frozen rest of the building | §39.165, §39.166 | loses exactly the relations across the cut; frozen search lost to whole-building search on 3 of 3 seeds at equal budget -- a repair tool for a finished design, not a route to one. Untested: frozen passes as a polish after a whole search |
 | A child budget that depends on the move; supporting a terrace without shrinking a room | §39.122 | both SET ASIDE unbuilt, not measured negative; the section says what would bring each back |
+| P1-fails' hard-fail lead over A0-fails | §39.220, §39.226 | resolved once (−1.25, MDD 1.09), did not reproduce at the sliver objective (68 vs 67 hard over 12 runs); read as noise |
 
 ## Where the current state is
 
@@ -224,7 +225,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (330 of them, 22066 lines)
+## Every section of DESIGN.md (331 of them, 22124 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -605,4 +606,5 @@ below are the most recent work.
 - §39.222 · 21931-21988 · Owner's rulings on round 2: a sliver room fails, a stair cell in no shaft is circulation, a run of them is a corridor (`homemaker-py-5fje.16`, `homemaker-py-5fje.17`)
 - §39.223 · 21989-22011 · The report card counts slivers of every type (`homemaker-py-5fje.16`)
 - §39.224 · 22012-22034 · Phase 3 again at the sliver objective: the four core arms, expectations written first (`homemaker-py-5fje.6`)
-- §39.225 · 22035-22066 · `judge_pairs.py report --rescore`: rounds 0-2 at today's objective (`homemaker-py-n4kk`)
+- §39.225 · 22035-22067 · `judge_pairs.py report --rescore`: rounds 0-2 at today's objective (`homemaker-py-n4kk`)
+- §39.226 · 22068-22124 · Phase 3 at the sliver objective: results against §39.224's expectations (`homemaker-py-5fje.6`)

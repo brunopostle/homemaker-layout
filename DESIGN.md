@@ -22064,3 +22064,61 @@ has more cells under 0.8 m in 1 of 9 pairs (round 0), 0 of 7 (round 1) and 1 of 
 27 pooled, p = 6e-6**. Rooms alone (`sliver`): 2 of 22, p = 1e-4. Round 0's other findings stand
 re-scored: `missing` larger in the chosen plan in 11 of 13 (a room left out over a token room,
 §39.207) and `adj_share` larger in 2 of 15.
+
+### 39.226 Phase 3 at the sliver objective: results against §39.224's expectations (`homemaker-py-5fje.6`)
+
+The 48 runs of §39.224 finished 2026-11-14 14:43, objective `2d4f3d4+orth` (`+P1`), search `9a14624`.
+The driver died on its first commit: a relative `--out` failed `Path.relative_to(REPO)`, which the
+default absolute path had never exercised. The six runs it had started finished as orphans; their rows
+were scored afterwards by the driver's own `score()`, with `elapsed_s` from each log's mtime, and the
+rest ran under `--resume` once `--out` was resolved (5993c5b). About five hours of the box were lost,
+and nothing else.
+
+Cards are `phase3-sliver/cards.tsv`. The Phase 3 twins were re-carded with today's code into
+`phase3-sliver/cards-phase3-twins.tsv`, so that a twin difference is the search's and not the card's.
+`pair_phase3_twins.py` pairs each run with its twin (same arm, start and rng seed) and re-scores
+fails, hard and soft at today's objective on both sides; `pair_phase3_q2.py` gives the four-arm
+contrasts. Twelve pairs everywhere; "resolved" means beyond `ab_report`'s MDD.
+
+| arm | fails | hard | soft | sliver rooms, Phase 3 → now | sliver cells, Phase 3 → now |
+|---|---|---|---|---|---|
+| A0-fails | 14.1 | 5.67 | 8.42 | 2 → 0 | 4 → 1 |
+| A0-score | 12.8 | 5.08 | 7.75 | 1 → 0 | 1 → 1 |
+| P1-fails | 13.0 | 5.58 | 7.42 | 1 → 0 | 2 → 3 |
+| P1-score | 13.3 | 5.67 | 7.58 | 2 → 1 | 3 → 1 |
+
+**Against the expectations:**
+
+1. **Sliver rooms near 0. Met.** 6 → 1. The one left, in P1-score--harbor-house--3, carries three
+   `width` fails, and that run's last improvement came at 178k of its 192k evaluations, in the polish.
+   This is the late-improvement case the expectation allowed for.
+2. **Other slivers unchanged, about 4. Met**: 4 → 5, already failing `width` before the change.
+3. **Every other column within MDD of its twin. Met.** One of about ninety arm-column tests is
+   resolved, A0-fails' `token` +0.33 (MDD 0.31), which is the chance rate. The largest unresolved move
+   is P1-fails: fails +1.58 (MDD 1.85) and hard +1.17 (MDD 1.55). P1-fails was the best arm of Phase 3
+   on fails and hard, and here it no longer stands out.
+4. **The contrasts of §39.220, in direction. Met for direction, but nothing that was resolved there is
+   resolved here.**
+   - P1-score against P1-fails: `no_door` +1.50 (MDD 1.68), `adj_share` −0.033 (MDD 0.036) and
+     `circ_pieces` −1.33 (MDD 1.42). All three point the way §39.220 resolved them, and none is
+     resolved now.
+   - A0-score against A0-fails: close, fails −1.25 (MDD 2.39). **Bit-identical health-centre runs:
+     not met.** Only seed 1 is identical. Seeds 2 and 3 diverge within the first 10k evaluations,
+     although none of the Phase 3 twins has a sliver room on health-centre. The likely cause is that
+     the sliver fail is graded: a room near 0 m multiplies the score by much less than 0.5, so under
+     `0.5**n` the score order and the fail-count order can now disagree, including on intermediate
+     designs. This has not been checked candidate by candidate.
+
+**Outside the expectations: §39.220's A0-fails → P1-fails finding does not reproduce.** There P1 had
+resolved fewer hard fails (−1.25, MDD 1.09). Here the hard fail totals are 68 and 67 over the twelve
+runs, and fails −1.08 (MDD 3.05). Two other things are resolved here instead: P1-fails has lower
+`adj_share` (−0.032, MDD 0.030) and fewer `circ_pieces` (−0.58, MDD 0.57). Against A0-fails,
+P1-score is resolved on the same two columns and by more: `adj_share` −0.065 (MDD 0.051) and
+`circ_pieces` −1.92 (MDD 1.77). Within-programme variance swamps the arms, as before: maple-court
+moves by up to 7 fails between arms, in both directions.
+
+**What this says.** The sliver ruling did what it was meant to do and did not disturb anything else
+that this sample can see. On Q2, the two runs together now support only one reading: P trades
+adjacency for fewer pieces of circulation, more strongly when ranked by `score`. §39.220's hard-fail
+advantage for P1-fails did not survive a second sample at a nearly identical objective, so it should be
+read as noise until a run with more seeds says otherwise.
