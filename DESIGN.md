@@ -22198,3 +22198,50 @@ facts and different in shape. So there is no case for shape in the objective on 
 none against. The test that would settle it is a judging round of pairs matched on `sliver_cells`,
 `missing` and `circ_pieces` that differ in `jogs` and the yard columns, filed as
 `homemaker-py-5fje.18`.
+
+### 39.229 The owner on §39.228: yards, corners, storeys, enclosed "outside", and wings of light (owner's rulings, 2026-11-15)
+
+The owner's response to §39.228, ruling by ruling:
+
+- **Many small yards are good.** A big yard is wanted only for a purpose, such as assembly. So
+  `yard_big_share` is not a merit, which fits the lead that on harbor-house and maple-court the
+  chosen plan has more yards (11 of 12). R0-26's "one big courtyard" was about that site.
+- **A jiggly perimeter is bad because of what it costs to build.** "Every inside or outside corner
+  has a cost and complicates the roof buildout." `jogs` is a cost question, not an aesthetic one.
+- **Two storeys are cheaper than one:** "half the amount of roof and less perimeter for heat loss".
+  The drawback is accessibility. Some usages need the ground floor (the briefs already say so with
+  `level: 0`), and public buildings especially.
+- **An outdoor cell enclosed on every side, with building above and below, is not outside space.**
+  The only precedent is the grand house's carriage entrance, and "we don't need this sort of thing
+  today". This is R2-02's "effectively an indoor outside space".
+- **Covered outdoor space can be useful**, especially for Alexander's outdoor space on every
+  storey. But "in general an open topped area is more versatile".
+- **Good shape is wings of light.** Buildings are "fundamentally one of a limited number of plan
+  shapes (C shaped, F shaped, 8 shaped etc.) with a fixed number of ways of assembling these shapes
+  through our slicing form language". health-centre's plans "show no sign of this, with everything
+  just mashed together higgledy-piggledy".
+
+**What the objective does with these today**, read from `fitness.py` (`leaf_cost`, `edge_cost`,
+`outside_edge_cost`, `COST_DEFAULTS`):
+
+- **A corner costs nothing.** Walls are charged per metre of length times storey height, so a jog
+  costs only its extra wall. The corners themselves, and their roof, are free.
+- **There is no roof cost and no foundation cost.** `inside` is 200 per m² on every storey alike.
+  At a fixed floor area, two storeys have about √2 times the external wall of one (each storey's
+  perimeter scales with the square root of its area), and the roof and ground slab they halve are
+  never credited. **So the cost model favours one storey, the opposite of the owner's economics.**
+  health-centre allows two (`storey_limit: 2`) and every run of it is single-storey (§39.176).
+- **An enclosed, covered and supported outdoor cell costs 210 per m²**
+  (`outside_covered_supported`), more than an indoor one, and is still worth outdoor value. That
+  is consistent with the ruling's direction, but it is a price, not a statement that the cell is
+  not outside.
+
+**Wings of light on health-centre.** The catalogue (`wings_catalogue.py`, §39.145-§39.155) is the
+owner's proposal of 2026-10-15 built: every parti found by enumeration, each in its several slicing
+trees. It has beaten cold search on harbor-house and maple-court. health-centre has never been run
+through it. Its 1,172 outlines were enumerated (§39.148), but Phase 3 and every sweep ran it cold.
+That is the likeliest reason its plans are "higgledy-piggledy".
+
+Filed: `homemaker-py-5fje.19` (health-centre through the catalogue pipeline), `homemaker-py-5fje.20`
+(corner and roof cost), `homemaker-py-5fje.21` (an enclosed outdoor cell is not outside). The last two
+change the objective, so they belong with `--split-stair` in the next set of controls (§39.198).

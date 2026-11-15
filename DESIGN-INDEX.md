@@ -177,6 +177,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A stair may take any flight shape with no more turns than its doors allow; a turned shape has two flights across its base, each `min(stair_width, base / 2)` wide and at least 0.9 m, its landings with it. Urb's model of two 1.25 m landings is kept, but a flight narrows to fit: at a fixed 1.25 m, the owner's own 2.29 m U-stair would have been a missing stair. Pinned in `tests/test_stair_shapes.py` | §39.216 |
 | A sliver room is a fail in a finished design ("might be ok in an intermediate step"): a room cell under 0.8 m usable width fails `width`, graded towards passing. A stair cell in no shaft is circulation; a run of stair and corridor cells is one composite corridor. Pinned in `tests/test_sliver_room.py` | §39.222 |
 | A building's "shape" is four things: an outline with few jogs, few large well-proportioned courtyards, yards open and walled the full height, storeys that stack (2026-11-15) | §39.228 |
+| Many small yards are good; a big one only for a purpose (assembly). Corners cost to build and complicate the roof; two storeys beat one (half the roof, less perimeter), accessibility aside. An outdoor cell enclosed on every side, above and below, is not outside space. Open-topped outdoor space is generally more versatile than covered. Good shape is wings of light: a few plan types (C, F, 8 ...) assembled in a fixed number of slicing ways | §39.229 |
 | No aggregation switch yet (2026-11-15): A0 stays the default while shape and token rooms are worked; the question returns with fresh Phase 3 arms | §39.227 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
@@ -228,7 +229,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (333 of them, 22200 lines)
+## Every section of DESIGN.md (334 of them, 22247 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -612,4 +613,5 @@ below are the most recent work.
 - §39.225 · 22035-22067 · `judge_pairs.py report --rescore`: rounds 0-2 at today's objective (`homemaker-py-n4kk`)
 - §39.226 · 22068-22125 · Phase 3 at the sliver objective: results against §39.224's expectations (`homemaker-py-5fje.6`)
 - §39.227 · 22126-22141 · Phase 4 deferred: no aggregation switch until the measured levers are worked (owner's ruling, `homemaker-py-5fje`)
-- §39.228 · 22142-22200 · What "shape" means, measured: the columns see what the notes name, and decide nothing (`homemaker-py-5fje.8`)
+- §39.228 · 22142-22201 · What "shape" means, measured: the columns see what the notes name, and decide nothing (`homemaker-py-5fje.8`)
+- §39.229 · 22202-22247 · The owner on §39.228: yards, corners, storeys, enclosed "outside", and wings of light (owner's rulings, 2026-11-15)
