@@ -22245,3 +22245,61 @@ That is the likeliest reason its plans are "higgledy-piggledy".
 Filed: `homemaker-py-5fje.19` (health-centre through the catalogue pipeline), `homemaker-py-5fje.20`
 (corner and roof cost), `homemaker-py-5fje.21` (an enclosed outdoor cell is not outside). The last two
 change the objective, so they belong with `--split-stair` in the next set of controls (§39.198).
+
+### 39.230 Roof, slab and corners priced over 60 designs: a cost is inert on finished designs, and what flips one storey to two (`homemaker-py-5fje.20`, `5fje.21`)
+
+The owner asked for rates to be proposed and priced before anything lands. `diag_5fje20_roof_corners.py`
+does it by exact arithmetic: under A0, `score = value · 0.5ⁿ / cost`, so an added cost `x` and `k` new
+fails give `score · cost / (cost + x) · 0.5ᵏ`, with `cost` captured from the scorer. Its `--self-test`
+builds a room over a yard (roof rises), walls in and covers a ground yard cell (enclosed 0 → 1), and
+counts corners on a seamed rectangle (4) and an L (6). It ran over the 48 phase3-sliver designs and the
+12 of `4428262+orth`. The rows are in `phase3-sliver/roof-corners.tsv`.
+
+Proposed rates, in the scorer's units, where an exterior wall costs 100 per m² of wall:
+
+- **Roof, 100 per m²** of indoor area with no indoor area above it, about one m² of external wall.
+  In UK elemental costs a pitched roof and an external wall cost about the same per m².
+- **Ground slab and substructure, 75 per m²** of ground-storey indoor area. The flat `inside` rate
+  charges every storey alike today.
+- **A corner costs one metre of exterior wall over its storey's height**, on every corner of each
+  storey's indoor outline, courts included.
+
+| arm | extra cost, median by programme (harbor / health / maple / prog-house) | Kendall τ, old against new A0 order | best design |
+|---|---|---|---|
+| roof 100 | 13 / 22 / 9 / 11% | 1.00 / 1.00 / 1.00 / 0.96 | changes on programme-house only |
+| roof 100, corner 1 m | 15 / 28 / 10 / 19% | 1.00 everywhere | same |
+| roof 100, corner 2 m | 17 / 34 / 12 / 27% | 1.00 | same |
+| roof 100, slab 75, corner 1 m | 25 / 45 / 17 / 26% | 1.00 | same |
+| roof 150, corner 1 m | 22 / 39 / 15 / 24% | 1.00 | same |
+
+**On finished designs it reorders nothing.** Two designs of one programme differ by factors of 0.5 for
+every fail, and a 10-45% cost spread within a programme cannot cross even one. That is §39.68's lesson
+in another form. What a cost term changes is the search's gradient between near-equals: a corner that
+needs no wall, a wing that could stack. Only a search can show that, and §39.229 already queues
+health-centre's race behind this change.
+
+**What flips one storey to two**, by arithmetic on A0-fails--health-centre--1 (297 m² on one storey,
+432 m² of external wall, 30 corners at 3 m). Restacked on two storeys of 148 m²:
+
+- **If the outline scales** (a compact plan), each storey's perimeter falls by √2 but there are two
+  of them, so +179 m² of wall (+17.9k). A stair adds about 4k. The roof saves 14.8k at 100 per m², and
+  the slab saves another 11.1k at 75. Corners double, +9k at 1 m. So roof alone: two storeys cost
+  +16k more. Roof and slab: still +5k.
+- **If it is a wing plan**, the wing's depth is fixed by daylight, so perimeter goes with area and
+  the wall total is unchanged. The corners still double, since a C has the same corners at any size.
+  Roof alone: −14.8k + 9k + 4k, two storeys cheaper by about 2k. Roof and slab: cheaper by about 13k.
+
+So the owner's economics hold for wings of light, not for a compact block. The slab carries half of
+it, and the corner cost works against stacking, because it charges each storey's outline anew. That is
+right for walls, but a roof's hips and valleys are paid once, on the top storey. **Proposal:** roof
+100, slab 75, a corner at 1 m of wall on each storey. Health-centre's single storey is then the
+search's choice to justify, not the cost model's bias.
+
+**The enclosed-outdoor fail fires on 2 of 60 designs**: maple-court `4428262+orth` s0 and s2 (66 and 68
+fails already), and on none of phase3-sliver. It is a rule for a case that is rare, and it is in place
+before it becomes common.
+
+Nothing here touches `src/`. To land: `COST_DEFAULTS` gains `roof`, `slab` and `corner`. `leaf_cost`
+can price none of these, because each is a property of a storey's outline, so they join
+`plot_cost`'s building-level term. The fail joins `process_storey` on the ground storey. Both go with
+`--split-stair` default-on, in one stamp, before health-centre's race.

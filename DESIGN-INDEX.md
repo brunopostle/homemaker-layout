@@ -229,7 +229,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (334 of them, 22247 lines)
+## Every section of DESIGN.md (335 of them, 22305 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -614,4 +614,5 @@ below are the most recent work.
 - §39.226 · 22068-22125 · Phase 3 at the sliver objective: results against §39.224's expectations (`homemaker-py-5fje.6`)
 - §39.227 · 22126-22141 · Phase 4 deferred: no aggregation switch until the measured levers are worked (owner's ruling, `homemaker-py-5fje`)
 - §39.228 · 22142-22201 · What "shape" means, measured: the columns see what the notes name, and decide nothing (`homemaker-py-5fje.8`)
-- §39.229 · 22202-22247 · The owner on §39.228: yards, corners, storeys, enclosed "outside", and wings of light (owner's rulings, 2026-11-15)
+- §39.229 · 22202-22248 · The owner on §39.228: yards, corners, storeys, enclosed "outside", and wings of light (owner's rulings, 2026-11-15)
+- §39.230 · 22249-22305 · Roof, slab and corners priced over 60 designs: a cost is inert on finished designs, and what flips one storey to two (`homemaker-py-5fje.20`, `5fje.21`)
