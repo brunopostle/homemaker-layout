@@ -22122,3 +22122,19 @@ that this sample can see. On Q2, the two runs together now support only one read
 adjacency for fewer pieces of circulation, more strongly when ranked by `score`. §39.220's hard-fail
 advantage for P1-fails did not survive a second sample at a nearly identical objective, so it should be
 read as noise until a run with more seeds says otherwise.
+
+### 39.227 Phase 4 deferred: no aggregation switch until the measured levers are worked (owner's ruling, `homemaker-py-5fje`)
+
+Asked on 2026-11-15 to choose the default aggregation (§39.201 Phase 4) on the evidence of §39.220,
+§39.221 and §39.226, the owner chose **neither yet**. The options were P1-fails, A0-fails kept, and
+P1-score. The evidence: neither the cards nor round 2 can separate A0 from P1 when both rank by
+`fails`. P1-fails' resolved hard-fail lead did not reproduce at the sliver objective. P1-score's
+fewer pieces of circulation won it 7 of 12 pairs against P1-fails, which is not significant. Tiers
+is ruled out, and no P arm reduced token rooms.
+
+So A0 stays the default, and `--aggregation`/`--rank` stay as switches. `--split-stair` stays off
+until the next change that forces new controls (§39.198); that is no longer the aggregation
+switch, or not yet. First come the levers the judging points to, which are about what is measured rather than how it
+is added up: shape (`homemaker-py-5fje.8`, the commonest note in round 0) and token rooms
+(`homemaker-py-hlm1`, deferred to this phase on 2026-11-08 and not settled by it). The aggregation
+question comes back once those have moved the objective, with fresh Phase 3 arms against it.

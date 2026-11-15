@@ -176,6 +176,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A storey's circulation pays one `not connected` fail per piece beyond the first (stairs joining storeys), not one per storey: "an incremental way to resolve the problem" | §39.215 |
 | A stair may take any flight shape with no more turns than its doors allow; a turned shape has two flights across its base, each `min(stair_width, base / 2)` wide and at least 0.9 m, its landings with it. Urb's model of two 1.25 m landings is kept, but a flight narrows to fit: at a fixed 1.25 m, the owner's own 2.29 m U-stair would have been a missing stair. Pinned in `tests/test_stair_shapes.py` | §39.216 |
 | A sliver room is a fail in a finished design ("might be ok in an intermediate step"): a room cell under 0.8 m usable width fails `width`, graded towards passing. A stair cell in no shaft is circulation; a run of stair and corridor cells is one composite corridor. Pinned in `tests/test_sliver_room.py` | §39.222 |
+| No aggregation switch yet (2026-11-15): A0 stays the default while shape and token rooms are worked; the question returns with fresh Phase 3 arms | §39.227 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
 ## Measured and negative: read before proposing again
@@ -225,7 +226,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (331 of them, 22124 lines)
+## Every section of DESIGN.md (332 of them, 22140 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -607,4 +608,5 @@ below are the most recent work.
 - §39.223 · 21989-22011 · The report card counts slivers of every type (`homemaker-py-5fje.16`)
 - §39.224 · 22012-22034 · Phase 3 again at the sliver objective: the four core arms, expectations written first (`homemaker-py-5fje.6`)
 - §39.225 · 22035-22067 · `judge_pairs.py report --rescore`: rounds 0-2 at today's objective (`homemaker-py-n4kk`)
-- §39.226 · 22068-22124 · Phase 3 at the sliver objective: results against §39.224's expectations (`homemaker-py-5fje.6`)
+- §39.226 · 22068-22125 · Phase 3 at the sliver objective: results against §39.224's expectations (`homemaker-py-5fje.6`)
+- §39.227 · 22126-22140 · Phase 4 deferred: no aggregation switch until the measured levers are worked (owner's ruling, `homemaker-py-5fje`)
