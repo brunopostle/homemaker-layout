@@ -22647,3 +22647,25 @@ The full suite ran at 1080 passed with 3 failures, all expected from the rulings
   new rule `final-best-1` joins only 1 of its 3 storeys and `final-clean-9` none, so that one edit is
   shown under the rule it was made for. That fact matters beyond the test: **the best maple-court
   designs on record are disconnected storey by storey under this ruling.**
+
+### 39.238 The health-centre race at the rulings' stamp: expectations (`homemaker-py-5fje.23`)
+
+The race of §39.236, run again at `7cebe69+orth`: the same field (24 one-storey and 24 two-storey
+catalogue seeds, room swap on, 3 cold copies of `init.dom`), the same stages (4k doubling to 128k, 7
+slots, `--rank total`). The seeds are rebuilt at the new stamp, because the seeder's bridging and its
+swap pass both score under the new rules. `run_halving_health_rulings.sh`, results in
+`experiments/results/halving-health-rulings/`. Written before it ran:
+
+1. **Two-storey seeds start further behind.** The swap race's two-storey seeds had a median of 29.5 tuned
+   fails. Each storey must now join on its own, so expect a median above 30. Expect the one-storey
+   seeds to be unchanged within a fail or two, because neither rule touches a building with no stair.
+2. **No finalist carries `stair too long`.** It is a hard fail costing ×0.5 at `--rank total`, and
+   `mutate_split_stair` exists to remove it.
+3. **The winner, one storey or two, is about even.** I lean one-storey, at 55%. §39.236's two-storey
+   winner reached 0 fails only with the stairs joining it, and a one-storey design had 2 fails at 64k.
+4. **The winner's fails are 0 to 2.** A two-storey winner at 0 fails, with each storey joined on its
+   own and both stairs within 1.5× their flight, would be what the owner asked for. If that happens,
+   it goes to the owner as drawings.
+5. **The stage-0 pairing against §39.236 is not a clean A/B.** The objective changed, and seeds named
+   alike are different plans. Read it only as the direction of the change. The cold rows differ only
+   where a run added a storey.
