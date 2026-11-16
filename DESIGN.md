@@ -22403,3 +22403,50 @@ only. They ended at 9, 10 and 14 fails, single-storey, with 20-30 corners.
    catalogue, crinkliness should fall. This is the weakest of the four: a single winner against three
    runs at another stamp.
 5. **`enclosed outside` appears in no finalist.**
+
+### 39.233 health-centre through the catalogue: a court plan wins at 6 fails, and no two-storey seed ever joins its storeys (`homemaker-py-5fje.19`)
+
+The race of §39.232 ran from 16:44 to 20:26 on 2026-11-15 at `0c8446f+orth` (search `0c8446f`, config
+`32bfdffb4f`). The field was 45 seeds, not 51. The seeder built 2 or 3 stair placements per two-storey
+plan, which gave 18 `two-*` seeds where 24 were asked for. Results are in
+`experiments/results/halving-health/` (`stages.tsv`, `race.log`, `connect.txt`, `stairs.txt`,
+`carry.txt`). Drawings of the winner, the runner-up, the last two-storey seed and the best cold seed are
+in `drawings/`. They come from `plan_svg.py`, re-scored with today's code.
+
+| stage, budget | survivors |
+|---|---|
+| 1, 8k | 12 kept: 8 `one`, 2 `two`, 2 `cold` |
+| 2, 16k | `one-24`, `two-1`, `one-8`, `two-8`, `one-1`, `one-19`. Both cold seeds were dropped here, at 16 and 17 fails |
+| 3, 32k | `one-24` (7 fails), `one-8` (9), `two-1` (11) |
+| 4, 64k | `one-24` (7), `one-8` (8). `two-1` was dropped at 11 fails |
+| 5, 128k | **`one-24`: 6 fails, score 0.00582**; `one-8`: 6 fails, 0.00474 |
+
+The winner's parti is `H(V(B O B) V(B O))`, single-storey. Its outline has 14 corners (`one-8`'s has 8),
+and it has three yards and no covered outdoor space. It kept 0.931 of its seed, the highest carry in
+the field, where the median is 0.748. Its six fails are `inaccessible usable space`, one `width`, one
+`crinkliness`, `wa1` not adjacent to `rc1`, and `de1` not adjacent to `c` together with that room's
+`access`. The best cold seed (`cold-b` at 16k) has 16 fails and 28 corners, and five of its fails are
+`level 0 not connected`.
+
+**The expectations, checked:**
+
+1. **A two-storey seed reaches the last four: met in the letter only.** `two-1` (`H(O B O)`) reached
+   stage 4, but it was stuck at 11 fails from 16k to 64k. Four of those 11 fail lines read `level N
+   not connected`: two for each storey. `connect.txt` shows the count rising from 1 to 4 during its
+   run. The seeder already reported one storey or more not connected for most two-storey seeds before
+   tuning. So the cost of roof and slab was not what held two storeys back. What held them back is
+   that the search never joins a storey's circulation once it has been split. That is the problem
+   `diag_join_scan.py` saw on finished designs (§39.197).
+2. **The winner is a catalogue seed: met.** No cold seed survived beyond 16k.
+3. **The winner has no more than 28 corners: met, with 14.** Whether it reads as a parti is the
+   owner's test. In the drawing it is three wings of rooms around one large open yard (87 m²), which
+   is open on the east, with a corridor along each wing. The cold plan is the "higgledy-piggledy" kind
+   (§39.229): five small yards and five separate circulation pieces.
+4. **The winner has no more than 9 fails: met, with 6.** It is a single run at another stamp, so this
+   shows a direction only.
+5. **No finalist has `enclosed outside`: met.** None of the five carded designs has it.
+
+**What it says.** On health-centre the catalogue does what it did on harbor-house and maple-court. Under
+the new cost, the two-storey question is still open. It is now blocked by joining storeys, and price no
+longer blocks it. A two-storey run needs seeds whose storeys are joined when they are built (the
+seeder's `bridge_indoors`), or a move that joins them. Racing more two-storey seeds would not help.

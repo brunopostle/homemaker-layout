@@ -230,7 +230,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (337 of them, 22405 lines)
+## Every section of DESIGN.md (338 of them, 22452 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -618,4 +618,5 @@ below are the most recent work.
 - §39.229 · 22202-22248 · The owner on §39.228: yards, corners, storeys, enclosed "outside", and wings of light (owner's rulings, 2026-11-15)
 - §39.230 · 22249-22306 · Roof, slab and corners priced over 60 designs: a cost is inert on finished designs, and what flips one storey to two (`homemaker-py-5fje.20`, `5fje.21`)
 - §39.231 · 22307-22378 · Landed: roof, slab and corners in the cost, the enclosed-outdoor fail, and `--split-stair` on (`homemaker-py-5fje.20`, `5fje.21`, `lycb`)
-- §39.232 · 22379-22405 · health-centre through the catalogue, at `0c8446f+orth`: the race and its expectations (`homemaker-py-5fje.19`)
+- §39.232 · 22379-22406 · health-centre through the catalogue, at `0c8446f+orth`: the race and its expectations (`homemaker-py-5fje.19`)
+- §39.233 · 22407-22452 · health-centre through the catalogue: a court plan wins at 6 fails, and no two-storey seed ever joins its storeys (`homemaker-py-5fje.19`)
