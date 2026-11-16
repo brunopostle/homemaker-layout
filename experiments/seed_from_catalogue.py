@@ -1032,7 +1032,9 @@ def main(argv=None) -> int:
             ground_lvl = dom.levels(root)[0]
             stairs = [lf for lf in ground_lvl.leaves() if lf.type == "E"]
             cores = " ".join(lf.id or "root" for lf in stairs) or "none"
-            raw = len(fit.score_with_fails(root)[1])
+            raw_fails = fit.score_with_fails(root)[1]
+            raw = len(raw_fails)
+            raw_nc = sum("not connected" in f for f in raw_fails)
             res = innerloop.optimise(root, str(prog), budget=args.budget, method="nm")
             geometry.clear_cache()
             _s, fails = fit.score_with_fails(root)
@@ -1050,7 +1052,7 @@ def main(argv=None) -> int:
                              frac, label))
             nc = sum("not connected" in f for f in fails)
             print(f"  [{i + 1}/{len(plans)}] {n} storeys, {txt}, {label}: cover {frac:.0%}, "
-                  f"{raw} fails raw -> {len(fails)} tuned, {nc} storeys not connected",
+                  f"{raw} fails raw -> {len(fails)} tuned, not connected {raw_nc} raw -> {nc} tuned",
                   flush=True)
 
     if args.clean_seeds:

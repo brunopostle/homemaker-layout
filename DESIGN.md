@@ -22450,3 +22450,51 @@ the field, where the median is 0.748. Its six fails are `inaccessible usable spa
 the new cost, the two-storey question is still open. It is now blocked by joining storeys, and price no
 longer blocks it. A two-storey run needs seeds whose storeys are joined when they are built (the
 seeder's `bridge_indoors`), or a move that joins them. Racing more two-storey seeds would not help.
+
+### 39.234 Why two-storey catalogue seeds lose: upstairs rooms in ground-floor cells, more than disconnection (`homemaker-py-5fje.22`)
+
+§39.233 said the two-storey question "is now blocked by joining storeys". That overstated it. All of the
+following was measured on the health-centre seeds of §39.232 and on rebuilds of them, at `0c8446f+orth`,
+in about an hour of CPU, with no search run.
+
+**Fails by family, before the race** (mean per seed; 24 one-storey seeds against 18 two-storey seeds):
+
+| family | one | two |
+|---|---|---|
+| size | 3.7 | 8.2 |
+| width | 1.0 | 2.6 |
+| level not connected | 0.1 | 1.3 |
+| inaccessible usable space | 1.0 | 1.6 |
+| not adjacent | 13.4 | 14.4 |
+| crinkliness | 5.3 | 5.8 |
+| proportion, access | 12.2 | 11.2 |
+| **total (median)** | **36** | **44.5** |
+
+At the seed stage, `size` is the largest part of the gap and connection is about one fail. At stage 0
+(4k) the medians are 24 and 26.
+
+**Connection.** The seeder's ratio tuning is not what disconnects the storeys. Printed before and after
+tuning (`seed_from_catalogue.py` now prints both), the count is the same in 17 of 18 seeds. What is left
+after `bridge_indoors` is mostly single cells under 4 m². Folding such a cell into the room beside it
+looked cheap and was tried. On the first seed it cleared one `level 0 not connected` and added 9 fails,
+because the "stray" 4.3 m² cell was the only circulation for `wa1`, `gp1`, `ms1` and `t9`. These pieces
+are lobbies, not leftovers. With the fold restricted to pieces that no room depends on, it fired once in
+18 seeds. A second `bridge_indoors` pass after the terraces are retyped changed nothing. Both were
+reverted. Joining these lobbies means routing a corridor through rooms, and that belongs to the
+bridging review (`homemaker-py-4872`).
+
+**Size.** Two-storey seeds have less indoor area than one-storey seeds (278 m² median against 299), and
+`needed_cover` leaves out the stair cell on each storey. Adding 19 m² per storey for the stair raised the
+cover target from 38% to 43% and the area to 304 m². It made things worse: `size` rose from 8.2 to 9.3
+and the median total from 44.5 to 47. It was reverted. Area is not the cause. The failing rooms miss
+their size in both directions: 85 too small and 62 too big, with area/target from 0.10 to 7.6. 100 of
+the 147 fails are on the upper storey. **191 of the 278 upper-storey cells have exactly the area of the
+ground cell below them.** The seeder builds the upper storey as a copy of the ground's tree
+(`genome._copy_storey`). In a quad tree an upper storey inherits every cut below it, so a different
+set of rooms is dealt into cells sized for the ground floor's rooms.
+
+**So the lever** is to deal the upper storey's rooms to fit the cells the ground floor gives it, or to
+let the upper storey divide on its own below the inherited cuts. Raising the cover, or racing more
+two-storey seeds, is not the lever. Until one of those is built, a two-storey health-centre starts
+about eight fails behind, and the roof/slab saving (§39.230) is a factor on cost that cannot make up
+for 0.5⁸.
