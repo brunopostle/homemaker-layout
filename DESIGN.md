@@ -22583,3 +22583,67 @@ unresolved.
 14 m × 1.6 m. That cell is the stair and the wing's corridor at once. The scorer accepts it: it holds a
 flight, and §39.211 counts a cell as a stair if a flight fits in it, whatever its length. Whether a
 stair the length of a wing is a stair is a ruling to ask for, not a fault to fix.
+
+### 39.237 Owner's rulings on the 0-fail winner: long stairs fail, and every storey joins on its own (`homemaker-py-5fje.23`)
+
+The owner read §39.236's winner on 2026-11-16 and ruled on two things in it. A third observation was
+left open.
+
+> The long stairs are a problem, there are buildings that have a huge stairwell with a stair and a
+> balcony, but 1.6 is space for a stair, but barely enough for a balcony. Looking at the plan it ought
+> to be possible to split this stair into a stair and circulation at each level, then the stair could
+> be sized properly. There does seem to be more circulation spaces than necessary, and some are much
+> bigger than required purely for circulation. The top left circulation space in the upper floor seems
+> superfluous. Interestingly the circulation on the ground floor is incomplete, but the upper floor is
+> complete so it joins, in practice I don't think it would be viable for a health centre to require
+> people to upstairs and down to go from one end of the building to another - I know of a hospital
+> that has this arrangement as a result of joining buildings and it is extremely confusing for
+> visitors
+
+**Long stairs.** §39.193 had already ruled that such a stair should be split, and `mutate_split_stair`
+does the split; it has been on by default since §39.231. It never paid. The winner's south stair is
+11.3 m × 1.27 m, with a fit of 2.01 (twice its flight's length). Its volume factor is ×0.156, which
+is above `FAIL_THRESHOLD`, so it appeared in no fail list and the race's `--rank total` never saw it.
+Offered a fail past 1.5×, past 2×, or a steeper factor alone, the owner chose **a fail past 1.5×**:
+`fitness.STAIR_TOO_LONG`, one `N/id stair too long` per stair, on top of the volume factor.
+
+**Storeys join on their own.** This reverses §39.125's joining: a stair no longer links the
+circulation pieces of the storeys it serves (`graph.STAIRS_JOIN_STOREYS = False`). Offered "every
+storey on its own, upstairs too" or "the ground floor only", the owner chose **every storey**. An upper
+floor of two wings, each on its own stair, now fails `not connected` as well. The seeder's bridging
+follows the switch.
+
+**Superfluous and oversized circulation: not yet.** The owner chose to land these two rulings, race
+them, and only then measure what circulation is left over.
+
+**Priced before landing** (`diag_5fje23_stairs_storeys.py`, with a self-test on the winner and a
+negative control). The set was the 60 designs of §39.230 plus every halving race's winner and finalists
+and the split-stair race: 82 designs, 65 of them multi-storey.
+
+| programme | multi-storey | gain `not connected` | lines added |
+|---|---|---|---|
+| maple-court | 19 | 13 | +27 |
+| harbor-house | 18 | 8 | +16 |
+| split-stair race | 10 | 10 | +20 |
+| health-centre | 3 | 3 | +3 |
+| programme-house | 15 | 1 | +1 |
+
+A stair over 1.5×: 3 designs, the winner (counted twice, as the race's `winner.dom` and its drawing
+copy) and `halving-maple-spine/winner.dom`.
+
+The joining rule is the large change. Most multi-storey designs in maple-court (co-housing and assisted
+living) and harbor-house leaned on it. Those programmes are community buildings too, so the owner's
+reason for the rule applies to them. The rule is still one switch, so a programme could be exempted
+if the owner wants upper-floor flats served by their own stairs.
+
+The winner re-scores at 2 fails, `0/llrr stair too long` and `level 0 not connected`, with score
+0.0112. `tests/test_owner_stairs_storeys.py` pins both fails, each with the old rule as its control.
+
+The full suite ran at 1080 passed with 3 failures, all expected from the rulings, and each was fixed:
+- `stair too long` needed a tier. It is a hard fail, beside `too many stairs`.
+- `test_a_stair_joins_the_storeys_it_serves` is now `..._no_longer_joins_...`. It is inverted, and the
+  old rule is its control.
+- `report_card`'s "storey 1 cut off" control needs a base whose storey 1 joins on its own. Under the
+  new rule `final-best-1` joins only 1 of its 3 storeys and `final-clean-9` none, so that one edit is
+  shown under the rule it was made for. That fact matters beyond the test: **the best maple-court
+  designs on record are disconnected storey by storey under this ruling.**

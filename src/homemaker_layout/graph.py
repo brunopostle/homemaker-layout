@@ -440,11 +440,17 @@ def stair_shaft(leaf: Node) -> list[Node]:
         shaft.append(above)
 
 
-# §39.125, owner's ruling: a stair JOINS the circulation of the storeys it
-# serves, so a storey in two pieces, each on its own stair, is connected
-# through the floor below. A module switch only so that a migration can be
-# checked with it off (relabelling alone must move no score).
-STAIRS_JOIN_STOREYS = True
+# §39.125, owner's ruling: a stair JOINED the circulation of the storeys it
+# serves, so a storey in two pieces, each on its own stair, was connected
+# through the floor below. REVERSED by the owner on 2026-11-16 (§39.237), on a
+# health-centre whose ground floor joined only through the floor above: "in
+# practice I don't think it would be viable for a health centre to require
+# people to [go] upstairs and down to go from one end of the building to
+# another - I know of a hospital that has this arrangement as a result of
+# joining buildings and it is extremely confusing for visitors". Every storey's
+# circulation must now be one piece on that storey, upper storeys included;
+# a stair still belongs to the circulation of each storey it stands on.
+STAIRS_JOIN_STOREYS = False
 
 
 def _joined(graphs: "list[nx.Graph]") -> "list[bool]":

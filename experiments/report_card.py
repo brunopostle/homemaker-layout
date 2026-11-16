@@ -587,13 +587,22 @@ EDITS = {"stair_short": stair_short, "corridor_cut": corridor_cut,
 def self_test(progs):
     ok, ever = True, set()
     for what, base, edited, want in CONTROLS:
-        b, _ = card_of(progs, base, "maple-court")
-        if edited in EDITS:
-            e, _ = card_of(progs, base, "maple-court", EDITS[edited])
-            label = f"{base.relative_to(REPO)}, {edited}()"
-        else:
-            e, _ = card_of(progs, edited, "maple-court")
-            label = str(edited.relative_to(REPO))
+        # the O8 a edit cuts off a storey that §39.125's rule counted joined
+        # through its stairs; since §39.237 a storey must join on its own, and
+        # BEST1's storey 1 already does not, so the edit is shown under the
+        # rule it was made for
+        old = graph_mod.STAIRS_JOIN_STOREYS
+        graph_mod.STAIRS_JOIN_STOREYS = old or what.startswith("storey 1 cut off")
+        try:
+            b, _ = card_of(progs, base, "maple-court")
+            if edited in EDITS:
+                e, _ = card_of(progs, base, "maple-court", EDITS[edited])
+                label = f"{base.relative_to(REPO)}, {edited}()"
+            else:
+                e, _ = card_of(progs, edited, "maple-court")
+                label = str(edited.relative_to(REPO))
+        finally:
+            graph_mod.STAIRS_JOIN_STOREYS = old
         moved = {c: (b[c], e[c]) for c in DESIGN_COLS if fmt(b[c]) != fmt(e[c])}
         print(f"\n{what}: {label}")
         ever |= set(moved)

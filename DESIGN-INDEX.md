@@ -179,6 +179,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A building's "shape" is four things: an outline with few jogs, few large well-proportioned courtyards, yards open and walled the full height, storeys that stack (2026-11-15) | §39.228 |
 | Many small yards are good; a big one only for a purpose (assembly). Corners cost to build and complicate the roof; two storeys beat one (half the roof, less perimeter), accessibility aside. An outdoor cell enclosed on every side, above and below, is not outside space. Open-topped outdoor space is generally more versatile than covered. Good shape is wings of light: a few plan types (C, F, 8 ...) assembled in a fixed number of slicing ways | §39.229 |
 | The cost charges a roof (100/m²), a ground slab (75/m²) and every corner of every storey's outline (1 m of exterior wall); a ground-floor outdoor cell walled and built over is a fail; `--split-stair` is on. One stamp | §39.230, §39.231 |
+| A stair over 1.5× its flight's length fails (`stair too long`); every storey's circulation must join on that storey, stairs no longer link storeys (reverses §39.125's joining) -- a visitor must not go upstairs and down to cross the building. Superfluous circulation waits until these are raced (2026-11-16) | §39.237 |
 | No aggregation switch yet (2026-11-15): A0 stays the default while shape and token rooms are worked; the question returns with fresh Phase 3 arms | §39.227 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
@@ -230,7 +231,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (341 of them, 22585 lines)
+## Every section of DESIGN.md (342 of them, 22649 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -622,4 +623,5 @@ below are the most recent work.
 - §39.233 · 22407-22453 · health-centre through the catalogue: a court plan wins at 6 fails, and no two-storey seed ever joins its storeys (`homemaker-py-5fje.19`)
 - §39.234 · 22454-22501 · Why two-storey catalogue seeds lose: upstairs rooms in ground-floor cells, more than disconnection (`homemaker-py-5fje.22`)
 - §39.235 · 22502-22544 · A room-swap pass in the seeder, and the health-centre race again with it (`homemaker-py-5fje.22`)
-- §39.236 · 22545-22585 · With the swap, a two-storey health-centre wins at 0 fails (`homemaker-py-5fje.22`)
+- §39.236 · 22545-22586 · With the swap, a two-storey health-centre wins at 0 fails (`homemaker-py-5fje.22`)
+- §39.237 · 22587-22649 · Owner's rulings on the 0-fail winner: long stairs fail, and every storey joins on its own (`homemaker-py-5fje.23`)

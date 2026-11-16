@@ -42,6 +42,9 @@ FAIL_THRESHOLD = 0.1  # Urb::Dom::Fitness::Base
 # Narrower than ``stair_width`` but not than this, a cell is still a stair and
 # is scored on its fit (owner's ruling 2026-11-07, DESIGN.md §39.211).
 MIN_FLIGHT_WIDTH = 0.9
+# A stair whose length is over this many times what its flight needs is a
+# stair and a corridor in one cell: `stair too long` (owner, §39.237)
+STAIR_TOO_LONG = 1.5
 _MISSING = object()  # tells an absent config key from one declared null
 
 # Per-leaf quality factors that emit a failure when they drop below
@@ -113,6 +116,7 @@ _HARD_FAIL_MARKERS = (
     "enclosed outside",  # §39.231: a ground-floor carriage arch is not outside space
     "too few stairs",
     "too many stairs",
+    "stair too long",  # §39.237: a stair doubling as a corridor, to be split
     "storey limit",
     "storey minimum",
     "no outside public access",
@@ -2726,6 +2730,18 @@ class Fitness:
             for _ in range(bad):
                 tracking["_failures"].append("staircase volume")
             factor *= sf_factor
+            # Owner's ruling (§39.193, made a fail by §39.237): a stair much
+            # longer than its flight is a stair doubling as a corridor, and
+            # should be split into a stair and a circulation cell on each
+            # storey (`mutate_split_stair`). Its volume factor alone (x0.156 at
+            # twice the length) never made the split pay.
+            long_ = set()
+            for leaf, sf in zip(tracking.get("stair_leaves", []), fits):
+                if sf > STAIR_TOO_LONG:
+                    long_.add(next((f"{i}/{leaf.id}" for i, lv in enumerate(lvls)
+                                    if leaf in lv.leaves()), leaf.id))
+            for where in sorted(long_):
+                tracking["_failures"].append(f"{where} stair too long")
 
         stair_min = self.conf("staircase_min") or 1
         stair_max = self.conf("staircase_max") or 1

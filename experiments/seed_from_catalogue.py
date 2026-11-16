@@ -707,7 +707,7 @@ def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
         n_circ = max(1, -(-len(rooms) // kw["circ_divisor"]))
         parts, spines = wings, []
         if SPINE:
-            parts = spine(lvl, wings, stairs_join=li > 0)
+            parts = spine(lvl, wings, stairs_join=li > 0 and graph.STAIRS_JOIN_STOREYS)
             spines = [lf for w in wings if w.divided for lf in w.leaves()
                       if lf.type == "C" and lf not in parts]
             # the spine IS the storey's circulation: cells the assignment adds
@@ -738,7 +738,7 @@ def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
         # the dominating set is grown on the pre-sizing geometry, and on a
         # footprint split by courts it falls into one piece per wing: every
         # storey of the first build was `not connected` (§39.145, §39.147)
-        bridge_indoors(lvl, reqs, stairs_join=li > 0, stats=stats, fit=fit)
+        bridge_indoors(lvl, reqs, stairs_join=li > 0 and graph.STAIRS_JOIN_STOREYS, stats=stats, fit=fit)
         dom.link(root)
     # a terrace with a room built over it is `covered outside above ground`
     geometry.clear_cache()

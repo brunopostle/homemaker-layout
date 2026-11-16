@@ -128,9 +128,11 @@ def test_a_shaft_may_stop_below_the_top_but_starts_at_the_ground(column, is_stai
     assert bool(corners) == is_stair
 
 
-def test_a_stair_joins_the_storeys_it_serves(monkeypatch):
-    """Two wings upstairs, each on its own stair, joined on the floor below:
-    one building, and `level 1 not connected` must not fire (§39.125)."""
+def test_a_stair_no_longer_joins_the_storeys_it_serves(monkeypatch):
+    """Two wings upstairs, each on its own stair, joined on the floor below.
+    §39.125 read that as one building; the owner reversed it (§39.237): every
+    storey's circulation must be one piece on that storey, so `level 1 not
+    connected` fires. The old rule is the control."""
     def storey():
         n = dom.Node(rotation=0, height=3.0, division=[0.3, 0.3])
         n.left = dom.Node(type="E")
@@ -147,9 +149,9 @@ def test_a_stair_joins_the_storeys_it_serves(monkeypatch):
     geometry.clear_cache()
     _base, circ = graph.build_graphs_with_circ(root, 1.2, [].append, {"b1": "bedroom"})
     assert graph.circulation_joined(circ, 0)
-    assert graph.circulation_joined(circ, 1)
-    monkeypatch.setattr(graph, "STAIRS_JOIN_STOREYS", False)      # the control
     assert not graph.circulation_joined(circ, 1)
+    monkeypatch.setattr(graph, "STAIRS_JOIN_STOREYS", True)       # the control
+    assert graph.circulation_joined(circ, 1)
 
 
 def test_a_merged_landing_over_the_stair_is_not_a_staircase():
