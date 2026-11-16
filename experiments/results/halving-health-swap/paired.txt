@@ -1,0 +1,19 @@
+stage 0: 45 candidates in both races
+
+fails:
+  N=45   off mean 24.56   swap mean 23.71   26W/13L/6T (for swap)
+  mean diff +0.844  sd 4.767  95% CI [-0.588, +2.277]
+  t=1.188  p=0.2411  wilcoxon p=0.1495
+  minimum detectable difference at N=45: 1.432
+  ** UNDERPOWERED: the observed margin (0.844) is BELOW what N=45 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 125 would be needed for a margin this size.
+
+structural:
+  N=45   off mean 6.24   swap mean 6.62   18W/19L/8T (for swap)
+  mean diff -0.378  sd 3.359  95% CI [-1.387, +0.632]
+  t=-0.754  p=0.4547  wilcoxon p=0.5545
+  minimum detectable difference at N=45: 1.009
+  ** UNDERPOWERED: the observed margin (0.378) is BELOW what N=45 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 307 would be needed for a margin this size.
