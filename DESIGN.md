@@ -22541,3 +22541,45 @@ the replay control.
    `not connected` fail per two-storey seed remains (§39.234).
 4. **The winner has no more than 6 fails**, §39.232's winner, and is a catalogue seed with no
    `enclosed outside`.
+
+### 39.236 With the swap, a two-storey health-centre wins at 0 fails (`homemaker-py-5fje.22`)
+
+The race of §39.235 ran 09:24-13:16 on 2026-11-16 at `0c8446f+orth` (search `0c8446f`, config `32bfdffb4f`).
+Results are in `experiments/results/halving-health-swap/`; the drawings of the two finalists and of
+the best one-storey survivor (`one-5`, out at 64k with 5 fails) are in `drawings/`.
+
+| stage, budget | survivors |
+|---|---|
+| 2, 16k | `two-2`, `one-5`, `one-2`, `two-3`, `one-7`, `one-18`. All three cold seeds were dropped here |
+| 3, 32k | `two-2`, `one-5`, `two-3` |
+| 4, 64k | `two-3`, `two-2` |
+| 5, 128k | **`two-3`: 0 fails, score 0.0447**; `two-2`: 2 fails (`width`, `t11` not adjacent to `tr1`), score 0.135 |
+
+`homemaker-fitness` re-scores the winner independently and agrees: 0 fails, 0.04473. That is about 8 times
+§39.233's winner (6 fails, 0.0058) and the first health-centre design with no fails. It is an L of two
+wings around one open yard of 229 m², with 171 m² indoors on the ground and 162 m² upstairs. Its
+storeys have 6 and 10 corners. It kept 0.954 of its seed, the highest carry in the field with
+`two-17` (median 0.765). It added a second stair shaft during the run (`stairs.txt`).
+
+**The expectations, checked:**
+
+1. **The replay control holds.** `cold-a`, `cold-b` and `cold-c` have the same stage-0 rows as
+   §39.232, to the last digit.
+2. **Fewer fails at stage 0: not shown.** The one-storey median was 23.5 against 24, and the two-storey
+   median was 26 against 26. Paired by rank, the swap field is +0.84 fails better, with a 95% CI of
+   [-0.59, +2.28], below the MDD of 1.43. The seeds' 8-14-fail advantage (§39.235) is almost gone by
+   4k. The search would have found these labellings itself; what the swap changed is which seeds
+   survive the cut.
+3. **A two-storey seed reaches the final two: met.** Both finalists are two-storey. In §39.232 the last
+   two-storey seed went out at 64k with 11 fails.
+4. **The winner has no more than 6 fails: met, with 0.** It is a catalogue seed and has no
+   `enclosed outside`.
+
+**One race, one winner.** Two-storey seeds took three of the six places at 16k and both places at the
+end, so this is not one lucky run. But nothing here was repeated, and the stage-0 effect is
+unresolved.
+
+**For the owner.** The winner's south wing is served on both storeys by a single `E` cell about
+14 m × 1.6 m. That cell is the stair and the wing's corridor at once. The scorer accepts it: it holds a
+flight, and §39.211 counts a cell as a stair if a flight fits in it, whatever its length. Whether a
+stair the length of a wing is a stair is a ruling to ask for, not a fault to fix.
