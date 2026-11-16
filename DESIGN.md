@@ -22498,3 +22498,46 @@ let the upper storey divide on its own below the inherited cuts. Raising the cov
 two-storey seeds, is not the lever. Until one of those is built, a two-storey health-centre starts
 about eight fails behind, and the roof/slab saving (§39.230) is a factor on cost that cannot make up
 for 0.5⁸.
+
+### 39.235 A room-swap pass in the seeder, and the health-centre race again with it (`homemaker-py-5fje.22`)
+
+§39.234 found that a two-storey seed's upstairs rooms are dealt into cells cut for the ground floor's
+rooms. `seed_from_catalogue.swap_rooms` now runs at the end of `build_seed` (on by default;
+`SEED_SWAP=0` turns it off). It tries every pair of programme rooms, on the same storey or on different
+storeys, and keeps a swap when the building then has fewer fails, or as many fails and a higher score.
+It repeats this, up to six passes, until a pass keeps nothing. A room the brief binds to a storey
+(`level`) stays on that storey. The pass takes about 15 s of CPU per seed, and
+`tests/test_seed_swap_rooms.py` checks it, with a control that the pass fired.
+
+**On the seeds alone**, health-centre, after the seeder's usual 200-evaluation tune (median fails):
+
+| seeds | without | with the swap |
+|---|---|---|
+| 24 one-storey | 36 | 27.5 |
+| 18 two-storey | 44.5 | 30 |
+
+It helps both kinds of seed, and it closes the gap between them from 8.5 fails to 2.5. A swap is a
+relabelling with no wall moved, so this was within reach of the seeder all along. Its room assignment
+(`_assign_adjacency_aware`) places rooms without looking at the cells it will size later, and an upper
+storey cannot be sized at all. The search has `mutate_reassign` and CP-SAT labelling, but nothing
+in the race said they reach this.
+
+**The race** (`run_halving_health_swap.sh`) repeats §39.232's: the same field definition, `--rank
+total`, 4k doubling to 128k, with the seeds rebuilt with the swap. Seeds are named by rank, so `one-7`
+here is not the same plan as `one-7` in §39.232. The stage-0 pairing (`paired.txt`) is therefore
+paired by rank, not by plan, and is read as a comparison of distributions. The three `cold-*` seeds
+are the same files with the same rng seeds, so their stage-0 rows must match §39.232's exactly. That is
+the replay control.
+
+**Expectations, written before it runs:**
+
+1. **The `cold-*` rows at stage 0 are identical to §39.232's.** If not, the two races are not
+   comparable and nothing below is read.
+2. **At stage 0 the swapped field has fewer fails than §39.232's**, one-storey median below 24 and
+   two-storey median below 26. The seed advantage (8-14 fails) shrinks under search but does not
+   vanish at 4k.
+3. **A two-storey seed reaches the final two.** In §39.232 the last one went out at 64k with 11 fails.
+   This is the expectation the change is for, and the one I am least sure of, since about one
+   `not connected` fail per two-storey seed remains (§39.234).
+4. **The winner has no more than 6 fails**, §39.232's winner, and is a catalogue seed with no
+   `enclosed outside`.

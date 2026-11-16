@@ -30,6 +30,7 @@ a project and
 from __future__ import annotations
 
 import argparse
+import os
 import copy
 import itertools
 import math
@@ -744,7 +745,54 @@ def build_seed(init, t, sizes, reqs, n_storeys, rng, kw, n_cores: int = 0,
     for lf in terraces:
         if lf.type == "O" and dom.is_covered(lf):
             lf.type = "C"
+    if SWAP and fit is not None:
+        n = swap_rooms(root, reqs, fit)
+        if stats is not None:
+            stats["swapped"] += n
     return operators._finalise(root)
+
+
+SWAP = os.environ.get("SEED_SWAP", "1") == "1"
+
+
+def swap_rooms(root: dom.Node, reqs, fit: "Fitness", max_passes: int = 6) -> int:
+    """Swap pairs of programme rooms, on one storey or across storeys, while
+    the building scores better: fewer fails, then a higher score.
+
+    An upper storey is a copy of the ground's tree and inherits every cut
+    below it, so the rooms dealt to it land in cells sized for the ground's
+    rooms: 100 of the 147 `size` fails of §39.232's two-storey seeds were
+    upstairs, and 191 of 278 upper cells were the ground cell's exact shape
+    (§39.234). Swapping deals each room to a cell that fits it, and lets the
+    scorer weigh what that does to adjacency. A room bound to a storey by
+    the brief (``level``) does not leave it. Returns swaps kept."""
+    def rank():
+        geometry.clear_cache()
+        sc, fails = fit.score_with_fails(root)
+        return (len(fails), -sc)
+
+    prog = operators._programme_codes(reqs)
+    cells = [(li, lf) for li, lvl in enumerate(dom.levels(root)) for lf in lvl.leaves()
+             if lf.type in prog]
+    best = rank()
+    kept = 0
+    for _ in range(max_passes):
+        improved = False
+        for (la, a), (lb, b) in itertools.combinations(cells, 2):
+            if a.type == b.type:
+                continue
+            if la != lb and (prog[a.type].level is not None or prog[b.type].level is not None):
+                continue
+            a.type, b.type = b.type, a.type
+            got = rank()
+            if got < best:
+                best, kept, improved = got, kept + 1, True
+            else:
+                a.type, b.type = b.type, a.type
+        if not improved:
+            break
+    geometry.clear_cache()
+    return kept
 
 
 def needed_cover(reqs, conf, plot_m2: float, circ_share: float) -> dict:
@@ -1043,7 +1091,7 @@ def main(argv=None) -> int:
                                           for lf in ground_lvl.leaves() if lf.type == "E"])
             label = (f"cores {cores} (v{v}, sep {sep:.2f}), bridged rooms "
                      f"{crossed['strip']} cut / {crossed['retyped']} retyped / "
-                     f"{crossed['left']} routed around")
+                     f"{crossed['left']} routed around, {crossed['swapped']} swapped")
             n_double = len(double_loaded(root)) if args.clean_seeds else 0
             if n_double:
                 dropped[txt] += 1
