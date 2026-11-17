@@ -22896,3 +22896,49 @@ end -- is a walk along the circulation graph, which `graph.py` does not measure 
 it needs the owner's numbers: a detour ratio for inter-storey trips, and a dead-end length (fire
 codes give about 18 m one-way travel for offices, less for patient areas). The bead holds a
 formulation to price.
+
+### 39.244 Stair placement by travel, priced before a rule (`homemaker-py-5fje.29`)
+
+No rule landed; this measures the two quantities §39.243's formulation proposes, on designs the
+search has already made, so the owner can set thresholds against a distribution.
+`experiments/diag_5fje29_stair_travel.py` builds, from the scorer's own post-merge `graph_circ`
+(every edge a door the scorer allows), a metric graph whose nodes are door midpoints and room
+centroids: inside a circulation cell every pair of its doors is joined by a straight line, a room's
+centroid is joined to its doors, and a stair shaft joins its doors on one storey to its doors on the
+next by their plan distance. Outdoor cells are not walked unless `--outside`.
+
+- **detour**: for every pair of rooms on different storeys, walk minus plan distance (the "path to
+  reverse"), its mean and worst, and the mean ratio walk / max(plan, 1 m);
+- **dead end**, storeys above the ground only: a circulation door has two directions of escape if
+  two node-disjoint routes reach two different stairs; otherwise its travel to the nearest point that
+  has, or to a stair. The worst on any storey, and the worst room-to-nearest-stair walk.
+
+`--self-test` passes: the corridors winner reads 110 inter-storey pairs, all reachable, and with its
+flights removed none are (the negative control).
+
+| design | storeys | stairs | detour mean / max (m) | ratio | dead end (m) | room -> stair (m) |
+|---|---|---|---|---|---|---|
+| health-centre corridors winner `two-3` (stairs end to end) | 2 | 2 | 6.8 / 33.1 | 2.78 | 14.1 | 16.5 |
+| health-centre swap winner | 2 | 2 | 7.2 / 20.3 | 2.45 | 9.8 | 10.5 |
+| maple-court single winner | 3 | 2 | 26.2 / 71.0 | 3.83 | 26.6 | 27.7 |
+| maple-court `drawings-bestof` | 3 | 2 | 5.9 / 34.3 | 2.11 | 16.2 | 17.1 |
+| harbor-house hand seed | 3 | 2 | 9.9 / 36.8 | 2.31 | 1.8 | 7.0 |
+| programme-house, four designs | 2 | 1 | 1.4-1.8 / 3.0-4.0 | 1.6-1.9 | 0.0 | 1.5-2.5 |
+
+**Most of the multi-storey corpus cannot be measured.** Every other harbor-house and maple-court
+winner, and the `0d79403+orth` corpus, has rooms that no walk reaches from another storey (6 to 841
+pairs each), with or without `--outside`: they were made before §39.237 stopped stairs joining
+storeys, and fail `level N not connected` today. A travel rule adds nothing there until they connect.
+
+What the numbers say, for the owner's thresholds:
+
+1. **One-direction travel is already past the fire-code figure** on two of the five measurable
+   larger designs: maple-court's single winner at 26.6 m and the maple-court drawing at 16.2 m
+   against Approved Document B's ~18 m for offices, with the corridors winner close at 14.1 m. So
+   a dead-end rule at 18 m fires on one design, and lower thresholds on more.
+2. **The detour ratio does not separate the case the owner named.** The corridors winner, two
+   stairs side by side, reads 2.78; the swap winner, the same fault, 2.45; the drawing, two stairs
+   apart, 2.11. A mean ratio near 2 is the floor of a walk that goes via any stair, because rooms
+   on different storeys stacked near each other have a plan distance near zero, so the ratio is
+   dominated by short pairs. The absolute excess is the steadier reading, but scales with the
+   building. The side-by-side case is already charged by `superfluous stair` (§39.243).

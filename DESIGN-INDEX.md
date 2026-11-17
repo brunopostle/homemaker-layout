@@ -233,7 +233,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (348 of them, 22898 lines)
+## Every section of DESIGN.md (349 of them, 22944 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -632,4 +632,5 @@ below are the most recent work.
 - §39.240 · 22706-22743 · The owner on the one-storey winner: the north wing's turn, the double-loaded south wing, and the reception (`homemaker-py-5fje.23`)
 - §39.241 · 22744-22815 · Owner's corridor rulings: too wide, superfluous, and double-loaded (`homemaker-py-5fje.24`-`.27`)
 - §39.242 · 22816-22834 · The health-centre race at the corridor rulings: expectations (`homemaker-py-5fje.24`)
-- §39.243 · 22835-22898 · The corridors race read, and the owner's ruling on stairs side by side (`homemaker-py-5fje.24`, `.28`, `.29`)
+- §39.243 · 22835-22899 · The corridors race read, and the owner's ruling on stairs side by side (`homemaker-py-5fje.24`, `.28`, `.29`)
+- §39.244 · 22900-22944 · Stair placement by travel, priced before a rule (`homemaker-py-5fje.29`)
