@@ -181,6 +181,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | The cost charges a roof (100/m²), a ground slab (75/m²) and every corner of every storey's outline (1 m of exterior wall); a ground-floor outdoor cell walled and built over is a fail; `--split-stair` is on. One stamp | §39.230, §39.231 |
 | A stair over 1.5× its flight's length fails (`stair too long`); every storey's circulation must join on that storey, stairs no longer link storeys (reverses §39.125's joining) -- a visitor must not go upstairs and down to cross the building. Superfluous circulation waits until these are raced (2026-11-16) | §39.237 |
 | A corridor (`C`, not lobby or stair) over 3.0 m usable width fails `corridor too wide` -- wider than minimum is liked, for seating; a `C` cell no more than one room needs and whose loss splits nothing fails `superfluous circulation`, repaired by `merge_circulation`; double-loaded corridors are killed early: guard on for all, one fail each on health-centre. Reception-to-entrance waits for an all-programme rerun (2026-11-17) | §39.241 |
+| Two stairs next to each other are superfluous: a stair that is not a separate way out (§39.143's half-diagonal) fails `superfluous stair`, wherever there are two. Several stairs should be far apart in the circulation, a single one central, and one near the end of a long dead end -- filed as `5fje.29`, not yet measured (2026-11-17) | §39.243 |
 | No aggregation switch yet (2026-11-15): A0 stays the default while shape and token rooms are worked; the question returns with fresh Phase 3 arms | §39.227 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
@@ -232,7 +233,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (347 of them, 22833 lines)
+## Every section of DESIGN.md (348 of them, 22898 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -630,4 +631,5 @@ below are the most recent work.
 - §39.239 · 22673-22705 · At the rulings' stamp a one-storey health-centre wins, at 2 fails (`homemaker-py-5fje.23`)
 - §39.240 · 22706-22743 · The owner on the one-storey winner: the north wing's turn, the double-loaded south wing, and the reception (`homemaker-py-5fje.23`)
 - §39.241 · 22744-22815 · Owner's corridor rulings: too wide, superfluous, and double-loaded (`homemaker-py-5fje.24`-`.27`)
-- §39.242 · 22816-22833 · The health-centre race at the corridor rulings: expectations (`homemaker-py-5fje.24`)
+- §39.242 · 22816-22834 · The health-centre race at the corridor rulings: expectations (`homemaker-py-5fje.24`)
+- §39.243 · 22835-22898 · The corridors race read, and the owner's ruling on stairs side by side (`homemaker-py-5fje.24`, `.28`, `.29`)

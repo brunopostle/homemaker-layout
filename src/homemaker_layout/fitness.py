@@ -118,6 +118,7 @@ _HARD_FAIL_MARKERS = (
     "too many stairs",
     "stair too long",  # §39.237: a stair doubling as a corridor, to be split
     "superfluous circulation",  # §39.241: a cell to give to its room or remove
+    "superfluous stair",  # §39.243: two stairs too close to be two ways out
     "storey limit",
     "storey minimum",
     "no outside public access",
@@ -420,8 +421,11 @@ CONF_DEFAULTS: dict = {
     # sprinklers): at least HALF the building's overall diagonal apart. Two
     # stairs closer than that are one way out, so they count as one towards
     # `staircase_min`. A fraction of the diagonal; it only matters where a
-    # brief asks for two or more.
+    # brief asks for two or more -- and, since §39.243, wherever there are two.
     "staircase_separation": 0.5,
+    # Owner's ruling, 2026-11-17 (§39.243): a second stair closer than
+    # `staircase_separation` to another is superfluous. `false` turns it off.
+    "superfluous_stair": True,
     # §39.37 (homemaker-py-2f1): `None` means rooms have NO width requirement.
     # A leaf's area, narrowest width and aspect satisfy A = w^2 * r, so any two
     # fix the third: over 532 corpus leaves w^2*aspect/area has median 0.9929
@@ -2809,7 +2813,7 @@ class Fitness:
         stairs = tracking.get("stair_leaves", [])
         stair_count = len(stairs)
         separated = stair_count
-        if stair_min > 1 and stair_count > 1:
+        if stair_count > 1:
             separated = self._separated_stairs(root, stairs)
 
         # Owner's ruling (DESIGN.md §39.177): a single-storey building needs no
@@ -2824,6 +2828,18 @@ class Fitness:
             tracking["_failures"].append(
                 f"too many stairs ({stair_count}, max {stair_max})"
             )
+        # Owner's ruling, 2026-11-17 (DESIGN.md §39.243): "two stairs next to
+        # each other are superfluous" -- a building with more than one stair
+        # wants them far apart. A stair that is not a separate way out by
+        # `staircase_separation` (§39.143) fails, one line each, whatever
+        # `staircase_min` asks. Not where `too few stairs` already fires: there
+        # the remedy is to move a stair apart, not to remove one, and the pair
+        # is charged once.
+        elif (self.conf("superfluous_stair") and len(lvls) > 1
+              and stair_min <= separated < stair_count):
+            tracking["_failures"].extend(
+                [f"superfluous stair ({stair_count} stairs, {separated} apart)"]
+                * (stair_count - separated))
 
         # Storey limit / minimum
         n_storeys = len(lvls)

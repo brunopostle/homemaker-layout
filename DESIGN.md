@@ -22831,3 +22831,68 @@ before it ran:
    with probability about one half: §39.190 measured it as a large step.
 6. **The winner has one storey**, at about 70%. Nothing here helps a two-storey plan, and the
    rules of §39.237 still apply.
+
+### 39.243 The corridors race read, and the owner's ruling on stairs side by side (`homemaker-py-5fje.24`, `.28`, `.29`)
+
+`run_halving_health_corridors.sh` (§39.242) finished at 16:48 on 2026-11-17, 4 h 54 m after the seeds
+began, at `a792daa+orth`, search `a792daa`, config `1124a46f02`. Results in
+`experiments/results/halving-health-corridors/`, drawings of the winner and the other finalist in
+its `drawings/`.
+
+**The winner is `two-3`, two storeys, 2 fails, 0.169** (`0/llrlrlr size`, `0/rlll width`), against
+§39.239's one-storey 2 fails and 0.0218. It led from stage 2 and had no structural fail from stage 0
+on: 23 -> 18 -> 7 -> 5 -> 4 -> 2 fails over the six stages. The other finalist, `one-1`, ended at 5
+fails, 0.0102. Its stair moved once (`lll` -> `llrrr`, 7.2 m) and it gained a second shaft.
+
+Against the expectations of §39.242:
+
+1. **Held.** 41 candidates (21 one-storey, 17 two-storey, 3 cold).
+2. **Held.** Neither finalist has a double-loaded corridor.
+3. **Held.** The winner has neither `superfluous circulation` nor `corridor too wide`; it carried
+   one `superfluous circulation` at stage 0 and lost it by stage 1.
+4. **Held.** 2 fails.
+5. **Half held.** `pivot3` is in the lineage once (`pivot3 0/r rr`, stage 1). `merge_circulation`
+   never changed the tree: all eleven lines that name it are `noop` -- the move found nothing to
+   merge, and the inner loop's re-tune improved the score under its name. The superfluous cell
+   went some other way. (Reported to the owner first as "made 11 improvements"; that was wrong.)
+6. **Failed.** Two storeys won, where I had put one storey at about 70%.
+
+The stage-0 pairing against §39.239 (`paired.txt`): 2.2 more fails on the mean, 9W/30L/2T, beyond
+the MDD of 1.3 -- the new rules adding fails, as they were built to; structural fails are unmoved
+and underpowered.
+
+**What the winner found.** The south wing has no corridor: on both storeys its rooms open off two
+stair cells laid end to end, `llrrl` and `llrrr`, each 1.29 m by about 5.8 m, both full two-storey
+shafts. A stair is circulation that rooms may open off (§39.125); `superfluous circulation` skips
+stairs and the double-loaded detector reads corridors, so nothing charged it. §39.239's swap race
+winner (`halving-health-swap/winner.dom`) did the same. Separately, `0/rllr` is an `E` leaf with
+no stair above it; it is circulation and fails nothing.
+
+**The owner's ruling, 2026-11-17**, verbatim:
+
+> Clearly two stairs next to each other are superfluous, when a building has more than one stair
+> it makes sense that they are as far as possible away from each other in the circulation as
+> possible - or more specifically such that a person trying to move from any pair of random rooms
+> has a minimum path to reverse. In addition in real buildings we like to have stairs at the centre
+> where they are equally accessible from every room, but also in buildings with long dead end
+> corridors then for fire escape purposes we like to have stairs near the end of the corridors.
+
+**Landed: `superfluous stair`** (`homemaker-py-5fje.28`). §39.143's `_separated_stairs` already
+says how many stairs are separate ways out -- every pair at least `staircase_separation`, half the
+building's diagonal, apart -- but it ran only where `staircase_min` is 2 or more, so a health
+centre (min 1, max 2) could put a second stair anywhere. It now runs wherever there are two, and
+each stair beyond the separated count fails `superfluous stair (N stairs, k apart)`, hard, on a
+multi-storey building. Not where `too few stairs` already fires: there the remedy is to move a
+stair, not remove one, and the pair is charged once. `superfluous_stair: false` turns it off.
+Priced over 37 committed designs before landing: it fires on 4, the two health-centre two-storey
+winners above and their drawing copies, each +1 fail (the corridors winner to 3 fails, 0.0846).
+Every harbor-house and maple-court winner has its two stairs apart; maple-court's cold `s2` has two
+together and already pays `too few stairs`, unchanged. `tests/test_superfluous_stair.py` holds it,
+with the rule-off and stairs-apart controls.
+
+**Filed, not landed: placement by travel** (`homemaker-py-5fje.29`). The rest of the ruling --
+stairs far apart *in the circulation*, a single stair central, a stair at the end of a long dead
+end -- is a walk along the circulation graph, which `graph.py` does not measure in metres yet, and
+it needs the owner's numbers: a detour ratio for inter-storey trips, and a dead-end length (fire
+codes give about 18 m one-way travel for offices, less for patient areas). The bead holds a
+formulation to price.
