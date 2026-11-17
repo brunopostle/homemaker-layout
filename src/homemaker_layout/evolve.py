@@ -290,6 +290,12 @@ def _parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--no-guard-connection", dest="guard_connection",
                    action="store_const", const="off",
                    help="the same as --guard-connection=off")
+    p.add_argument("--guard-double-loaded", dest="guard_double_loaded",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_GUARD_DOUBLE_LOADED", True),
+                   help="decline a child with more metres of double-loaded "
+                        "corridor than its parent (homemaker-py-srl0; on by "
+                        "the owner's ruling, §39.241; default: on)")
     p.add_argument("--pivot", dest="pivot",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_PIVOT", False),
@@ -315,6 +321,12 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "neighbouring cells of different kinds, or cycles three or "
                         "four. Changes what a search does; the A/B that decides "
                         "it has not been run (default: off)")
+    p.add_argument("--merge-circulation", dest="merge_circulation",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_MERGE_CIRCULATION", True),
+                   help="a repair move that gives a `superfluous circulation` "
+                        "cell to the cell beside it (owner's ruling, §39.241; "
+                        "default: on)")
     p.add_argument("--split-stair", dest="split_stair",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_SPLIT_STAIR", True),
@@ -514,8 +526,11 @@ def main(argv=None) -> int:
     os.environ["HOMEMAKER_PIVOT3"] = "1" if args.pivot3 else "0"
     os.environ["HOMEMAKER_SWAP_CELLS"] = "1" if args.swap_cells else "0"
     os.environ["HOMEMAKER_SPLIT_STAIR"] = "1" if args.split_stair else "0"
+    os.environ["HOMEMAKER_MERGE_CIRCULATION"] = "1" if args.merge_circulation else "0"
     os.environ["HOMEMAKER_GUARD_CONNECTION"] = args.guard_connection
     driver.GUARD_CONNECTION = args.guard_connection
+    os.environ["HOMEMAKER_GUARD_DOUBLE_LOADED"] = "1" if args.guard_double_loaded else "0"
+    driver.GUARD_DOUBLE_LOADED = bool(args.guard_double_loaded)
     os.environ["HOMEMAKER_SEED_SOLVER"] = "1" if args.seed_solver else "0"
     driver.SEED_SOLVER = bool(args.seed_solver)
     os.environ["HOMEMAKER_LABEL_WRITEBACK"] = "1" if args.label_writeback else "0"
@@ -627,7 +642,9 @@ def main(argv=None) -> int:
     print(f"pivot3             : {args.pivot3}", file=sys.stderr)
     print(f"swap cells         : {args.swap_cells}", file=sys.stderr)
     print(f"split stair        : {args.split_stair}", file=sys.stderr)
+    print(f"merge circulation  : {args.merge_circulation}", file=sys.stderr)
     print(f"guard connection   : {args.guard_connection}", file=sys.stderr)
+    print(f"guard double-loaded: {args.guard_double_loaded}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
     print(f"core_undivide repaired : {args.core_undivide_repaired}", file=sys.stderr)
     print(f"seed solver        : {args.seed_solver}", file=sys.stderr)

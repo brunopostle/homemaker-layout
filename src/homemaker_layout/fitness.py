@@ -117,6 +117,7 @@ _HARD_FAIL_MARKERS = (
     "too few stairs",
     "too many stairs",
     "stair too long",  # §39.237: a stair doubling as a corridor, to be split
+    "superfluous circulation",  # §39.241: a cell to give to its room or remove
     "storey limit",
     "storey minimum",
     "no outside public access",
@@ -132,6 +133,8 @@ _SOFT_FAIL_MARKERS = (
     " shape",           # 8b2u.4/§39.103 -- a cell too far from a rectangle
     "staircase volume",
     "excess internal area",  # m3s/§39.58 -- internal area over `area_cap`
+    "corridor too wide",     # §39.241 -- a ratio move narrows it
+    "double-loaded corridor",  # srl0/§39.241 -- off unless a programme asks
 )
 
 
@@ -395,6 +398,17 @@ CONF_DEFAULTS: dict = {
     # keeps a fifth. It was [2.4, 0.2], Urb's, which failed under 1.97 m. A
     # programme with another capacity states its own.
     "width_circulation": [1.6, 0.2],
+    # Owner's ruling, 2026-11-17 (DESIGN.md §39.241): an oversized corridor is
+    # "something that an architect would flag immediately", though wider than
+    # minimum is liked -- wide enough for occasional seating. A `C` cell
+    # (not the lobby, not a stair) whose usable width is over this fails
+    # `corridor too wide`. `false` turns it off (a `None` falls back to this).
+    "width_circulation_max": 3.0,
+    # Same ruling: a circulation cell that nothing needs -- no more than one
+    # room depends on it for access, and taking it out leaves its storey's
+    # circulation in as many pieces as before -- fails `superfluous
+    # circulation`. Its one room could take it over. `False` turns it off.
+    "superfluous_circulation": True,
     # The LOBBY -- "simply the circulation cell that meets the street with a
     # front door", and "an assembly space" that must be wider than a corridor
     # (same ruling). No figure was given, so it keeps the width every
@@ -824,6 +838,13 @@ class Fitness:
                 float(self.conf("value_circulation")))
         else:
             self._connectivity_weight = float(cw)
+        # Double-loaded corridors (`homemaker-py-srl0`, §39.188; owner's ruling
+        # §39.241 turns it on for the health centre). They must be FAILS: the
+        # comparator ranks (-n_fails, score), so a score factor would only
+        # break ties (§39.172). `double_loaded_fails` is k per corridor;
+        # `double_loaded_metres` is instead one per that many metres of it.
+        self._double_loaded_fails = int(self.conf("double_loaded_fails") or 0)
+        self._double_loaded_metres = float(self.conf("double_loaded_metres") or 0.0)
         self._crinkliness_mode = str(self.conf("crinkliness_mode") or "urb")
         if self._crinkliness_mode not in (
                 "urb", "floor", "compact_ok", "exempt_circulation"):
@@ -1931,6 +1952,12 @@ class Fitness:
         factors["width"] = f
         quality *= f
 
+        wmax = self.conf("width_circulation_max")
+        if (wmax and leaf.type == "C"
+                and geometry.usable_width(leaf) > wmax
+                and not (not level_id and self._lobby(G) is leaf)):
+            fail(f"{level_id}/{lid} corridor too wide")
+
         f = self.quality_uncrinkliness(leaf, G, groups)
         if f < FAIL_THRESHOLD:
             fail(f"{level_id}/{lid} crinkliness")
@@ -2656,11 +2683,45 @@ class Fitness:
             for _ in range(max(1, pieces - 1) if pieces != 1 else 0):
                 fail(f"level {level_id} not connected")
 
+            if self.conf("superfluous_circulation"):
+                for leaf in self._superfluous_circulation(level_root, G, level_id):
+                    fail(f"{level_id}/{leaf.id} superfluous circulation")
+
             conf_fg = self.conf("force_roof_garden")
             if conf_fg and not has_outdoor_space:
                 fail(f"level {level_id} no outside space")
 
         return StoreyEval(cost=cost, value=value, leaves=leaves_eval)
+
+    def _superfluous_circulation(self, level_root: Node, G: nx.Graph,
+                                 level_id: int) -> list[Node]:
+        """`C` cells this storey does not need (owner, §39.241): at most one
+        room loses its access without the cell, and the storey's indoor
+        circulation is in no more pieces without it. A cell with no other
+        circulation beside it is the storey's circulation, not a spare part of
+        it, and the lobby and the stairs are never spare. Reads the graph
+        only: which cells touch which, as doors could, and nothing of names."""
+        circ = [n for n in G.nodes() if n.type in dom_mod.GENERIC_INDOOR_CIRCULATION]
+        if len(circ) < 2:
+            return []
+        lobby = self._lobby(G) if not level_id else None
+        H = G.subgraph(circ)
+        pieces = nx.number_connected_components(H)
+        out = []
+        for x in sorted(circ, key=lambda n: n.id):
+            if x.type != "C" or x is lobby or H.degree(x) == 0:
+                continue
+            if nx.number_connected_components(
+                    H.subgraph([n for n in circ if n is not x])) > pieces:
+                continue
+            G2 = nx.restricted_view(G, [x], [])
+            deps = [r for r in G.neighbors(x)
+                    if dom_mod.is_usable(r) and not dom_mod.is_circulation(r)
+                    and not dom_mod.is_outside(r)
+                    and self.access(r, G) and not self.access(r, G2)]
+            if len(deps) <= 1:
+                out.append(x)
+        return out
 
     # ----------------------------------------------------------------------- #
     # Building-level evaluation
@@ -2938,6 +2999,12 @@ class Fitness:
         if self._aggregation != "A0":
             score = self._aggregate_p(failures, storey_leaves, building_factor)
             return score, tuple(sorted(failures)), grade
+
+        if self._double_loaded_fails or self._double_loaded_metres:
+            for li, length, *_ in graph_mod.double_loaded_corridors(root):
+                n = (math.ceil(length / self._double_loaded_metres)
+                     if self._double_loaded_metres else self._double_loaded_fails)
+                failures.extend([f"{li} double-loaded corridor"] * n)
 
         # 0.5^n failure penalty (programme-driven mode, not 0.1^n).
         #

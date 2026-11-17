@@ -1,0 +1,40 @@
+examples/harbor-house/coldstart-0d79403+orth-500000-s0.dom	fails 24	corridor too wide 1	superfluous circulation 0	double-loaded corridor 0
+examples/harbor-house/coldstart-0d79403+orth-500000-s1.dom	fails 40	corridor too wide 3	superfluous circulation 2	double-loaded corridor 0
+examples/harbor-house/coldstart-0d79403+orth-500000-s2.dom	fails 35	corridor too wide 3	superfluous circulation 1	double-loaded corridor 0
+examples/health-centre/coldstart-0d79403+orth-500000-s0.dom	fails 7	corridor too wide 0	superfluous circulation 0	double-loaded corridor 0
+examples/health-centre/coldstart-0d79403+orth-500000-s1.dom	fails 11	corridor too wide 1	superfluous circulation 0	double-loaded corridor 2
+examples/health-centre/coldstart-0d79403+orth-500000-s2.dom	fails 18	corridor too wide 0	superfluous circulation 3	double-loaded corridor 2
+examples/maple-court/coldstart-0d79403+orth-500000-s0.dom	fails 78	corridor too wide 5	superfluous circulation 4	double-loaded corridor 0
+examples/maple-court/coldstart-0d79403+orth-500000-s1.dom	fails 70	corridor too wide 9	superfluous circulation 3	double-loaded corridor 0
+examples/maple-court/coldstart-0d79403+orth-500000-s2.dom	fails 60	corridor too wide 2	superfluous circulation 1	double-loaded corridor 0
+examples/programme-house/coldstart-0d79403+orth-500000-s0.dom	fails 1	corridor too wide 0	superfluous circulation 0	double-loaded corridor 0
+examples/programme-house/coldstart-0d79403+orth-500000-s1.dom	fails 0	corridor too wide 0	superfluous circulation 0	double-loaded corridor 0
+examples/programme-house/coldstart-0d79403+orth-500000-s2.dom	fails 0	corridor too wide 0	superfluous circulation 0	double-loaded corridor 0
+experiments/results/drawings-bestof/harbor-house-handseed.dom	fails 12	corridor too wide 1	superfluous circulation 3	double-loaded corridor 0
+experiments/results/drawings-bestof/programme-house.dom	fails 0	corridor too wide 0	superfluous circulation 0	double-loaded corridor 0
+experiments/results/halving-harbor-guard/winner.dom	fails 22	corridor too wide 2	superfluous circulation 2	double-loaded corridor 0
+experiments/results/halving-harbor-spine/winner.dom	fails 24	corridor too wide 4	superfluous circulation 2	double-loaded corridor 0
+experiments/results/halving-harbor-split/winner.dom	fails 24	corridor too wide 3	superfluous circulation 2	double-loaded corridor 0
+experiments/results/halving-health/drawings/s2-cold-b.dom	fails 16	corridor too wide 0	superfluous circulation 0	double-loaded corridor 0
+experiments/results/halving-health/drawings/s4-two-1.dom	fails 11	corridor too wide 0	superfluous circulation 0	double-loaded corridor 0
+experiments/results/halving-health/drawings/s5-one-24.dom	fails 8	corridor too wide 0	superfluous circulation 1	double-loaded corridor 1
+experiments/results/halving-health/drawings/s5-one-8.dom	fails 6	corridor too wide 0	superfluous circulation 0	double-loaded corridor 0
+experiments/results/halving-health-rulings/drawings/s5-one-2.dom	fails 5	corridor too wide 0	superfluous circulation 0	double-loaded corridor 1
+experiments/results/halving-health-rulings/drawings/winner-one-5.dom	fails 4	corridor too wide 0	superfluous circulation 1	double-loaded corridor 1
+experiments/results/halving-health-rulings/drawings/winner-pivot3-lrr-lr.dom	fails 4	corridor too wide 0	superfluous circulation 1	double-loaded corridor 1
+experiments/results/halving-health-rulings/winner.dom	fails 4	corridor too wide 0	superfluous circulation 1	double-loaded corridor 1
+experiments/results/halving-health-swap/drawings/s4-one-5.dom	fails 6	corridor too wide 0	superfluous circulation 0	double-loaded corridor 1
+experiments/results/halving-health-swap/drawings/s5-two-2.dom	fails 3	corridor too wide 0	superfluous circulation 0	double-loaded corridor 0
+experiments/results/halving-health-swap/drawings/winner-two-3.dom	fails 3	corridor too wide 0	superfluous circulation 1	double-loaded corridor 0
+experiments/results/halving-health-swap/winner.dom	fails 3	corridor too wide 0	superfluous circulation 1	double-loaded corridor 0
+experiments/results/halving-health/winner.dom	fails 8	corridor too wide 0	superfluous circulation 1	double-loaded corridor 1
+experiments/results/halving-maple-clean/winner.dom	fails 27	corridor too wide 6	superfluous circulation 2	double-loaded corridor 0
+experiments/results/halving-maple-single/winner.dom	fails 26	corridor too wide 0	superfluous circulation 8	double-loaded corridor 0
+experiments/results/halving-maple-spine/winner.dom	fails 24	corridor too wide 1	superfluous circulation 2	double-loaded corridor 0
+experiments/results/halving-maple/winner.dom	fails 41	corridor too wide 2	superfluous circulation 3	double-loaded corridor 0
+
+programme	designs	corridor too wide (designs/lines)	superfluous circulation (designs/lines)	double-loaded corridor (designs/lines)
+harbor-house	7	7/17	6/12	0/0
+health-centre	16	1/1	8/10	9/11
+maple-court	7	6/25	7/23	0/0
+programme-house	4	0/0	0/0	0/0

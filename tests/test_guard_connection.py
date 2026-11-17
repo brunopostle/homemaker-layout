@@ -71,6 +71,7 @@ def test_guard_modes_parse_and_default_to_connected(monkeypatch):
 def _search_where_every_child_disconnects(monkeypatch, guard: str):
     """A tiny search whose every BRED child is made to fail a storey its
     parent did not. Seeds (lineage `construct/...`) are left as scored."""
+    monkeypatch.setattr(driver, "GUARD_DOUBLE_LOADED", False)   # its own guard, not this one
     real = driver._evaluate
 
     def evaluate(*a, **k):

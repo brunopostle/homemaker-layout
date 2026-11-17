@@ -22740,3 +22740,94 @@ This is the half of §39.188 that was never tested: what stops a double-loaded c
 (branch `srl0`) was dropped for now by the owner in §39.189.
 
 **The reception** the owner reads as a matter for the programme, not the design.
+
+### 39.241 Owner's corridor rulings: too wide, superfluous, and double-loaded (`homemaker-py-5fje.24`-`.27`)
+
+The owner, 2026-11-17, replying to §39.240:
+
+> The corridor in the north wing was actually two circulation spaces, so the pivot moves one into the
+> right side division, where it becomes superfluous, the problem here is that we had a corridor split
+> into two circulation spaces in the first place.
+> Yes these oversized corridors are something that an architect would flag immediately, though we
+> like wider than minimum corridors, and Alexander has a pattern that requires them to be wide enough
+> to be used for occasional seating etc.. which in fact would be very useful in a health centre. Yes
+> if double loaded corridors need to be killed early on to prevent them becoming entrenched then we
+> need to do this. Change the reception to entrance relationship when it is a good time, ie. When it
+> doesn't require redoing everything, or when everything is going to be rerun anyway
+
+Offered a width, a form for the split corridor, and a way to bring in the double-loaded corridor, the
+owner chose all three recommendations:
+
+1. **`corridor too wide`** (`fitness`, soft tier). A `C` cell whose usable width is over
+   `width_circulation_max` = 3.0 m fails. The lobby and stairs are exempt. A programme turns it off
+   with `false`. In the ten race winners, 90 corridor cells have quartiles of 1.49, 2.32 and 2.99 m.
+2. **`superfluous circulation`** (`fitness`, hard tier). A `C` cell fails when all three hold:
+   - at most one room loses its access without it;
+   - its storey's indoor circulation is in no more pieces without it;
+   - it has another circulation cell beside it.
+
+   The lobby and stairs are never superfluous. The rule reads the door graph only. It fires on both
+   cells the owner has pointed at: the north wing's 5.6 m² vestibule in §39.239's winner, and the
+   upstairs top-left cell of §39.236's (`1/rlrr`). Its repair is a new move,
+   **`mutate_merge_circulation`** (on by default, `--no-merge-circulation`). The move takes a
+   failing cell whose sibling is a single cell and removes the cut between them, keeping the
+   sibling's type, as `deslim` does. On the winner it gives the vestibule to the manager's office:
+   2 fails after re-tuning, where the parent now has 3. The driver builds the scorer the move needs
+   without turning on `shape_rotate`/`deslim`.
+3. **Double-loaded corridors**: `srl0`'s detector (`graph.double_loaded_corridors`) and penalty are
+   merged. `double_loaded_fails: 1` is set in health-centre's `patterns.config` only; any other
+   programme can ask for it the same way. The guard is on by default for every programme
+   (`--no-guard-double-loaded`). It declines a bred child with more metres of double-loaded
+   corridor than its parent, which is the "killed early" the owner asked for. §39.188 found a
+   penalty cannot get a search out of one.
+4. **The reception** (`5fje.27`) is deferred, as the owner allowed. No adjacency entry can name the
+   entrance: entries are room codes or the generic `c`/`o`/`s`. A `lobby` entry met by
+   `Fitness._lobby` would touch the scorer, the constructor and CP-SAT, so it waits for an
+   all-programme rerun.
+
+**A finding on the moves.** `pivot` and `pivot3` are off by default (§39.171 and §39.190).
+`pivot3` was never raced, so none of these races could make the turn of the north wing the owner
+expected. The next race turns it on.
+
+**Priced** (`diag_5fje24_corridors.py`, with a self-test on the owner's two cells and a negative
+control), over 34 designs: the race winners, their drawings, `drawings-bestof` and the `0d79403+orth`
+corpus.
+
+| programme | designs | too wide (designs / lines) | superfluous | double-loaded |
+|---|---|---|---|---|
+| harbor-house | 7 | 7 / 17 | 6 / 12 | — |
+| health-centre | 16 | 1 / 1 | 8 / 10 | 9 / 11 |
+| maple-court | 7 | 6 / 25 | 7 / 23 | — |
+| programme-house | 4 | 0 / 0 | 0 / 0 | — |
+
+Harbor-house and maple-court move a long way. Their lobbies are exempt, so the 5.4 m and 6.6 m
+cells in the census are not among these. On §39.239's winner the three rulings add 2 fails, to 4
+(score 0.0218).
+
+**The full suite** ran at 1092 passed with 3 failures. Each came from the new defaults and each
+was fixed:
+- `guard_double_loaded` and `merge_circulation` are now `SEARCH_KNOBS`, so the search config hash
+  records them.
+- `test_enable_shape_repair_threads_fit_into_mutate` has its "no scorer" case with the merge move
+  off too.
+- `test_guard_connection`'s control turns the double-loaded guard off, so that it measures only
+  its own guard.
+
+### 39.242 The health-centre race at the corridor rulings: expectations (`homemaker-py-5fje.24`)
+
+`run_halving_health_corridors.sh` runs §39.238's field and stages again, with four changes: the
+objective of §39.241, `--clean-seeds` on both arms, the double-loaded guard and `merge_circulation`
+(both now default), and `pivot3` on. Several things change at once, so this is a description of the
+new default search, not an A/B; the stage-0 pairing against §39.239 is only directional. Written
+before it ran:
+
+1. **At least 36 candidates.** 37 of §39.239's 42 seeds read 0 double-loaded.
+2. **No finalist has a double-loaded corridor.** The field starts with none and the guard
+   declines any child that adds metres of one.
+3. **The winner has neither `superfluous circulation` nor `corridor too wide`.** Both are cheap
+   to clear: the merge move for one, a ratio for the other.
+4. **The winner has 1 to 4 fails.** §39.239's winner re-scores at 4 here.
+5. **`merge_circulation` appears in the winner's lineage at least once.** `pivot3` appears in it
+   with probability about one half: §39.190 measured it as a large step.
+6. **The winner has one storey**, at about 70%. Nothing here helps a two-storey plan, and the
+   rules of §39.237 still apply.

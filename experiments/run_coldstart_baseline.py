@@ -167,7 +167,8 @@ SEARCH_KNOBS = ("bridge_circulation", "child_budget", "collapse",
                 "shapecurve_prune", "shapecurve_warmstart", "superpose",
                 "support_outside", "use_tiers", "anneal_grain", "polish_budget",
                 "tune_heights", "light_well", "label_writeback", "aim_undivide",
-                "retype_kind", "pivot", "pivot3", "swap_cells", "split_stair", "guard_connection", "rank")
+                "retype_kind", "pivot", "pivot3", "swap_cells", "split_stair", "guard_connection", "rank",
+                "guard_double_loaded", "merge_circulation")
 # evolve's options that are the RUN, not the search: what to read, where to
 # write, how long, how parallel. `native` is a different representation, and
 # flag_ab passes it explicitly. Every other option is a knob, and

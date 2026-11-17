@@ -1273,6 +1273,50 @@ def mutate_deslim(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"deslim {li}/{n.id or 'root'} (kept {n.type})"
 
 
+def mutate_merge_circulation(root: dom.Node, rng: np.random.Generator,
+                              types: list[str], fit=None) -> tuple[dom.Node, str]:
+    """Repair operator (owner's ruling, DESIGN.md §39.241): give a
+    `superfluous circulation` cell to the cell beside it.
+
+    The scorer fails a `C` cell that at most one room needs and whose loss
+    leaves the storey's circulation in no more pieces. Where that cell's
+    sibling is a single cell -- the room it is a vestibule to, or more
+    corridor -- the cut between them goes and the sibling's type takes the
+    whole, as `mutate_deslim` does. Requires ``fit`` to say which cells fail.
+    """
+    if fit is None:
+        return _finalise(copy.deepcopy(root)), "merge_circulation noop"
+    child = copy.deepcopy(root)
+    dom.link(child)
+    from . import geometry as _geo
+    _geo.clear_cache()
+    lines = fit.score_with_fails(child)[1]
+    _geo.clear_cache()
+    lvls = dom.levels(child)
+    cands = []
+    for line in lines:
+        if not line.endswith(" superfluous circulation"):
+            continue
+        li, lid = line.split()[0].split("/", 1)
+        leaf = lvls[int(li)].by_id(lid) if int(li) < len(lvls) else None
+        n = leaf.parent if leaf is not None else None
+        if (leaf is None or leaf.divided or n is None
+                or (n.below is not None and n.below.divided)):   # a cut owned below
+            continue
+        sib = n.right if n.left is leaf else n.left
+        if sib.divided or dom.is_outside(sib) or sib.type == dom.GENERIC_STAIR:
+            continue
+        cands.append((int(li), n, sib))
+    if not cands:
+        return _finalise(child), "merge_circulation noop"
+    li, n, sib = _pick(rng, cands)
+    n.type = sib.type or "C"
+    dom.hand_cut_up(n)      # as mutate_undivide (§39.100)
+    n.division = None
+    n.left = n.right = None
+    return _finalise(child), f"merge_circulation {li}/{n.id or 'root'} (kept {n.type})"
+
+
 def _leaves_with_depth(n: dom.Node, d: int = 0) -> list[tuple[dom.Node, int]]:
     """Every leaf under ``n`` paired with its depth below ``n``."""
     if not n.divided:
@@ -3784,6 +3828,7 @@ MUTATIONS = {
     "level_delete": mutate_level_delete,
     "shape_rotate": mutate_shape_rotate,
     "deslim": mutate_deslim,
+    "merge_circulation": mutate_merge_circulation,
     "ruin_recreate": mutate_ruin_recreate,
     "reassign": mutate_reassign,
     "support_outside": mutate_support_outside,
@@ -3815,7 +3860,7 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     # it — never zero-weighted, unlike reqs_ops above
     reqs_optional_ops = ("bridge_circulation",)
     # these need a Fitness instance to identify genuinely shape-failing leaves
-    fit_ops = ("shape_rotate", "deslim")
+    fit_ops = ("shape_rotate", "deslim", "merge_circulation")
     if reqs is None:
         for op in reqs_ops:
             p[names.index(op)] = 0.0

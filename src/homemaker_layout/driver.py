@@ -36,7 +36,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import dom, fitness, genome, innerloop, operators, programme, shapecurve
+from . import dom, fitness, genome, graph, innerloop, operators, programme, shapecurve
 
 _CHILD_INNER_KW: dict = {}
 
@@ -282,6 +282,26 @@ def guard_declines(child_fails, parent_fails, mode: str) -> bool:
     if mode == "connected" and _unconnected_levels(parent_fails):
         return False
     return disconnects(child_fails, parent_fails)
+
+
+# homemaker-py-srl0, on by default since the owner's ruling of 2026-11-17
+# (§39.241: "if double loaded corridors need to be killed early on to prevent
+# them becoming entrenched then we need to do this"): decline a bred child
+# with more metres of double-loaded corridor than its parent. §39.188 found a
+# penalty cannot get a search OUT of one; this stops one forming.
+GUARD_DOUBLE_LOADED = __import__("os").environ.get("HOMEMAKER_GUARD_DOUBLE_LOADED", "1") == "1"
+
+
+def double_loaded_metres(root: dom.Node) -> float:
+    from . import geometry
+
+    dom.link(root)
+    geometry.clear_cache()
+    return sum(c[1] for c in graph.double_loaded_corridors(root))
+
+
+def adds_double_loaded(child: dom.Node, parent: dom.Node) -> bool:
+    return double_loaded_metres(child) > double_loaded_metres(parent) + 0.01
 
 
 # The solver has no time bound of its own (§39.109: one call ran past twenty
@@ -716,10 +736,18 @@ def search(
     # homemaker-py-161: shape_rotate/deslim are gated by operators.mutate itself
     # (fit_ops go to zero probability when fit=None) — only build the Fitness
     # instance, and thus only let them fire, when explicitly enabled.
+    # The merge_circulation repair (owner, §39.241) needs the same Fitness to
+    # find superfluous cells; it is on by default, so the instance is built
+    # whenever either wants it, and the shape repairs are zeroed unless asked.
+    merge_circ = os.environ.get("HOMEMAKER_MERGE_CIRCULATION", "1") == "1"
+    if not merge_circ:
+        mutation_weights["merge_circulation"] = 0.0
+    if not enable_shape_repair:
+        mutation_weights["shape_rotate"] = mutation_weights["deslim"] = 0.0
     shape_repair_fit = (
         _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
                      conn_grade, collapse_insearch, multi_use)
-        if enable_shape_repair else None)
+        if enable_shape_repair or merge_circ else None)
     # Optional ranking bonus (DESIGN.md §11.3 Stage 1): bias selection toward
     # individuals with high substrate-readiness via a multiplicative factor
     # (1 + W·bonus) on fitness. The reported fitness/history stay the TRUE
@@ -901,6 +929,11 @@ def search(
             if (parents and parents[k] is not None
                     and not ind.lineage.startswith("pruned/")
                     and guard_declines(ind.fails, parents[k][0].fails, GUARD_CONNECTION)):
+                result.n_declined += 1
+                return "declined"
+            if (GUARD_DOUBLE_LOADED and parents and parents[k] is not None
+                    and not ind.lineage.startswith("pruned/")
+                    and adds_double_loaded(ind.root, parents[k][0].root)):
                 result.n_declined += 1
                 return "declined"
             return admit(ind, pop)

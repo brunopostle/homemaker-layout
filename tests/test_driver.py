@@ -221,9 +221,14 @@ def test_enable_shape_repair_threads_fit_into_mutate(fake_inner, monkeypatch):
     monkeypatch.setattr(operators, "mutate", spy_mutate)
     init_root = dom.load(str(INIT_FILE))
 
+    # merge_circulation (§39.241, on by default) needs the scorer too, so the
+    # "off" case is with both off; with it on, a scorer goes to mutate but the
+    # two shape repairs keep zero weight (checked in operators' own gating)
+    monkeypatch.setenv("HOMEMAKER_MERGE_CIRCULATION", "0")
     off = driver.search(init_root, CORPUS, budget=400, pop_size=4,
                         child_budget=60, seed_budget=100, seed=5)
     assert seen_fit and all(f is None for f in seen_fit)
+    monkeypatch.setenv("HOMEMAKER_MERGE_CIRCULATION", "1")
 
     seen_fit.clear()
     on = driver.search(init_root, CORPUS, budget=400, pop_size=4,
