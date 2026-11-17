@@ -1,0 +1,17 @@
+stage 0: 41 candidates in both races; 4 in one only: one-22 one-23 one-24 two-18
+
+fails:
+  N=41   rulings mean 22.93   corridors mean 25.12   9W/30L/2T (for corridors)
+  mean diff -2.195  sd 4.197  95% CI [-3.520, -0.871]
+  t=-3.349  p=0.0018  wilcoxon p=0.0011
+  minimum detectable difference at N=41: 1.325
+     margin exceeds the MDD -- the sample can support a verdict.
+
+structural:
+  N=41   rulings mean 6.68   corridors mean 6.61   16W/16L/9T (for corridors)
+  mean diff +0.073  sd 2.563  95% CI [-0.736, +0.882]
+  t=0.183  p=0.8559  wilcoxon p=0.8285
+  minimum detectable difference at N=41: 0.809
+  ** UNDERPOWERED: the observed margin (0.073) is BELOW what N=41 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 4717 would be needed for a margin this size.
