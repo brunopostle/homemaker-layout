@@ -22702,3 +22702,41 @@ The owner's deferred question, superfluous and oversized circulation, can now be
 It has five circulation cells: the 22.6 m² west corridor and the 19.9 m² south corridor serve rooms on
 both sides, while the 25.3 m² north strip and the 5.6 m² cell beside it serve only the WCs, the
 manager's office and the treatment room.
+
+### 39.240 The owner on the one-storey winner: the north wing's turn, the double-loaded south wing, and the reception (`homemaker-py-5fje.23`)
+
+The owner, 2026-11-17, on §39.239's winner:
+
+> This is beginning to look like a real health centre. Yes the north wing looks wrong but mainly
+> because the circulation is too wide, this is to accommodate the managers office that has to be the
+> same width because of the orientation of the top level division of the wing. I would hope that one
+> of our moves would fix this by rotating this top level division, placing the managers office as the
+> whole of the east side of the wing division, then the corridor would be free to be as wise as it
+> needs to be and the long and narrow treatment room could become wider. Other problems are that the
+> south wing has a double loaded corridor, which is exactly the sort of thing you see in a real health
+> centre, but I would hope that Alexander's patterns would prevent this. There is also a reception a
+> long distance from and possible building entrance, but this is just an issue with the programme
+> rather than the design
+
+**The north wing: the move exists, and the scorer is indifferent to it.** The wing is `0/lrr`.
+`diag_5fje23_north_wing.py` applies every rotate, pivot and pivot3 the operators can make inside
+it, re-tunes the ratios (inner loop, 300 evaluations) and scores each. Results are in
+`halving-health-rulings/north-wing.tsv`. The control, re-tuned with no move, has 2 fails at 0.0880.
+One move is the owner's: **`pivot3 lrr lr`**. The manager's office comes to span the whole east end
+of the wing (2.76 m wide). The corridor narrows from 2.33 to 1.97 m, and the treatment room widens
+from 1.38 to 1.84 m. It scores 2 fails at 0.0883, a tie. The treatment room still fails proportion
+(10.7 m² at 1.84 m), because the wing is only about 3.8 m deep. A corridor wider than it needs costs
+only its area: `width_circulation` gives full credit from 1.6 m and nothing past that. So no
+selection pressure prefers the turned wing. A 5.4 m² circulation cell still stands between corridor
+and office. Drawn as `drawings/winner-pivot3-lrr-lr`. All 22 other moves are worse.
+
+**The double-loaded south wing was made by the search, not the seed.** `diag_double_loaded.py`:
+- the seed `one-5` has one double-loaded corridor, the WEST corridor `rl` (19.1 m, lined 100% / 53%);
+- the winner has the SOUTH corridor `llrr` (16.3 × 1.2 m, lined 100% / 100%), and the west corridor
+  no longer counts.
+
+This is the half of §39.188 that was never tested: what stops a double-loaded corridor FORMING.
+§39.188's pilot saw too few form to measure. Here one formed in a winning plan. The penalty
+(branch `srl0`) was dropped for now by the owner in §39.189.
+
+**The reception** the owner reads as a matter for the programme, not the design.
