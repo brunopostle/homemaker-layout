@@ -231,7 +231,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (343 of them, 22671 lines)
+## Every section of DESIGN.md (344 of them, 22704 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -625,4 +625,5 @@ below are the most recent work.
 - §39.235 · 22502-22544 · A room-swap pass in the seeder, and the health-centre race again with it (`homemaker-py-5fje.22`)
 - §39.236 · 22545-22586 · With the swap, a two-storey health-centre wins at 0 fails (`homemaker-py-5fje.22`)
 - §39.237 · 22587-22650 · Owner's rulings on the 0-fail winner: long stairs fail, and every storey joins on its own (`homemaker-py-5fje.23`)
-- §39.238 · 22651-22671 · The health-centre race at the rulings' stamp: expectations (`homemaker-py-5fje.23`)
+- §39.238 · 22651-22672 · The health-centre race at the rulings' stamp: expectations (`homemaker-py-5fje.23`)
+- §39.239 · 22673-22704 · At the rulings' stamp a one-storey health-centre wins, at 2 fails (`homemaker-py-5fje.23`)

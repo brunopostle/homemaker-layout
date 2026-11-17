@@ -22669,3 +22669,36 @@ swap pass both score under the new rules. `run_halving_health_rulings.sh`, resul
 5. **The stage-0 pairing against §39.236 is not a clean A/B.** The objective changed, and seeds named
    alike are different plans. Read it only as the direction of the change. The cold rows differ only
    where a run added a storey.
+
+### 39.239 At the rulings' stamp a one-storey health-centre wins, at 2 fails (`homemaker-py-5fje.23`)
+
+The race §39.238 set up ran on 2026-11-16/17 in 3 h 37 m, at `7cebe69+orth 0c8446f 32bfdffb4f`.
+**The winner is `one-5`, one storey, at 2 fails** (`0/llrr crinkliness`, `0/lrrrrr proportion`), score
+0.0873. The runner-up is `one-2`, at 4 fails. Drawings are in
+`experiments/results/halving-health-rulings/drawings/`. The plan is a courtyard: a 107 m² yard
+with the waiting room, reception and pharmacy on its south side, a corridor along the west wing, and
+the clinical rooms on the south and west outside walls.
+
+**The race was mostly a replay.** The seeds came out byte-identical to §39.236's: `two-3` is the
+same file, and the seeder's not-connected totals (23 raw → 24 tuned) did not move. Of the 45 stage-0
+rows, 42 match §39.236 exactly; the other three are `two-2`, `two-6` and `two-15`. So the stage-0
+pairing (`paired.txt`) is close to a null by construction: +0.16 fails, with an MDD of 0.31, 44 ties.
+The rulings bit later, and they bit on the two-storey runs:
+- `two-3`, §39.236's winner, carried `stair too long` at 8k and `level 2` at 16k. It went out at
+  64k, at 9 fails.
+- `two-2`, §39.236's runner-up, went out at 16k, at 15 fails.
+
+Against the expectations:
+1. **Wrong.** The two-storey seeds did not start further behind (median 29.5, as before). The
+   seeder's bridging had never relied on a stair to join a storey. The one-storey median moved from
+   27.5 to 27.0.
+2. **Held.** No finalist carries `stair too long`, but only because no finalist has a stair. The
+   split-stair move did not rescue `two-3`.
+3. **Held** (one storey, the side I leaned to at 55%).
+4. **Held** (2 fails). No two-storey design meeting both rulings was found.
+5. **Held, more strongly than written.** The pairing is nearly a replay, not merely directional.
+
+The owner's deferred question, superfluous and oversized circulation, can now be asked of this plan.
+It has five circulation cells: the 22.6 m² west corridor and the 19.9 m² south corridor serve rooms on
+both sides, while the 25.3 m² north strip and the 5.6 m² cell beside it serve only the WCs, the
+manager's office and the treatment room.
