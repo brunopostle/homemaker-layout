@@ -22935,10 +22935,73 @@ What the numbers say, for the owner's thresholds:
 1. **One-direction travel is already past the fire-code figure** on two of the five measurable
    larger designs: maple-court's single winner at 26.6 m and the maple-court drawing at 16.2 m
    against Approved Document B's ~18 m for offices, with the corridors winner close at 14.1 m. So
-   a dead-end rule at 18 m fires on one design, and lower thresholds on more.
+   a dead-end rule at 18 m fires on one design, and lower thresholds on more. (**Wrong figure**:
+   the owner gives the UK limit as 11 m, and the tool was reworked; §39.245.)
 2. **The detour ratio does not separate the case the owner named.** The corridors winner, two
    stairs side by side, reads 2.78; the swap winner, the same fault, 2.45; the drawing, two stairs
    apart, 2.11. A mean ratio near 2 is the floor of a walk that goes via any stair, because rooms
    on different storeys stacked near each other have a plan distance near zero, so the ratio is
    dominated by short pairs. The absolute excess is the steadier reading, but scales with the
    building. The side-by-side case is already charged by `superfluous stair` (§39.243).
+
+### 39.245 Dead ends at 11 m, exits on the ground, and what the travel measure costs (`homemaker-py-5fje.29`)
+
+The owner on §39.244, 2026-11-17: the UK one-direction limit is **11 m**, not the 18 m quoted
+there; it applies to the travel to a **stair core**, and on the **ground floor to exits**; and
+"calculating all possible journeys is likely to be expensive, we need to be clever about this".
+
+`diag_5fje29_stair_travel.py` reworked to match. Still no rule.
+
+- **Targets.** Upper storeys: the stair cells (a node at each `E` cell's centroid joined to its
+  doors; a shaft's cells on consecutive storeys joined at no cost). Ground: a circulation cell with a
+  street door (`Fitness._public_access`, the door taken at the cell's centroid, at most half a cell
+  out) and every door, from circulation or from a room, to a usable outdoor cell, taken as a place
+  of safety. That last is generous, and is why the ground floor almost never fails below.
+- **Two directions, in linear time.** A super-sink joined to every target; a point has two
+  directions of escape if it shares a biconnected block (`nx.biconnected_components`) with the
+  sink, i.e. two node-disjoint routes reach two different targets. Otherwise its one-direction
+  travel is a multi-source Dijkstra from the safe points. One block decomposition and one Dijkstra
+  per storey replace §39.244's node-connectivity query per point.
+- **Detour without all the journeys.** Every inter-storey journey passes through a stair, so one
+  Dijkstra per (storey, stair) gives every room's walk to every stair, and a journey is
+  `min over stairs of d(a, s) + d(b, s)`. `--self-test` holds it to the brute force exactly (110,
+  110 and 963 pairs, differences below 1e-13) with both negative controls (no flights, no exits).
+
+**Upper storeys, worst corridor dead end / worst from a room (m)**, designs whose upper storeys
+are connected:
+
+| design | corridor | room | at 11 m |
+|---|---|---|---|
+| maple-court single winner | 28.8 | 29.9 | fails |
+| maple-court `drawings-bestof` | 16.2 | 17.1 | fails |
+| health-centre corridors winner `two-3` | 14.1 | 16.5 | fails |
+| maple-court spine winner | 11.4 | 17.1 | fails |
+| harbor-house `0d79403` s1 | 10.5 | 12.4 | passes (room fails) |
+| health-centre swap winner | 9.8 | 10.5 | passes |
+| harbor-house hand seed | 2.2 | 8.3 | passes |
+| programme-house, four | 0.0-2.6 | 2.5-4.0 | passes |
+
+**Ground floor.** With a garden door counted as an exit, every corridor dead end is under 11 m
+except harbor-house `0d79403` s0 (15.7) and the harbor-house `drawings-bestof` evolved design at 10.7, and
+room readings are 1-7 m on all but four (11.3-20.3). One-storey health-centre designs, the
+programme the rule was asked for, all pass on the ground.
+
+"Corridor" is measured from the circulation doors, "room" from room centroids, so the room figure
+includes the walk inside the room. Which one the rule should use is the owner's to say: building
+regulations measure dead-end travel from the room door in the corridor, and total travel from any
+point in the room.
+
+**Cost**, CPU per design, against an 18-24 ms full score; the scorer's graphs (2-7 ms) are already
+built inside a score and not counted:
+
+| design | walk graph | dead end | detour |
+|---|---|---|---|
+| health-centre corridors winner | 0.7 | 1.3 | 1.5 |
+| maple-court drawing | 1.7 | 3.2 | 5.6 |
+| maple-court single winner | 2.0 | 3.9 | 4.7 |
+
+The dead end adds 10-25% to a score; the detour 8-25%, nearly all of it the Python loop over room
+pairs. That loop vectorises (an R x S matrix of walks to stairs, `min` over S of the broadcast sum,
+against an R x R plan-distance matrix) and would then cost well under a millisecond. The brute force
+it replaces was itself only 2-15 ms at these sizes: journeys are not expensive here because
+buildings are small. Vectorised, the detour would cost little enough to run on every score.

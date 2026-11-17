@@ -1,7 +1,7 @@
 """Price the owner's stair-placement-by-travel ruling (`homemaker-py-5fje.29`,
-DESIGN.md §39.243) over committed designs, BEFORE any rule exists: what the two
-proposed quantities measure on designs the search has already made, so the
-owner can choose thresholds against a distribution rather than a guess.
+DESIGN.md §39.243-§39.245) over committed designs, BEFORE any rule exists:
+what the proposed quantities measure on designs the search has already made,
+so the owner can choose thresholds against a distribution rather than a guess.
 
 The walk. Each storey's ``graph_circ`` (the scorer's own graph, after
 ``merge_divided`` and ``has_circulation``'s trimming, so every edge is a door
@@ -9,21 +9,31 @@ the scorer allows) becomes a metric graph whose nodes are DOORS -- the
 midpoint of each shared wall -- and room centroids. Inside a circulation cell
 every pair of its doors is joined by a straight line (the cells are
 rectangles cropped to the plot, so convex); a room's centroid is joined to
-its doors. A stair shaft joins its doors on one storey to its doors on the
-next, by the plan distance between them (a flight carries you along the
-shaft; the climb itself is not counted). Distances are metres in plan.
+its doors. Each stair cell has a node at its centroid joined to its doors,
+and a shaft's nodes on consecutive storeys are joined at no cost (the climb
+is not counted). Distances are metres in plan.
 
 (a) DETOUR. For every pair of rooms on different storeys, the walk between
-their centroids against the straight plan distance. ``excess`` = walk - plan,
-the "path to reverse". Reported as the mean and the worst over pairs, and the
-mean ratio walk/max(plan, 1 m).
+their centroids against the straight plan distance; ``excess`` = walk - plan,
+the "path to reverse". Computed cheaply (owner, 2026-11-17: "calculating all
+possible journeys is likely to be expensive, we need to be clever"): every
+inter-storey journey goes through a stair, so one Dijkstra per (storey,
+stair) gives every room's walk to every stair, and a journey is
+``min over stairs s of d(a, s) + d(b, s)`` -- S x storeys searches and R^2 x S
+additions, instead of R searches over the whole building. ``--self-test``
+checks it against the brute force.
 
-(b) DEAD END, multi-storey only, on storeys above the ground. A point of an
-indoor circulation cell's door graph has TWO DIRECTIONS of escape if two
-node-disjoint routes from it reach two different stairs; otherwise its
-dead-end travel is the walk from it to the nearest point that has two, or to
-a stair. Reported as the worst over the storey's circulation points, and
-also the plain walk from the farthest room to its nearest stair.
+(b) DEAD END (owner, 2026-11-17: 11 m, "distances to a stair core and ground
+floor distances to exits"). Escape targets: on a storey above the ground, the
+stair cells; on the ground, the exits -- a circulation cell with a street
+door (``Fitness._public_access``; the door is taken at the cell's centroid,
+which is at most half a cell out) and every door, from circulation or from a
+room, to a usable outdoor cell (taken as a place of safety). A point has two directions of escape if it shares a biconnected
+block with a super-sink joined to every target, i.e. two node-disjoint routes
+reach two different targets (linear time: ``nx.biconnected_components``).
+Otherwise its one-direction travel is the walk to the nearest point that has
+two, or to a target. Reported as the worst over circulation doors ("corridor
+dead end") and over room centroids ("from the room"), per storey kind.
 
     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/diag_5fje29_stair_travel.py DESIGN.dom ...
     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/diag_5fje29_stair_travel.py --self-test
@@ -33,6 +43,7 @@ import itertools
 import math
 import statistics
 import sys
+import time
 from pathlib import Path
 
 import networkx as nx
@@ -43,6 +54,7 @@ from homemaker_layout import dom, geometry, graph  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 CORRIDORS = REPO / "experiments/results/halving-health-corridors"
+DEAD_END = 11.0          # owner, 2026-11-17
 
 
 def _door(edge_data, a, b):
@@ -54,136 +66,152 @@ def _door(edge_data, a, b):
     return ((ca[0] + cb[0]) / 2, (ca[1] + cb[1]) / 2)
 
 
-WALK_OUTSIDE = False
-
-
-def _walkway(leaf):
-    """A cell one walks through: indoor circulation, and with --outside a
-    usable outdoor cell (a court or garden the rooms open onto)."""
-    return dom.is_circulation(leaf) or (WALK_OUTSIDE and dom.is_outside(leaf))
-
-
 def _key(p):
     return (round(p[0], 4), round(p[1], 4))
 
 
-def build(fit, root):
-    """The scorer's post-merge graphs, and the metric door graph over all storeys.
-    Returns (W, rooms, stairs_by_level, circ_doors_by_level, levels)."""
-    dom.merge_divided(root)
-    dom.link(root)
-    geometry.clear_cache()
-    _, graph_circ, _ = graph.storey_graphs(root, fit.conf("door_width") or 1.2,
-                                           fit.usages())
-    lvls = dom.levels(root)
-    W = nx.Graph()
-    rooms = []                       # (level, leaf)
-    stairs = {}                      # level -> [leaf]
-    circ_doors = {}                  # level -> set(node)
-    doors_of = {}                    # leaf -> [node]
-    for i, G in enumerate(graph_circ):
-        for a, b, d in G.edges(data=True):
-            if not WALK_OUTSIDE and (dom.is_outside(a) or dom.is_outside(b)):
-                continue
-            if not (dom.is_usable(a) and dom.is_usable(b)):
-                continue
-            n = ("door", i, _key(_door(d, a, b)))
-            W.add_node(n, xy=_door(d, a, b), level=i)
-            doors_of.setdefault(a, []).append(n)
-            doors_of.setdefault(b, []).append(n)
-            if dom.is_circulation(a) or dom.is_circulation(b):
-                circ_doors.setdefault(i, set()).add(n)
-        for v in G.nodes():
-            if not dom.is_usable(v) or (dom.is_outside(v) and not WALK_OUTSIDE):
-                continue
-            if graph.is_stair_cell(v):
-                stairs.setdefault(i, []).append(v)
-            if not dom.is_circulation(v) and not dom.is_outside(v):
-                rooms.append((i, v))
-    for leaf, ds in doors_of.items():
-        ds = list(dict.fromkeys(ds))
-        if _walkway(leaf):
-            for p, q in itertools.combinations(ds, 2):
-                W.add_edge(p, q, weight=math.dist(W.nodes[p]["xy"], W.nodes[q]["xy"]))
-        else:
-            c = ("room", id(leaf))
-            W.add_node(c, xy=geometry.centroid(leaf), leaf=leaf)
-            for p in ds:
-                W.add_edge(c, p, weight=math.dist(W.nodes[c]["xy"], W.nodes[p]["xy"]))
-    # stair flights: a shaft cell's doors on storey i to its doors on i+1
-    for i, ss in stairs.items():
-        for s in ss:
-            up = dom._above_node(s)
-            if not graph.is_stair_cell(up):
-                continue
-            for p in doors_of.get(s, []):
-                for q in doors_of.get(up, []):
-                    W.add_edge(p, q, weight=math.dist(W.nodes[p]["xy"], W.nodes[q]["xy"]),
-                               flight=True)
-    return W, rooms, stairs, circ_doors, lvls, doors_of
+class Walk:
+    """The metric walk graph of a design, and what was found building it."""
 
+    def __init__(self, fit, root):
+        dom.merge_divided(root)
+        dom.link(root)
+        geometry.clear_cache()
+        _, graph_circ, _ = graph.storey_graphs(root, fit.conf("door_width") or 1.2,
+                                               fit.usages())
+        self.levels = dom.levels(root)
+        W = self.W = nx.Graph()
+        self.rooms = {}        # node -> level
+        self.stairs = {}       # level -> {shaft id: node}
+        self.exits = set()     # ground-floor exit nodes
+        self.circ = {}         # level -> set(door node of a circulation cell)
+        doors_of = {}
+        for i, G in enumerate(graph_circ):
+            for a, b, d in G.edges(data=True):
+                if not (dom.is_usable(a) and dom.is_usable(b)):
+                    continue
+                oa, ob = dom.is_outside(a), dom.is_outside(b)
+                if oa and ob:
+                    continue
+                xy = _door(d, a, b)
+                n = ("door", i, _key(xy))
+                W.add_node(n, xy=xy, level=i)
+                if oa or ob:
+                    inner = b if oa else a
+                    doors_of.setdefault(inner, []).append(n)
+                    if i == 0:
+                        self.exits.add(n)
+                    continue
+                doors_of.setdefault(a, []).append(n)
+                doors_of.setdefault(b, []).append(n)
+                if dom.is_circulation(a) or dom.is_circulation(b):
+                    self.circ.setdefault(i, set()).add(n)
+            for v in G.nodes():
+                if (i == 0 and dom.is_circulation(v) and not graph.is_stair_cell(v)
+                        and fit._public_access(v, root) is not None):
+                    n = ("street", id(v))
+                    W.add_node(n, xy=geometry.centroid(v), level=0)
+                    doors_of.setdefault(v, []).append(n)
+                    self.exits.add(n)
+        for leaf, ds in doors_of.items():
+            ds = list(dict.fromkeys(ds))
+            lv = W.nodes[ds[0]]["level"]
+            if dom.is_circulation(leaf):
+                for p, q in itertools.combinations(ds, 2):
+                    W.add_edge(p, q, weight=math.dist(W.nodes[p]["xy"], W.nodes[q]["xy"]))
+                if graph.is_stair_cell(leaf):
+                    s =("stair", lv, leaf.id)
+                    W.add_node(s, xy=geometry.centroid(leaf), level=lv, leaf=leaf)
+                    for p in ds:
+                        W.add_edge(s, p, weight=math.dist(W.nodes[s]["xy"], W.nodes[p]["xy"]))
+                    self.stairs.setdefault(lv, {})[leaf.id] = s
+            else:
+                c = ("room", id(leaf))
+                W.add_node(c, xy=geometry.centroid(leaf), level=lv)
+                for p in ds:
+                    W.add_edge(c, p, weight=math.dist(W.nodes[c]["xy"], W.nodes[p]["xy"]))
+                self.rooms[c] = lv
+        # flights: the same E cell (same path) on consecutive storeys, at no cost
+        for lv, ss in self.stairs.items():
+            for sid, s in ss.items():
+                up = self.stairs.get(lv + 1, {}).get(sid)
+                if up is not None and graph.is_stair_cell(dom._above_node(W.nodes[s]["leaf"])):
+                    W.add_edge(s, up, weight=0.0, flight=True)
 
-def detour(W, rooms):
-    """Walk against plan distance for every pair of rooms on different storeys."""
-    excess, ratio, unreachable = [], [], 0
-    by_room = {}
-    for lv, leaf in rooms:
-        c = ("room", id(leaf))
-        if c in W:
-            by_room[c] = (lv, W.nodes[c]["xy"])
-    keys = list(by_room)
-    for a in keys:
-        dist = nx.single_source_dijkstra_path_length(W, a, weight="weight")
-        for b in keys:
-            if b <= a or by_room[a][0] == by_room[b][0]:
-                continue
-            plan = math.dist(by_room[a][1], by_room[b][1])
-            if b not in dist:
-                unreachable += 1
-                continue
-            excess.append(dist[b] - plan)
-            ratio.append(dist[b] / max(plan, 1.0))
-    return excess, ratio, unreachable
+    def storey(self, lv):
+        return self.W.subgraph([n for n, d in self.W.nodes(data=True)
+                                if d.get("level") == lv])
 
-
-def dead_end(W, stairs, circ_doors, doors_of, level):
-    """Worst one-direction travel on ``level``: from each circulation door, the
-    walk to the nearest point with two node-disjoint routes to two different
-    stairs, or to a stair. And the worst room-to-nearest-stair walk."""
-    Wl = W.subgraph([n for n, d in W.nodes(data=True)
-                     if d.get("level") == level or (n[0] == "room"
-                     and any(W.nodes[m].get("level") == level for m in W[n]))]).copy()
-    targets = {}
-    for s in stairs.get(level, []):
-        for p in doors_of.get(s, []):
-            if p in Wl:
-                targets.setdefault(id(s), set()).add(p)
-    if not targets:
-        return None, None
-    # two-direction points: node connectivity to a super-sink fed by one node per stair
-    H = Wl.copy()
-    sink = ("sink",)
-    for sid, ps in targets.items():
-        hub = ("stair", sid)
-        H.add_node(hub)
-        for p in ps:
-            H.add_edge(hub, p)
-        H.add_edge(hub, sink)
-    pts = [p for p in circ_doors.get(level, set()) if p in Wl]
-    stair_pts = set().union(*targets.values())
-    safe = set(stair_pts)
-    if len(targets) > 1:
-        for p in pts:
-            if p in safe:
+    # ---------------------------------------------------------------- detour
+    def detour_cheap(self):
+        """{(a, b): walk} for every pair of rooms on different storeys, via
+        one Dijkstra per (storey, stair)."""
+        # shafts: chains of stair nodes joined by flights
+        flights = nx.Graph([(a, b) for a, b, d in self.W.edges(data=True) if d.get("flight")])
+        shafts = [sorted(c, key=lambda n: n[1]) for c in nx.connected_components(flights)]
+        to = {}    # (shaft index, room) -> walk from the room to the shaft
+        for k, shaft in enumerate(shafts):
+            for s in shaft:
+                d = nx.single_source_dijkstra_path_length(self.storey(s[1]), s, weight="weight")
+                for r, lv in self.rooms.items():
+                    if lv == s[1] and r in d:
+                        to[k, r] = d[r]
+        walks = {}
+        rooms = list(self.rooms)
+        for a, b in itertools.combinations(rooms, 2):
+            if self.rooms[a] == self.rooms[b]:
                 continue
-            if nx.node_connectivity(H, p, sink) >= 2:
-                safe.add(p)
-    dist = nx.multi_source_dijkstra_path_length(Wl, safe, weight="weight")
-    worst_dead = max((dist.get(p, math.inf) for p in pts), default=0.0)
-    to_stair = nx.multi_source_dijkstra_path_length(Wl, stair_pts, weight="weight")
-    worst_room = max((to_stair.get(n, math.inf) for n in Wl if n[0] == "room"),
-                     default=0.0)
-    return worst_dead, worst_room
+            best = min((to[k, a] + to[k, b] for k in range(len(shafts))
+                        if (k, a) in to and (k, b) in to), default=None)
+            if best is not None:
+                walks[frozenset((a, b))] = best
+        return walks
+
+    def detour_brute(self):
+        walks = {}
+        rooms = list(self.rooms)
+        for a in rooms:
+            d = nx.single_source_dijkstra_path_length(self.W, a, weight="weight")
+            for b in rooms:
+                if self.rooms[a] != self.rooms[b] and b in d:
+                    walks[frozenset((a, b))] = d[b]
+        return walks
+
+    def detour(self):
+        walks = self.detour_cheap()
+        rooms = list(self.rooms)
+        total = sum(1 for a, b in itertools.combinations(rooms, 2)
+                    if self.rooms[a] != self.rooms[b])
+        excess, ratio = [], []
+        for pair, w in walks.items():
+            a, b = tuple(pair)
+            plan = math.dist(self.W.nodes[a]["xy"], self.W.nodes[b]["xy"])
+            excess.append(w - plan)
+            ratio.append(w / max(plan, 1.0))
+        return excess, ratio, total - len(walks)
+
+    # -------------------------------------------------------------- dead end
+    def dead_end(self, lv):
+        """(worst corridor dead end, worst from a room) on storey ``lv``, or
+        (None, None) if it has no escape target."""
+        S = nx.Graph(self.storey(lv))
+        targets = self.exits if lv == 0 else set(self.stairs.get(lv, {}).values())
+        targets = [t for t in targets if t in S]
+        if not targets:
+            return None, None
+        sink = ("sink",)
+        S.add_edges_from((sink, t) for t in targets)
+        safe = set(targets)
+        for block in nx.biconnected_components(S):
+            if sink in block and len(block) > 2:
+                safe |= block
+        safe.discard(sink)
+        S.remove_node(sink)
+        d = nx.multi_source_dijkstra_path_length(S, safe, weight="weight")
+        circ = [p for p in self.circ.get(lv, ()) if p in S]
+        rooms = [r for r, l in self.rooms.items() if l == lv and r in S]
+        return (max((d.get(p, math.inf) for p in circ), default=0.0),
+                max((d.get(r, math.inf) for r in rooms), default=0.0))
 
 
 def measure(progs, path):
@@ -194,64 +222,80 @@ def measure(progs, path):
     root = dom.load(str(path))
     dom.link(root)
     geometry.clear_cache()
-    W, rooms, stairs, circ_doors, lvls, doors_of = build(fit, root)
-    out = {"prog": prog, "storeys": len(lvls),
-           "stairs": sum(1 for s in stairs.get(0, []) if len(graph.stair_shaft(s)) > 1)}
-    if len(lvls) < 2:
-        return out
-    ex, ra, un = detour(W, rooms)
-    out.update(pairs=len(ex), unreachable=un,
-               excess_mean=statistics.fmean(ex) if ex else math.nan,
-               excess_max=max(ex, default=math.nan),
-               ratio_mean=statistics.fmean(ra) if ra else math.nan)
-    de = [dead_end(W, stairs, circ_doors, doors_of, i) for i in range(1, len(lvls))]
-    out["dead_end"] = max((d for d, _ in de if d is not None), default=math.nan)
-    out["room_to_stair"] = max((r for _, r in de if r is not None), default=math.nan)
+    t0 = time.process_time()
+    w = Walk(fit, root)
+    n = len(w.levels)
+    out = {"prog": prog, "storeys": n, "stairs": len(w.stairs.get(0, {}))}
+    if n > 1:
+        ex, ra, un = w.detour()
+        out.update(pairs=len(ex), unreachable=un,
+                   excess_mean=statistics.fmean(ex) if ex else math.nan,
+                   excess_max=max(ex, default=math.nan),
+                   ratio_mean=statistics.fmean(ra) if ra else math.nan)
+    de = {lv: w.dead_end(lv) for lv in range(n)}
+    out["ground"] = de[0]
+    up = [v for lv, v in de.items() if lv > 0 and v[0] is not None]
+    out["upper"] = (max((c for c, _ in up), default=math.nan),
+                    max((r for _, r in up), default=math.nan)) if n > 1 else None
+    out["ms"] = 1000 * (time.process_time() - t0)
     return out
 
 
 def self_test(progs) -> bool:
-    """Controls on a synthetic shape the owner described: two stairs side by
-    side should have a longer worst dead end than the same building with one
-    moved to the far end; checked on the corridors-race winner, whose two
-    shafts lie end to end, against itself with nothing changed (stability) and
-    against an unreachable-stair control (a stair with no doors is no escape)."""
+    """The cheap detour equals the brute force on two-storey designs; with
+    the flights removed no inter-storey pair is reachable (negative control);
+    and with every exit removed the ground floor has no target."""
     ok = True
-    r = measure(progs, CORRIDORS / "winner.dom")
-    print("winner two-3:", fmt(r))
-    ok &= r["stairs"] == 2 and r["pairs"] > 0 and r["unreachable"] == 0
-    # negative control: with the flights removed, no inter-storey pair is reachable
-    prog, fit, _ = progs(CORRIDORS / "winner.dom")
-    root = dom.load(str(CORRIDORS / "winner.dom"))
-    dom.link(root)
-    geometry.clear_cache()
-    W, rooms, *_ = build(fit, root)
-    W.remove_edges_from([(a, b) for a, b, d in W.edges(data=True) if d.get("flight")])
-    ex, _, un = detour(W, rooms)
-    print(f"no flights: reachable pairs {len(ex)}, unreachable {un}")
-    ok &= len(ex) == 0 and un > 0
+    for path in (CORRIDORS / "winner.dom",
+                 REPO / "experiments/results/halving-health-swap/winner.dom",
+                 REPO / "experiments/results/drawings-bestof/maple-court/maple-court.dom"):
+        prog, fit, _ = progs(path)
+        root = dom.load(str(path))
+        dom.link(root)
+        geometry.clear_cache()
+        w = Walk(fit, root)
+        t0 = time.process_time()
+        cheap = w.detour_cheap()
+        t1 = time.process_time()
+        brute = w.detour_brute()
+        t2 = time.process_time()
+        diff = max((abs(cheap[k] - brute[k]) for k in brute if k in cheap), default=0.0)
+        same = cheap.keys() == brute.keys() and diff < 1e-9
+        print(f"{path.parent.name}/{path.name}: {len(brute)} pairs, cheap = brute: {same} "
+              f"(max diff {diff:.2e}); cheap {1000*(t1-t0):.0f} ms, brute {1000*(t2-t1):.0f} ms")
+        ok &= same and len(brute) > 0
+    w.W.remove_edges_from([(a, b) for a, b, d in w.W.edges(data=True) if d.get("flight")])
+    print("no flights: reachable pairs", len(w.detour_cheap()), len(w.detour_brute()))
+    ok &= not w.detour_cheap() and not w.detour_brute()
+    w.exits = set()
+    print("no exits: ground dead end", w.dead_end(0))
+    ok &= w.dead_end(0) == (None, None)
     print("self-test:", "PASS" if ok else "FAIL")
     return ok
 
 
+def _m(x):
+    return "-" if x is None else ("none" if math.isinf(x) else f"{x:.1f}")
+
+
 def fmt(r):
-    if r.get("storeys", 1) < 2:
-        return f"{r['prog']}\tstoreys 1"
-    return (f"{r['prog']}\tstoreys {r['storeys']}\tstairs {r['stairs']}\tpairs {r['pairs']}"
-            f"\tunreach {r['unreachable']}\texcess mean {r['excess_mean']:.1f} m"
-            f"\tmax {r['excess_max']:.1f} m\tratio {r['ratio_mean']:.2f}"
-            f"\tdead end {r['dead_end']:.1f} m\troom->stair {r['room_to_stair']:.1f} m")
+    g = r["ground"]
+    s = (f"{r['prog']}\tstoreys {r['storeys']}\tstairs {r['stairs']}"
+         f"\tground dead end {_m(g[0])} / room {_m(g[1])}")
+    if r["storeys"] > 1:
+        u = r["upper"]
+        s += (f"\tupper dead end {_m(u[0])} / room {_m(u[1])}"
+              f"\tpairs {r['pairs']} unreach {r['unreachable']}"
+              f"\texcess mean {r['excess_mean']:.1f} max {r['excess_max']:.1f}"
+              f"\tratio {r['ratio_mean']:.2f}")
+    return s + f"\t{r['ms']:.0f} ms"
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("designs", nargs="*")
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--outside", action="store_true",
-                    help="walk through usable outdoor cells as well as circulation")
     a = ap.parse_args()
-    global WALK_OUTSIDE
-    WALK_OUTSIDE = a.outside
     if not geometry.ORTHOGONAL_DIVISION:
         sys.exit("set HOMEMAKER_ORTHOGONAL_DIVISION=1")
     progs = rc.Programmes()
