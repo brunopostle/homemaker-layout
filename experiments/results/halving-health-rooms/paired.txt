@@ -1,0 +1,17 @@
+stage 0: 41 candidates in both races; 1 in one only: one-22
+
+fails:
+  N=41   deadend mean 25.29   rooms mean 28.17   12W/26L/3T (for rooms)
+  mean diff -2.878  sd 5.609  95% CI [-4.648, -1.108]
+  t=-3.286  p=0.0021  wilcoxon p=0.0027
+  minimum detectable difference at N=41: 1.770
+     margin exceeds the MDD -- the sample can support a verdict.
+
+structural:
+  N=41   deadend mean 6.49   rooms mean 6.63   17W/18L/6T (for rooms)
+  mean diff -0.146  sd 3.658  95% CI [-1.301, +1.008]
+  t=-0.256  p=0.7991  wilcoxon p=0.7547
+  minimum detectable difference at N=41: 1.154
+  ** UNDERPOWERED: the observed margin (0.146) is BELOW what N=41 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 2403 would be needed for a margin this size.
