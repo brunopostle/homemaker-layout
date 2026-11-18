@@ -742,12 +742,16 @@ def search(
     merge_circ = os.environ.get("HOMEMAKER_MERGE_CIRCULATION", "1") == "1"
     if not merge_circ:
         mutation_weights["merge_circulation"] = 0.0
+    # the remove_token repair (owner, §39.249) needs it too
+    remove_token = os.environ.get("HOMEMAKER_REMOVE_TOKEN", "1") == "1"
+    if not remove_token:
+        mutation_weights["remove_token"] = 0.0
     if not enable_shape_repair:
         mutation_weights["shape_rotate"] = mutation_weights["deslim"] = 0.0
     shape_repair_fit = (
         _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
                      conn_grade, collapse_insearch, multi_use)
-        if enable_shape_repair or merge_circ else None)
+        if enable_shape_repair or merge_circ or remove_token else None)
     # Optional ranking bonus (DESIGN.md §11.3 Stage 1): bias selection toward
     # individuals with high substrate-readiness via a multiplicative factor
     # (1 + W·bonus) on fitness. The reported fitness/history stay the TRUE

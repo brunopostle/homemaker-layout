@@ -156,11 +156,15 @@ def storey_graphs(
         graph_base.append(g)
         graph_circ.append(gc)
         connected.append(ok)
-    if not all(connected):
+    if not all(connected) and STAIRS_JOIN_STOREYS:
         # ``ok`` is "the filtered graph is non-empty and one piece"; judge it
         # again with the stairs as links (§39.125). Recomputed from the graphs
         # every time, because a storey handed back by ``reuse`` can be joined
-        # or parted by a storey that was built afresh.
+        # or parted by a storey that was built afresh. Only while stairs join
+        # storeys: with that off (§39.237) the re-judge was a plain
+        # one-piece test that overrode ``has_circulation``'s own verdict, and
+        # so read a storey joined across a terrace as one (§39.249). With it
+        # on, it still does: revisit then.
         connected = _joined(graph_circ)
     return graph_base, graph_circ, connected
 
@@ -350,7 +354,49 @@ def has_circulation(G: nx.Graph, usages: dict[str, str]) -> bool:
 
     if len(G.nodes()) == 0:
         return False
-    return nx.is_connected(G)
+    if not nx.is_connected(G):
+        return False
+    if OUTDOOR_CIRCULATION:
+        return True
+    # Owner's ruling, 2026-11-18 (DESIGN.md §39.249): "terraces and courts can
+    # count as escape routes but can't be considered as circulation in normal
+    # usage". The storey's rooms must join WITHOUT passing through an outdoor
+    # cell. A yard is still somewhere a room can open onto, so outdoor cells
+    # need only touch the rest; and a utility room or workshop reached only
+    # from outdoor space keeps §39.138's ruling ("a utility room can be reached
+    # ... from an outside space"). A sahn (``S``) is circulation, not a court.
+    # So: of the pieces the indoor cells fall into without the yards, every
+    # one must hold circulation of its own, or be service rooms only opening
+    # onto a yard (a store off the garden, and the plant room off that store).
+    # A storey with no circulation at all may be one such piece, as before.
+    # Circulation in two pieces is `level N not connected`'s to charge, not
+    # this: a piece WITH circulation is reached (from its stair, or the
+    # street), and charging it here too would bill one split twice.
+    core = G.subgraph([v for v in G.nodes() if not _yard(v)])
+    bad = 0
+    any_circ = False
+    for piece in nx.connected_components(core):
+        if any(dom.is_circulation(v) for v in piece):
+            any_circ = True
+            continue
+        if (all(_usage(v) in _pr.SERVICE_USAGES for v in piece)
+                and any(_yard(nb) for v in piece for nb in G.neighbors(v))):
+            continue
+        bad += 1
+    return bad == 0 if any_circ else bad <= 1
+
+
+# Owner's ruling, 2026-11-18 (§39.249): outdoor space is not circulation. True
+# restores the old reading, where a storey joined across a terrace or a court.
+# The courtyard-urbanism case the owner wants back is the sahn (``S``), which
+# is circulation in its own right and is not affected by this.
+OUTDOOR_CIRCULATION = False
+
+
+def _yard(v: Node) -> bool:
+    """An outdoor cell that is not a sahn: somewhere to open onto, not a way
+    through."""
+    return dom.is_outside(v) and not dom.is_circulation(v)
 
 
 def _connected_outside_inplace(G: nx.Graph) -> None:
@@ -999,6 +1045,7 @@ def check_space_counts(
     multi_use: bool = False,
     colocate_pairs=(),
     room_checks: tuple[str, ...] = ("size", "width", "proportion"),
+    token=None,
 ) -> tuple[list[str], list[str]]:
     """Check design has exactly the required spaces; mirrors
     ``check_space_counts`` in ``ProgrammeDriven.pm:156-215``.
@@ -1033,11 +1080,17 @@ def check_space_counts(
     ``round(area/target)`` required instances (capped at ``max_share``), so a
     single shared leaf can satisfy several same-code rooms without a missing
     fail. Default OFF reproduces the strict per-leaf count exactly.
+
+    ``token(leaf)``, if given, says a leaf is a TOKEN room and is not counted
+    (owner's ruling, 2026-11-18, DESIGN.md §39.249): a room too small or too
+    thin to be the room is scored as if it were missing.
     """
     # Count spaces by type (case-sensitive, as in Perl exact-match for unique)
     count: dict[str, list[Node]] = {}
     for lvl in levels(root):
         for leaf in lvl.leaves():
+            if token is not None and token(leaf):
+                continue
             for code in leaf_codes(leaf, colocate_pairs, multi_use):
                 count.setdefault(code, []).append(leaf)
 

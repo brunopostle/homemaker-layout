@@ -77,7 +77,11 @@ def test_the_fails_appear_and_the_negative_control_removes_only_them():
     _, off = _fit(sliver_width=0).score_with_fails(copy.deepcopy(root))
     assert set(off) <= set(on)
     gained = sorted(set(on) - set(off))
-    assert gained == ["1/rrlrllll width", "1/rrlrllrl width"], gained
+    # since §39.249 a sliver room is also a TOKEN, scored as missing, so the
+    # control removes the missing-room cascade of the rooms it is a sliver of
+    # as well; every other line is unmoved
+    assert [g for g in gained if not g.startswith("missing ")] == \
+        ["1/rrlrllll width", "1/rrlrllrl width"], gained
 
 
 def test_a_missing_room_is_not_billed_for_it():

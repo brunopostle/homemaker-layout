@@ -267,4 +267,8 @@ def test_control_urbs_trim_does_depend_on_listing_order(rt, monkeypatch):
     # reached by its stair, so §39.125's rule hides the 32-or-34 this control
     # exists to show (measured both ways, 2026-10-09).
     monkeypatch.setattr(graph, "STAIRS_JOIN_STOREYS", False)
+    # ...and with outdoor space still circulation, as it was then (§39.249
+    # made it not): measured 2026-11-18, without this the count on this design
+    # holds at 51 over every relisting
+    monkeypatch.setattr(graph, "OUTDOOR_CIRCULATION", True)
     assert len(_fail_counts_over_relistings(rt, ORDERED_OLD_BRIEF)) > 1

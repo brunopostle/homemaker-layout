@@ -120,6 +120,7 @@ _HARD_FAIL_MARKERS = (
     "superfluous circulation",  # §39.241: a cell to give to its room or remove
     "superfluous stair",  # §39.243: two stairs too close to be two ways out
     "dead end",  # §39.246: one-direction escape travel over `dead_end_max`
+    "narrow room",  # §39.249: a room longer than `room_aspect_max` x its width
     "storey limit",
     "storey minimum",
     "no outside public access",
@@ -433,6 +434,21 @@ CONF_DEFAULTS: dict = {
     # 11 m. Each circulation cell with a room door further than this from two
     # directions of escape fails `dead end`. `false` turns it off.
     "dead_end_max": 11.0,
+    # Owner's ruling, 2026-11-18 (DESIGN.md §39.249): "any normal room that
+    # isn't a corridor that has an aspect ratio more than 2 is not ideal, but
+    # usable and room with a ratio more than 2.5 should be considered bad
+    # design". A programme room (not a WC) whose usable aspect is over this,
+    # or over its own declared proportion target where that is higher, fails
+    # `narrow room`. Per programme: off here, set in a programme's own
+    # patterns.config (health-centre first).
+    "room_aspect_max": None,
+    # Same day: "A token room that is a sliver or too small that can't be
+    # fixed by the normal fine tune optimisation is probably not going to
+    # blossom into a swan in the future, so it may as well be removed." A
+    # programme room under this fraction of its target area, or narrower than
+    # `sliver_width`, does not count as the room: it is scored as missing, and
+    # `operators.mutate_remove_token` gives its cell away. `false` turns it off.
+    "token_fraction": 0.25,
     # §39.37 (homemaker-py-2f1): `None` means rooms have NO width requirement.
     # A leaf's area, narrowest width and aspect satisfy A = w^2 * r, so any two
     # fix the third: over 532 corpus leaves w^2*aspect/area has median 0.9929
@@ -1699,6 +1715,28 @@ class Fitness:
             G.graph["lobby"] = found
         return G.graph["lobby"]
 
+    def is_token(self, leaf: Node) -> bool:
+        """Is this cell a TOKEN of its room -- under ``token_fraction`` of the
+        room's target area, or a sliver (owner's ruling, 2026-11-18, §39.249)?
+        A token does not count as the room. Programme rooms only."""
+        frac = self.conf("token_fraction")
+        req = (self._programme or {}).get(leaf.type)
+        if not frac or req is None or leaf.divided:
+            return False
+        if req.size and geometry.area(leaf) < frac * req.size:
+            return True
+        return self._room_sliver(leaf)
+
+    def _narrow_room(self, leaf: Node) -> bool:
+        """Is this programme room longer than ``room_aspect_max`` times its
+        width, or than its own declared proportion target if higher? WCs are
+        exempt (owner's ruling, 2026-11-18, §39.249)."""
+        limit = self.conf("room_aspect_max")
+        req = (self._programme or {}).get(leaf.type)
+        if not limit or req is None or req.usage == "toilet":
+            return False
+        return geometry.usable_aspect(leaf) > max(limit, req.proportion)
+
     def _room_sliver(self, leaf: Node) -> bool:
         """Is this room cell narrower than ``sliver_width`` (§39.222)? False
         for a node with no geometry, which is what `score_with_fails` asks on
@@ -1949,6 +1987,8 @@ class Fitness:
             fail(f"{level_id}/{lid} proportion")
         factors["proportion"] = f
         quality *= f
+        if self._narrow_room(leaf):
+            fail(f"{level_id}/{lid} narrow room")
 
         f = self.quality_size(leaf)
         if f < FAIL_THRESHOLD:
@@ -2954,7 +2994,8 @@ class Fitness:
             if self.factor_is_asked(c, _probe))
         check_fails, missing = graph_mod.check_space_counts(
             root, programme, self._leaf_sharing, self._max_share,
-            self._multi_use, self.colocate_pairs(), room_checks=room_checks)
+            self._multi_use, self.colocate_pairs(), room_checks=room_checks,
+            token=self.is_token if self.conf("token_fraction") else None)
         failures.extend(check_fails)
 
         self.preprocess_building(root)

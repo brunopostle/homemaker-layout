@@ -23103,3 +23103,90 @@ beside the stair: the Minor Surgery Room `ms1` is a strip 1.22 m wide and 20.7 m
 `proportion` fail; at 1.22 m it is over `sliver_width`'s 0.8 m, and as a room it is not
 `superfluous circulation` or a corridor `dead end`. It is a room doing a corridor's job -- the
 §39.243 shape again, with a room where that winner had stairs.
+
+### 39.249 Owner's rulings: narrow rooms, outdoor space is not circulation, token rooms are removed (`homemaker-py-hlm1`)
+
+On the dead-end race's winner (§39.248), whose `ms1` was a 1.22 m strip that `gp1`, `br1` and `me1`
+opened off, 2026-11-18. Verbatim:
+
+> A token room that is a sliver or too small that can't be fixed by the normal fine tune
+> optimisation is probably not going to blossom into a swan in the future, so it may as well be
+> removed. [25% seems ok.]
+
+> I don't see how ms1 is ok, it is too narrow to be used as a room, don't we have room width rules?
+> And it isn't functional as circulation so we have several rooms that have no circulation access
+> as a result.
+
+> In practice any normal room that isn't a corridor that has an aspect ratio more than 2 is not
+> ideal, but usable and room with a ratio more than 2.5 should be considered bad design.
+> [WCs exempt; a programme's own proportion target wins; per programme.]
+
+> Terraces and courts can count as escape routes but can't be considered as circulation in normal
+> usage. The exception is with courtyard urbanism, where we accept sahn spaces as first class
+> circulation, this is something we want to revive from the original homemaker project, but one
+> thing at a time. [No circulation through outside space until the sahn feature, which will default
+> off.]
+
+The 2026-11-08 deferral of token rooms to the P1/P2 aggregations (`hlm1`) is superseded.
+
+**Why `ms1` passed.** Rooms have had no width rule since §39.37 (size and proportion fix it), only
+the 0.8 m sliver floor of §39.222; `ms1`'s declared 4.7 m width is not read, and at aspect 13.8 its
+proportion gaussian is one soft fail. Declared widths could not simply be restored: below 50% of
+them catches 68 of 1,248 room cells, because maple-court asks for 5 m wide bedrooms.
+
+**Why `br1` was accessible.** Its own `access` factor did fail (no circulation neighbour), but the
+storey's connectivity walked `C` -> `ms1` -> roof terrace -> `br1`. A bedroom-class room keeps one
+outdoor door as well as its corridor door, so it was a way through to a court; and
+`storey_graphs`' re-judge of a disconnected storey -- a plain one-piece test kept for stairs joining
+storeys, off since §39.237 -- would have overridden any stricter verdict anyway.
+
+Landed:
+
+- **`narrow room`**, hard, per cell: a programme room, not a WC, whose usable aspect is over
+  `room_aspect_max` or its own declared proportion target, whichever is higher.
+  `room_aspect_max` defaults to off and is 2.5 in health-centre's `patterns.config`.
+- **Outdoor space is not circulation** (`graph.OUTDOOR_CIRCULATION = False`): `has_circulation`
+  now also takes the storey's cells apart without its outdoor ones, and every piece must hold
+  circulation of its own, or be service rooms only opening onto a yard (§39.138's store off the
+  garden, and the plant room off that store). A sahn `S` is circulation and unaffected. A piece
+  that HAS circulation passes even if it is not joined to the rest: two circulation pieces are
+  `level N not connected`'s to charge, and the first version of this rule charged them again --
+  the full suite caught it on the owner's own hand drawing (`tests/data/service-access`), whose top
+  storey is two stair landings joined only across a roof terrace. `storey_graphs` re-judges only
+  while `STAIRS_JOIN_STOREYS` is on.
+- **Token rooms** (`token_fraction: 0.25`, default on everywhere): a programme room under a
+  quarter of its target area, or a sliver, is not counted (`Fitness.is_token`, passed to
+  `check_space_counts`), so it pays the missing room's 5-8 lines as well as its own fails.
+  `operators.mutate_remove_token` (`--remove-token`, default on, a fit-op like
+  `merge_circulation`) gives a token's cell to its sibling when that is a single non-stair cell;
+  the comparator then sees the token's own fails go.
+
+**Priced** over 43 committed designs, fails added against the rules off:
+
+| programme | designs | token | narrow room | outdoor | all three |
+|---|---|---|---|---|---|
+| harbor-house | 8 | 7 / +116 | -- | 2 / +2 | 7 / +118 |
+| health-centre | 23 | 4 / +30 | 13 / +19 | 2 / +2 | 15 / +51 |
+| maple-court | 8 | 8 / +177 | -- | 0 | 8 / +177 |
+| programme-house | 4 | 0 | -- | 0 | 0 |
+
+(designs affected / fail lines). Token rooms are endemic in the housing races (§39.199), so their
+designs gain 15-22 lines each and those scores collapse until re-raced. The dead-end winner goes from
+6 fails to 8 (`1/llr narrow room`, `1 inaccessible usable space`); the corridors winner from 4 to 12,
+its 6.9 m2 waiting room `wa1` now missing. `remove_token` on that design gives `wa1`'s cell to `ph1`.
+`tests/test_owner_rooms.py` holds each rule with its control (programme off, WC exempt, target
+wins, outdoor circulation on, token rule off, the move without a scorer).
+
+### 39.250 The health-centre race at the rulings of §39.249: expectations (`homemaker-py-hlm1`)
+
+`run_halving_health_rooms.sh` is §39.247's dead-end race again at the objective of §39.249, with
+`remove_token` on. Written before it ran:
+
+1. **About 41 candidates.**
+2. **No finalist has a `narrow room`, a token, or an `inaccessible usable space`.** Every
+   one-storey seed has a narrow room and most seeds are inaccessible before the race sizes them;
+   the race clears that kind by stage 3, as the dead-end race did.
+3. **Stage-0 pairing against the dead-end race: more fails, beyond the MDD.** Every one-storey
+   seed has a narrow room and 17 of 38 a token, so I expect +2 or more on the mean.
+4. **`remove_token` appears in the winner's lineage at least once**, as a real move, not `noop`.
+5. **The winner has 2 to 6 fails**, and no room doubling as a corridor.

@@ -1317,6 +1317,50 @@ def mutate_merge_circulation(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"merge_circulation {li}/{n.id or 'root'} (kept {n.type})"
 
 
+def mutate_remove_token(root: dom.Node, rng: np.random.Generator,
+                        types: list[str], fit=None) -> tuple[dom.Node, str]:
+    """Repair operator (owner's ruling, 2026-11-18, DESIGN.md §39.249): "A
+    token room that is a sliver or too small that can't be fixed by the
+    normal fine tune optimisation is probably not going to blossom into a swan
+    in the future, so it may as well be removed."
+
+    A token (``Fitness.is_token``: under ``token_fraction`` of its target
+    area, or a sliver) is scored as missing already, so giving its cell away
+    costs nothing the token was not already paying. Where the token's sibling
+    is a single cell other than a stair, the cut between them goes and the
+    sibling's type takes the whole, as `mutate_merge_circulation` does. The
+    child's inner loop then re-tunes the ratios, so a token that the fine tune
+    could have grown was given that chance on its parent first.
+    """
+    if fit is None or not fit.conf("token_fraction"):
+        return _finalise(copy.deepcopy(root)), "remove_token noop"
+    child = copy.deepcopy(root)
+    dom.link(child)
+    from . import geometry as _geo
+    _geo.clear_cache()
+    cands = []
+    for li, lvl in enumerate(dom.levels(child)):
+        for leaf in lvl.leaves():
+            if not fit.is_token(leaf):
+                continue
+            n = leaf.parent
+            if n is None or (n.below is not None and n.below.divided):
+                continue                      # a cut owned below
+            sib = n.right if n.left is leaf else n.left
+            if sib.divided or sib.type == dom.GENERIC_STAIR:
+                continue
+            cands.append((li, n, sib, leaf.type))
+    _geo.clear_cache()
+    if not cands:
+        return _finalise(child), "remove_token noop"
+    li, n, sib, code = _pick(rng, cands)
+    n.type = sib.type or "C"
+    dom.hand_cut_up(n)      # as mutate_undivide (§39.100)
+    n.division = None
+    n.left = n.right = None
+    return _finalise(child), f"remove_token {li}/{n.id or 'root'} ({code} to {n.type})"
+
+
 def _leaves_with_depth(n: dom.Node, d: int = 0) -> list[tuple[dom.Node, int]]:
     """Every leaf under ``n`` paired with its depth below ``n``."""
     if not n.divided:
@@ -3829,6 +3873,7 @@ MUTATIONS = {
     "shape_rotate": mutate_shape_rotate,
     "deslim": mutate_deslim,
     "merge_circulation": mutate_merge_circulation,
+    "remove_token": mutate_remove_token,
     "ruin_recreate": mutate_ruin_recreate,
     "reassign": mutate_reassign,
     "support_outside": mutate_support_outside,
@@ -3860,7 +3905,7 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     # it — never zero-weighted, unlike reqs_ops above
     reqs_optional_ops = ("bridge_circulation",)
     # these need a Fitness instance to identify genuinely shape-failing leaves
-    fit_ops = ("shape_rotate", "deslim", "merge_circulation")
+    fit_ops = ("shape_rotate", "deslim", "merge_circulation", "remove_token")
     if reqs is None:
         for op in reqs_ops:
             p[names.index(op)] = 0.0

@@ -327,6 +327,12 @@ def _parse_args(argv=None) -> argparse.Namespace:
                    help="a repair move that gives a `superfluous circulation` "
                         "cell to the cell beside it (owner's ruling, §39.241; "
                         "default: on)")
+    p.add_argument("--remove-token", dest="remove_token",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_REMOVE_TOKEN", True),
+                   help="a repair move that gives a token room's cell (under "
+                        "token_fraction of its target, or a sliver) to the "
+                        "cell beside it (owner's ruling, §39.249; default: on)")
     p.add_argument("--split-stair", dest="split_stair",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_SPLIT_STAIR", True),
@@ -527,6 +533,7 @@ def main(argv=None) -> int:
     os.environ["HOMEMAKER_SWAP_CELLS"] = "1" if args.swap_cells else "0"
     os.environ["HOMEMAKER_SPLIT_STAIR"] = "1" if args.split_stair else "0"
     os.environ["HOMEMAKER_MERGE_CIRCULATION"] = "1" if args.merge_circulation else "0"
+    os.environ["HOMEMAKER_REMOVE_TOKEN"] = "1" if args.remove_token else "0"
     os.environ["HOMEMAKER_GUARD_CONNECTION"] = args.guard_connection
     driver.GUARD_CONNECTION = args.guard_connection
     os.environ["HOMEMAKER_GUARD_DOUBLE_LOADED"] = "1" if args.guard_double_loaded else "0"
@@ -643,6 +650,7 @@ def main(argv=None) -> int:
     print(f"swap cells         : {args.swap_cells}", file=sys.stderr)
     print(f"split stair        : {args.split_stair}", file=sys.stderr)
     print(f"merge circulation  : {args.merge_circulation}", file=sys.stderr)
+    print(f"remove token       : {args.remove_token}", file=sys.stderr)
     print(f"guard connection   : {args.guard_connection}", file=sys.stderr)
     print(f"guard double-loaded: {args.guard_double_loaded}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)
