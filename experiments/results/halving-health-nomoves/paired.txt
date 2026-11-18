@@ -1,0 +1,19 @@
+stage 0: 42 candidates in both races
+
+fails:
+  N=42   moves mean 28.36   nomoves mean 29.64   15W/19L/8T (for nomoves)
+  mean diff -1.286  sd 4.945  95% CI [-2.827, +0.255]
+  t=-1.685  p=0.0996  wilcoxon p=0.2706
+  minimum detectable difference at N=42: 1.541
+  ** UNDERPOWERED: the observed margin (1.286) is BELOW what N=42 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 60 would be needed for a margin this size.
+
+structural:
+  N=42   moves mean 6.60   nomoves mean 6.93   12W/13L/17T (for nomoves)
+  mean diff -0.333  sd 2.020  95% CI [-0.963, +0.296]
+  t=-1.069  p=0.2912  wilcoxon p=0.5524
+  minimum detectable difference at N=42: 0.630
+  ** UNDERPOWERED: the observed margin (0.333) is BELOW what N=42 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 144 would be needed for a margin this size.
