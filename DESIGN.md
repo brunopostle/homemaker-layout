@@ -23284,3 +23284,18 @@ Against §39.252:
 by about 1.3 fails a run, with p=0.10, so following that rule would switch off two moves that the
 measurement leans towards keeping. The defaults are unchanged pending the owner's call between
 the rule as written and a stage-0 replicate that resolves the margin.
+
+### 39.254 Stage-0 replicates of the moves A/B: expectations (`homemaker-py-hlm1`, `homemaker-py-5fje.25`)
+
+Owner, 2026-11-18, on §39.253's leaning null: replicate. `run_halving_health_moves_rep.sh` races
+the rooms race's 42 seed files twice more at 4k, renamed `-r1` / `-r2` so each draws a fresh rng
+seed, with both moves on and off; pooled with §39.253's pairs, N = 126 (MDD about 0.9 at
+§39.253's spread). Written before it ran:
+
+1. No OFF-arm log credits either move.
+2. **Pooled: moves on beat moves off on fails, beyond the MDD**, by about a fail -- §39.253's
+   point estimate, now resolvable. If it instead shrinks inside the MDD, §39.253 was noise.
+3. Each replicate on its own leans the same way, neither necessarily resolving.
+
+Decision: on beats off beyond the MDD -> both stay on, both beads close. Otherwise §39.252's rule
+stands: both default off, flags kept.
