@@ -1,0 +1,19 @@
+stage 0: 41 candidates in both races
+
+fails:
+  N=41   corridors mean 25.12   deadend mean 25.29   6W/5L/30T (for deadend)
+  mean diff -0.171  sd 1.999  95% CI [-0.802, +0.460]
+  t=-0.547  p=0.5875  wilcoxon p=0.9642
+  minimum detectable difference at N=41: 0.631
+  ** UNDERPOWERED: the observed margin (0.171) is BELOW what N=41 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 529 would be needed for a margin this size.
+
+structural:
+  N=41   corridors mean 6.61   deadend mean 6.49   5W/3L/33T (for deadend)
+  mean diff +0.122  sd 0.812  95% CI [-0.134, +0.378]
+  t=0.961  p=0.3421  wilcoxon p=0.3883
+  minimum detectable difference at N=41: 0.256
+  ** UNDERPOWERED: the observed margin (0.122) is BELOW what N=41 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 173 would be needed for a margin this size.
