@@ -23225,8 +23225,11 @@ The §39.248 winner `two-2` re-scored at this objective has 8. Against §39.250:
    not something one race can say.
 5. **2-6 fails, no room doubling as a corridor -- held on the count, not quite on the second.** The
    waiting room wa1 opens only off reception rc1 (and the yard), and plant me1 off rc1 and wa1, so
-   reception is a lobby to two rooms. That is what the soft `access` and `not adjacent to c` fails
-   charge. Reception-to-waiting is a reasonable plan; plant through the waiting room is not.
+   the plan uses reception as a lobby to two rooms. The scorer does not count reception as
+   circulation: that is what the soft `access` and `not adjacent to c` fails on wa1 charge, while
+   me1 passes because a utility room may be served by any room but a bedroom (§39.138). The owner's
+   reading: in a medical centre reception is an office open to the waiting room, not a passage --
+   a programme question, filed as `homemaker-py-r2a9`.
 
 Stairs: none, a one-storey design (`stairs.txt`). Carry: the winner kept 0.945 of its seed's plan
 against a field median of 0.740: the winning plan is close to its catalogue seed.
