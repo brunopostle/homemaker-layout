@@ -1,0 +1,94 @@
+health-centre: 42 candidates, budget 4000 rising x2 to 128000, ranked on total fails, 7 slots; at most 7 stages
+  stage 0 (4000): one-10: 7 structural, 25 fails, score 7.92e-09, 242s
+  stage 0 (4000): one-13: 5 structural, 28 fails, score 8.2e-10, 258s
+  stage 0 (4000): one-12: 3 structural, 26 fails, score 4.52e-09, 280s
+  stage 0 (4000): one-14: 6 structural, 31 fails, score 1.08e-10, 282s
+  stage 0 (4000): one-16: 4 structural, 24 fails, score 1.86e-08, 296s
+  stage 0 (4000): one-15: 6 structural, 23 fails, score 2.63e-08, 314s
+  stage 0 (4000): one-11: 8 structural, 27 fails, score 1.46e-09, 360s
+  stage 0 (4000): one-18: 7 structural, 37 fails, score 1.55e-12, 234s
+  stage 0 (4000): one-19: 3 structural, 35 fails, score 6.75e-12, 278s
+  stage 0 (4000): one-17: 7 structural, 29 fails, score 4.46e-10, 326s
+  stage 0 (4000): one-20: 5 structural, 27 fails, score 2.09e-09, 280s
+  stage 0 (4000): one-21: 5 structural, 36 fails, score 3.1e-12, 284s
+  stage 0 (4000): one-1: 7 structural, 17 fails, score 2.3e-06, 322s
+  stage 0 (4000): one-22: 5 structural, 36 fails, score 2.73e-12, 316s
+  stage 0 (4000): one-4: 4 structural, 25 fails, score 7.31e-09, 250s
+  stage 0 (4000): one-2: 5 structural, 19 fails, score 5.5e-07, 344s
+  stage 0 (4000): one-5: 5 structural, 24 fails, score 1.34e-08, 290s
+  stage 0 (4000): one-3: 7 structural, 20 fails, score 2.92e-07, 326s
+  stage 0 (4000): one-7: 3 structural, 22 fails, score 7.01e-08, 290s
+  stage 0 (4000): one-6: 7 structural, 21 fails, score 1.02e-07, 338s
+  stage 0 (4000): one-8: 8 structural, 21 fails, score 1.32e-07, 340s
+  stage 0 (4000): one-9: 8 structural, 30 fails, score 2.58e-10, 280s
+  stage 0 (4000): two-10: 4 structural, 28 fails, score 1.05e-10, 302s
+  stage 0 (4000): two-11: 10 structural, 39 fails, score 6.46e-13, 276s
+  stage 0 (4000): two-14: 4 structural, 30 fails, score 2.44e-10, 218s
+  stage 0 (4000): two-12: 6 structural, 28 fails, score 7.85e-10, 286s
+  stage 0 (4000): two-13: 10 structural, 39 fails, score 6.93e-13, 368s
+  stage 0 (4000): two-16: 2 structural, 48 fails, score 9.48e-16, 250s
+  stage 0 (4000): two-15: 9 structural, 34 fails, score 3.01e-11, 336s
+  stage 0 (4000): two-1: 8 structural, 23 fails, score 6.12e-08, 318s
+  stage 0 (4000): two-17: 7 structural, 25 fails, score 8.51e-09, 384s
+  stage 0 (4000): two-2: 9 structural, 26 fails, score 6.7e-09, 368s
+  stage 0 (4000): two-3: 6 structural, 28 fails, score 1.47e-09, 362s
+  stage 0 (4000): two-5: 13 structural, 35 fails, score 8.87e-13, 234s
+  stage 0 (4000): two-4: 5 structural, 29 fails, score 7.31e-10, 324s
+  stage 0 (4000): two-6: 10 structural, 30 fails, score 5.17e-10, 308s
+  stage 0 (4000): two-7: 5 structural, 31 fails, score 2.16e-10, 334s
+  stage 0 (4000): cold-a: 8 structural, 23 fails, score 3.08e-08, 264s
+  stage 0 (4000): cold-b: 5 structural, 25 fails, score 7.84e-09, 220s
+  stage 0 (4000): two-8: 14 structural, 36 fails, score 6.73e-12, 302s
+  stage 0 (4000): cold-c: 9 structural, 24 fails, score 1.07e-08, 244s
+  stage 0 (4000): two-9: 8 structural, 27 fails, score 3.27e-09, 319s
+stage 0: keep one-1, one-2, one-3, one-8, one-6, one-7, two-1, cold-a, one-15, one-16, one-5, cold-c, two-17, one-10, cold-b, one-4, two-2, one-12, two-9, one-20, one-11; drop two-3, one-13, two-12, two-10, two-4, one-17, two-6, one-9, two-14, two-7, one-14, two-15, one-19, two-5, two-8, one-21, one-22, one-18, two-13, two-11, two-16
+  stage 1 (8000): one-7: 2 structural, 19 fails, score 6.47e-07, 562s
+  stage 1 (8000): two-1: 8 structural, 21 fails, score 2.42e-07, 586s
+  stage 1 (8000): one-6: 7 structural, 18 fails, score 1.06e-06, 598s
+  stage 1 (8000): one-8: 7 structural, 16 fails, score 4.34e-06, 602s
+  stage 1 (8000): one-3: 7 structural, 20 fails, score 2.96e-07, 650s
+  stage 1 (8000): one-2: 4 structural, 17 fails, score 2.22e-06, 680s
+  stage 1 (8000): one-1: 6 structural, 14 fails, score 1.85e-05, 714s
+  stage 1 (8000): cold-c: 7 structural, 18 fails, score 1.01e-06, 378s
+  stage 1 (8000): one-16: 4 structural, 23 fails, score 3.85e-08, 550s
+  stage 1 (8000): one-15: 5 structural, 19 fails, score 5.12e-07, 586s
+  stage 1 (8000): cold-a: 7 structural, 15 fails, score 1.03e-05, 619s
+  stage 1 (8000): one-5: 7 structural, 22 fails, score 4.9e-08, 626s
+  stage 1 (8000): one-10: 6 structural, 24 fails, score 1.77e-08, 564s
+  stage 1 (8000): two-17: 7 structural, 25 fails, score 1.02e-08, 710s
+  stage 1 (8000): cold-b: 3 structural, 20 fails, score 2.57e-07, 482s
+  stage 1 (8000): one-12: 3 structural, 23 fails, score 3.72e-08, 530s
+  stage 1 (8000): one-4: 5 structural, 20 fails, score 2.6e-07, 617s
+  stage 1 (8000): two-2: 10 structural, 25 fails, score 1.45e-08, 619s
+  stage 1 (8000): two-9: 7 structural, 24 fails, score 2.58e-08, 574s
+  stage 1 (8000): one-20: 5 structural, 27 fails, score 2.13e-09, 539s
+  stage 1 (8000): one-11: 8 structural, 27 fails, score 1.69e-09, 510s
+stage 1: keep one-1, cold-a, one-8, one-2, one-6, cold-c, one-7, one-15, one-3, one-4, cold-b; drop two-1, one-5, one-16, one-12, two-9, one-10, two-2, two-17, one-20, one-11
+  stage 2 (16000): cold-c: 6 structural, 16 fails, score 3.96e-06, 874s
+  stage 2 (16000): one-8: 7 structural, 15 fails, score 9.01e-06, 1070s
+  stage 2 (16000): one-7: 2 structural, 19 fails, score 6.55e-07, 1186s
+  stage 2 (16000): cold-a: 7 structural, 13 fails, score 4.51e-05, 1214s
+  stage 2 (16000): one-6: 7 structural, 18 fails, score 1.09e-06, 1276s
+  stage 2 (16000): one-2: 3 structural, 10 fails, score 0.000324, 1394s
+  stage 2 (16000): one-1: 6 structural, 13 fails, score 4e-05, 1417s
+  stage 2 (16000): one-15: 4 structural, 17 fails, score 2.17e-06, 902s
+  stage 2 (16000): cold-b: 4 structural, 20 fails, score 3.13e-07, 756s
+  stage 2 (16000): one-4: 5 structural, 14 fails, score 1.42e-05, 844s
+  stage 2 (16000): one-3: 4 structural, 18 fails, score 1.12e-06, 969s
+stage 2: keep one-2, cold-a, one-1, one-4, one-8, cold-c; drop one-15, one-3, one-6, one-7, cold-b
+  stage 3 (32000): cold-c: 5 structural, 14 fails, score 1.48e-05, 1712s
+  stage 3 (32000): one-2: 4 structural, 9 fails, score 0.000682, 1970s
+  stage 3 (32000): cold-a: 6 structural, 11 fails, score 0.000154, 1990s
+  stage 3 (32000): one-8: 7 structural, 15 fails, score 9.05e-06, 2164s
+  stage 3 (32000): one-4: 5 structural, 10 fails, score 0.000171, 2230s
+  stage 3 (32000): one-1: 6 structural, 12 fails, score 9.04e-05, 2272s
+stage 3: keep one-2, one-4, cold-a; drop one-1, cold-c, one-8
+  stage 4 (64000): one-4: 4 structural, 8 fails, score 0.000767, 2910s
+  stage 4 (64000): one-2: 4 structural, 9 fails, score 0.000687, 3280s
+  stage 4 (64000): cold-a: 8 structural, 9 fails, score 0.00066, 3388s
+stage 4: keep one-4, one-2; drop cold-a
+  stage 5 (128000): one-4: 3 structural, 6 fails, score 0.00397, 5514s
+  stage 5 (128000): one-2: 3 structural, 9 fails, score 0.000693, 6091s
+
+winner one-4: 3 structural, 6 fails, score 0.003975 (stage 5, budget 128000)
+wrote experiments/results/halving-health-rooms/winner.dom
