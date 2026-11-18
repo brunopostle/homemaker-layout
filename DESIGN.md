@@ -23190,3 +23190,50 @@ wins, outdoor circulation on, token rule off, the move without a scorer).
    seed has a narrow room and 17 of 38 a token, so I expect +2 or more on the mean.
 4. **`remove_token` appears in the winner's lineage at least once**, as a real move, not `noop`.
 5. **The winner has 2 to 6 fails**, and no room doubling as a corridor.
+
+### 39.251 The health-centre race at the rulings of §39.249: read (`homemaker-py-hlm1`)
+
+`run_halving_health_rooms.sh` ran 09:28-14:38 on 2026-11-18 at `6191a33+orth 6191a33 82241975c2`,
+42 candidates (22 one-storey, 17 two-storey, 3 cold). No two-storey seed outlived stage 1; the
+final at 128k was `one-4` against `one-2`. Results in `experiments/results/halving-health-rooms/`,
+drawings of both finalists under `drawings/` (`winner-one-4`, and `one-2` from the last stage's
+`out.dom`).
+
+**Winner `one-4`: 6 fails, 3 structural, score 0.003975** -- one storey, a ring of corridor
+round an 81.5 m^2 open yard:
+
+    0/llll crinkliness            0/lrl (t11) not adjacent to tr1
+    0/llrl crinkliness            0/rrrrll (wa1) not adjacent to c
+    0/rrlrl crinkliness           0/rrrrll access
+
+The §39.248 winner `two-2` re-scored at this objective has 8. Against §39.250:
+
+1. **About 41 candidates -- held** (42).
+2. **No finalist with a narrow room, token or inaccessible space -- half held.** The winner has
+   none; its longest rooms are br1 2.35, de1 2.2 and ao1 2.04, all in the owner's "not ideal, but
+   usable" band. The runner-up `one-2` (9 fails) still has all three kinds: `0/rrrll narrow room`
+   (with `proportion` and `size` on the same cell), `0 inaccessible usable space`, plus a
+   `0/lll dead end`.
+3. **Stage-0 pairing: more fails beyond the MDD -- held.** +2.88 fails on the mean (95% CI
+   [+1.11, +4.65], MDD 1.77, 26 of 41 worse, p=0.002). Structural fails did not move (-0.15,
+   underpowered). The new rules cost what was priced, and they cost it in fails the race can repair.
+4. **`remove_token` as a real move in the winner's lineage -- failed.** Every one of its 12
+   credits there is `remove_token noop`: the gain came from the ratio re-solve that follows any
+   move. Over the whole race the move fired for real 19 times in 169 credits, early and nearly all
+   on WCs (`t11 to tr1`, `t10 to C`, `t9 to pt1`), all in candidates later dropped. Seeds sized by
+   the race stop being tokens before the move matters; whether it earns its draw is a flag A/B,
+   not something one race can say.
+5. **2-6 fails, no room doubling as a corridor -- held on the count, not quite on the second.** The
+   waiting room wa1 opens only off reception rc1 (and the yard), and plant me1 off rc1 and wa1, so
+   reception is a lobby to two rooms. That is what the soft `access` and `not adjacent to c` fails
+   charge. Reception-to-waiting is a reasonable plan; plant through the waiting room is not.
+
+Stairs: none, a one-storey design (`stairs.txt`). Carry: the winner kept 0.945 of its seed's plan
+against a field median of 0.740: the winning plan is close to its catalogue seed.
+
+**What this says.** The three rulings did what they were for in the design that won: no strip
+room, no route across a terrace, no token. They did not stop the runner-up from holding all three
+at 128k, so the race clears them by selection, not reliably by repair. The two-storey field fell
+out early this time where §39.248's winner had two storeys. One race cannot tell whether that is
+the rules or the draw, but the rooms rulings bear harder on a small upper floor, where a short
+strip and a terrace route are the cheap ways to reach the stair.

@@ -235,7 +235,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (355 of them, 23192 lines)
+## Every section of DESIGN.md (356 of them, 23239 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -641,4 +641,5 @@ below are the most recent work.
 - §39.247 · 23058-23075 · The health-centre race at the dead-end rule: expectations (`homemaker-py-5fje.29`)
 - §39.248 · 23076-23106 · The dead-end race read (`homemaker-py-5fje.29`)
 - §39.249 · 23107-23179 · Owner's rulings: narrow rooms, outdoor space is not circulation, token rooms are removed (`homemaker-py-hlm1`)
-- §39.250 · 23180-23192 · The health-centre race at the rulings of §39.249: expectations (`homemaker-py-hlm1`)
+- §39.250 · 23180-23193 · The health-centre race at the rulings of §39.249: expectations (`homemaker-py-hlm1`)
+- §39.251 · 23194-23239 · The health-centre race at the rulings of §39.249: read (`homemaker-py-hlm1`)
