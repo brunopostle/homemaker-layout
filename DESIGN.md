@@ -23005,3 +23005,70 @@ pairs. That loop vectorises (an R x S matrix of walks to stairs, `min` over S of
 against an R x R plan-distance matrix) and would then cost well under a millisecond. The brute force
 it replaces was itself only 2-15 ms at these sizes: journeys are not expensive here because
 buildings are small. Vectorised, the detour would cost little enough to run on every score.
+
+### 39.246 Owner's ruling: a dead end over 11 m fails (`homemaker-py-5fje.29`)
+
+The owner on §39.245, 2026-11-17: measure from **the room's door in the corridor**; on the ground,
+an exit is **the street side, or a courtyard or garden with street access**; and **land the dead-end
+rule first, run it, and see** -- the inter-storey detour waits.
+
+**Landed: `dead end`**, hard, one per circulation cell. `graph.dead_ends` walks one storey's
+circulation door to door (the walk of §39.244-§39.245, circulation cells only: nobody escapes
+through a room). Escapes above the ground are the doors into a stair core (`graph.is_stair_core`:
+an `E` cell with the same `E` cell above or below; a lone `E` cell is circulation, not a stair).
+On the ground they are a circulation cell's street door (`Fitness._public_access`, taken at the
+cell's centroid) and any wall from circulation to a usable outdoor cell whose outdoor space reaches
+the street. A room's door is the one `has_circulation` left it. A point with two node-disjoint
+routes to escapes (a biconnected block shared with a sink on every escape) has two directions; any
+other room door further than `dead_end_max` (11.0 m; `false` turns it off) from such a point or an
+escape fails its circulation cell as `N/<cell> dead end`. A storey with no escape, and a door no
+escape reaches, are not charged here: `level N not connected`, `no outside public access` and the
+stair fails already are. It applies to one-storey buildings too, on the ground.
+
+Two readings to keep in mind. A loop that reaches ONE stair core through two of its doors counts as
+two directions. And a ground-floor stair is not an exit on its own: rooms that open off a ground
+`E` cell walk to the street like any others.
+
+**Priced** over 41 committed designs (race winners, their drawings, `drawings-bestof`, the
+`0d79403+orth` corpus). Each fail is +1 to `n_fails`:
+
+| programme | designs | with a dead end | lines |
+|---|---|---|---|
+| harbor-house | 8 | 2 | 6 |
+| health-centre | 21 | 10 | 10 |
+| maple-court | 8 | 5 | 16 |
+| programme-house | 4 | 0 | 0 |
+
+Health-centre's fails are mostly on the GROUND of one-storey designs: the rulings winner `0/llrr`
+at 15.4 m, which §39.245 passed only because it counted every garden door, street or not. Upstairs,
+the corridors winner `1/rll` at 14.1 m. Maple-court's best-of drawing carries seven, the largest
+being rooms on the ground that open off stair cells 17-38 m from a street exit: that is a block of
+flats, where travel inside a dwelling would be judged differently, and is noted for the owner. The
+score costs 16-36 ms against 18-24 ms before. `tests/test_dead_end.py` holds both owner cases with
+the rule-off, raised-limit, short-dead-end and no-escape controls.
+
+**One questionnaire verdict flipped, incidentally.** The full suite's only failure was the strict
+xfail `test_todays_objective_agrees[O1-0]` passing: A0 now agrees with the owner that a token
+`lr1` at 1.6 m2 (A) is worse than leaving it out (B). The reason is not the owner's. A's token room
+stands on the street edge and cuts the garden `0/lr` off from the street, so the corridor
+`0/rlrllrl`'s garden door is no exit and its room doors are 16.1 m from one; in B that cell is
+garden, which reaches the street. The dead end is real, but the question O1 asked, token room or
+omission (`homemaker-py-hlm1`), is still open. The test now expects O1-0 to pass, with that comment.
+
+### 39.247 The health-centre race at the dead-end rule: expectations (`homemaker-py-5fje.29`)
+
+`run_halving_health_deadend.sh` is §39.242's corridors race again -- the same seeder flags, stages
+and `pivot3` -- at the objective of §39.246, so the stage-0 pairing against the corridors race is the
+nearest this gets to isolating the rule (the field is rebuilt, so it is directional). Of the
+corridors race's 38 built seeds, 31 have no dead end at this objective (18 of 21 one-storey, 13 of
+17 two-storey). Written before it ran:
+
+1. **About 41 candidates**, as before.
+2. **The winner has no `dead end`.** Most seeds start without one, and a dead end is cleared by a
+   ratio, a door, or a stair moved towards the corridor's end.
+3. **The stage-0 pairing shows few added fails**, a mean under 0.5 per candidate: 7 of 38 seeds
+   carried one.
+4. **The winner has 1 to 4 fails**, as the corridors winner's 4 at this objective.
+5. **The winner's storey count is a coin toss.** The corridors race put two storeys first against
+   my 70% for one; this rule charges the corridors winner's upstairs, and the one-storey rulings
+   winner's ground, about equally.

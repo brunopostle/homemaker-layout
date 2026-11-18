@@ -54,6 +54,13 @@ ANSWERS = _answers()
 # comparisons today's objective orders against the owner, by the pre-test's
 # verdicts stored in items.json (§39.204)
 A0_WRONG = {k for k, rung, w in ANSWERS if rung["worse"]["A0 today"] != w}
+# Comparisons A0 now gets right only INCIDENTALLY, so they are expected to
+# pass rather than xfail. O1-0 (token lr1 against lr1 omitted): since §39.246
+# A fails `dead end` -- its token room on the street edge cuts the garden off
+# from the street, so the corridor's garden door is no exit (16.1 m) -- and B,
+# whose cell is garden, does not. The owner's reason was the token room
+# (homemaker-py-hlm1), not the escape; that question is still open.
+A0_WRONG -= {"O1-0"}
 
 
 @pytest.fixture(scope="module")

@@ -23,6 +23,7 @@ PERL CLONE QUIRK — ``has_circulation`` (Base.pm:228-241):
 from __future__ import annotations
 
 import itertools
+import math
 
 import networkx as nx
 
@@ -511,6 +512,130 @@ def stair_shaft(leaf: Node) -> list[Node]:
         if not is_stair_cell(above):
             return shaft
         shaft.append(above)
+
+
+def is_stair_core(leaf: Node) -> bool:
+    """Is ``leaf`` a stair cell with a flight: the same ``E`` cell on the
+    storey above or below (§39.125)? An ``E`` cell with neither is
+    circulation, not a stair."""
+    if not is_stair_cell(leaf):
+        return False
+    if is_stair_cell(dom._above_node(leaf)):
+        return True
+    lr = dom._level_root(leaf)
+    return lr.below is not None and is_stair_cell(lr.below.by_id(leaf.id))
+
+
+def _door_point(G: nx.Graph, a: Node, b: Node) -> tuple:
+    seg = G[a][b].get("coordinates")
+    if seg:
+        (x0, y0), (x1, y1) = seg
+        return ((x0 + x1) / 2, (y0 + y1) / 2)
+    ca, cb = geometry.centroid(a), geometry.centroid(b)
+    return ((ca[0] + cb[0]) / 2, (ca[1] + cb[1]) / 2)
+
+
+def dead_ends(graph_circ: nx.Graph, graph_base: nx.Graph, level_id: int,
+              street_door) -> "dict[Node, float]":
+    """One-direction escape travel on one storey (owner's ruling, 2026-11-17,
+    DESIGN.md §39.246): for each circulation cell, the longest walk from a
+    room's door into it to the nearest point that has two directions of
+    escape, or to an escape.
+
+    Escapes: above the ground, a door into a stair core
+    (:func:`is_stair_core`); on the ground, a circulation cell's street door
+    (``street_door(cell)`` true; the door is taken at the cell's centroid,
+    at most half a cell out) and any door from circulation to a usable
+    outdoor cell whose outdoor space reaches the street (a courtyard or
+    garden with street access).
+
+    The walk runs through circulation only, door to door: the nodes are the
+    midpoints of shared walls, and inside a circulation cell (a rectangle
+    cropped to the plot, so convex) every pair of its doors is joined by a
+    straight line. A room's door is the one ``has_circulation`` left it in
+    ``graph_circ``. A point has two directions of escape if two
+    node-disjoint routes from it reach escapes -- it shares a biconnected
+    block with a sink joined to every escape -- which is linear time.
+
+    A storey with no escape at all, and a door no escape can be reached
+    from, report nothing: other fails (`level N not connected`, `no outside
+    public access`, `too few stairs`) already charge those."""
+    W = nx.Graph()
+    sink = ("sink",)
+    doors_of: dict = {}
+    room_doors: list = []          # (door node, circulation cell)
+
+    def node(G, a, b):
+        xy = _door_point(G, a, b)
+        n = (round(xy[0], 4), round(xy[1], 4))
+        W.add_node(n, xy=xy)
+        return n
+
+    for a, b in graph_circ.edges():
+        ca, cb = dom.is_circulation(a), dom.is_circulation(b)
+        if not (ca or cb) or dom.is_outside(a) or dom.is_outside(b):
+            continue
+        if not (dom.is_usable(a) and dom.is_usable(b)):
+            continue
+        n = node(graph_circ, a, b)
+        if ca and cb:
+            doors_of.setdefault(a, []).append(n)
+            doors_of.setdefault(b, []).append(n)
+        else:
+            cell = a if ca else b
+            doors_of.setdefault(cell, []).append(n)
+            room_doors.append((n, cell))
+
+    escapes = set()
+    if level_id == 0:
+        street_out = set()
+        outdoor = [v for v in graph_base.nodes()
+                   if dom.is_outside(v) and dom.is_usable(v)]
+        yard = graph_base.subgraph(outdoor)
+        for comp in nx.connected_components(yard):
+            if any(street_door(v) for v in comp):
+                street_out |= comp
+        for cell in list(doors_of) + [v for v in graph_base.nodes()
+                                      if dom.is_circulation(v)]:
+            if not dom.is_circulation(cell) or cell.divided:
+                continue
+            if street_door(cell):
+                n = ("street", cell.id)
+                W.add_node(n, xy=geometry.centroid(cell))
+                if n not in doors_of.setdefault(cell, []):
+                    doors_of[cell].append(n)
+                escapes.add(n)
+            if cell in graph_base:
+                for nb in graph_base.neighbors(cell):
+                    if nb in street_out:
+                        n = node(graph_base, cell, nb)
+                        doors_of.setdefault(cell, []).append(n)
+                        escapes.add(n)
+    else:
+        for cell, ds in doors_of.items():
+            if is_stair_core(cell):
+                escapes.update(ds)
+    if not escapes:
+        return {}
+
+    for cell, ds in doors_of.items():
+        ds = list(dict.fromkeys(ds))
+        for p, q in itertools.combinations(ds, 2):
+            W.add_edge(p, q, weight=math.dist(W.nodes[p]["xy"], W.nodes[q]["xy"]))
+    W.add_edges_from((sink, e) for e in escapes)
+    safe = set(escapes)
+    for block in nx.biconnected_components(W):
+        if sink in block and len(block) > 2:
+            safe |= block
+    safe.discard(sink)
+    W.remove_node(sink)
+    dist = nx.multi_source_dijkstra_path_length(W, safe, weight="weight")
+    worst: dict = {}
+    for n, cell in room_doors:
+        d = dist.get(n)
+        if d is not None and d > worst.get(cell, -1.0):
+            worst[cell] = d
+    return worst
 
 
 # §39.125, owner's ruling: a stair JOINED the circulation of the storeys it

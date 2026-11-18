@@ -119,6 +119,7 @@ _HARD_FAIL_MARKERS = (
     "stair too long",  # §39.237: a stair doubling as a corridor, to be split
     "superfluous circulation",  # §39.241: a cell to give to its room or remove
     "superfluous stair",  # §39.243: two stairs too close to be two ways out
+    "dead end",  # §39.246: one-direction escape travel over `dead_end_max`
     "storey limit",
     "storey minimum",
     "no outside public access",
@@ -426,6 +427,12 @@ CONF_DEFAULTS: dict = {
     # Owner's ruling, 2026-11-17 (§39.243): a second stair closer than
     # `staircase_separation` to another is superfluous. `false` turns it off.
     "superfluous_stair": True,
+    # Owner's ruling, 2026-11-17 (DESIGN.md §39.246): one-direction escape
+    # travel -- from a room's door in the corridor to a stair core above the
+    # ground, or to a street exit on the ground -- may not exceed the UK's
+    # 11 m. Each circulation cell with a room door further than this from two
+    # directions of escape fails `dead end`. `false` turns it off.
+    "dead_end_max": 11.0,
     # §39.37 (homemaker-py-2f1): `None` means rooms have NO width requirement.
     # A leaf's area, narrowest width and aspect satisfy A = w^2 * r, so any two
     # fix the third: over 532 corpus leaves w^2*aspect/area has median 0.9929
@@ -2690,6 +2697,15 @@ class Fitness:
             if self.conf("superfluous_circulation"):
                 for leaf in self._superfluous_circulation(level_root, G, level_id):
                     fail(f"{level_id}/{leaf.id} superfluous circulation")
+
+            limit = self.conf("dead_end_max")
+            if limit and root is not None:
+                far = graph_mod.dead_ends(
+                    graph_circ[level_id], G, level_id,
+                    lambda v: self._public_access(v, root) is not None)
+                for leaf in sorted((c for c, d in far.items() if d > limit),
+                                   key=lambda c: c.id):
+                    fail(f"{level_id}/{leaf.id} dead end")
 
             conf_fg = self.conf("force_roof_garden")
             if conf_fg and not has_outdoor_space:

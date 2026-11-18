@@ -182,6 +182,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | A stair over 1.5× its flight's length fails (`stair too long`); every storey's circulation must join on that storey, stairs no longer link storeys (reverses §39.125's joining) -- a visitor must not go upstairs and down to cross the building. Superfluous circulation waits until these are raced (2026-11-16) | §39.237 |
 | A corridor (`C`, not lobby or stair) over 3.0 m usable width fails `corridor too wide` -- wider than minimum is liked, for seating; a `C` cell no more than one room needs and whose loss splits nothing fails `superfluous circulation`, repaired by `merge_circulation`; double-loaded corridors are killed early: guard on for all, one fail each on health-centre. Reception-to-entrance waits for an all-programme rerun (2026-11-17) | §39.241 |
 | Two stairs next to each other are superfluous: a stair that is not a separate way out (§39.143's half-diagonal) fails `superfluous stair`, wherever there are two. Several stairs should be far apart in the circulation, a single one central, and one near the end of a long dead end -- filed as `5fje.29`, not yet measured (2026-11-17) | §39.243 |
+| One-direction escape travel, from a room's door in the corridor, over 11 m fails `dead end`: to a stair core above the ground, to the street or a courtyard or garden with street access on the ground. The inter-storey detour waits until this has been raced (2026-11-17) | §39.246 |
 | No aggregation switch yet (2026-11-15): A0 stays the default while shape and token rooms are worked; the question returns with fresh Phase 3 arms | §39.227 |
 | "We want to do the right thing; chasing scores is of no value if they depend on flawed logic" | `CLAUDE.md`, applied throughout §39 |
 
@@ -233,7 +234,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (350 of them, 23007 lines)
+## Every section of DESIGN.md (352 of them, 23074 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -634,4 +635,6 @@ below are the most recent work.
 - §39.242 · 22816-22834 · The health-centre race at the corridor rulings: expectations (`homemaker-py-5fje.24`)
 - §39.243 · 22835-22899 · The corridors race read, and the owner's ruling on stairs side by side (`homemaker-py-5fje.24`, `.28`, `.29`)
 - §39.244 · 22900-22946 · Stair placement by travel, priced before a rule (`homemaker-py-5fje.29`)
-- §39.245 · 22947-23007 · Dead ends at 11 m, exits on the ground, and what the travel measure costs (`homemaker-py-5fje.29`)
+- §39.245 · 22947-23008 · Dead ends at 11 m, exits on the ground, and what the travel measure costs (`homemaker-py-5fje.29`)
+- §39.246 · 23009-23057 · Owner's ruling: a dead end over 11 m fails (`homemaker-py-5fje.29`)
+- §39.247 · 23058-23074 · The health-centre race at the dead-end rule: expectations (`homemaker-py-5fje.29`)
