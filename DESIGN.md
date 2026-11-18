@@ -23072,3 +23072,34 @@ corridors race's 38 built seeds, 31 have no dead end at this objective (18 of 21
 5. **The winner's storey count is a coin toss.** The corridors race put two storeys first against
    my 70% for one; this rule charges the corridors winner's upstairs, and the one-storey rulings
    winner's ground, about equally.
+
+### 39.248 The dead-end race read (`homemaker-py-5fje.29`)
+
+`run_halving_health_deadend.sh` (§39.247) finished at 05:06 on 2026-11-18, 5 h after it began, at
+`ac7d47b+orth`, search `a792daa`, config `1124a46f02`. Results in
+`experiments/results/halving-health-deadend/`; drawings of the winner and the other finalist in its
+`drawings/`.
+
+**The winner is `two-2`, two storeys, 6 fails, 0.00832**, all adjacency, access and proportion
+(`0/rl (wa1) not adjacent to rc1`, `0/rrrll (ph1) not adjacent to o`, `1/lllrl (br1) not adjacent
+to c`, `1/lllrl access`, `1/llr proportion`, `1/rrrrr (kt1) not adjacent to br1`). No structural
+fail from stage 3 on. Its one stair moved once, 9.1 m (`rl` -> `rrll`). The other finalist, `one-4`,
+ended at 8 fails, 0.00112, with an inaccessible space. **The corridors race's winner re-scores at 4
+fails, 0.0423, at this objective** (its `1/rll dead end` and `superfluous stair` included): five
+times the new winner. The rebuilt field and the race did not find it again.
+
+Against the expectations of §39.247:
+
+1. **Held.** 41 candidates (21 one-storey, 17 two-storey, 3 cold).
+2. **Held.** The winner has no `dead end`; its longest one-direction travel is 5.1 m, upstairs.
+3. **Held.** Stage-0 pairing against the corridors race: +0.17 fails on the mean, 6W/5L/30T,
+   inside the MDD of 0.63 -- no measurable cost at the seeds, as 31 of 38 seeds carried none.
+4. **Failed.** 6 fails, against 1 to 4.
+5. Two storeys won (a coin toss, as written).
+
+**What the winner found upstairs.** It has no corridor on its upper storey beyond the 8.9 m2 cell
+beside the stair: the Minor Surgery Room `ms1` is a strip 1.22 m wide and 20.7 m2 (usable aspect
+13.8) along the south wall, and `gp1`, `br1` and `me1` open off it. It is charged one
+`proportion` fail; at 1.22 m it is over `sliver_width`'s 0.8 m, and as a room it is not
+`superfluous circulation` or a corridor `dead end`. It is a room doing a corridor's job -- the
+§39.243 shape again, with a room where that winner had stairs.

@@ -234,7 +234,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (352 of them, 23074 lines)
+## Every section of DESIGN.md (353 of them, 23105 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -637,4 +637,5 @@ below are the most recent work.
 - §39.244 · 22900-22946 · Stair placement by travel, priced before a rule (`homemaker-py-5fje.29`)
 - §39.245 · 22947-23008 · Dead ends at 11 m, exits on the ground, and what the travel measure costs (`homemaker-py-5fje.29`)
 - §39.246 · 23009-23057 · Owner's ruling: a dead end over 11 m fails (`homemaker-py-5fje.29`)
-- §39.247 · 23058-23074 · The health-centre race at the dead-end rule: expectations (`homemaker-py-5fje.29`)
+- §39.247 · 23058-23075 · The health-centre race at the dead-end rule: expectations (`homemaker-py-5fje.29`)
+- §39.248 · 23076-23105 · The dead-end race read (`homemaker-py-5fje.29`)
