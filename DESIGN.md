@@ -23264,3 +23264,23 @@ before it ran:
 Decision, set now: nomoves worse beyond the MDD -> both stay on and both beads close; a null ->
 both default off, with the flags kept, and both beads close; nomoves better beyond the MDD ->
 both off, and the moves are a measured negative.
+
+### 39.253 The no-moves race: read (`homemaker-py-hlm1`, `homemaker-py-5fje.25`)
+
+`run_halving_health_nomoves.sh` ran 16:26-21:29 on 2026-11-18 at `6191a33+orth 6191a33 82241975c2`.
+Against §39.252:
+
+1. **Preflight replayed exactly -- held** (`one-10`, 25 fails both), and with the moves off no
+   log credits either one.
+2. **Stage-0 fails: no difference beyond the MDD -- held, but leaning.** With the moves off the
+   mean is 1.29 fails worse (29.64 against 28.36; 95% CI [-2.83, +0.26], MDD 1.54, 15W/19L/8T,
+   t p=0.10, Wilcoxon p=0.27). Underpowered: N of about 60 would resolve a margin this size.
+3. **Structural: no difference -- held** (-0.33, MDD 0.63, 17 ties).
+4. **One-storey winner within 2 fails of 6 -- held.** `one-1`, 7 fails (5 crinkliness, staff room
+   br1 off the corridor), score 0.00279 against the rooms race's 0.00397; finalist `one-2` again,
+   7 fails. Two finals are two draws; they say nothing about the moves.
+
+**Decision.** §39.252 set "a null -> both default off". The point estimate is that the moves help
+by about 1.3 fails a run, with p=0.10, so following that rule would switch off two moves that the
+measurement leans towards keeping. The defaults are unchanged pending the owner's call between
+the rule as written and a stage-0 replicate that resolves the margin.
