@@ -235,7 +235,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (356 of them, 23242 lines)
+## Every section of DESIGN.md (357 of them, 23266 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -642,4 +642,5 @@ below are the most recent work.
 - §39.248 · 23076-23106 · The dead-end race read (`homemaker-py-5fje.29`)
 - §39.249 · 23107-23179 · Owner's rulings: narrow rooms, outdoor space is not circulation, token rooms are removed (`homemaker-py-hlm1`)
 - §39.250 · 23180-23193 · The health-centre race at the rulings of §39.249: expectations (`homemaker-py-hlm1`)
-- §39.251 · 23194-23242 · The health-centre race at the rulings of §39.249: read (`homemaker-py-hlm1`)
+- §39.251 · 23194-23243 · The health-centre race at the rulings of §39.249: read (`homemaker-py-hlm1`)
+- §39.252 · 23244-23266 · Do `remove_token` and `merge_circulation` earn their draw? Expectations (`homemaker-py-hlm1`, `homemaker-py-5fje.25`)

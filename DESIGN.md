@@ -23240,3 +23240,27 @@ at 128k, so the race clears them by selection, not reliably by repair. The two-s
 out early this time where §39.248's winner had two storeys. One race cannot tell whether that is
 the rules or the draw, but the rooms rulings bear harder on a small upper floor, where a short
 strip and a terrace route are the cheap ways to reach the stair.
+
+### 39.252 Do `remove_token` and `merge_circulation` earn their draw? Expectations (`homemaker-py-hlm1`, `homemaker-py-5fje.25`)
+
+Both moves came in with a rule (§39.241, §39.249), and in both races the rule worked while the
+move made no real change in the winner's lineage. In the rooms race (§39.251), counting only the
+moves credited with a new best, `merge_circulation` made 16 real merges at stage 0 (22 in all) and
+`remove_token` 6 (10 in all), against 17 and 26 credits for a noop: about half of each move's
+credit is the ratio re-solve that follows any move.
+
+`run_halving_health_nomoves.sh` races the rooms race's 42 seed files again, same rng seed per
+candidate, with both moves off and nothing else changed. A preflight with the moves on must
+replay `one-10`'s stage-0 row (25 fails) or the race refuses to start. Search-side only. Written
+before it ran:
+
+1. **The preflight replays exactly**, and no log credits either move (they are never drawn).
+2. **Stage-0 pairing on fails: no difference beyond the MDD (about 1.8).** 22 real improvements
+   over 42 runs is about one in two runs, each one step among a dozen or more, and the
+   re-solve gets credit with or without them.
+3. **Structural fails: no difference either** -- neither move touches a structural family.
+4. **The winner is again one-storey, within 2 fails of `one-4`'s 6.** Weak: a finish is one draw.
+
+Decision, set now: nomoves worse beyond the MDD -> both stay on and both beads close; a null ->
+both default off, with the flags kept, and both beads close; nomoves better beyond the MDD ->
+both off, and the moves are a measured negative.
