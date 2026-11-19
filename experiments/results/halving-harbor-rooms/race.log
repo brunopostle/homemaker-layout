@@ -1,0 +1,71 @@
+harbor-house: 31 candidates, budget 4000 rising x2 to 128000, ranked on total fails, 7 slots; at most 6 stages
+  stage 0 (4000): seed-12: 25 structural, 51 fails, score 9.3e-17, 400s
+  stage 0 (4000): seed-14: 10 structural, 53 fails, score 1.79e-17, 440s
+  stage 0 (4000): seed-11: 16 structural, 68 fails, score 9.77e-22, 460s
+  stage 0 (4000): seed-13: 22 structural, 61 fails, score 1.09e-19, 478s
+  stage 0 (4000): seed-10: 16 structural, 60 fails, score 3.01e-19, 486s
+  stage 0 (4000): seed-16: 17 structural, 51 fails, score 1.44e-16, 487s
+  stage 0 (4000): seed-15: 17 structural, 62 fails, score 8.21e-20, 505s
+  stage 0 (4000): seed-20: 17 structural, 50 fails, score 1.46e-17, 350s
+  stage 0 (4000): seed-17: 11 structural, 54 fails, score 7.53e-18, 487s
+  stage 0 (4000): seed-19: 18 structural, 65 fails, score 6.42e-21, 457s
+  stage 0 (4000): seed-18: 15 structural, 64 fails, score 1.71e-20, 481s
+  stage 0 (4000): seed-1: 11 structural, 57 fails, score 2.09e-18, 479s
+  stage 0 (4000): seed-21: 17 structural, 60 fails, score 2.83e-19, 473s
+  stage 0 (4000): seed-22: 15 structural, 70 fails, score 6.66e-23, 515s
+  stage 0 (4000): seed-26: 14 structural, 82 fails, score 4.35e-26, 348s
+  stage 0 (4000): seed-24: 20 structural, 72 fails, score 9.28e-23, 477s
+  stage 0 (4000): seed-23: 23 structural, 77 fails, score 2.14e-24, 543s
+  stage 0 (4000): seed-25: 19 structural, 77 fails, score 2.09e-24, 507s
+  stage 0 (4000): seed-27: 24 structural, 92 fails, score 4.03e-29, 515s
+  stage 0 (4000): seed-28: 27 structural, 97 fails, score 1.3e-31, 529s
+  stage 0 (4000): seed-2: 11 structural, 51 fails, score 1.31e-16, 489s
+  stage 0 (4000): seed-3: 22 structural, 68 fails, score 1.24e-21, 445s
+  stage 0 (4000): seed-9: 21 structural, 54 fails, score 1.84e-17, 354s
+  stage 0 (4000): seed-4: 24 structural, 58 fails, score 1.22e-18, 535s
+  stage 0 (4000): seed-5: 17 structural, 57 fails, score 1.36e-18, 519s
+  stage 0 (4000): seed-7: 11 structural, 51 fails, score 1.32e-16, 447s
+  stage 0 (4000): seed-6: 11 structural, 52 fails, score 8.9e-17, 515s
+  stage 0 (4000): seed-8: 15 structural, 48 fails, score 1.27e-15, 461s
+  stage 0 (4000): cold-a: 31 structural, 67 fails, score 1.1e-23, 264s
+  stage 0 (4000): cold-c: 29 structural, 79 fails, score 1.12e-26, 198s
+  stage 0 (4000): cold-b: 35 structural, 63 fails, score 2.35e-22, 237s
+stage 0: keep seed-8, seed-20, seed-16, seed-7, seed-2, seed-12, seed-6, seed-14, seed-9, seed-17, seed-1, seed-5, seed-4, seed-10, seed-21, seed-13; drop seed-15, cold-b, seed-18, seed-19, cold-a, seed-3, seed-11, seed-22, seed-24, seed-23, seed-25, cold-c, seed-26, seed-27, seed-28
+  stage 1 (8000): seed-7: 11 structural, 48 fails, score 1.16e-15, 782s
+  stage 1 (8000): seed-16: 13 structural, 49 fails, score 5.99e-16, 898s
+  stage 1 (8000): seed-8: 14 structural, 47 fails, score 2.56e-15, 904s
+  stage 1 (8000): seed-12: 23 structural, 46 fails, score 3.74e-15, 916s
+  stage 1 (8000): seed-2: 8 structural, 44 fails, score 1.86e-14, 952s
+  stage 1 (8000): seed-6: 10 structural, 44 fails, score 1.36e-14, 957s
+  stage 1 (8000): seed-20: 14 structural, 46 fails, score 3.43e-15, 963s
+  stage 1 (8000): seed-14: 10 structural, 50 fails, score 8.59e-17, 845s
+  stage 1 (8000): seed-1: 13 structural, 47 fails, score 2.08e-15, 816s
+  stage 1 (8000): seed-9: 18 structural, 48 fails, score 1.22e-15, 995s
+  stage 1 (8000): seed-17: 10 structural, 54 fails, score 1.4e-17, 999s
+  stage 1 (8000): seed-5: 18 structural, 52 fails, score 4.76e-17, 953s
+  stage 1 (8000): seed-4: 17 structural, 50 fails, score 3.22e-16, 983s
+  stage 1 (8000): seed-10: 18 structural, 57 fails, score 2.53e-18, 981s
+  stage 1 (8000): seed-21: 17 structural, 54 fails, score 1.83e-17, 587s
+  stage 1 (8000): seed-13: 21 structural, 60 fails, score 2.59e-19, 630s
+stage 1: keep seed-2, seed-6, seed-12, seed-20, seed-8, seed-1, seed-9, seed-7; drop seed-16, seed-4, seed-14, seed-5, seed-21, seed-17, seed-10, seed-13
+  stage 2 (16000): seed-6: 11 structural, 38 fails, score 1.12e-12, 1598s
+  stage 2 (16000): seed-12: 23 structural, 46 fails, score 4.47e-15, 1684s
+  stage 2 (16000): seed-8: 18 structural, 44 fails, score 1.86e-14, 1810s
+  stage 2 (16000): seed-2: 8 structural, 43 fails, score 3.89e-14, 1832s
+  stage 2 (16000): seed-20: 10 structural, 29 fails, score 1.59e-10, 1848s
+  stage 2 (16000): seed-1: 13 structural, 33 fails, score 3.64e-11, 1857s
+  stage 2 (16000): seed-9: 16 structural, 45 fails, score 9.78e-15, 1921s
+  stage 2 (16000): seed-7: 12 structural, 48 fails, score 1.18e-15, 1051s
+stage 2: keep seed-20, seed-1, seed-6, seed-2; drop seed-8, seed-9, seed-12, seed-7
+  stage 3 (32000): seed-20: 7 structural, 26 fails, score 2.89e-09, 2174s
+  stage 3 (32000): seed-2: 8 structural, 43 fails, score 4.55e-14, 2272s
+  stage 3 (32000): seed-6: 9 structural, 34 fails, score 2.58e-11, 2416s
+  stage 3 (32000): seed-1: 12 structural, 31 fails, score 1.57e-10, 2454s
+stage 3: keep seed-20, seed-1; drop seed-6, seed-2
+  stage 4 (64000): seed-20: 5 structural, 18 fails, score 1.05e-06, 4088s
+  stage 4 (64000): seed-1: 11 structural, 26 fails, score 5.92e-09, 4758s
+stage 4: keep seed-20; drop seed-1
+  stage 5 (128000): seed-20: 3 structural, 16 fails, score 3.16e-06, 7718s
+
+winner seed-20: 3 structural, 16 fails, score 3.159e-06 (stage 5, budget 128000)
+wrote experiments/results/halving-harbor-rooms/winner.dom
