@@ -23329,3 +23329,22 @@ outlier from not resolving.
 **Decision**, by §39.254's rule (on beats off beyond the MDD): **both stay on**, which is also
 no change to the code. Both beads close. The verdict is marginal; a later A/B that finds the
 moves inert should not be read as contradicting this one.
+
+### 39.256 harbor-house and maple-court raced at today's objective: expectations (`homemaker-py-hlm1`)
+
+Every committed housing design collapsed under §39.249's token rule. Re-scored at
+`6191a33+orth`, the best of each: harbor-house `halving-harbor-guard/winner` 36 fails (13 of them
+a token room scored missing), maple-court `halving-maple-clean/winner` 34 (6 missing); the
+others run to 74. Those were 9-13 fails when raced. `run_halving_housing_rooms.sh` races each
+afresh, harbor-house first: seeder defaults plus `--clean-seeds`, 16 plans x 3 stair placements,
+48 written, 3 cold; `pivot3`, `remove_token` and `merge_circulation` on. About 5 h each. No
+pairing: no earlier race shares the objective. Written before it ran:
+
+1. **Each field has at least 40 candidates.**
+2. **Each winner beats its programme's best re-scored design by a wide margin**: harbor-house
+   under 20 fails, maple-court under 25. Most of the collapse is token rooms, which a race sizes
+   out of being tokens in its first stages, as health-centre's did.
+3. **Neither winner scores a room missing.**
+4. **Neither winner reaches its old best** (9 and 13): the dead-end and outdoor rules are new
+   costs on plans with long wings and terrace routes, which both programmes have.
+5. **A seed, not a cold candidate, wins each.**
