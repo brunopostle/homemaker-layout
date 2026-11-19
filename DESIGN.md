@@ -23299,3 +23299,33 @@ seed, with both moves on and off; pooled with §39.253's pairs, N = 126 (MDD abo
 
 Decision: on beats off beyond the MDD -> both stay on, both beads close. Otherwise §39.252's rule
 stands: both default off, flags kept.
+
+### 39.255 Stage-0 replicates of the moves A/B: read (`homemaker-py-hlm1`, `homemaker-py-5fje.25`)
+
+`run_halving_health_moves_rep.sh` ran 22:00-00:09, 2026-11-18/19, at `6191a33+orth 6191a33
+82241975c2`. No OFF-arm log credits either move. Moves on against off, stage-0 fails:
+
+| pairs | on | off | diff (off worse by) | 95% CI | MDD | W/L/T for off |
+|---|---|---|---|---|---|---|
+| §39.253 (42) | 28.36 | 29.64 | 1.29 | [-0.26, +2.83] | 1.54 | 15/19/8 |
+| r1 (42) | 28.52 | 29.24 | 0.71 | [-0.69, +2.12] | 1.41 | 19/15/8 |
+| r2 (42) | 28.69 | 29.05 | 0.36 | [-0.82, +1.54] | 1.18 | 16/18/8 |
+| **pooled (126)** | 28.52 | 29.31 | **0.79** | [+0.01, +1.57] | **0.78** | 50/52/24 |
+
+Structural, pooled: -0.18, MDD 0.32, underpowered.
+
+Against §39.254: (1) held; (2) **held at the margin** -- 0.786 against an MDD of 0.779, t p=0.048,
+but Wilcoxon p=0.25; (3) held, all three lean the same way, none resolves. §39.253's 1.29 was
+partly the luck of its draw.
+
+**What the effect is.** Not a typical run doing better: the median paired difference is 0 and
+the sign count is even (50 against 52). It is a tail. Without the moves a few runs end much worse
+-- `two-17` 47 fails against 25, `one-22` 48 against 36, `two-16-r1` 48 against 37, the last
+with 10 `narrow room` and 2 `inaccessible usable space`, the faults the moves exist to repair.
+Drop the single largest pair and the pooled margin (0.62) falls inside the MDD. So: the moves
+insure against bad runs rather than improving good ones, and the evidence for even that is one
+outlier from not resolving.
+
+**Decision**, by §39.254's rule (on beats off beyond the MDD): **both stay on**, which is also
+no change to the code. Both beads close. The verdict is marginal; a later A/B that finds the
+moves inert should not be read as contradicting this one.
