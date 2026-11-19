@@ -1,0 +1,17 @@
+stage 0: 126 candidates in both races
+
+fails:
+  N=126   moves mean 28.52   nomoves mean 29.31   50W/52L/24T (for nomoves)
+  mean diff -0.786  sd 4.421  95% CI [-1.565, -0.006]
+  t=-1.995  p=0.0482  wilcoxon p=0.2473
+  minimum detectable difference at N=126: 0.779
+     margin exceeds the MDD -- the sample can support a verdict.
+
+structural:
+  N=126   moves mean 6.83   nomoves mean 7.00   36W/36L/54T (for nomoves)
+  mean diff -0.175  sd 1.807  95% CI [-0.493, +0.144]
+  t=-1.085  p=0.2802  wilcoxon p=0.5011
+  minimum detectable difference at N=126: 0.319
+  ** UNDERPOWERED: the observed margin (0.175) is BELOW what N=126 can resolve.
+     This experiment could not distinguish it from zero however it came out. Do not declare a winner.
+     N ~= 414 would be needed for a margin this size.

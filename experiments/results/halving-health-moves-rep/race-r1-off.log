@@ -1,0 +1,46 @@
+health-centre: 42 candidates, budget 4000 rising x2 to 4000, ranked on total fails, 7 slots; at most 7 stages
+  stage 0 (4000): cold-c-r1: 9 structural, 19 fails, score 4.92e-07, 260s
+  stage 0 (4000): cold-a-r1: 9 structural, 29 fails, score 4.81e-10, 272s
+  stage 0 (4000): one-10-r1: 6 structural, 27 fails, score 1.81e-09, 274s
+  stage 0 (4000): one-12-r1: 3 structural, 27 fails, score 2.36e-09, 286s
+  stage 0 (4000): cold-b-r1: 11 structural, 33 fails, score 2.68e-11, 290s
+  stage 0 (4000): one-13-r1: 7 structural, 20 fails, score 2.21e-07, 308s
+  stage 0 (4000): one-11-r1: 9 structural, 34 fails, score 1.17e-11, 402s
+  stage 0 (4000): one-14-r1: 6 structural, 31 fails, score 1.06e-10, 240s
+  stage 0 (4000): one-16-r1: 4 structural, 24 fails, score 1.85e-08, 258s
+  stage 0 (4000): one-18-r1: 6 structural, 32 fails, score 5.72e-11, 266s
+  stage 0 (4000): one-19-r1: 3 structural, 34 fails, score 1.34e-11, 272s
+  stage 0 (4000): one-15-r1: 7 structural, 29 fails, score 4.83e-10, 323s
+  stage 0 (4000): one-17-r1: 7 structural, 28 fails, score 9e-10, 327s
+  stage 0 (4000): one-1-r1: 7 structural, 16 fails, score 4.72e-06, 320s
+  stage 0 (4000): one-21-r1: 4 structural, 33 fails, score 2.72e-11, 262s
+  stage 0 (4000): one-20-r1: 5 structural, 27 fails, score 2.07e-09, 316s
+  stage 0 (4000): one-3-r1: 6 structural, 19 fails, score 6.59e-07, 310s
+  stage 0 (4000): one-22-r1: 5 structural, 41 fails, score 8.96e-14, 352s
+  stage 0 (4000): one-4-r1: 4 structural, 22 fails, score 5.72e-08, 302s
+  stage 0 (4000): one-2-r1: 3 structural, 19 fails, score 5.9e-07, 341s
+  stage 0 (4000): one-5-r1: 5 structural, 24 fails, score 1.34e-08, 308s
+  stage 0 (4000): one-7-r1: 3 structural, 24 fails, score 1.74e-08, 296s
+  stage 0 (4000): one-6-r1: 8 structural, 24 fails, score 1.41e-08, 328s
+  stage 0 (4000): one-9-r1: 8 structural, 30 fails, score 2.55e-10, 226s
+  stage 0 (4000): two-10-r1: 3 structural, 29 fails, score 7.47e-10, 286s
+  stage 0 (4000): two-11-r1: 11 structural, 34 fails, score 1.52e-12, 296s
+  stage 0 (4000): one-8-r1: 7 structural, 18 fails, score 1.09e-06, 337s
+  stage 0 (4000): two-12-r1: 7 structural, 34 fails, score 1.86e-11, 270s
+  stage 0 (4000): two-14-r1: 6 structural, 36 fails, score 5.31e-12, 308s
+  stage 0 (4000): two-15-r1: 11 structural, 35 fails, score 1.14e-12, 302s
+  stage 0 (4000): two-13-r1: 10 structural, 36 fails, score 5.87e-12, 331s
+  stage 0 (4000): two-16-r1: 3 structural, 48 fails, score 9.59e-16, 314s
+  stage 0 (4000): two-1-r1: 7 structural, 17 fails, score 4.04e-06, 276s
+  stage 0 (4000): two-2-r1: 10 structural, 28 fails, score 1.69e-09, 340s
+  stage 0 (4000): two-17-r1: 17 structural, 42 fails, score 8.32e-14, 461s
+  stage 0 (4000): two-5-r1: 12 structural, 33 fails, score 5.51e-11, 306s
+  stage 0 (4000): two-4-r1: 5 structural, 33 fails, score 4.41e-11, 326s
+  stage 0 (4000): two-3-r1: 6 structural, 28 fails, score 1.58e-09, 363s
+  stage 0 (4000): two-6-r1: 8 structural, 33 fails, score 5.76e-11, 288s
+  stage 0 (4000): two-7-r1: 12 structural, 37 fails, score 3.18e-12, 300s
+  stage 0 (4000): two-8-r1: 13 structural, 29 fails, score 7.76e-10, 232s
+  stage 0 (4000): two-9-r1: 9 structural, 32 fails, score 1.8e-11, 254s
+
+winner one-1-r1: 7 structural, 16 fails, score 4.721e-06 (stage 0, budget 4000)
+wrote /home/bruno/halving-health-moves-rep/r1-off.winner.dom
