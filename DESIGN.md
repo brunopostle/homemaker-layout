@@ -23348,3 +23348,43 @@ pairing: no earlier race shares the objective. Written before it ran:
 4. **Neither winner reaches its old best** (9 and 13): the dead-end and outdoor rules are new
    costs on plans with long wings and terrace routes, which both programmes have.
 5. **A seed, not a cold candidate, wins each.**
+
+### 39.257 harbor-house and maple-court at today's objective: read (`homemaker-py-hlm1`)
+
+`run_halving_housing_rooms.sh`, 2026-11-19 09:23 to 11-20 01:19, at `6191a33+orth 6191a33
+82241975c2`. Winners drawn in `experiments/results/halving-{harbor,maple}-rooms/drawings/`.
+
+**harbor-house: `seed-20`, 16 fails, score 3.16e-06** (best re-scored committed design 36).
+8 proportion, 3 size, 2 crinkliness, 2 adjacency, and `level 0 not connected`. Three storeys
+round a 220 m^2 yard. Two of the size fails are the race padding plan with service rooms: the
+north strip is a 125.6 m^2 plant room me1 (target 25) on the ground and a 125.6 m^2 store st2
+(target 18) above it -- the cheapest way to fill a wide wing. The neighbourhood rooms `n` are
+long strips (proportion; `narrow room` is health-centre only).
+
+**maple-court: `seed-17`, 36 fails, score 5.34e-12** (best re-scored committed design 34, at 2.15e-11).
+15 crinkliness, 8 adjacency, 5 access, 3 size, 2 `inaccessible usable space`, `too few stairs
+(1, min 2)`, `too many spaces: me1`. A different kind of 36 from the old best's 34: no room
+missing, no `level` fail, all storeys connected; the old best had 9 `level` and 6 `missing`
+fails. The plan is an L of wings round a 282 m^2 yard with the north wing two rooms deep, so
+the back row is buried (crinkliness) and off the corridor (access, `not adjacent to c`). Its
+large `E` at the east end does not count as a second stair.
+
+Against §39.256:
+
+1. **At least 40 candidates -- failed** on both: `--clean-seeds` kept 28 of 48 (harbor-house)
+   and 30 (maple-court), so 31 and 33 raced.
+2. **Winners well under the re-scored best -- held for harbor-house** (16 < 20), **failed for
+   maple-court** (36 against an expected < 25, two fails worse than the old best by count, four
+   times lower in score). Its stage-3 survivors were at 40-46 fails; the last two stages took
+   off only 4.
+3. **No room scored missing -- held** on both. The token rule's collapse was repaired, as on
+   health-centre.
+4. **Neither back to its old best (9, 13) -- held.**
+5. **A seed wins -- held** on both (carry 0.805 and 0.838 against field medians of 0.67-0.68).
+
+**What it says.** harbor-house recovers to a usable design under the new rules, with an
+objective gap the owner will see at once: nothing stops plant or storage from swelling to fill
+a wing beyond its size fail. maple-court does not recover: its best seed is a deep double-row
+wing, the race cannot unbury it at 128k, and the field was a third smaller than planned. The
+next maple-court race needs a better field (seeds that are single-row, or a larger catalogue
+draw), not more budget.
