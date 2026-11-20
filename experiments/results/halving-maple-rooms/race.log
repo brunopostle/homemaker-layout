@@ -1,0 +1,78 @@
+maple-court: 33 candidates, budget 4000 rising x2 to 128000, ranked on total fails, 7 slots; at most 7 stages
+  stage 0 (4000): seed-12: 19 structural, 80 fails, score 2.39e-25, 508s
+  stage 0 (4000): seed-10: 39 structural, 91 fails, score 8.72e-29, 564s
+  stage 0 (4000): seed-16: 21 structural, 96 fails, score 3.48e-30, 592s
+  stage 0 (4000): seed-11: 13 structural, 77 fails, score 2.26e-24, 612s
+  stage 0 (4000): seed-14: 26 structural, 97 fails, score 9.36e-31, 641s
+  stage 0 (4000): seed-13: 14 structural, 114 fails, score 1.99e-35, 681s
+  stage 0 (4000): seed-15: 36 structural, 104 fails, score 1.59e-32, 693s
+  stage 0 (4000): seed-17: 18 structural, 76 fails, score 3.59e-24, 559s
+  stage 0 (4000): seed-19: 34 structural, 118 fails, score 7.66e-37, 501s
+  stage 0 (4000): seed-21: 15 structural, 101 fails, score 1.12e-31, 538s
+  stage 0 (4000): seed-18: 27 structural, 110 fails, score 2.28e-34, 673s
+  stage 0 (4000): seed-20: 21 structural, 105 fails, score 7.35e-33, 613s
+  stage 0 (4000): seed-1: 14 structural, 66 fails, score 5.24e-21, 703s
+  stage 0 (4000): seed-22: 17 structural, 98 fails, score 1.71e-30, 711s
+  stage 0 (4000): seed-24: 24 structural, 91 fails, score 1.28e-28, 531s
+  stage 0 (4000): seed-23: 26 structural, 100 fails, score 1.84e-32, 623s
+  stage 0 (4000): seed-27: 39 structural, 128 fails, score 7.85e-40, 637s
+  stage 0 (4000): seed-26: 20 structural, 111 fails, score 8.36e-35, 657s
+  stage 0 (4000): seed-25: 22 structural, 95 fails, score 7.22e-30, 697s
+  stage 0 (4000): seed-29: 24 structural, 135 fails, score 5.8e-42, 617s
+  stage 0 (4000): seed-28: 40 structural, 137 fails, score 2.3e-42, 707s
+  stage 0 (4000): seed-30: 9 structural, 120 fails, score 3.21e-37, 485s
+  stage 0 (4000): seed-2: 15 structural, 95 fails, score 1e-29, 663s
+  stage 0 (4000): seed-5: 25 structural, 109 fails, score 6.49e-34, 595s
+  stage 0 (4000): seed-4: 25 structural, 84 fails, score 1.69e-26, 655s
+  stage 0 (4000): seed-3: 24 structural, 93 fails, score 4.48e-29, 669s
+  stage 0 (4000): seed-6: 19 structural, 69 fails, score 4.15e-22, 635s
+  stage 0 (4000): seed-7: 11 structural, 90 fails, score 2.34e-28, 649s
+  stage 0 (4000): seed-8: 29 structural, 101 fails, score 1.5e-31, 599s
+  stage 0 (4000): cold-b: 58 structural, 153 fails, score 1.53e-51, 312s
+  stage 0 (4000): seed-9: 21 structural, 92 fails, score 7.57e-29, 583s
+  stage 0 (4000): cold-a: 53 structural, 129 fails, score 7.49e-44, 361s
+  stage 0 (4000): cold-c: 44 structural, 136 fails, score 1.4e-44, 341s
+stage 0: keep seed-1, seed-6, seed-17, seed-11, seed-12, seed-4, seed-7, seed-24, seed-10, seed-9, seed-3, seed-2, seed-25, seed-16, seed-14, seed-22, seed-23; drop seed-8, seed-21, seed-15, seed-20, seed-5, seed-18, seed-26, seed-13, seed-19, seed-30, seed-27, cold-a, seed-29, cold-c, seed-28, cold-b
+  stage 1 (8000): seed-1: 18 structural, 48 fails, score 1.35e-15, 918s
+  stage 1 (8000): seed-11: 14 structural, 66 fails, score 4.94e-21, 1054s
+  stage 1 (8000): seed-17: 17 structural, 69 fails, score 3.77e-22, 1168s
+  stage 1 (8000): seed-4: 25 structural, 78 fails, score 1.12e-24, 1236s
+  stage 1 (8000): seed-7: 11 structural, 87 fails, score 1.88e-27, 1263s
+  stage 1 (8000): seed-12: 20 structural, 69 fails, score 4.96e-22, 1269s
+  stage 1 (8000): seed-6: 16 structural, 54 fails, score 2.02e-17, 1287s
+  stage 1 (8000): seed-10: 29 structural, 74 fails, score 1.52e-23, 873s
+  stage 1 (8000): seed-24: 23 structural, 72 fails, score 7.07e-23, 1171s
+  stage 1 (8000): seed-2: 19 structural, 84 fails, score 1.32e-27, 1155s
+  stage 1 (8000): seed-3: 25 structural, 87 fails, score 2.89e-27, 1185s
+  stage 1 (8000): seed-9: 21 structural, 85 fails, score 8.49e-27, 1317s
+  stage 1 (8000): seed-25: 21 structural, 80 fails, score 2.18e-26, 1257s
+  stage 1 (8000): seed-16: 21 structural, 93 fails, score 2.8e-29, 1263s
+  stage 1 (8000): seed-14: 24 structural, 89 fails, score 2.92e-28, 991s
+  stage 1 (8000): seed-22: 18 structural, 100 fails, score 4.22e-31, 941s
+  stage 1 (8000): seed-23: 22 structural, 92 fails, score 5.56e-29, 829s
+stage 1: keep seed-1, seed-6, seed-11, seed-12, seed-17, seed-24, seed-10, seed-4, seed-25; drop seed-2, seed-9, seed-3, seed-7, seed-14, seed-23, seed-16, seed-22
+  stage 2 (16000): seed-12: 19 structural, 65 fails, score 8.04e-21, 1968s
+  stage 2 (16000): seed-1: 17 structural, 41 fails, score 1.81e-13, 2116s
+  stage 2 (16000): seed-17: 19 structural, 52 fails, score 3.37e-17, 2166s
+  stage 2 (16000): seed-11: 12 structural, 57 fails, score 2.31e-18, 2321s
+  stage 2 (16000): seed-24: 23 structural, 63 fails, score 2.92e-20, 2331s
+  stage 2 (16000): seed-10: 28 structural, 63 fails, score 2.53e-20, 2359s
+  stage 2 (16000): seed-6: 16 structural, 53 fails, score 4.17e-17, 2465s
+  stage 2 (16000): seed-4: 24 structural, 73 fails, score 3.82e-23, 1579s
+  stage 2 (16000): seed-25: 19 structural, 74 fails, score 1.56e-23, 1439s
+stage 2: keep seed-1, seed-17, seed-6, seed-11, seed-24; drop seed-10, seed-12, seed-4, seed-25
+  stage 3 (32000): seed-1: 18 structural, 40 fails, score 3.67e-13, 3114s
+  stage 3 (32000): seed-17: 17 structural, 42 fails, score 5.56e-14, 3378s
+  stage 3 (32000): seed-11: 9 structural, 46 fails, score 5.91e-15, 3452s
+  stage 3 (32000): seed-24: 22 structural, 58 fails, score 9.84e-19, 3557s
+  stage 3 (32000): seed-6: 18 structural, 51 fails, score 1.66e-16, 3659s
+stage 3: keep seed-1, seed-17, seed-11; drop seed-6, seed-24
+  stage 4 (64000): seed-1: 18 structural, 39 fails, score 7.53e-13, 5524s
+  stage 4 (64000): seed-17: 15 structural, 41 fails, score 1.16e-13, 5766s
+  stage 4 (64000): seed-11: 7 structural, 42 fails, score 9.83e-14, 5961s
+stage 4: keep seed-1, seed-17; drop seed-11
+  stage 5 (128000): seed-1: 18 structural, 38 fails, score 1.52e-12, 10751s
+  stage 5 (128000): seed-17: 18 structural, 36 fails, score 5.34e-12, 11171s
+
+winner seed-17: 18 structural, 36 fails, score 5.344e-12 (stage 5, budget 128000)
+wrote experiments/results/halving-maple-rooms/winner.dom
