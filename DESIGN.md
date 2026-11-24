@@ -23509,3 +23509,64 @@ harbor-house's field ends with no programme room over 3x its target in the winne
 no worse than §39.257's 16 fails; maple-court unchanged in fails within the field's spread (its
 swelling is mostly in cold designs, not its race finalists). Needs the box: a halving race with
 and without, paired at stage 0 (`pair_halving_stages.py`).
+
+### 39.260 Routed circulation, evaluated: a router recovers the connectivity but not the score (`homemaker-py-8b2u.17`)
+
+The bead's container half. `experiments/diag_8b2u17_route.py` erases the circulation a search
+found (every `C`; stairs `E` stay, as the anchors) and routes it back, storey by storey from the
+ground: seed a corridor where a storey has none, join the circulation pieces with
+`seed_from_catalogue.bridge_indoors` unchanged, then reach every room the scorer's own
+`Fitness.access` calls unserved by its cheapest path (an unlabelled cell becomes corridor, a room
+on the path gives up a 1.6 m strip chosen, of eight placements that serve the target, by building
+score). Two erasures: **`merge`** folds each `C` into its sibling room where it can (so the router
+must cut corridors through rooms; the honest test), **`free`** leaves every `C` cell unlabelled
+for the router to re-choose. Cells still unlabelled go to their sibling room, else become `C`.
+`--self-test` holds three controls: routing an intact design changes nothing; erasing alone
+(remainder made `O`, not quietly `C` again -- the first version of the control caught exactly
+that) breaks connectivity, 11 connection fails on the control design; nothing unlabelled survives.
+
+60 designs: race finals, winners and drawings, and the `4428262+orth` cold corpus. "conn" counts
+the connection family (`not connected`, `inaccessible usable space`, `access`, `not adjacent to
+c`, `no outside public access`); means per design, `merge` mode, no re-tuning:
+
+| programme | kind | n | conn: search / erased / routed | fails: search / routed | routed beats search | corridor area routed/search (median) |
+|---|---|---|---|---|---|---|
+| harbor-house | race | 5 | 10.0 / 40.6 / 14.2 | 34.0 / 65.8 | 0 | 1.07 |
+| health-centre | race | 17 | 2.1 / 28.4 / 2.5 | 8.5 / 17.3 | 1 | 0.95 |
+| maple-court | race | 26 | 5.7 / 68.3 / 5.4 | 50.7 / 55.8 | 11 | 0.99 |
+| harbor-house | cold | 3 | 17.0 / 42.0 / 11.7 | 51.3 / 70.3 | 0 | 1.27 |
+| health-centre | cold | 3 | 7.0 / 34.7 / 9.0 | 18.3 / 36.3 | 0 | 1.31 |
+| maple-court | cold | 3 | 17.0 / 75.7 / 14.3 | 82.3 / 115.7 | 0 | 1.14 |
+| programme-house | cold | 3 | 0 / 1.3 / 0 | 3.0 / 3.0 | 0 (all x1) | 1.00 |
+
+**Connectivity: yes.** From 28-76 connection fails erased, the router lands at the search's own
+level (maple race 5.4 against 5.7, health race 2.5 against 2.1; harbor worse, 14.2 against 10.0)
+with about the same corridor floor on race designs. It recovers programme-house's corridor
+exactly. Of the rule families, it removes 47 `dead end` and 38 `access` lines across the corpus.
+
+**Score: no, mostly.** Total fails double on harbor and health-centre. By family, the routed
+designs gain `size` 187, `crinkliness` 158, `superfluous circulation` 110, `level N not
+connected` 90 (and lose 37), `proportion` 76, `not adjacent to` 63, `width` 53, missing rooms
+52. The likely mechanisms, not yet isolated: a fixed 1.6 m strip cut through a room leaves it
+short, buried or a token, and a cell the router did not use becomes a stray corridor. Re-tuning both sides for 80 inner-loop evaluations
+(`--inner 80`) changes nothing material (maple race beats 10 of 26, health 1 of 17; the three
+programme-house rows of that run were lost and re-run separately, all x1). `free` mode, where the
+router may re-use the search's own corridor cells, comes out close to the search on health-centre
+(median x0.997, 11.9 fails against 8.5) and maple race (median x1.0): given the search's
+cells, routing picks nearly its corridor.
+
+**Where it wins** is one family: maple-court's double-loaded finals -- `join-clean9` and
+`split-stair-race` `final-double-*` and `halving-maple-single`'s winner -- go 53-56 fails to
+47-49, x63-x126, in both modes, plus `final-single-1` (x3.9) and `final-single-7` (x2.0). Those
+eight "double" designs share a lineage (§39.194-§39.198), so this is about three independent
+designs, not eleven: a real but narrow result.
+
+**What it says for the bead.** Taking circulation out of the genome is not supported: routed
+after the fact, corridors cost the rooms they cross more than the search's evolved spine costs,
+on four of five groups. As a REPAIR it has a niche -- connection fails cleared to the search's
+level in one step, and a large win where the search left a disconnected or dead-ended spine
+(maple). That is the bead's own order: a repair operator first (route only the storeys that fail
+connectivity or access, keep the result only if it scores better, as `bridge_circulation` is
+compared), and the box to judge it. Two refinements this measurement suggests before that: size
+the strip by the room's slack rather than a fixed 1.6 m (the likeliest source of the added `size`/`crinkliness`),
+and give a cell the router does not use to its largest neighbouring room, not to `C`.

@@ -235,7 +235,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (364 of them, 23511 lines)
+## Every section of DESIGN.md (365 of them, 23572 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -650,4 +650,5 @@ below are the most recent work.
 - §39.256 · 23333-23351 · harbor-house and maple-court raced at today's objective: expectations (`homemaker-py-hlm1`)
 - §39.257 · 23352-23391 · harbor-house and maple-court at today's objective: read (`homemaker-py-hlm1`)
 - §39.258 · 23392-23464 · Oversized rooms are not cheap; they are unreachable (`homemaker-py-s36o`)
-- §39.259 · 23465-23511 · `trim_oversized`: the move that makes §39.258's fix, measured on the corpus (`homemaker-py-s36o.1`)
+- §39.259 · 23465-23512 · `trim_oversized`: the move that makes §39.258's fix, measured on the corpus (`homemaker-py-s36o.1`)
+- §39.260 · 23513-23572 · Routed circulation, evaluated: a router recovers the connectivity but not the score (`homemaker-py-8b2u.17`)
