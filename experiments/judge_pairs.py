@@ -148,6 +148,147 @@ def choose(scored, labels, n_pairs, per_design, exclude=frozenset()):
     return _take(cands, n_pairs, per_design)
 
 
+def parti(path):
+    """The design's parti: its ground storey as a slicing expression of
+    built (B) and open (O) blocks, like the catalogue's `H(V(B O) B)`
+    (`wings_catalogue`). Each cell is B or O; siblings of one class merge;
+    a cut that sets its two sides one above the other along the frame's
+    second axis is H, side by side along its first V -- the catalogue's own
+    convention, checked by `parti_self_test` on every seed of two races whose
+    build log names its parti; nested cuts on one axis flatten. Read
+    from the tree, so it names the plan a design HAS, not the seed it came
+    from. Mirror-canonical: of an expression and its reverse, the smaller."""
+    import report_card as rc
+    from homemaker_layout import dom, geometry
+
+    root = dom.load(str(rc.REPO / path))
+    dom.link(root)
+    geometry.clear_cache()
+    lvl = dom.levels(root)[0]
+    u = None
+
+    def walk(n):
+        """("B"|"O") or (axis, [parts]), same-axis parts flattened and
+        consecutive equal blocks merged."""
+        nonlocal u
+        if not n.divided:
+            if n.void:
+                return None
+            return "O" if dom.is_outside(n) else "B"
+        a, b = walk(n.left), walk(n.right)
+        if a is None or b is None:
+            return a or b
+        if a == b and a in ("B", "O"):
+            return a
+        ca, cb = geometry.centroid(n.left), geometry.centroid(n.right)
+        if u is None:
+            u = getattr(dom.levels(root)[0], "frame_u", None) or [1.0, 0.0]
+        du = abs((ca[0] - cb[0]) * u[0] + (ca[1] - cb[1]) * u[1])
+        dv = abs(-(ca[0] - cb[0]) * u[1] + (ca[1] - cb[1]) * u[0])
+        ax = "V" if du >= dv else "H"      # the catalogue's convention (checked on its seeds)
+        parts = []
+        for x in (a, b):
+            for y in (x[1] if isinstance(x, tuple) and x[0] == ax else [x]):
+                if parts and y in ("B", "O") and parts[-1] == y:
+                    continue
+                parts.append(y)
+        return parts[0] if len(parts) == 1 else (ax, parts)
+
+    def text(x):
+        return x if isinstance(x, str) else f"{x[0]}({' '.join(text(y) for y in x[1])})"
+
+    e = text(walk(lvl) or "O")
+    return min(e, _reverse(e))
+
+
+def parti_self_test(a=None) -> int:
+    """Control for `parti`: every seed of the two housing races was built
+    from a catalogue parti that its build log names ("wrote <file> (<parti>,
+    cores ..."), so `parti` of the seed must give it back. The first version
+    had H and V swapped and matched 0 of 58."""
+    import re
+    import report_card as rc
+    ok = n = 0
+    for race in ("halving-harbor-rooms", "halving-maple-rooms"):
+        log = rc.REPO / "experiments" / "results" / race / "build-seed.log"
+        for line in log.read_text().splitlines():
+            m = re.match(r"wrote (\S+)\s+\((.*?), cores", line)
+            if not m or not (rc.REPO / m.group(1)).exists():
+                continue
+            want = min(m.group(2), _reverse(m.group(2)))
+            got = parti(m.group(1))
+            n += 1
+            ok += got == want
+            if got != want:
+                print(f"  {m.group(1)}: log {want}, read {got}")
+    print(f"parti self-test: {ok}/{n} seeds give back their logged parti")
+    return 0 if n and ok == n else 1
+
+
+def _reverse(expr):
+    """The mirror image of a slicing expression: every block list reversed."""
+    if expr in ("B", "O"):
+        return expr
+    ax, inner = expr[0], expr[2:-1]
+    parts, depth, cur = [], 0, ""
+    for ch in inner:
+        if ch == " " and depth == 0:
+            parts.append(cur)
+            cur = ""
+            continue
+        depth += ch == "("
+        depth -= ch == ")"
+        cur += ch
+    parts.append(cur)
+    return f"{ax}({' '.join(_reverse(x) for x in reversed(parts))})"
+
+
+# The columns the judge has decided on (§39.228); a matched pair ties on all of them
+TIED = ("missing", "circ_pieces", "connected", "storeys")
+SHAPE_COLS = ("jogs", "yards", "yard_share", "yard_usable_share", "yard_walled",
+              "covered_m2", "overhang_m2")
+
+
+def choose_matched(scored, partis, n_pairs, per_design, exclude=frozenset(), labels=()):
+    """`homemaker-py-5fje.18`: pairs of one programme TIED on what the judge
+    has decided by -- missing rooms, circulation pieces, storeys connected and
+    storeys, sliver cells within one -- and of DIFFERENT parti (the owner's
+    note on §39.229), strongest shape difference first: the sum over
+    `SHAPE_COLS` of |difference| / the column's spread in the programme."""
+    by_prog = {}
+    for path, d in scored.items():
+        by_prog.setdefault(d["programme"], []).append(path)
+    cands = {}
+    for prog, paths in by_prog.items():
+        spread = {}
+        for c in SHAPE_COLS:
+            vals = [scored[p]["card"].get(c) for p in paths]
+            vals = [v for v in vals if isinstance(v, (int, float)) and not math.isnan(v)]
+            spread[c] = (statistics.pstdev(vals) if len(vals) > 1 else 0.0) or 1.0
+        logs = {lab: {p: math.log(max(scored[p]["scores"][lab], 1e-300)) for p in paths}
+                for lab in labels}
+        lspread = {lab: statistics.pstdev(logs[lab].values()) or 1.0 for lab in labels}
+        rows = []
+        for a, b in combinations(sorted(paths), 2):
+            if frozenset((a, b)) in exclude:
+                continue
+            ca, cb = scored[a]["card"], scored[b]["card"]
+            if any(ca[c] != cb[c] for c in TIED):
+                continue
+            if abs(ca["sliver_cells"] - cb["sliver_cells"]) > 1 or partis[a] == partis[b]:
+                continue
+            strength = 0.0
+            for c in SHAPE_COLS:
+                x, y = ca.get(c), cb.get(c)
+                if all(isinstance(v, (int, float)) and not math.isnan(v) for v in (x, y)):
+                    strength += abs(x - y) / spread[c]
+            z = {lab: (logs[lab][a] - logs[lab][b]) / lspread[lab] for lab in labels}
+            rows.append((strength, a, b, z))
+        rows.sort(key=lambda r: -r[0])
+        cands[prog] = rows
+    return _take(cands, n_pairs, per_design)
+
+
 def _take(cands, n_pairs, per_design, key=lambda path: path):
     """Strongest first, programmes in turn, each ``key`` in at most
     ``per_design`` pairs. ``cands``: {prog: [(strength, a, b, z)]}."""
@@ -305,7 +446,13 @@ def build(a):
     else:
         exclude = judged_before() - (set() if not (out / "pairs.json").exists() else {
             frozenset((p["a"], p["b"])) for p in json.loads((out / "pairs.json").read_text())})
-        chosen = choose(scored, labels, a.pairs, a.per_design, exclude)
+        if a.matched:
+            partis = {p: parti(p) for p in scored}
+            for p in scored:
+                scored[p]["card"]["parti"] = partis[p]
+            chosen = choose_matched(scored, partis, a.pairs, a.per_design, exclude, labels)
+        else:
+            chosen = choose(scored, labels, a.pairs, a.per_design, exclude)
     out.mkdir(parents=True, exist_ok=True)
     manifest = []
     for i, (prog, strength, pa, pb, z) in enumerate(chosen, 1):
@@ -586,15 +733,20 @@ def main() -> int:
                    help="judge whole arms: contrasts x:y,... over the paired starts of "
                         "--arms-dir, e.g. A0-fails:P1-fails")
     b.add_argument("--arms-dir", default=str(HERE / "results" / "phase3-q2"))
+    b.add_argument("--matched", action="store_true",
+                   help="homemaker-py-5fje.18: pairs tied on missing rooms, circulation "
+                        "pieces, storeys connected and slivers, of different parti")
     k = sub.add_parser("ask", help="put a round's pairs to the judge")
     k.add_argument("--round")
     k.add_argument("--no-browser", action="store_true")
+    sub.add_parser("parti-test", help="control: seeds give back their logged parti")
     r = sub.add_parser("report", help="what the answers say")
     r.add_argument("--round")
     r.add_argument("--rescore", action="store_true",
                    help="score every design and its card with today's code, not as built")
     a = ap.parse_args()
-    return {"build": build, "ask": ask, "report": report}[a.cmd](a)
+    return {"build": build, "ask": ask, "report": report,
+            "parti-test": parti_self_test}[a.cmd](a)
 
 
 if __name__ == "__main__":

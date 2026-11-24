@@ -238,7 +238,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (367 of them, 23674 lines)
+## Every section of DESIGN.md (368 of them, 23711 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -656,4 +656,5 @@ below are the most recent work.
 - §39.259 · 23465-23512 · `trim_oversized`: the move that makes §39.258's fix, measured on the corpus (`homemaker-py-s36o.1`)
 - §39.260 · 23513-23573 · Routed circulation, evaluated: a router recovers the connectivity but not the score (`homemaker-py-8b2u.17`)
 - §39.261 · 23574-23629 · Min-cut partitioning seeds: fewer connection fails everywhere, fewer fails only on the small programmes (`homemaker-py-8b2u.18`)
-- §39.262 · 23630-23674 · A shape-fail floor from the shape-curve DP ranks children no better than one score (`homemaker-py-ldj`)
+- §39.262 · 23630-23675 · A shape-fail floor from the shape-curve DP ranks children no better than one score (`homemaker-py-ldj`)
+- §39.263 · 23676-23711 · Judging round 3: pairs tied on what the judge decides by, of different parti -- expectations (`homemaker-py-5fje.18`)

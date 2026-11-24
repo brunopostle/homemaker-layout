@@ -23672,3 +23672,40 @@ A prune built on it would discard children the scorer would have relabelled into
 children, buys reach for a warm start that §39.78 and §39.106 already found does not pay. Nothing
 here is worth wiring into `driver._evaluate`; the tool stays for a future question that needs the
 floor itself (e.g. "is this programme shape-feasible on this plot at all").
+
+### 39.263 Judging round 3: pairs tied on what the judge decides by, of different parti -- expectations (`homemaker-py-5fje.18`)
+
+§39.228 found that the judge decides on sliver cells, missing rooms and circulation pieces, and
+only remarks on shape. This round asks whether shape decides when those are equal. `judge_pairs.py
+build --matched` pairs designs of one programme that TIE on missing rooms, circulation pieces,
+storeys connected and storeys, with sliver cells within one, and whose PARTI differs (the
+owner's note on §39.229: pair on parti, not on `yard_big_share`); strongest first by the summed,
+spread-normalised difference over the shape columns (jogs, yards, yard share, usable share,
+walled share, covered and overhang m2). A design's parti is read from its own ground storey
+(`judge_pairs.parti`): each cell built or open, like siblings merged, cuts as H/V in the
+catalogue's convention, mirror-canonical; its control (`judge_pairs.py parti-test`) gives back
+the logged parti of all 58 seeds of the two housing races (the first version had H and V swapped
+and matched none).
+
+Expectations, written before the round is built. If shape decides when the deciders tie, the
+chosen plan, per the owner's §39.229 rulings, should have:
+
+1. **fewer jogs** (corners cost to build and complicate the roof) in at least two thirds of the
+   pairs where jogs differ;
+2. **more yards** (many small yards are good) in more than half of the pairs where yards differ;
+3. **less covered outside** and **less overhang** (open-topped is more versatile; storeys that
+   stack) in more than half of the pairs where each differs.
+
+The null this round can return: agreement near half on every column and notes that name other
+things -- room sizes, daylight, a particular room's place -- which would say that shape is
+weighed only after things this card does not measure. Either outcome is read against these lines,
+not re-described after.
+
+**Built** (`build --round 3 --matched --pairs 20 --per-design 2`): 20 pairs, five per programme,
+from 117 designs distinct by content (the report card's 98, the race finals, winners and
+drawings, and the newest cold corpus; the first build drew one pair twice because two race files
+are byte-identical, so the pool is now deduplicated by content). Every pair ties on all four
+deciders and differs in parti. One caveat for the reading: an evolved cold design's ground storey
+is a deep expression, so for those "different parti" is nearly automatic; the pairs where it is
+a real choice are the race designs and programme-house. To answer:
+`python experiments/judge_pairs.py ask --round 3`.
