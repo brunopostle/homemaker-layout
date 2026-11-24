@@ -224,6 +224,9 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | `--retype-kind` | §39.158 (addendum) | null at n = 4 on maple-court, as expected |
 | Divide and conquer: a wing solved on its own, or searched inside the frozen rest of the building | §39.165, §39.166 | loses exactly the relations across the cut; frozen search lost to whole-building search on 3 of 3 seeds at equal budget -- a repair tool for a finished design, not a route to one. Untested: frozen passes as a polish after a whole search |
 | A child budget that depends on the move; supporting a terrace without shrinking a room | §39.122 | both SET ASIDE unbuilt, not measured negative; the section says what would bring each back |
+| Corridors routed after the rooms (erase and route) | §39.260 | connectivity recovered to the search's level, but total fails double on harbor-house and health-centre; wins on ~3 maple-court designs. Circulation stays evolved; a route REPAIR is untested (`8b2u.17.1`) |
+| Min-cut partitioning seeds | §39.261 | fewer connection fails on every programme, but fewer fails only on programme-house (health-centre: fewer hard fails); worse on harbor-house. A stacked, whole-building partition is untested |
+| The shape-curve DP's floor as a ranking signal for children | §39.262 | no better than one ordinary score (Spearman 0.80 vs 0.96) at two scores' cost; not a safe bound under `collapse_insearch` |
 | P1-fails' hard-fail lead over A0-fails | §39.220, §39.226 | resolved once (−1.25, MDD 1.09), did not reproduce at the sliver objective (68 vs 67 hard over 12 runs); read as noise |
 
 ## Where the current state is
