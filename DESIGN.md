@@ -23388,3 +23388,76 @@ a wing beyond its size fail. maple-court does not recover: its best seed is a de
 wing, the race cannot unbury it at 128k, and the field was a third smaller than planned. The
 next maple-court race needs a better field (seeds that are single-row, or a larger catalogue
 draw), not more budget.
+
+### 39.258 Oversized rooms are not cheap; they are unreachable (`homemaker-py-s36o`)
+
+§39.257's harbor-house winner fills a north strip with a 125.6 m^2 plant room `me1` (target 25)
+and the same cell above as a store `st2` (target 18), one `size` line each. The bead asked for a
+rule against that, priced, to put to the owner. `experiments/diag_oversized_rooms.py` is the
+tool (the mirror of `diag_shrunk_rooms.py`, with `--self-test` as its control); every number
+here is today's code at `6191a33+orth`, over 116 committed designs (race finals, winners and
+drawings, and the six `+orth` cold corpora).
+
+**What the objective already does.** A swollen room's size gaussian is ~0, so its value is
+already ~0 and its cost is paid in full. Every room over 2x its target already carries a `size`
+fail (only toilets at 1.5-2x escape it). `area_cap`, the owner's "no more than 20%" (§39.58),
+puts the winner at 1.12x the cap (1.34x the programme), a x0.73 factor and no line: its
+sigma of 0.15x means the cap fails only past 1.59x the programme. Without the two swollen rooms'
+208 m^2 the building would be at about 1.09x the programme.
+
+**Swelling is not a service-room habit.** 109 programme rooms sit over 2x their target across
+the 116 designs. Service rooms (`utility`/`none`) are 3 of them, all harbor-house. The rest are
+toilets (a 46.6 m^2 `tt` at 7.8x in a maple-court race final, a 44 m^2 `wc` in the harbor
+`split` winner) and bedrooms, mostly in the maple-court cold corpora.
+
+**Priced**, in line-equivalents (-log2 of the score ratio; exact, since each candidate only adds
+lines or narrows a building factor). Cells are designs affected / line-equivalents added:
+
+| programme | kind | n | svc>2 | all>2 | all>3 | all-log2 | cap sigma 0.10 | cap sigma 0.05 |
+|---|---|---|---|---|---|---|---|---|
+| harbor-house | cold | 18 | 1/1 | 10/16 | 8/10 | 10/21 | 13/14 | 14/83 |
+| harbor-house | race | 5 | 1/2 | 3/5 | 3/4 | 3/9 | 1/1 | 1/5 |
+| health-centre | cold | 17 | 0 | 0 | 0 | 0 | 3/1 | 5/8 |
+| health-centre | race | 17 | 0 | 1/1 | 1/1 | 1/1 | 2/1 | 3/8 |
+| maple-court | cold | 18 | 0 | 17/84 | 17/64 | 17/155 | 18/145 | 18/908 |
+| maple-court | race | 26 | 0 | 2/3 | 1/2 | 2/5 | 0 | 1/0 |
+| programme-house | cold | 15 | 0 | 0 | 0 | 0 | 2/0 | 3/4 |
+
+(`svc>N` / `all>N`: one hard `oversized room` line for a service room / any programme room over
+N x its effective target, leaf sharing and co-types included; `all-log2`: one line per doubling;
+`cap sigma`: `area_cap` with a narrower gaussian, sigma as a fraction of the cap.) A
+service-room rule touches two designs in 116; a cap that bites at the owner's 20% falls hardest
+on maple-court's cold corpora, which are 1.25-1.64x the cap.
+
+**The finding that matters: the fix already wins.** `--trim` cuts each room over 2x to its target
+area (both orientations, either side, a small ratio neighbourhood), the remainder outside space
+or corridor, the cell at the same path on every storey above cut with it (a cut below is
+inherited there); 8 rooms are skipped because a cell above is divided and would lose its own
+cut. On the §39.257 winner, `me1` and `st2` cut to 20% with a ground-floor yard open above go
+from **16 fails to 12, score x28** (3.16e-06 to 8.91e-05): both `size` and both `proportion`
+lines go, and a `crinkliness`, for one `level 2 no outside space`. Across the corpus:
+
+| programme | kind | rooms | trim scores better | median score ratio | fails removed (mean) |
+|---|---|---|---|---|---|
+| harbor-house | race | 5 | 5 | x2.09 | 1.2 |
+| health-centre | race | 1 | 1 | x2.04 | 1.0 |
+| maple-court | race | 3 | 3 | x8.34 | 3.0 |
+| harbor-house | cold | 14 | 8 | x1.29 | -0.4 |
+| maple-court | cold | 78 | 71 | x3.25 | 0.8 |
+
+88 of 101 trims score better under today's objective, all nine on race designs; the best
+remainder is outside space 83 times in 88. Lines lost are mostly `size` (106) and `crinkliness`
+(90: the cut opens the remainder to light); lines gained mostly `proportion` (61). The 13
+that do not win break something else -- a room above cut into a token and scored missing, or an
+adjacency lost -- and four of them are within one line of winning.
+
+**What it says.** The objective does not let a swollen room off cheaply: it already prefers the
+trimmed plan, by x2 to x28 on every race design. The search does not find it because the fix is
+a compound edit -- a cut on the ground, the same cut inherited above, a ratio near target/area,
+and the right filler on each storey -- which is §4.10's deceptive valley again. A rule would widen
+a gap that is already there and leave the valley as deep. So the lever is search-side, a move:
+cut an oversized room to its target, the remainder outside (filed as `homemaker-py-s36o.1`;
+whether it earns its draw needs the box). Whether the owner also wants an `oversized room` rule
+on principle -- the mirror of the token ruling, §39.249 -- stays open on `s36o`; if so, `all>2`
+is the natural threshold (the size gaussian already fails every room past it, and it does not
+single out service rooms, which the corpus says are a minority of the swelling).
