@@ -23570,3 +23570,59 @@ connectivity or access, keep the result only if it scores better, as `bridge_cir
 compared), and the box to judge it. Two refinements this measurement suggests before that: size
 the strip by the room's slack rather than a fixed 1.6 m (the likeliest source of the added `size`/`crinkliness`),
 and give a cell the router does not use to its largest neighbouring room, not to `C`.
+
+### 39.261 Min-cut partitioning seeds: fewer connection fails everywhere, fewer fails only on the small programmes (`homemaker-py-8b2u.18`)
+
+The bead's container half. `experiments/diag_8b2u18_mincut.py` replaces just two steps of the
+default seed path, per storey -- `_grow_leaves` (a random tree) and `_assign_adjacency_aware` (its
+geometric labelling) -- with a slicing tree chosen by recursive min-cut bisection, and leaves the
+rest as the default search does it: the storey split, leaf sharing, sizing from targets, and the
+80 evaluations a constructed seed gets in `driver._evaluate`. Same rng seed for both arms.
+
+- **Netlist, any-of.** Items are the storey's rooms as the constructor lists them, plus its `C`
+  and `O` cells in the numbers it would grow. "a next to t" means each a needs SOME t, so each
+  instance of a is joined to each of the n instances of t at 1/n; a room asking for `c` is joined
+  that way to the storey's `C` cells (and `o` to `O`), which spreads circulation over the tree in
+  proportion to the rooms that need it.
+- **Bisection.** Area-weighted (a room its target, `C` half a mean room, `O` a mean room), each
+  side 30-70%, FM-style single moves and swaps from six random starts, lowest cut kept. Each own
+  cut takes the axis whose children are squarer at the sides' area fraction.
+- **A cut inherited from below is respected.** The first version did not: a node whose path is
+  divided on the storey below draws THAT cut, so a balanced upper tree got the ground's fractions,
+  and every token in its seeds (25% of target, scored missing) sat under an inherited cut (harbor
+  7 in 4 seeds, the default 0). Now such a node partitions its items to the inherited fraction
+  +-8%: tokens fell to 4 (harbor) and 5 (maple, default 3). `--no-inherit` keeps the first
+  version.
+
+Before building, a gate that §37.8's finding suggested -- that the room graph is nearly empty, so
+any balanced bisection would cut nothing -- does NOT hold on today's programmes: random
+area-balanced bisections cut a median 23 (harbor-house) and 32 (maple-court) instance edges where
+Kernighan-Lin reaches 0; only programme-house has 91% of bisections at the minimum.
+
+Three arms, 36 seeds each, fails after the seed's 80 evaluations, paired through `ab_report`
+(diff = default minus arm; positive is the arm better):
+
+| programme | default | min-cut, every storey | min-cut, ground only | connection fails, ground only |
+|---|---|---|---|---|
+| programme-house | 17.1 | 10.6 (+6.5, resolved) | 9.9 (+7.2, resolved) | 4.5 -> 2.8 (+1.7, p<0.001) |
+| health-centre | 39.1 | 37.8 (+1.3, underpowered); hard 20.4 -> 15.1 (+5.3, resolved) | = every storey (its seeds are single-storey) | 18.1 -> 15.8 (+2.3, p 0.002) |
+| harbor-house | 82.6 | 88.9 (-6.3, resolved) | 94.1 (-11.5, resolved) | 13.0 -> 10.5 (+2.5, p 0.005) |
+| maple-court | 133.0 | 142.3 (-9.3, resolved) | 131.4 (+1.6, underpowered) | 17.3 -> 9.6 (+7.8, p<0.0001) |
+
+**Min-cut does what it is for.** Ground-only, connection fails fall on every programme, resolved,
+and adjacency fails on maple (-1.5) and health (-1.8); every-storey min-cut also cuts harbor's
+adjacency fails (-1.8, p 0.004). The tree follows the netlist.
+
+**It is not a better seed on the big programmes.** Harbor-house loses either way, and
+ground-only loses MORE than every-storey, so the loss is not only the inherited-cut collision: a
+min-cut ground storey also costs the default upper storeys built on it, in shape and missing
+rooms (why, not isolated). Maple-court is level ground-only and loses every-storey. The two small
+programmes win outright, health-centre on hard fails.
+
+**What it says.** A min-cut seeder buys structural fails at the price of shape on the large
+programmes, and is clearly better only on the small ones -- whose 500k searches already end at
+0-2 (programme-house) and 6-35 (health-centre) fails. §12.2 found seeding an accelerator, not a
+new asymptote, so whether any of this survives a search is the box's question. Not promoted to
+a flag here: the case for spending a race on it is health-centre's hard fails and maple's
+connection fails, and a stacked formulation (partition the whole building, so the upper storeys
+are not built blind on a min-cut ground) is the better candidate to race than either arm above.
