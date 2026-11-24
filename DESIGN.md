@@ -23626,3 +23626,49 @@ new asymptote, so whether any of this survives a search is the box's question. N
 a flag here: the case for spending a race on it is health-centre's hard fails and maple's
 connection fails, and a stacked formulation (partition the whole building, so the upper storeys
 are not built blind on a min-cut ground) is the better candidate to race than either arm above.
+
+### 39.262 A shape-fail floor from the shape-curve DP ranks children no better than one score (`homemaker-py-ldj`)
+
+`ldj`'s direction (b): `shapecurve.is_feasible` is a gate that almost never opens on the full
+programmes (§38.24), but an infeasible topology still has a best-achievable number of leaves that
+must miss their size/width/proportion bounds, and that floor could rank candidates.
+`experiments/diag_ldj_floor.py` computes it with the DP's own model: a leaf's table V[w, h] is 0
+where the shape clears `leaf_constraints` and 1 where it does not; a cut composes its children by
+min-plus convolution along the summed dimension (each child in the parent's frame by rotation
+parity, as `_child_contrib`); the floor is the region root's value at its box (grid
+g[i] = (i+1)Δ, 120 points, so sums land on the grid exactly). Regions, below-fixed leaves and
+the merged copy as `is_feasible` takes them; an upper storey's fixed boxes are read from the tree
+as it stands, so on several storeys it is the floor given the lower storeys' current ratios.
+
+**The checks hold.** On the 12 `4428262+orth` artefacts floor 0 agrees with `is_feasible` 12/12
+and the floor never exceeds the shape fails the tree has at its own ratios. Where `is_feasible`
+says only "no", the floor says how far: harbor-house 3-4, maple-court 5-12, against 5-14 actual.
+
+**The signal does not.** 96 children drawn with the search's own mutation mix (8 per artefact,
+22 operators), each given a child's 80 evaluations:
+
+| programme | Spearman with shape fails after the loop: floor / raw | AUC, child not worse than parent: floor / raw |
+|---|---|---|
+| programme-house | +0.66 / +0.82 | 0.71 / 0.65 |
+| health-centre | +0.25 / +0.97 | 0.56 / 0.61 |
+| harbor-house | +0.81 / +0.94 | 0.71 / 0.69 |
+| maple-court | +0.57 / +0.93 | 0.34 / 0.70 |
+| all (96, 19 not worse) | +0.80 / +0.96 | 0.63 / 0.64 |
+
+"raw" is the child's shape fails at its inherited ratios: one ordinary score, which the search
+pays anyway. The floor costs a median 40 ms, about two scores, and predicts how a child ends less
+well than that one score, and its acceptance no better. The gap raw - floor (what the ratios
+could still gain) does not predict what the loop gains (Spearman +0.14): the loop changed shape
+fails on 38 of 96 children, in both directions. The one clean statement: a child already at its
+floor never gained shape fails in the loop (0 of 13) -- 14% of children, but the loop also moves
+daylight and access, so skipping it there is not free.
+
+**And it is not a safe bound in a real search.** On 3 of 96 children (all programme-house) the
+shape fails after the loop were below the floor: the floor reads the labels as stored, and the
+default search scores with `collapse_insearch`, which relabels cells to the rooms they fit best.
+A prune built on it would discard children the scorer would have relabelled into a pass.
+
+**Verdict for `ldj`.** (b) is measured and null as a ranking signal; (a), running the DP for
+children, buys reach for a warm start that §39.78 and §39.106 already found does not pay. Nothing
+here is worth wiring into `driver._evaluate`; the tool stays for a future question that needs the
+floor itself (e.g. "is this programme shape-feasible on this plot at all").
