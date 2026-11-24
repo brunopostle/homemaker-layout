@@ -23461,3 +23461,51 @@ whether it earns its draw needs the box). Whether the owner also wants an `overs
 on principle -- the mirror of the token ruling, §39.249 -- stays open on `s36o`; if so, `all>2`
 is the natural threshold (the size gaussian already fails every room past it, and it does not
 single out service rooms, which the corpus says are a minority of the swelling).
+
+### 39.259 `trim_oversized`: the move that makes §39.258's fix, measured on the corpus (`homemaker-py-s36o.1`)
+
+`operators.mutate_trim_oversized`, default **off** (`--trim-oversized`,
+`HOMEMAKER_TRIM_OVERSIZED=1`). A fit-op like `remove_token`: of the programme rooms over
+`TRIM_OVER = 2` x their size target (`operators.size_target`, which is `quality_size`'s own
+target, leaf sharing and co-types included), it draws one whose cut it owns -- the same path
+below is not divided -- and whose cell at the same path on every storey above is a leaf that is
+not a stair, or absent. It cuts that column so the room keeps its target area (ratio by bisection
+on the area, so a skew or cropped cell still gets it), the rest outside space on every storey,
+each storey above keeping its own type on the room's side. `rotation` is drawn: its four values
+are the cut's two axes times the room's two ends. The driver hands the move's ratio to the child's
+inner loop (it carries an operator's ratio for any newly divided node). Outside space and not a
+corridor because it was the best remainder 83 times in 88 in §39.258's wider probe.
+
+A default search is **byte-identical** with the move present (programme-house, 3,000 evals,
+seed 7, against the tree before it): a zero weight is a zero-width bucket in `mutate`'s draw.
+`tests/test_trim_oversized.py` holds the worked case (the §39.257 winner, 16 -> 12 fails, x28)
+and its controls -- a room at target is no candidate, a divided cell above or a cut owned below
+blocks the move, no scorer means noop, and a 1000x weight is still never drawn by a default
+`driver.search` while the same weight with the switch on is.
+
+**Census** (`diag_oversized_rooms.py --trim`, now built on the move's own `trim_candidates` and
+`apply_trim`): every candidate in the 116 designs of §39.258, at each of the four draws, child
+against parent. `--inner 80` re-tunes the child as the driver does (parent's ratios, the move's for
+its new cut) and gives the PARENT the same 80 evaluations, so a win is not just extra tuning:
+
+| programme | kind | candidates | a draw wins (raw) | a draw wins (inner 80) | draws won (inner 80) | median best (inner 80) |
+|---|---|---|---|---|---|---|
+| harbor-house | race | 5 | 2 | 3 | 10/20 | x1.01 |
+| health-centre | race | 1 | 1 | 1 | 1/4 | x1.05 |
+| maple-court | race | 3 | 3 | 3 | 12/12 | x4.16 |
+| harbor-house | cold | 10 | 4 | 4 | 12/40 | x0.52 |
+| maple-court | cold | 70 | 45 | 49 | 160/280 | x1.61 |
+
+89 candidates where §39.258's probe found 101 trimmable: the move refuses a stair above. 61 have a
+winning draw after the inner loop, and **55% of all draws (195 of 356) give a child better than
+its tuned parent** -- for a repair move, a high rate. On race designs 7 of 9 candidates win:
+the harbor winner's `me1` (x27.6, 16 -> 12 fails) and `st2` (x2.97), and all of maple's. The two
+that lose are WCs in harbor's `guard` and `split` winners (0 of 4 draws each, why not examined);
+§39.258's wider probe, which also tried a corridor remainder and ratios either side of target,
+won them by x2.09 and x1.04, so the move's fixed choices cost those two.
+
+**Expectation for the race that decides the default**, written before it runs: with the move on,
+harbor-house's field ends with no programme room over 3x its target in the winner, and a winner
+no worse than §39.257's 16 fails; maple-court unchanged in fails within the field's spread (its
+swelling is mostly in cold designs, not its race finalists). Needs the box: a halving race with
+and without, paired at stage 0 (`pair_halving_stages.py`).
