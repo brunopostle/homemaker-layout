@@ -1361,6 +1361,114 @@ def mutate_remove_token(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"remove_token {li}/{n.id or 'root'} ({code} to {n.type})"
 
 
+# A room over this many times its target is a candidate for `trim_oversized`.
+# Past 2x the size gaussian fails every room in the corpus, toilets included
+# (DESIGN.md §39.258).
+TRIM_OVER = 2.0
+
+
+def size_target(fit, leaf: dom.Node) -> "float | None":
+    """The area ``Fitness.quality_size`` centres a programme room's gaussian
+    on: k x target for a leaf shared by k rooms, the sum of both targets for a
+    fused (co-typed) leaf. None for a generic cell or a room with no size."""
+    reqs = getattr(fit, "_programme", None) or {}
+    r = reqs.get(leaf.type)
+    if r is None or not r.size or dom.is_generic(leaf.type or ""):
+        return None
+    from . import graph as _graph
+    k = _graph.leaf_share(leaf, fit._max_share) if fit._leaf_sharing else 1
+    if k > 1:
+        return r.size * k
+    co = fit._leaf_co_type(leaf)
+    if co and reqs.get(co) is not None:
+        return r.size + reqs[co].size
+    return r.size
+
+
+def trim_candidates(child: dom.Node, fit) -> "list[tuple[int, str, float]]":
+    """``(storey, path, target)`` of every programme room over ``TRIM_OVER``
+    x its size target that `trim_oversized` can cut without moving a wall it
+    does not own: the cut must be the cell's own (the same path below is not
+    divided), and every cell at the same path ABOVE, which inherits the cut,
+    must be a leaf that is not a stair, or absent."""
+    from . import geometry as _geo
+    _geo.clear_cache()
+    out = []
+    lvls = dom.levels(child)
+    for li, lvl in enumerate(lvls):
+        for leaf in lvl.leaves():
+            t = size_target(fit, leaf)
+            if t is None or _geo.area(leaf) <= TRIM_OVER * t:
+                continue
+            if leaf.below is not None and leaf.below.divided:
+                continue                      # a cut owned below
+            above = [lv.by_id(leaf.id) for lv in lvls[li + 1:]]
+            if any(n is not None and (n.divided or n.type == dom.GENERIC_STAIR)
+                   for n in above):
+                continue
+            out.append((li, leaf.id, t))
+    _geo.clear_cache()
+    return out
+
+
+def apply_trim(child: dom.Node, li: int, path: str, target: float,
+               rotation: int, filler: str = "O") -> None:
+    """Cut the cell at ``(li, path)`` so its low child -- which keeps the room
+    -- holds ``target`` m^2, the high child ``filler``. ``rotation`` picks the
+    side the cut starts from, so the four values are the cut's two axes times
+    the room's two ends. Every cell at the same path above inherits the cut
+    and is cut the same way, keeping its own type on the room's side. The
+    ratio is found by bisection on the room's area, so a skew or cropped cell
+    still gets its target; the child's inner loop re-tunes it anyway."""
+    from . import geometry as _geo
+    lvls = dom.levels(child)
+    cells = [lvls[li].by_id(path)] + [
+        n for n in (lv.by_id(path) for lv in lvls[li + 1:]) if n is not None]
+    for c in cells:
+        c.left, c.right = dom.Node(type=c.type), dom.Node(type=filler)
+        c.division, c.rotation, c.type = [0.5, 0.5], rotation, None
+    dom.link(child)
+    room = cells[0].left
+    lo, hi = 0.0, 1.0
+    for _ in range(24):
+        r = (lo + hi) / 2
+        for c in cells:
+            c.division = [r, r]
+        _geo.clear_cache()
+        if _geo.area(room) < target:
+            lo = r
+        else:
+            hi = r
+    _geo.clear_cache()
+
+
+def mutate_trim_oversized(root: dom.Node, rng: np.random.Generator,
+                          types: list[str], fit=None) -> tuple[dom.Node, str]:
+    """Repair move (`homemaker-py-s36o.1`, DESIGN.md §39.258): cut a room
+    built over ``TRIM_OVER`` x its target down to its target, the rest
+    outside space.
+
+    A swollen room already pays a ``size`` fail and is worth ~nothing, and
+    the objective already prefers it trimmed -- on 88 of 101 corpus rooms, by
+    x2 to x28 on every race design -- but reaching that is a compound edit: a
+    cut on the room's storey, the same cut inherited by the cell above, a
+    ratio near target/area, and outside space on each side left over (the
+    best filler 83 times in 88). This makes all of it at once. The side and
+    axis are drawn (``rotation``); the child's inner loop tunes the ratio.
+    """
+    if fit is None:
+        return _finalise(copy.deepcopy(root)), "trim_oversized noop"
+    child = copy.deepcopy(root)
+    dom.link(child)
+    cands = trim_candidates(child, fit)
+    if not cands:
+        return _finalise(child), "trim_oversized noop"
+    li, path, target = _pick(rng, cands)
+    code = dom.levels(child)[li].by_id(path).type
+    apply_trim(child, li, path, target, int(rng.integers(4)))
+    return _finalise(child), f"trim_oversized {li}/{path or 'root'} ({code})"
+
+
 def _leaves_with_depth(n: dom.Node, d: int = 0) -> list[tuple[dom.Node, int]]:
     """Every leaf under ``n`` paired with its depth below ``n``."""
     if not n.divided:
@@ -3874,6 +3982,7 @@ MUTATIONS = {
     "deslim": mutate_deslim,
     "merge_circulation": mutate_merge_circulation,
     "remove_token": mutate_remove_token,
+    "trim_oversized": mutate_trim_oversized,
     "ruin_recreate": mutate_ruin_recreate,
     "reassign": mutate_reassign,
     "support_outside": mutate_support_outside,
@@ -3905,7 +4014,8 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     # it — never zero-weighted, unlike reqs_ops above
     reqs_optional_ops = ("bridge_circulation",)
     # these need a Fitness instance to identify genuinely shape-failing leaves
-    fit_ops = ("shape_rotate", "deslim", "merge_circulation", "remove_token")
+    fit_ops = ("shape_rotate", "deslim", "merge_circulation", "remove_token",
+               "trim_oversized")
     if reqs is None:
         for op in reqs_ops:
             p[names.index(op)] = 0.0

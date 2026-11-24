@@ -24,7 +24,6 @@ winner*.dom and its drawings/*.dom, deduplicated by content, plus every
 """
 import argparse
 import copy
-import itertools
 import hashlib
 import math
 import sys
@@ -33,7 +32,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from successive_halving import REPO, load_config  # noqa: E402
 from homemaker_layout import dom, geometry, programme  # noqa: E402
-from homemaker_layout import graph as graph_mod  # noqa: E402
+from homemaker_layout import operators  # noqa: E402
 from homemaker_layout.fitness import FAIL_THRESHOLD, Fitness  # noqa: E402
 
 KEYS = {"maple": "maple-court", "harbor": "harbor-house",
@@ -88,19 +87,9 @@ def default_paths() -> list[Path]:
 
 
 def effective_target(fit: Fitness, reqs: dict, leaf) -> float | None:
-    """The area `quality_size` centres its gaussian on: k x target for a
-    shared leaf, the sum of both targets for a fused one."""
-    r = reqs.get(leaf.type)
-    if r is None or not r.size:
-        return None
-    target = r.size
-    k = graph_mod.leaf_share(leaf, fit._max_share) if fit._leaf_sharing else 1
-    co = None if k > 1 else fit._leaf_co_type(leaf)
-    if k > 1:
-        return target * k
-    if co and reqs.get(co) is not None:
-        return target + reqs[co].size
-    return target
+    """The area `quality_size` centres its gaussian on (the move's own
+    `operators.size_target`, so the census and the move cannot disagree)."""
+    return operators.size_target(fit, leaf)
 
 
 def lines_added(ratio: float, usage: str, rule) -> int:
@@ -135,48 +124,28 @@ def survey(fit, reqs, root):
     return rows, fails, score, margin
 
 
-FILLERS = ("O", "C")
-
-
-def trim(fit, root, storey: int, path: str, target: float):
-    """The fix the search would have to find: cut the room's cell so the room
-    keeps its target area, the remainder filled with outside space or a
-    corridor. A cut below is inherited by the cell at the same path on every
-    storey above, so that cell is cut too, keeping its own type on the room's
-    side. Returns the best (score, fails, description) over orientation, which
-    side the room keeps, a small ratio neighbourhood and the fillers, or None
-    when the cut cannot be made without moving a wall above (a cell above at
-    the same path that is already divided would lose its own cut)."""
-    lvls = dom.levels(root)
-    leaf = lvls[storey].by_id(path)
-    above = [lv.by_id(path) for lv in lvls[storey + 1:]]
-    if any(n is not None and n.divided for n in above):
-        return None
-    n_above = sum(n is not None for n in above)
-    r0 = target / geometry.area(leaf)
-    best = None
+def trim(fit, root, storey: int, path: str, target: float, prog_dir=None, inner=0):
+    """The move itself (`operators.apply_trim`, `homemaker-py-s36o.1`) at each
+    of its four draws. Returns [(score, fails, rotation)] per draw, after an
+    inner loop of ``inner`` evaluations if asked -- warm-started as the driver
+    starts a child: the parent's ratios, the move's own for its new cut."""
+    from homemaker_layout import innerloop
+    out = []
     for rot in range(4):
-        for room_left in (True, False):
-            base = r0 if room_left else 1 - r0
-            for r in (base - 0.04, base - 0.02, base, base + 0.02, base + 0.04):
-                if not 0.02 < r < 0.98:
-                    continue
-                for fills in itertools.product(FILLERS, repeat=1 + n_above):
-                    t = copy.deepcopy(root)
-                    dom.link(t)
-                    tl = dom.levels(t)
-                    cells = [tl[storey].by_id(path)] + [
-                        lv.by_id(path) for lv in tl[storey + 1:] if lv.by_id(path) is not None]
-                    for c, fill in zip(cells, fills):
-                        keep = dom.Node(type=c.type)
-                        rest = dom.Node(type=fill)
-                        c.left, c.right = (keep, rest) if room_left else (rest, keep)
-                        c.division, c.rotation, c.type = [r, r], rot, None
-                    dom.link(t)
-                    sc, fl = fit.score_with_fails(t)
-                    if best is None or sc > best[0]:
-                        best = (sc, fl, f"rot {rot} r {r:.2f} fill {''.join(fills)}")
-    return best
+        t = copy.deepcopy(root)
+        dom.link(t)
+        operators.apply_trim(t, storey, path, target, rot)
+        dom.link(t)
+        geometry.clear_cache()
+        if inner:
+            parent = innerloop.ratio_map(root)
+            x0 = innerloop.warm_x0(t, {**innerloop.ratio_map(t), **parent})
+            innerloop.optimise(t, prog_dir, x0=x0, budget=inner)
+            dom.link(t)
+            geometry.clear_cache()
+        sc, fl = fit.score_with_fails(t)
+        out.append((sc, fl, rot))
+    return out
 
 
 def self_test() -> int:
@@ -214,8 +183,11 @@ def main() -> int:
     ap.add_argument("--rooms", action="store_true",
                     help="list every room over 1.5x its target")
     ap.add_argument("--trim", action="store_true",
-                    help="for every room over 2x, does cutting it to target "
-                         "(remainder outside or corridor) already score better?")
+                    help="census of the trim_oversized move: every room it "
+                         "could draw, at each of its four draws, against its parent")
+    ap.add_argument("--inner", type=int, default=0,
+                    help="with --trim, re-tune child and parent with this many "
+                         "inner-loop evaluations, as a search would")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
     if a.self_test:
@@ -223,7 +195,7 @@ def main() -> int:
     paths = [Path(p) for p in a.paths] or default_paths()
     cache = {}
     if a.trim:
-        return trim_census(paths, cache)
+        return trim_census(paths, cache, a.inner)
     names = list(RULES)
     print("programme\tdesign\tfails\tscore\tcap_margin\tover2\t" + "\t".join(names)
           + "".join(f"\tcap_s{s:.2f}" for s in CAP_SIGMAS))
@@ -254,35 +226,45 @@ def main() -> int:
     return 0
 
 
-def trim_census(paths, cache) -> int:
-    print("programme\tdesign\tcell\tcode\tratio\tfails\ttrimmed_fails\t"
-          "score_x\tbest\tgained\tlost")
+def trim_census(paths, cache, inner=0) -> int:
+    """Every candidate the move would draw from, in every design, at each of
+    its four draws: does the child beat its parent? With ``inner`` the parent
+    gets the same inner loop, so a win is not just the extra tuning."""
+    from homemaker_layout import innerloop
+    print("programme\tdesign\tcell\tcode\tratio\tfails\tbest_fails\tbest_x\t"
+          "draws_won\tbest_rot\tgained\tlost")
     for path in paths:
         prog = next((v for k, v in KEYS.items() if k in str(path)), None)
         if prog is None:
             continue
+        d = REPO / "examples" / prog
         if prog not in cache:
-            d = REPO / "examples" / prog
             cache[prog] = (Fitness(*load_config(d)), programme.load_programme_dir(str(d)))
         fit, reqs = cache[prog]
         root = dom.load(str(path))
         dom.link(root)
-        rows, fails, score, _ = survey(fit, reqs, root)
+        geometry.clear_cache()
+        cands = operators.trim_candidates(root, fit)
+        if not cands:
+            continue
+        if inner:
+            innerloop.optimise(root, str(d), x0=innerloop.warm_x0(
+                root, innerloop.ratio_map(root)), budget=inner)
+            dom.link(root)
+            geometry.clear_cache()
+        score, fails = fit.score_with_fails(root)
         rel = str(path.resolve().relative_to(REPO))
-        for cell, code, _u, _a, target, ratio, _s in rows:
-            if ratio <= 2:
-                continue
-            storey, p = cell.split("/")
-            res = trim(fit, root, int(storey), p, target)
-            if res is None:
-                print(f"{prog}\t{rel}\t{cell}\t{code}\t{ratio:.1f}\t{len(fails)}\t-\t-\t"
-                      "divided above\t\t", flush=True)
-                continue
-            sc, fl, desc = res
+        for li, p, target in cands:
+            leaf = dom.levels(root)[li].by_id(p)
+            ratio = geometry.area(leaf) / target
+            code = leaf.type
+            draws = trim(fit, root, li, p, target, str(d), inner)
+            sc, fl, rot = max(draws, key=lambda x: x[0])
+            won = sum(x[0] > score for x in draws)
             gained = sorted(set(fl) - set(fails))
             lost = sorted(set(fails) - set(fl))
-            print(f"{prog}\t{rel}\t{cell}\t{code}\t{ratio:.1f}\t{len(fails)}\t{len(fl)}\t"
-                  f"{sc / score:.3g}\t{desc}\t{'; '.join(gained)}\t{'; '.join(lost)}",
+            print(f"{prog}\t{rel}\t{li}/{p}\t{code}\t{ratio:.1f}\t{len(fails)}\t{len(fl)}\t"
+                  f"{sc / score:.3g}\t{won}/4\t{rot}\t{'; '.join(gained)}\t{'; '.join(lost)}",
                   flush=True)
     return 0
 
