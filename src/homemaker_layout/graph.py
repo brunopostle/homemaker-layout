@@ -684,6 +684,99 @@ def dead_ends(graph_circ: nx.Graph, graph_base: nx.Graph, level_id: int,
     return worst
 
 
+def travel_graph(graph_circ: "list[nx.Graph]") -> "tuple[nx.Graph, dict, list]":
+    """The building's walk graph (DESIGN.md §39.244-§39.245, §39.270):
+    ``(W, rooms, stairs)``. Nodes are door midpoints (a door is an edge of
+    ``graph_circ``, which ``has_circulation`` has already pruned to the doors
+    the scorer allows), room centroids and stair-cell centroids. Inside a
+    circulation cell every pair of its doors is joined by a straight line (a
+    cell is a rectangle cropped to the plot, so convex); a room's centroid is
+    joined to its doors and is never walked through; a stair cell's centroid
+    is joined to its doors and, at no cost, to the same stair cell on the
+    storey above (a flight). Outdoor cells are not walked. ``rooms`` maps a
+    room node to its storey; ``stairs`` lists the stair nodes."""
+    W = nx.Graph()
+    doors_of: dict = {}
+    for i, G in enumerate(graph_circ):
+        for a, b in G.edges():
+            if not (dom.is_usable(a) and dom.is_usable(b)):
+                continue
+            if dom.is_outside(a) or dom.is_outside(b):
+                continue
+            xy = _door_point(G, a, b)
+            n = ("door", i, round(xy[0], 4), round(xy[1], 4))
+            W.add_node(n, xy=xy, level=i)
+            doors_of.setdefault(a, []).append(n)
+            doors_of.setdefault(b, []).append(n)
+    rooms: dict = {}
+    stair_at: dict = {}
+    for leaf, ds in doors_of.items():
+        ds = list(dict.fromkeys(ds))
+        lv = W.nodes[ds[0]]["level"]
+        if dom.is_circulation(leaf):
+            for p, q in itertools.combinations(ds, 2):
+                W.add_edge(p, q, weight=math.dist(W.nodes[p]["xy"], W.nodes[q]["xy"]))
+            if is_stair_cell(leaf):
+                s = ("stair", lv, leaf.id)
+                W.add_node(s, xy=geometry.centroid(leaf), level=lv)
+                for p in ds:
+                    W.add_edge(s, p, weight=math.dist(W.nodes[s]["xy"], W.nodes[p]["xy"]))
+                stair_at[lv, leaf.id] = (s, leaf)
+        else:
+            c = ("room", lv, leaf.id)
+            W.add_node(c, xy=geometry.centroid(leaf), level=lv)
+            for p in ds:
+                W.add_edge(c, p, weight=math.dist(W.nodes[c]["xy"], W.nodes[p]["xy"]))
+            rooms[c] = lv
+    for (lv, sid), (s, leaf) in stair_at.items():
+        up = stair_at.get((lv + 1, sid))
+        if up is not None and is_stair_cell(dom._above_node(leaf)):
+            W.add_edge(s, up[0], weight=0.0, flight=True)
+    return W, rooms, [s for s, _ in stair_at.values()]
+
+
+def mean_detour(W: nx.Graph, rooms: dict, stairs: list) -> "tuple[float, int]":
+    """``(mean detour in m, journeys)`` over every pair of rooms on different
+    storeys that a walk joins: the walk minus the plan distance between them
+    (owner, 2026-11-17: "a minimum path to reverse"). Every such journey
+    passes a stair node, so its walk is the minimum over stair nodes s of
+    d(a, s) + d(s, b), distances over the whole building -- one Dijkstra per
+    stair node, then a vectorised minimum. Exact: a journey may change stairs
+    on a third storey (§39.267). Pairs no walk joins are left out; ``level N
+    not connected`` already charges for them. NaN with no journey."""
+    import numpy as np
+    R = sorted(rooms, key=lambda r: (r[1], r[2]))
+    if not R or not stairs:
+        return math.nan, 0
+    idx = {r: i for i, r in enumerate(R)}
+    D = np.full((len(stairs), len(R)), np.inf)
+    for k, s in enumerate(stairs):
+        for r, d in nx.single_source_dijkstra_path_length(W, s, weight="weight").items():
+            i = idx.get(r)
+            if i is not None:
+                D[k, i] = d
+    walk = np.min(D[:, :, None] + D[:, None, :], axis=0)
+    xy = np.array([W.nodes[r]["xy"] for r in R])
+    plan = np.linalg.norm(xy[:, None, :] - xy[None, :, :], axis=2)
+    lv = np.array([rooms[r] for r in R])
+    iu = np.triu_indices(len(R), 1)
+    mask = (lv[:, None] != lv[None, :])[iu] & np.isfinite(walk[iu])
+    ex = (walk - plan)[iu][mask]
+    return (float(ex.mean()) if ex.size else math.nan), int(ex.size)
+
+
+def plot_half_diagonal(root: Node) -> float:
+    """Half the largest distance between two corners of the ground storey:
+    the length that makes a travel distance scale-free (§39.266). For a
+    rectangular plot it is the half-diagonal. Measured corner to corner, not
+    off a bounding box, because a box in world coordinates grows when the plot
+    is turned, and a score must not move when nothing in the plan does
+    (`tests/test_scorer_reads_geometry_only.py` caught the first version)."""
+    lvl = levels(root)[0]
+    pts = [geometry.coordinate(lvl, i) for i in range(geometry.n_edges(lvl))]
+    return max(math.dist(p, q) for p, q in itertools.combinations(pts, 2)) / 2
+
+
 # §39.125, owner's ruling: a stair JOINED the circulation of the storeys it
 # serves, so a storey in two pieces, each on its own stair, was connected
 # through the floor below. REVERSED by the owner on 2026-11-16 (§39.237), on a

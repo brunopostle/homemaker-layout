@@ -136,6 +136,7 @@ _SOFT_FAIL_MARKERS = (
     " shape",           # 8b2u.4/§39.103 -- a cell too far from a rectangle
     "staircase volume",
     "excess internal area",  # m3s/§39.58 -- internal area over `area_cap`
+    "stair detour",          # §39.270 -- mean inter-storey detour over `detour_cap`
     "corridor too wide",     # §39.241 -- a ratio move narrows it
     "double-loaded corridor",  # srl0/§39.241 -- off unless a programme asks
 )
@@ -315,6 +316,20 @@ CONF_DEFAULTS: dict = {
     # FAIL_THRESHOLD) above 1.59x the programme. `None` disables it. See the
     # block in `evaluate_building` for why this is a cap and not a floor.
     "area_cap": 1.2,
+    # homemaker-py-5fje.29 (DESIGN.md §39.266-§39.270). The owner: stairs placed so
+    # "a person trying to move from any pair of random rooms has a minimum path to
+    # reverse". Measured as the building's mean DETOUR -- for every pair of rooms on
+    # different storeys a walk joins, the walk via the best stair minus their plan
+    # distance -- over the ground storey's half-diagonal, so it is scale-free.
+    # [bar, sigma]: a one-sided gaussian above the bar, like `area_cap`, so a
+    # building pays more the worse it is rather than one line at a cliff (the
+    # owner's objection to every per-design and per-room line, §39.268); it
+    # registers `stair detour` only where the factor crosses FAIL_THRESHOLD
+    # (bar + 2.15 sigma, 1.29 at the defaults). Owner, 2026-11-25: "0.75 is a good
+    # start, we can vary this later"; sigma 0.25 is this change's, to vary with it.
+    # WHERE to move a stair is the search's: `operators.mutate_move_stair`.
+    # One storey: nothing to measure. `false` turns it off (`None` falls back to this).
+    "detour_cap": [0.75, 0.25],
     # homemaker-py-hxi (DESIGN.md §39.24). Was [0.00, 0.20] -- a gaussian on
     # the circulation FRACTION, targeting zero, applied as a multiplier to the
     # whole building's value (0.013..0.70 across the corpus). `None` disables
@@ -3067,6 +3082,7 @@ class Fitness:
 
         cost += self.envelope_cost(lvls)
         building_factor = self.evaluate_building(root, tracking)
+        building_factor *= self.detour_factor(root, graph_circ, failures.append)
         value *= building_factor
 
         if self._aggregation != "A0":
@@ -3099,6 +3115,28 @@ class Fitness:
 
         score = value / cost if cost != 0.0 else 0.0
         return score, tuple(sorted(failures)), grade
+
+    def detour_factor(self, root: Node, graph_circ, fail) -> float:
+        """The building's travel factor (§39.270): 1 at or under the
+        `detour_cap` bar, a one-sided gaussian above it, and a `stair
+        detour` fail where that crosses FAIL_THRESHOLD. One storey, or no
+        journey a walk joins, is 1."""
+        cap = self.conf("detour_cap")
+        if not cap or len(graph_circ) < 2:
+            return 1.0
+        from . import graph as graph_mod
+        W, rooms, stairs = graph_mod.travel_graph(graph_circ)
+        mean, n = graph_mod.mean_detour(W, rooms, stairs)
+        if not n:
+            return 1.0
+        x = mean / max(graph_mod.plot_half_diagonal(root), 1e-9)
+        bar, sigma = cap[0], cap[1]
+        if x <= bar:
+            return 1.0
+        f = gaussian(x, 1.0, bar, sigma)
+        if f < FAIL_THRESHOLD:
+            fail("stair detour")
+        return f
 
     _CELL_FAIL = re.compile(r"^(\d+)/([lr]*) (\w+)$")
     _ADJ_FAIL = re.compile(r"^(\d+)/([lr]*) \((\w+)\) not adjacent to (\w+)$")

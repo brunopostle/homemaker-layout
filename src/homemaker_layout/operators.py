@@ -1469,6 +1469,115 @@ def mutate_trim_oversized(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"trim_oversized {li}/{path or 'root'} ({code})"
 
 
+def _building_detour(root: dom.Node, fit) -> "tuple[float, int]":
+    """The scorer's measure (`graph.mean_detour`, §39.270) on a merged copy
+    of ``root``: (mean detour in m, journeys)."""
+    from . import geometry as _geo, graph as _graph
+    m = copy.deepcopy(root)
+    dom.merge_divided(m)
+    dom.link(m)
+    _geo.clear_cache()
+    _, gc, _ = _graph.storey_graphs(m, fit.conf("door_width") or 1.2, fit.usages())
+    W, rooms, stairs = _graph.travel_graph(gc)
+    out = _graph.mean_detour(W, rooms, stairs)
+    _geo.clear_cache()
+    return out
+
+
+def _holds_a_stair(fit, cell: dom.Node) -> bool:
+    """Would the scorer pass ``cell`` as a stair -- its best flight, in any
+    orientation and with no door in the way (`Fitness._stair_fit` with no
+    corners), not failing `staircase volume`? The first census of
+    `mutate_move_stair` sent stairs to columns that could not hold a flight
+    (§39.270)."""
+    from .fitness import FAIL_THRESHOLD
+    try:
+        return fit._one_stair_volume(fit._stair_fit(cell, [])) >= FAIL_THRESHOLD
+    except Exception:
+        return False
+
+
+def stair_column_moves(root: dom.Node, fit) -> "list[tuple[float, int, str, str, list[int]]]":
+    """Every improving stair move: ``(gain, storey, shaft path, column path,
+    storeys served)``, best first. A shaft is a ground-most stair cell and the
+    same cell on each storey above it (`graph.stair_shaft`); a column is any
+    other path that is an undivided, indoor, non-stair cell on every one of
+    those storeys, whose foot cell can hold a flight (`_holds_a_stair`). Moving the stair SWAPS labels on each storey -- the
+    displaced room takes the stair's old cell -- so no wall moves and the
+    room set is kept. A move counts only if every journey the design has is
+    still made (so it cannot shorten the mean by cutting a storey off), and
+    gain is the share by which it cuts the building's mean detour (§39.268,
+    §39.270). Built on the scorer's own measure, so the gain is exact."""
+    from . import graph as _graph
+    base, n0 = _building_detour(root, fit)
+    if not n0 or not base:
+        return []
+    lvls = dom.levels(root)
+    out = []
+    for li, lvl in enumerate(lvls):
+        for leaf in lvl.leaves():
+            if leaf.type != dom.GENERIC_STAIR:
+                continue
+            below = lvl.below.by_id(leaf.id) if lvl.below is not None else None
+            if _graph.is_stair_cell(below):
+                continue                          # not the shaft's foot
+            shaft = _graph.stair_shaft(leaf)
+            if len(shaft) < 2:
+                continue
+            span = list(range(li, li + len(shaft)))
+            sid = leaf.id
+            for cand in lvl.leaves():
+                p = cand.id
+                if p == sid:
+                    continue
+                cells = [lvls[k].by_id(p) for k in span]
+                if not all(c is not None and not c.divided and not dom.is_outside(c)
+                           and c.type != dom.GENERIC_STAIR for c in cells):
+                    continue
+                if not _holds_a_stair(fit, cells[0]):
+                    continue
+                t = copy.deepcopy(root)
+                tl = dom.levels(t)
+                for k in span:
+                    old, new = tl[k].by_id(sid), tl[k].by_id(p)
+                    old.type, new.type = new.type, dom.GENERIC_STAIR
+                dom.link(t)
+                m, n = _building_detour(t, fit)
+                if n >= n0 and m < base:
+                    out.append(((base - m) / base, li, sid, p, span))
+    out.sort(key=lambda x: (-x[0], x[1], x[2], x[3]))
+    return out
+
+
+def mutate_move_stair(root: dom.Node, rng: np.random.Generator,
+                      types: list[str], fit=None) -> tuple[dom.Node, str]:
+    """Move a stair to the column that most shortens the building's journeys
+    between storeys (`homemaker-py-5fje.29`, DESIGN.md §39.270).
+
+    The owner wants stairs placed so a person crossing between storeys has
+    the least way to double back. The score reads that as one graded factor on
+    the building's mean detour; WHERE a stair should go is this move's
+    question, because the answer is a compound edit no other move makes: a
+    whole column of labels swapped across every storey the stair serves.
+    It is expensive (the building's travel measured once per candidate
+    column), so it lives in the search, paid only when drawn, not in the score
+    (§39.269). Of every improving move it makes the best; none, noop.
+    """
+    if fit is None:
+        return _finalise(copy.deepcopy(root)), "move_stair noop"
+    child = copy.deepcopy(root)
+    dom.link(child)
+    moves = stair_column_moves(child, fit)
+    if not moves:
+        return _finalise(child), "move_stair noop"
+    gain, li, sid, p, span = moves[0]
+    lvls = dom.levels(child)
+    for k in span:
+        old, new = lvls[k].by_id(sid), lvls[k].by_id(p)
+        old.type, new.type = new.type, dom.GENERIC_STAIR
+    return _finalise(child), f"move_stair {li}/{sid or 'root'} to {p} ({gain:.0%})"
+
+
 def _leaves_with_depth(n: dom.Node, d: int = 0) -> list[tuple[dom.Node, int]]:
     """Every leaf under ``n`` paired with its depth below ``n``."""
     if not n.divided:
@@ -3983,6 +4092,7 @@ MUTATIONS = {
     "merge_circulation": mutate_merge_circulation,
     "remove_token": mutate_remove_token,
     "trim_oversized": mutate_trim_oversized,
+    "move_stair": mutate_move_stair,
     "ruin_recreate": mutate_ruin_recreate,
     "reassign": mutate_reassign,
     "support_outside": mutate_support_outside,
@@ -4015,7 +4125,7 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     reqs_optional_ops = ("bridge_circulation",)
     # these need a Fitness instance to identify genuinely shape-failing leaves
     fit_ops = ("shape_rotate", "deslim", "merge_circulation", "remove_token",
-               "trim_oversized")
+               "trim_oversized", "move_stair")
     if reqs is None:
         for op in reqs_ops:
             p[names.index(op)] = 0.0

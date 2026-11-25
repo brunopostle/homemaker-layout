@@ -751,13 +751,17 @@ def search(
     trim_oversized = os.environ.get("HOMEMAKER_TRIM_OVERSIZED", "") == "1"
     if not trim_oversized:
         mutation_weights["trim_oversized"] = 0.0
+    # the move_stair repair (homemaker-py-5fje.29, §39.270) too, the same way
+    move_stair = os.environ.get("HOMEMAKER_MOVE_STAIR", "") == "1"
+    if not move_stair:
+        mutation_weights["move_stair"] = 0.0
     if not enable_shape_repair:
         mutation_weights["shape_rotate"] = mutation_weights["deslim"] = 0.0
     shape_repair_fit = (
         _fitness_for(str(programme_dir), leaf_sharing, superpose, max_share,
                      conn_grade, collapse_insearch, multi_use)
         if enable_shape_repair or merge_circ or remove_token or trim_oversized
-        else None)
+        or move_stair else None)
     # Optional ranking bonus (DESIGN.md §11.3 Stage 1): bias selection toward
     # individuals with high substrate-readiness via a multiplicative factor
     # (1 + W·bonus) on fitness. The reported fitness/history stay the TRUE

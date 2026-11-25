@@ -5,8 +5,8 @@
 # lays every spine along an edge no other wing shares (--spine-at outer) and caps a
 # wing near 7.5 m (--reach 1.25), from twice the draw (32 plans x 3 stair placements).
 # Expectations in DESIGN.md §39.264, written before it runs. Control: §39.257's race,
-# halving-maple-rooms, same objective stamp (6191a33+orth); the search stamp has moved
-# only by trim_oversized, which is off.
+# halving-maple-rooms, RE-SCORED with today's code (control-rescored.txt): the objective
+# has moved since (the travel factor, §39.270). trim_oversized and move_stair are off.
 #
 # The field alone took ~1.6 h a plan in a container (one process), so this is the
 # box's job: about 13 h of building on one core, then the race.
@@ -18,7 +18,8 @@ export HOMEMAKER_PIVOT3=1 HOMEMAKER_ORTHOGONAL_DIVISION=1 OMP_NUM_THREADS=1 OPEN
 unset HOMEMAKER_MOVE_LOG HOMEMAKER_SEED_SOLVER HOMEMAKER_CORE_UNDIVIDE_REPAIRED \
       HOMEMAKER_TUNE_HEIGHTS HOMEMAKER_NATIVE HOMEMAKER_LIGHT_WELL HOMEMAKER_LABEL_WRITEBACK \
       HOMEMAKER_AIM_UNDIVIDE HOMEMAKER_RETYPE_KIND HOMEMAKER_PIVOT HOMEMAKER_GUARD_CONNECTION \
-      HOMEMAKER_SPLIT_STAIR HOMEMAKER_REMOVE_TOKEN HOMEMAKER_MERGE_CIRCULATION HOMEMAKER_TRIM_OVERSIZED
+      HOMEMAKER_SPLIT_STAIR HOMEMAKER_REMOVE_TOKEN HOMEMAKER_MERGE_CIRCULATION HOMEMAKER_TRIM_OVERSIZED \
+      HOMEMAKER_MOVE_STAIR
 say() { echo "=== $(date '+%F %T') $*"; }
 publish() {   # publish <message> <paths...>
     local msg=$1; shift
@@ -35,10 +36,21 @@ done
 git pull -q --rebase || echo "(pull failed; working with what is here)"
 STAMP=$(python -c "import importlib.util as u; s=u.spec_from_file_location('r','experiments/run_coldstart_baseline.py'); m=u.module_from_spec(s); s.loader.exec_module(m); print(m.objective_commit(), m.search_commit(), m.search_config()[0])")
 say "start: objective, search, config = $STAMP; HEAD $(git rev-parse --short HEAD)"
-[ "${STAMP%% *}" = "6191a33+orth" ] || { echo "!!! objective moved from §39.257's; the control means nothing"; exit 1; }
+# The objective has moved since §39.257 (the travel factor, §39.270), so the control is
+# §39.257's finals and winner RE-SCORED with today's code, written beside the results.
 
 P=maple-court R=experiments/results/halving-maple-outer W=$HOME/halving-maple-outer
 mkdir -p $R
+python - > $R/control-rescored.txt <<'PY'
+from pathlib import Path
+from homemaker_layout import dom, geometry
+from homemaker_layout.fitness import Fitness, load_config
+fit = Fitness(*load_config("examples/maple-court"))
+for f in sorted(Path("experiments/results/halving-maple-rooms").glob("[fw]i*.dom")):
+    r = dom.load(str(f)); dom.link(r); geometry.clear_cache()
+    s, fails = fit.score_with_fails(r)
+    print(f"{f.name}\t{len(fails)}\t{s:.3g}")
+PY
 if [ -z "$RESUME" ]; then
     say "$P: building seeds"
     python experiments/seed_from_catalogue.py --programme $P --max-seeds 32 --core-variants 3 \
