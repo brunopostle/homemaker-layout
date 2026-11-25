@@ -24182,6 +24182,6 @@ The largest: `halving-maple-single`'s winner, two upstairs pieces joined with tw
 fails after tuning (x9.3); harbor-house cold designs x2-x3.7 with two fails fewer. On designs the
 search had finished with, where §39.124 found almost nothing that removes a fail, a move whose child
 beats its tuned parent half the time is the strongest repair this project has measured. Health-centre
-is the exception (0 of 6): its connection fails are few and its rooms small, so a strip costs the
-room what it gains the corridor. Whether it earns its draw in a run is a race (the box), with
+is the exception (0 of 6), not examined; a likely reason is that its rooms are small, so a strip
+costs a room as much as it gains the corridor. Whether it earns its draw in a run is a race (the box), with
 `bridge_circulation` as the natural comparison.
