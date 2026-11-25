@@ -24185,3 +24185,38 @@ beats its tuned parent half the time is the strongest repair this project has me
 is the exception (0 of 6), not examined; a likely reason is that its rooms are small, so a strip
 costs a room as much as it gains the corridor. Whether it earns its draw in a run is a race (the box), with
 `bridge_circulation` as the natural comparison.
+
+### 39.273 The finish-time collapse against an exact solve: near-optimal on its own objective, and the objective is the limit (`homemaker-py-5bv`)
+
+`Fitness.collapse_global` relabels a finished design's room cells by a Jacobi loop of linear
+assignments and a 2-opt polish, approximating a quadratic assignment. `experiments/
+diag_5bv_cpsat_collapse.py` builds the same problem -- the same supply cells, slots, pins, level
+rule and per-(cell, code) base value (`_collapse_value`), the same adjacency reward -- and solves it
+with CP-SAT (4 workers, 20 s), started from the shipped labelling.
+
+Its controls caught three faults in the exact model before it gave a reading, each worth knowing for
+anyone modelling this again: (1) "exactly min(cells, slots) matched" made the shipped labelling
+infeasible, because the Hungarian solve counts forbidden pairs among its matches; (2) relaxing that
+to "at most" let the solver leave slots empty -- the collapse objective has no term for a room left
+out -- and "won" by 4 units while scoring 56 fails against the shipped 6; (3) hinting every unchanged
+cell as "keep" filled no slot, so the weight that restores (2)'s matching pushed the solver off the
+hint before it found the optimum. With slot-filling weighted above everything and the hint given as
+matches, the self-test holds: exact >= shipped on the objective, no more missing rooms.
+
+Over 60 designs (race finals, winners and drawings, the `4428262+orth` corpus):
+
+| | designs | solved to optimality | exact better on the objective | by (max) | scorer: fewer fails | more fails | shipped ms (median) | exact ms (median) |
+|---|---|---|---|---|---|---|---|---|
+| programme-house | 3 | 3 | 0 | 0 | 0 | 0 | 1 | 6 |
+| health-centre | 20 | 20 | 4 | 1 | 3 | 2 | 20 | 4,520 |
+| maple-court | 29 | 17 | 14 | 3 | 9 | 8 | 38 | 2,813 |
+| harbor-house | 8 | 3 | 2 | 1 | 1 | 3 | 32 | 79,219 |
+
+**The shipped collapse is at the optimum of its own objective on 40 of 60 designs, and within 1-3
+units (avoided fails) on the rest.** And closing that gap does not reliably help the score: the exact
+labelling has fewer fails on 13 designs and more on 13, including designs where it is better on the
+objective (`join-clean9/final-joined-4`: +1 on the objective, 48 -> 63 fails). The collapse objective
+sees size, width, proportion and declared adjacency; it does not see daylight, access, connectivity
+or travel, which the scorer charges. So the limit is the proxy, not the solver, and an exact solve at
+100-2,000x the cost buys nothing a search would keep. `5bv` closes as a measured null; the tool stays
+for the day the collapse's objective grows.

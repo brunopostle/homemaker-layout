@@ -231,6 +231,7 @@ These are decisions, not measurements. Do not re-argue one from a score.
 | Corridors routed after the rooms (erase and route) | §39.260 | connectivity recovered to the search's level, but total fails double on harbor-house and health-centre; wins on ~3 maple-court designs. Circulation stays evolved; a route REPAIR is untested (`8b2u.17.1`) |
 | Min-cut partitioning seeds | §39.261 | fewer connection fails on every programme, but fewer fails only on programme-house (health-centre: fewer hard fails); worse on harbor-house. A stacked, whole-building partition is untested |
 | The shape-curve DP's floor as a ranking signal for children | §39.262 | no better than one ordinary score (Spearman 0.80 vs 0.96) at two scores' cost; not a safe bound under `collapse_insearch` |
+| An exact (CP-SAT) finish-time collapse | §39.273 | the shipped Jacobi+2-opt is optimal on its own objective on 40 of 60 designs and within 1-3 on the rest; the exact labelling has fewer fails on 13 and more on 13, at 100-2,000x the cost: the collapse objective is the limit |
 | P1-fails' hard-fail lead over A0-fails | §39.220, §39.226 | resolved once (−1.25, MDD 1.09), did not reproduce at the sliver objective (68 vs 67 hard over 12 runs); read as noise |
 
 ## Where the current state is
@@ -242,7 +243,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (377 of them, 24187 lines)
+## Every section of DESIGN.md (378 of them, 24222 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -670,4 +671,5 @@ below are the most recent work.
 - §39.269 · 24007-24037 · The per-stair detour's cost: about a score as an exact rule, and the cheap form is wrong where it matters (`homemaker-py-5fje.29`)
 - §39.270 · 24038-24105 · Stair travel, split: a graded detour factor in the score, `move_stair` in the search (`homemaker-py-5fje.29`)
 - §39.271 · 24106-24146 · The health-centre redo's scorer features, built inert, and draft C (`homemaker-py-5fje.27`, `r2a9`)
-- §39.272 · 24147-24187 · `route_circulation`: corridors routed as a repair, and a census that says it pays (`homemaker-py-8b2u.17.1`)
+- §39.272 · 24147-24188 · `route_circulation`: corridors routed as a repair, and a census that says it pays (`homemaker-py-8b2u.17.1`)
+- §39.273 · 24189-24222 · The finish-time collapse against an exact solve: near-optimal on its own objective, and the objective is the limit (`homemaker-py-5bv`)
