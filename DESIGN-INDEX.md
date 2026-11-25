@@ -238,7 +238,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (369 of them, 23757 lines)
+## Every section of DESIGN.md (370 of them, 23811 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -658,4 +658,5 @@ below are the most recent work.
 - §39.261 · 23574-23629 · Min-cut partitioning seeds: fewer connection fails everywhere, fewer fails only on the small programmes (`homemaker-py-8b2u.18`)
 - §39.262 · 23630-23675 · A shape-fail floor from the shape-curve DP ranks children no better than one score (`homemaker-py-ldj`)
 - §39.263 · 23676-23712 · Judging round 3: pairs tied on what the judge decides by, of different parti -- expectations (`homemaker-py-5fje.18`)
-- §39.264 · 23713-23757 · A single-row seed field for maple-court: the container's half, and the race's expectations (`homemaker-py-3xvb`)
+- §39.264 · 23713-23758 · A single-row seed field for maple-court: the container's half, and the race's expectations (`homemaker-py-3xvb`)
+- §39.265 · 23759-23811 · The health-centre programme redo, drafted and priced, not landed (`homemaker-py-r2a9`, `5fje.27`)

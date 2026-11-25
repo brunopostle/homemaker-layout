@@ -23755,3 +23755,57 @@ control would then mean nothing. Expectations, written before it runs:
    crinkliness lines, and **no double-loaded corridor** (`double-loaded.txt` empty).
 5. **Every storey connected** in the winner -- the outer spine starts many storeys unjoined
    (§39.189's clean-seed race: 133 of 144), so this is the expectation most likely to fail.
+
+### 39.265 The health-centre programme redo, drafted and priced, not landed (`homemaker-py-r2a9`, `5fje.27`)
+
+The owner wants these landed together with the next all-programme rerun, so nothing here
+touches `examples/`. The draft is `experiments/proposals/health-centre-r2a9/patterns.config`:
+the live programme plus the owner's two rulings of 2026-11-18, and nothing else --
+
+- `ao1` (admin office) gains `adjacency: rc1` (reception);
+- `mo1` (manager's office) gains `adjacency: ao1`.
+
+`experiments/price_programme.py <live> <draft>` is the reusable pricer: every committed design of
+the programme (its `+orth` cold corpora and every race's finals, winners and drawings,
+deduplicated by content) scored under both, with what each gains and loses. `--self-test` holds
+its controls -- an identical draft moves nothing; a draft with a requirement no design can meet
+moves every design. (The first control run passed nothing: `driver._fitness_for` is cached by
+directory, so a draft edited in place is scored with its old scorer. The self-test now uses a
+second directory; anyone pricing twice in one process must do the same.)
+
+**Priced over 34 designs.** Labels as stored (`--no-collapse`), the cost is exactly the two
+rulings and nothing else: +63 lines, `ao1` not next to `rc1` on 32 designs and `mo1` not next to
+`ao1` on 31. No committed design was arranged that way, which is no surprise, since nothing
+asked. The best race design (`halving-health-swap/drawings/s5-two-2`) goes 3 -> 5 fails; every
+race winner pays two lines.
+
+**With the search's relabelling on, the same draft costs +112 / -20, and the extra is not about
+the rulings.** `collapse_insearch` relabels cells to the rooms they fit best, partly by adjacency,
+so two new adjacency entries reshuffle rooms across a plan tuned under the old programme: the
+rulings race's winner goes 6 -> 13, with `crinkliness`, `size`, `wa1 not adjacent to rc1` and
+`t11 not adjacent to tr1` among the new lines, and two designs lose `qr1` to a relabel. A design
+evolved under the new programme would not carry that, so the stored-label price is the honest
+one, and **any future programme change should be priced both ways** -- the gap is what the old
+designs' labels were leaning on.
+
+**The lobby (5fje.27), measured with the scorer as it is.** "Reception adjacent to the entrance":
+the scorer already finds a front-door cell, `Fitness._lobby` (the widest `C` cell on the street).
+Of the 34 designs, 33 have one, and `rc1` is next to it on **4**; `wa1` on 4. `rc1` itself meets
+the street on 3, `wa1` on 15. So this requirement would bite as hard as the two rulings. Two forms
+are open, for the owner:
+
+- **a generic adjacency target `lobby`** -- an `adjacency:` entry met by being next to the cell
+  `Fitness._lobby` returns. Small: `graph._adjacency_target`/`has_adjacency` learn one token, and
+  `graph.code_matches_requirement` (the constructor's single matcher, §39.6) learns it too, or the
+  constructor and the scorer disagree again (`homemaker-py-1v7`).
+- **a lobby ROOM**, the owner's sketch of 2026-11-17: a programme space adjacent to the street,
+  `c` and `rc1`. Larger: no adjacency entry can name the street today (the street door is found
+  only on `C` cells by `_public_access`), and the scorer's own lobby (`_lobby`, `width_lobby`)
+  would then be two things.
+
+The first is the smaller objective change and the one this measurement prices.
+
+**Still the owner's to rule** (r2a9's candidates, unchanged): `rc1` as staff workspace (a usage,
+not `none`) facing `wa1`; `wa1` as the hub consulting rooms open toward; plant `me1` and storage
+`dp1` not reached through public rooms; a second consulting room; an accessible WC / baby change;
+a staff entrance. Each is a programme edit the pricer can cost in seconds once ruled.
