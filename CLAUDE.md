@@ -110,7 +110,14 @@ failure, and the reason this paragraph exists.
 `bd export` **excludes them by default** (bd deems them possibly-sensitive agent
 context), so they never reach the JSONL unless you pass `--include-memories`.
 After `bd remember`/`bd forget`, `bd dolt push` is what makes the change outlive
-this machine. A container without bd never sees them, so findings that every
+this machine. **Where `bd dolt push` cannot run** -- an agent container is
+refused (HTTP 403) on `refs/dolt/data` -- the memories go in a SEPARATE
+git-tracked file, `.beads/memories.jsonl`:
+`bd export --include-memories -o /tmp/all.jsonl && grep '"_type":"memory"' /tmp/all.jsonl > .beads/memories.jsonl`,
+and `bd import .beads/memories.jsonl` brings them back (checked 2026-11-25: 103
+of 103 into an empty database). Not in `issues.jsonl`: the one-liners in this
+file read every line as an issue (`r['id']`, `r['status']`), and a memory line
+has neither. A container without bd never sees them, so findings that every
 agent must have still go in `DESIGN.md` and working knowledge here; `bd
 remember` is for notes useful to sessions that run bd.
 
