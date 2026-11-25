@@ -144,25 +144,27 @@ class Walk:
 
     # ---------------------------------------------------------------- detour
     def detour_cheap(self):
-        """{(a, b): walk} for every pair of rooms on different storeys, via
-        one Dijkstra per (storey, stair)."""
-        # shafts: chains of stair nodes joined by flights
-        flights = nx.Graph([(a, b) for a, b, d in self.W.edges(data=True) if d.get("flight")])
-        shafts = [sorted(c, key=lambda n: n[1]) for c in nx.connected_components(flights)]
-        to = {}    # (shaft index, room) -> walk from the room to the shaft
-        for k, shaft in enumerate(shafts):
-            for s in shaft:
-                d = nx.single_source_dijkstra_path_length(self.storey(s[1]), s, weight="weight")
-                for r, lv in self.rooms.items():
-                    if lv == s[1] and r in d:
-                        to[k, r] = d[r]
+        """{(a, b): walk} for every pair of rooms on different storeys.
+
+        Every journey between storeys passes through at least one stair node,
+        so its shortest walk is the minimum over stair nodes s of d(a, s) +
+        d(s, b), with distances over the WHOLE building: one Dijkstra per
+        stair node. The first version walked each storey alone and took one
+        stair per journey, which misses a journey that changes stairs on a
+        third storey -- down one stair, across the ground, up another. On
+        `split-stair-race/final-best-3` that was 100 of 968 pairs (found
+        2026-11-25, §39.267); the self-test holds it to the brute force."""
+        stairs = {n for e in self.W.edges(data=True) if e[2].get("flight") for n in e[:2]}
+        to = {}    # stair node -> {room: walk}
+        for s in stairs:
+            d = nx.single_source_dijkstra_path_length(self.W, s, weight="weight")
+            to[s] = {r: d[r] for r in self.rooms if r in d}
         walks = {}
         rooms = list(self.rooms)
         for a, b in itertools.combinations(rooms, 2):
             if self.rooms[a] == self.rooms[b]:
                 continue
-            best = min((to[k, a] + to[k, b] for k in range(len(shafts))
-                        if (k, a) in to and (k, b) in to), default=None)
+            best = min((t[a] + t[b] for t in to.values() if a in t and b in t), default=None)
             if best is not None:
                 walks[frozenset((a, b))] = best
         return walks
@@ -176,6 +178,19 @@ class Walk:
                 if self.rooms[a] != self.rooms[b] and b in d:
                     walks[frozenset((a, b))] = d[b]
         return walks
+
+    def room_detours(self, walks=None):
+        """{room: mean detour (walk - plan, m) over its reachable journeys to
+        rooms on other storeys} -- the per-room form of the design's mean
+        (§39.267): the design reading is these averaged by journey."""
+        walks = self.detour_cheap() if walks is None else walks
+        acc = {}
+        for pair, w in walks.items():
+            a, b = tuple(pair)
+            ex = w - math.dist(self.W.nodes[a]["xy"], self.W.nodes[b]["xy"])
+            for r in (a, b):
+                acc.setdefault(r, []).append(ex)
+        return {r: statistics.fmean(v) for r, v in acc.items()}
 
     def detour(self):
         walks = self.detour_cheap()
@@ -228,6 +243,12 @@ def measure(progs, path):
     out = {"prog": prog, "storeys": n, "stairs": len(w.stairs.get(0, {}))}
     if n > 1:
         ex, ra, un = w.detour()
+        lvl = dom.levels(root)[0]
+        pts = [geometry.coordinate(lvl, i) for i in range(geometry.n_edges(lvl))]
+        half = math.dist((min(q[0] for q in pts), min(q[1] for q in pts)),
+                         (max(q[0] for q in pts), max(q[1] for q in pts))) / 2
+        rd = w.room_detours()
+        out.update(half_diag=half, room_detour=sorted(v / half for v in rd.values()))
         out.update(pairs=len(ex), unreachable=un,
                    excess_mean=statistics.fmean(ex) if ex else math.nan,
                    excess_max=max(ex, default=math.nan),
@@ -248,7 +269,9 @@ def self_test(progs) -> bool:
     ok = True
     for path in (CORRIDORS / "winner.dom",
                  REPO / "experiments/results/halving-health-swap/winner.dom",
-                 REPO / "experiments/results/drawings-bestof/maple-court/maple-court.dom"):
+                 # three storeys; the maple-court drawing first named here was
+                 # never committed (found 2026-11-25), so the self-test could not run
+                 REPO / "experiments/results/split-stair-race/final-best-3.dom"):
         prog, fit, _ = progs(path)
         root = dom.load(str(path))
         dom.link(root)
@@ -264,6 +287,17 @@ def self_test(progs) -> bool:
         print(f"{path.parent.name}/{path.name}: {len(brute)} pairs, cheap = brute: {same} "
               f"(max diff {diff:.2e}); cheap {1000*(t1-t0):.0f} ms, brute {1000*(t2-t1):.0f} ms")
         ok &= same and len(brute) > 0
+        # the per-room reading is the design's, decomposed: each journey
+        # counts once for each of its two rooms, so the journey-weighted mean
+        # of the room means is the design mean
+        rd, n = w.room_detours(cheap), {}
+        for pair in cheap:
+            for r in pair:
+                n[r] = n.get(r, 0) + 1
+        ex, _ra, _un = w.detour()
+        back = sum(rd[r] * n[r] for r in rd) / (2 * len(cheap))
+        print(f"  per-room means give back the design mean: {back:.4f} = {statistics.fmean(ex):.4f}")
+        ok &= abs(back - statistics.fmean(ex)) < 1e-9
     w.W.remove_edges_from([(a, b) for a, b, d in w.W.edges(data=True) if d.get("flight")])
     print("no flights: reachable pairs", len(w.detour_cheap()), len(w.detour_brute()))
     ok &= not w.detour_cheap() and not w.detour_brute()
@@ -272,6 +306,10 @@ def self_test(progs) -> bool:
     ok &= w.dead_end(0) == (None, None)
     print("self-test:", "PASS" if ok else "FAIL")
     return ok
+
+
+# the per-room threshold, in plot half-diagonals (owner 2026-11-25: 0.75 to start)
+PER_ROOM = 0.75
 
 
 def _m(x):
@@ -287,7 +325,10 @@ def fmt(r):
         s += (f"\tupper dead end {_m(u[0])} / room {_m(u[1])}"
               f"\tpairs {r['pairs']} unreach {r['unreachable']}"
               f"\texcess mean {r['excess_mean']:.1f} max {r['excess_max']:.1f}"
-              f"\tratio {r['ratio_mean']:.2f}")
+              f"\tratio {r['ratio_mean']:.2f}"
+              f"\tscale-free mean {r['excess_mean'] / r['half_diag']:.2f}"
+              f"\trooms over {PER_ROOM} {sum(v > PER_ROOM for v in r['room_detour'])}"
+              f" of {len(r['room_detour'])}")
     return s + f"\t{r['ms']:.0f} ms"
 
 
@@ -295,7 +336,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("designs", nargs="*")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--per-room", type=float, default=PER_ROOM,
+                    help="count rooms whose own mean detour is over this many plot "
+                         "half-diagonals (§39.267)")
     a = ap.parse_args()
+    globals()["PER_ROOM"] = a.per_room
     if not geometry.ORTHOGONAL_DIVISION:
         sys.exit("set HOMEMAKER_ORTHOGONAL_DIVISION=1")
     progs = rc.Programmes()

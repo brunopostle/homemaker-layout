@@ -23894,3 +23894,55 @@ at its ends); **its form** -- one line per design, or per room (a room whose own
 the bar), which tells an operator where to act, as `dead end` does. The measured caveat: only 45
 of 77 multi-storey designs have connected storeys to measure, and only 4 health-centre designs,
 so the health-centre column is thin.
+
+### 39.267 The detour per room, and a correction to §39.266's table: journeys may change stairs (`homemaker-py-5fje.29`)
+
+The owner on §39.266: "Presumably the scale-free mean and worst single journey are incompatible
+with one fail per room? ... 0.75 is a good start, we can vary this later."
+
+**Both readings have a per-room form.** A room's own mean detour (its journeys to rooms on other
+storeys, over the plot half-diagonal) is the per-room form of the design's mean -- the design reading
+is these averaged over journeys, and `diag_5fje29_stair_travel.py`'s self-test now holds that
+identity exactly -- and a room's worst journey is the per-room form of the worst pair. What changes
+between the forms is what a threshold means, measured below.
+
+**First, a defect, found by the self-test.** The "cheap" detour of §39.245 walked each storey alone
+and let a journey use ONE stair, which misses a journey that changes stairs on a third storey --
+down one, across the ground, up the other -- wherever a storey's circulation is in pieces each
+served by a different stair. §39.245's equality with the brute force was held on two-storey designs
+and on a maple-court drawing that was never committed, so the self-test could not run at all. With
+a committed three-storey design in its place (`split-stair-race/final-best-3`) it failed: 868 pairs
+against the brute force's 968, all 100 missing between storeys 1 and 2. Fixed exactly: every
+inter-storey journey passes a stair node, so the walk is min over stair nodes of d(a, s) + d(s, b)
+with distances over the whole building -- still one Dijkstra per stair node, and the self-test
+passes on all three designs with both negative controls. It changed 24 of the 77 multi-storey
+designs, mostly maple-court, where several "partly unreachable" designs reach every pair and read
+4-6 m worse. **§39.266's threshold table is superseded by this one** (77 designs now measurable,
+not 45):
+
+| | programme-house (14) | health-centre (5) | harbor-house (20) | maple-court (38) |
+|---|---|---|---|---|
+| design mean / half-diagonal, min / median / max | 0.37 / 0.57 / 0.89 | 0.35 / 0.51 / 0.65 | 0.25 / 0.42 / 0.91 | 0.23 / 1.04 / 1.83 |
+| **one line per design, over 0.75** | **3/14** | **0/5** | **2/20** | **28/38** |
+
+**One line per room** (a room whose own mean detour is over the bar), designs with any / mean lines
+per design / share of all rooms over:
+
+| bar | programme-house | health-centre | harbor-house | maple-court |
+|---|---|---|---|---|
+| 0.75 | 9/14, 1.7, 29% | 4/5, 3.0, 16% | 9/20, 3.9, 25% | 35/38, 32.2, 72% |
+| 1.0 | 6/14, 0.6, 11% | 1/5, 0.2, 1% | 8/20, 2.0, 13% | 32/38, 24.6, 55% |
+| 1.25 | 0/14, 0, 0% | 0/5, 0, 0% | 7/20, 0.7, 4% | 31/38, 18.4, 41% |
+| 1.5 | 0/14, 0, 0% | 0/5, 0, 0% | 5/20, 0.3, 2% | 25/38, 11.2, 25% |
+
+The same bar is stricter per room, because a room's position counts as well as the stair's: a
+corner room's mean detour is long even with a central stair, so at 0.75 most single-stair houses
+already carry a failing room. Per room, the bar that matches 0.75-per-design on the small
+programmes is about **1.25**: no single-stair house and no health-centre design fails, and
+maple-court, whose stairs sit at its ends, fails nearly everywhere. But per room it fails with
+18 lines on average, against one line per design; at 0.5 a line that is a factor of 2^18.
+
+**For the owner:** 0.75 is set as the starting bar. The open choice is its form -- **one line per
+design at 0.75**, which says "this building's stairs are badly placed" once; or **one line per room
+at about 1.25**, which tells an operator which rooms are far from a stair (as `dead end` does) but
+can weigh as much as everything else on a large building. Not landed: the rule waits for this.
