@@ -24034,3 +24034,71 @@ much longer in wall clock), and is unreliable if cheap. Two ways round it, for t
    the building's scale-free mean detour, which is one vectorised pass (§39.267), graded rather than
    a cliff -- to tell the comparator that the moved stair is better. This keeps "where to act" in
    the move, which is where the search acts, rather than in a fail line.
+
+### 39.270 Stair travel, split: a graded detour factor in the score, `move_stair` in the search (`homemaker-py-5fje.29`)
+
+The owner chose §39.269's second way ("Split it, go ahead"). Two halves.
+
+**In the score -- an objective change; the stamp moves.** `graph.travel_graph` and
+`graph.mean_detour` port the walk measured in §39.244-§39.268: door midpoints, room and stair-cell
+centroids, every pair of a circulation cell's doors joined, flights at no cost; the mean, over
+every pair of rooms on different storeys that a walk joins, of the walk via the best stair minus the
+plan distance -- exact, a journey may change stairs (§39.267), one Dijkstra per stair node then a
+vectorised minimum. Held to the experiment's figure on all 87 committed multi-storey designs (equal
+to 1e-9), at a median 1.4 ms (6.3 ms worst) against a 20-65 ms score. `Fitness.detour_factor`
+divides it by `graph.plot_half_diagonal` and applies `detour_cap: [0.75, 0.25]` (CONF_DEFAULTS, every
+programme): 1 at or under 0.75, a one-sided gaussian above it -- graded, so a worse building pays
+more, the owner's objection to every per-design line -- and a SOFT `stair detour` line only where the
+factor crosses FAIL_THRESHOLD (1.29 half-diagonals). One storey is untouched. `false` turns it off
+(a `None` falls back to the default, as for every key -- the first pricing run set `None` on its
+"off" scorer and measured nothing).
+
+The half-diagonal is half the largest corner-to-corner distance of the ground storey, not a box in
+world coordinates: the first version took the box, and `tests/test_scorer_reads_geometry_only.py`
+failed it -- turning the plot moved a maple-court score x5.6. §39.266-§39.268's tables used that box;
+the change moves no programme's picture (repriced below).
+
+**Priced** over the 116 committed designs, against `detour_cap: false`:
+
+| | designs | factor < 1 | median factor where < 1 | worst | `stair detour` lines | race designs touched |
+|---|---|---|---|---|---|---|
+| programme-house | 15 | 6 | 0.85 | 0.47 | 0 | -- |
+| health-centre | 34 | 1 | 0.996 | 0.996 | 0 | 1/17 |
+| harbor-house | 23 | 2 | 0.86 | 0.75 | 0 | 0/5 |
+| maple-court | 44 | 29 | 0.14 | 2.5e-5 | 13 | 24/26 |
+
+It is maple-court's rule in practice: its stairs sit at the ends of long wings. §39.257's maple
+winner re-scores at the same 36 fails and x0.19 in score.
+
+**In the search -- `operators.mutate_move_stair`, default off (`--move-stair`).** For each shaft
+(a ground-most stair cell and the same cell above it, `graph.stair_shaft`) it tries every other
+column that is an undivided indoor non-stair cell on every storey the shaft serves and whose foot
+can hold a flight (`Fitness._stair_fit` with no door in the way, not failing `staircase volume`):
+it SWAPS labels up the column (the displaced room takes the stair's old cell, no wall moves, the
+room set is kept), measures the building's mean detour with the scorer's own function, and makes the
+move that cuts it most, provided every journey is still made; none, noop. Cost when drawn: a median
+2-61 ms a design (it measures once per candidate). A default search is byte-identical with it
+present (programme-house, 3000 evals, with and without it in `MUTATIONS`).
+
+The flight filter came from the first census: without it the move sent stairs to columns that could
+not hold one (7 `staircase volume` lines); with it, none.
+
+**Census** (every committed multi-storey design, the move applied, child and parent each given the
+80 evaluations a child gets): it moved a stair on 29 designs, and **after tuning the child beat its
+parent on 6 (21%)** -- three harbor-house designs ending two fails lighter (x2.0-x4.5), a programme-house
+design (x1.7, same fails), two maple-court. On the rest it cost 1-15 fails, mostly in the displaced
+room (size, adjacency, access) and in a corridor column left behind (`superfluous circulation`). On
+designs the search had finished with, where §39.124 found no single move and almost no pair that
+removes a fail, a move that wins on a fifth of its draws is worth its place; whether it earns it in
+a run, with the comparator discarding the losers, is a race (the box).
+
+**What lands.** The factor, on by default: an owner's ruling, priced, with its tests
+(`tests/test_stair_detour.py`: the port equals the measured tool, the factor is the gaussian, off is
+off, no flight no journey, one storey untouched, soft tier, turning the plot moves nothing, and the
+move's swap, gain, noop and default-off). The move, off until raced. Expectation for the next sweep
+or race, written now: maple-court's winners carry no `stair detour` line, and their mean detour
+falls below 1.0 half-diagonal from §39.267's median 1.04; nothing else moves outside maple-court.
+
+`run_halving_maple_outer.sh` (§39.264) guarded on §39.257's stamp and would now refuse; it instead
+writes §39.257's finals re-scored with today's code beside its results (`control-rescored.txt`),
+which is the comparison §39.264's expectations 3-4 now mean.
