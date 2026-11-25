@@ -347,6 +347,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
                         "with the one that most shortens journeys between storeys "
                         "(DESIGN.md §39.270). Changes what a search does; the race "
                         "that decides it has not been run (default: off)")
+    p.add_argument("--route-circulation", dest="route_circulation",
+                   action=argparse.BooleanOptionalAction,
+                   default=_env_bool("HOMEMAKER_ROUTE_CIRCULATION", False),
+                   help="homemaker-py-8b2u.17.1: a repair move that routes a corridor "
+                        "to an unserved room, or between two pieces of a storey's "
+                        "circulation, cutting strips off the rooms it crosses "
+                        "(DESIGN.md §39.272). Changes what a search does; the race "
+                        "that decides it has not been run (default: off)")
     p.add_argument("--split-stair", dest="split_stair",
                    action=argparse.BooleanOptionalAction,
                    default=_env_bool("HOMEMAKER_SPLIT_STAIR", True),
@@ -550,6 +558,7 @@ def main(argv=None) -> int:
     os.environ["HOMEMAKER_REMOVE_TOKEN"] = "1" if args.remove_token else "0"
     os.environ["HOMEMAKER_TRIM_OVERSIZED"] = "1" if args.trim_oversized else "0"
     os.environ["HOMEMAKER_MOVE_STAIR"] = "1" if args.move_stair else "0"
+    os.environ["HOMEMAKER_ROUTE_CIRCULATION"] = "1" if args.route_circulation else "0"
     os.environ["HOMEMAKER_GUARD_CONNECTION"] = args.guard_connection
     driver.GUARD_CONNECTION = args.guard_connection
     os.environ["HOMEMAKER_GUARD_DOUBLE_LOADED"] = "1" if args.guard_double_loaded else "0"
@@ -669,6 +678,7 @@ def main(argv=None) -> int:
     print(f"remove token       : {args.remove_token}", file=sys.stderr)
     print(f"trim oversized     : {args.trim_oversized}", file=sys.stderr)
     print(f"move stair         : {args.move_stair}", file=sys.stderr)
+    print(f"route circulation  : {args.route_circulation}", file=sys.stderr)
     print(f"guard connection   : {args.guard_connection}", file=sys.stderr)
     print(f"guard double-loaded: {args.guard_double_loaded}", file=sys.stderr)
     print(f"tune storey heights: {args.tune_heights}", file=sys.stderr)

@@ -24143,3 +24143,45 @@ WC, ~8 lines each with their cascades). What the new rules do on their own: `wa1
 on all 34 (no lobby exists), plant `me1` and store `dp1` lose their `c` on 2 designs where they
 opened only off the waiting room, and the waiting room's old room lines go (`wa1 not adjacent to
 rc1` on 10, `not adjacent to c` on 1). As with draft B, only the rerun it is planned for can judge it.
+
+### 39.272 `route_circulation`: corridors routed as a repair, and a census that says it pays (`homemaker-py-8b2u.17.1`)
+
+§39.260 found that routing corridors after the rooms recovers a storey's connectivity to the search's
+level in one step, at a price in the rooms it crosses, and recommended trying it as a repair first.
+`operators.mutate_route_circulation`, default **off** (`--route-circulation`), a fit-op:
+
+- **targets**: a room the scorer calls unserved (`Fitness.access` empty -- its own test, so a
+  kitchen beside a living room or a store beside a kitchen is left alone), or a storey whose
+  circulation is in pieces; one is drawn;
+- **route**: the cheapest path to circulation (or to another piece) over the indoor cells,
+  circulation free and a room five times a plain cell;
+- **every room on it cuts a corridor strip** rather than losing its label, as `bridge_circulation`
+  does; of the eight placements that make the target served (or the pieces fewer), the one the
+  building scores best; all or nothing. Only a room whose cut is its own is crossed (`_own_cut`):
+  not one whose path is divided below or above;
+- **both of §39.260's refinements**: the strip's depth comes from the room's slack (its area over
+  its size target, over the strip's length), between 1.2 and 1.6 m, not a fixed 1.6 m; and nothing
+  is erased, so there are no unused cells to give away.
+
+A default search is byte-identical with it present (programme-house, 3000 evals, with and without
+it in `MUTATIONS`). `tests/test_route_circulation.py`: it joins `halving-maple-single`'s two
+upstairs pieces and keeps every room (strips, not retypes), no scorer is noop, and the default
+search never draws it at 1000x weight while the switch on does.
+
+**Census**: every committed design with a connection-family fail, six draws each, child and parent
+each given a child's 80 evaluations:
+
+| | children | better than the tuned parent | fewer fails | connection lines down (raw) | joins | median ms when drawn |
+|---|---|---|---|---|---|---|
+| harbor-house | 24 | 14 | 10 | 24 | 6 | 60 |
+| health-centre | 6 | 0 | 0 | 4 | 0 | 40 |
+| maple-court | 38 | 22 | 17 | 37 | 5 | 130 |
+| all | 68 | **36 (53%)** | 27 | 65 | 11 | |
+
+The largest: `halving-maple-single`'s winner, two upstairs pieces joined with two strips, 55 -> 49
+fails after tuning (x9.3); harbor-house cold designs x2-x3.7 with two fails fewer. On designs the
+search had finished with, where §39.124 found almost nothing that removes a fail, a move whose child
+beats its tuned parent half the time is the strongest repair this project has measured. Health-centre
+is the exception (0 of 6): its connection fails are few and its rooms small, so a strip costs the
+room what it gains the corridor. Whether it earns its draw in a run is a race (the box), with
+`bridge_circulation` as the natural comparison.

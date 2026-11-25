@@ -1578,6 +1578,193 @@ def mutate_move_stair(root: dom.Node, rng: np.random.Generator,
     return _finalise(child), f"move_stair {li}/{sid or 'root'} to {p} ({gain:.0%})"
 
 
+ROUTE_DEPTH = (1.2, 1.6)   # a routed corridor strip: narrowest, widest (m)
+
+
+def _own_cut(lvls, li: int, leaf: dom.Node) -> bool:
+    """Can ``leaf`` be divided without moving a wall elsewhere? Not if the
+    same path is divided on the storey below (the cut would be that one's),
+    nor on any storey above (that cell's own cut would stop being read)."""
+    if leaf.below is not None and leaf.below.divided:
+        return False
+    return not any((n := lv.by_id(leaf.id)) is not None and n.divided
+                   for lv in lvls[li + 1:])
+
+
+def _route_strip(root, lvl, room, served, fit) -> bool:
+    """Cut a corridor strip off ``room`` so that ``served()`` holds: of the
+    eight placements (four rotations, strip on either side) that make it
+    hold, the one the building scores best. The strip's depth comes from the
+    room's slack -- what it has over its size target, over the strip's
+    length -- within ``ROUTE_DEPTH``, so a room with room to spare gives a
+    full corridor and one without gives the narrowest (§39.260's refinement:
+    a fixed 1.6 m strip left rooms short). False, and the room untouched, if
+    no placement works."""
+    from . import geometry as _geo
+    code = room.type
+    target = size_target(fit, room) or 0.0
+    area = _geo.area(room)
+    best = None
+    for rot in range(4):
+        for side in (0, 1):
+            room.type, room.rotation = None, rot
+            room.left, room.right = dom.Node(type="C"), dom.Node(type="C")
+            room.division = [0.5, 0.5]
+            dom.link(root)
+            _geo.clear_cache()
+            a, b = (np.array(_geo.centroid(room.left)), np.array(_geo.centroid(room.right)))
+            normal = (b - a) / (np.linalg.norm(b - a) or 1.0)
+            pts = [np.dot(_geo.coordinate(room, i), normal) for i in range(_geo.n_edges(room))]
+            span = max(pts) - min(pts)
+            if span <= ROUTE_DEPTH[0] * 2:
+                continue
+            depth = min(ROUTE_DEPTH[1], max(ROUTE_DEPTH[0], (area - target) * span / area))
+            f = depth / span
+            f = f if side == 0 else 1 - f
+            room.division = [f, f]
+            strip, rest = (room.left, room.right) if side == 0 else (room.right, room.left)
+            strip.type, rest.type = "C", code
+            dom.link(root)
+            _geo.clear_cache()
+            if served():
+                sc = fit.score_with_fails(copy.deepcopy(root))[0]
+                _geo.clear_cache()
+                if best is None or sc > best[0]:
+                    best = (sc, rot, side, f)
+    if best is None:
+        room.type, room.division, room.left, room.right = code, None, None, None
+        dom.link(root)
+        _geo.clear_cache()
+        return False
+    _sc, rot, side, f = best
+    room.type, room.rotation, room.division = None, rot, [f, f]
+    room.left, room.right = ((dom.Node(type="C"), dom.Node(type=code)) if side == 0
+                             else (dom.Node(type=code), dom.Node(type="C")))
+    dom.link(root)
+    _geo.clear_cache()
+    return True
+
+
+def mutate_route_circulation(root: dom.Node, rng: np.random.Generator,
+                             types: list[str], fit=None) -> tuple[dom.Node, str]:
+    """Route a corridor to a room the scorer calls unserved, or between two
+    pieces of a storey's circulation (`homemaker-py-8b2u.17.1`, DESIGN.md
+    §39.260, §39.272).
+
+    §39.260 found that routing corridors after the rooms recovers a storey's
+    connectivity to the search's own level in one step, and costs the rooms
+    it crosses their shape. As a repair that is a strength: one draw, one
+    storey, the comparator decides. The cheapest path (circulation free, a
+    room dear) from the target to the circulation; every room on it cuts a
+    corridor strip (`_route_strip`) rather than losing its label, as
+    `bridge_circulation` does; all or nothing. Only rooms whose cut is their
+    own are crossed (`_own_cut`). A room is unserved when `Fitness.access` is
+    empty -- the scorer's own test, so kitchens beside living rooms and stores
+    beside kitchens are left alone.
+    """
+    import networkx as nx
+
+    from . import geometry as _geo, graph as _graph
+
+    if fit is None:
+        return _finalise(copy.deepcopy(root)), "route_circulation noop"
+    child = copy.deepcopy(root)
+    dom.link(child)
+    _geo.clear_cache()
+    lvls = dom.levels(child)
+    reqs = getattr(fit, "_programme", None) or {}
+    tasks = []
+    for li, lvl in enumerate(lvls):
+        G = _geo.leaf_graph(lvl, _graph.DOOR_WIDTH)
+        indoor = G.subgraph([x for x in G if not dom.is_outside(x)])
+        circ = [x for x in indoor if dom.is_circulation(x)]
+        if not circ:
+            continue
+        for x in sorted(indoor, key=lambda n: n.id or ""):
+            if x.type in reqs and not fit.access(x, G):
+                tasks.append((li, "room", x.id))
+        pieces = list(nx.connected_components(indoor.subgraph(circ)))
+        if len(pieces) > 1:
+            tasks.append((li, "pieces", None))
+    if not tasks:
+        return _finalise(child), "route_circulation noop"
+    li, kind, tid = tasks[int(rng.integers(len(tasks)))]
+    lvl = lvls[li]
+
+    def cost(x):
+        if dom.is_circulation(x):
+            return 0.0
+        return 5.0 if x.type in reqs else 1.0
+
+    G = _geo.leaf_graph(lvl, _graph.DOOR_WIDTH)
+    H = nx.Graph()
+    H.add_nodes_from(x for x in G if not dom.is_outside(x))
+    H.add_edges_from(sorted(((a, b, {"w": (cost(a) + cost(b)) / 2})
+                             for a, b in G.subgraph(list(H)).edges()),
+                            key=lambda e: tuple(sorted((e[0].id or "", e[1].id or "")))))
+    circ = [x for x in H if dom.is_circulation(x)]
+    if kind == "room":
+        src = [x for x in H if x.id == tid]
+        dst = circ
+    else:
+        pieces = sorted(nx.connected_components(H.subgraph(circ)),
+                        key=lambda c: (len(c), min(x.id or "" for x in c)))
+        src, dst = list(pieces[0]), [x for c in pieces[1:] for x in c]
+    if not src:
+        return _finalise(child), "route_circulation noop"
+    H.add_edges_from(("SRC", x, {"w": 0.0}) for x in src)
+    H.add_edges_from(("DST", x, {"w": 0.0}) for x in dst)
+    try:
+        _w, path = nx.single_source_dijkstra(H, "SRC", "DST", weight="w")
+    except nx.NetworkXNoPath:
+        return _finalise(child), "route_circulation noop"
+    middle = [x for x in path[1:-1] if not dom.is_circulation(x)
+              and (kind != "room" or x.id != tid)]
+    if not middle or not all(_own_cut(lvls, li, x) for x in middle):
+        return _finalise(child), "route_circulation noop"
+    target_id = tid
+
+    def served():
+        Gs = _geo.leaf_graph(lvl, _graph.DOOR_WIDTH)
+        if kind == "room":
+            t = [x for x in Gs if x.id == target_id]
+            return any(fit.access(x, Gs) for x in t)
+        ind = Gs.subgraph([x for x in Gs if not dom.is_outside(x)])
+        n = nx.number_connected_components(ind.subgraph([x for x in ind if dom.is_circulation(x)]))
+        return n < len(pieces)
+
+    if kind == "pieces":
+        pieces = sorted(nx.connected_components(
+            H.subgraph([x for x in circ])), key=len)
+    plain = [(x, x.type) for x in middle if x.type not in reqs]
+    rooms = [x for x in middle if x.type in reqs]
+    for x, _t in plain:
+        x.type = "C"
+    dom.link(child)
+    _geo.clear_cache()
+    done = []
+    for k, x in enumerate(rooms):
+        later = [(y, y.type) for y in rooms[k + 1:]]
+        for y, _t in later:
+            y.type = "C"
+        ok = _route_strip(child, lvl, x, served, fit)
+        for y, t in later:
+            y.type = t
+        dom.link(child)
+        _geo.clear_cache()
+        if not ok:
+            for y, code in done:
+                y.type, y.division, y.left, y.right = code, None, None, None
+            for y, t in plain:
+                y.type = t
+            dom.link(child)
+            _geo.clear_cache()
+            return _finalise(child), "route_circulation noop"
+        done.append((x, x.left.type if x.left.type != "C" else x.right.type))
+    what = f"{tid}" if kind == "room" else "two pieces"
+    return _finalise(child), f"route_circulation {li}/{what} ({len(rooms)} strips)"
+
+
 def _leaves_with_depth(n: dom.Node, d: int = 0) -> list[tuple[dom.Node, int]]:
     """Every leaf under ``n`` paired with its depth below ``n``."""
     if not n.divided:
@@ -4093,6 +4280,7 @@ MUTATIONS = {
     "remove_token": mutate_remove_token,
     "trim_oversized": mutate_trim_oversized,
     "move_stair": mutate_move_stair,
+    "route_circulation": mutate_route_circulation,
     "ruin_recreate": mutate_ruin_recreate,
     "reassign": mutate_reassign,
     "support_outside": mutate_support_outside,
@@ -4125,7 +4313,7 @@ def mutate(root: dom.Node, rng: np.random.Generator, types: list[str],
     reqs_optional_ops = ("bridge_circulation",)
     # these need a Fitness instance to identify genuinely shape-failing leaves
     fit_ops = ("shape_rotate", "deslim", "merge_circulation", "remove_token",
-               "trim_oversized", "move_stair")
+               "trim_oversized", "move_stair", "route_circulation")
     if reqs is None:
         for op in reqs_ops:
             p[names.index(op)] = 0.0

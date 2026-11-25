@@ -242,7 +242,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (376 of them, 24145 lines)
+## Every section of DESIGN.md (377 of them, 24187 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -669,4 +669,5 @@ below are the most recent work.
 - §39.268 · 23950-24006 · The detour per stair: would this stair be better placed elsewhere in the same plan? (`homemaker-py-5fje.29`)
 - §39.269 · 24007-24037 · The per-stair detour's cost: about a score as an exact rule, and the cheap form is wrong where it matters (`homemaker-py-5fje.29`)
 - §39.270 · 24038-24105 · Stair travel, split: a graded detour factor in the score, `move_stair` in the search (`homemaker-py-5fje.29`)
-- §39.271 · 24106-24145 · The health-centre redo's scorer features, built inert, and draft C (`homemaker-py-5fje.27`, `r2a9`)
+- §39.271 · 24106-24146 · The health-centre redo's scorer features, built inert, and draft C (`homemaker-py-5fje.27`, `r2a9`)
+- §39.272 · 24147-24187 · `route_circulation`: corridors routed as a repair, and a census that says it pays (`homemaker-py-8b2u.17.1`)
