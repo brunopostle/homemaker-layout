@@ -23809,3 +23809,88 @@ The first is the smaller objective change and the one this measurement prices.
 not `none`) facing `wa1`; `wa1` as the hub consulting rooms open toward; plant `me1` and storage
 `dp1` not reached through public rooms; a second consulting room; an accessible WC / baby change;
 a staff entrance. Each is a programme edit the pricer can cost in seconds once ruled.
+
+### 39.266 Owner's answers (2026-11-25): no oversized-room rule; the lobby, waiting room and reception; the redo's candidates approved; the detour threshold's options (`s36o`, `5fje.27`, `r2a9`, `5fje.29`)
+
+**1. Oversized rooms (s36o): no rule.** The owner asked whether the size sigma does not already
+account for it. It does, in the way that matters. The gaussian fails a room past about 2.15
+sigma -- 1.34-1.54 x target for every room that swelled in §39.258 (`me1` 25 +- 4 m2 fails above
+33.6) -- and past that a room at 1.5x and one at 7x both pay one `size` line: the factor goes to
+~0 (1e-87 at 5x) but multiplies only that room's own value, already ~0 at 2x. What keeps growing
+with the swelling is COST, area paid for; and sigma plus cost already rank the trimmed plan above
+the swollen one, by x2-x28 on every race design (§39.258). A rule would widen a gap that is there;
+the problem is reach, and the lever is the move (`s36o.1`, §39.259). `s36o` closes on this.
+
+**2. The lobby, the waiting room and reception (5fje.27), the owner verbatim:**
+
+> In this programme there needs to be a lobby cell that has street access and access to the
+> circulation, the reception needs to be close to the lobby, or rather it needs to be close to the
+> entrance, ie. it can be adjacent to the circulation cell that connects to the lobby, or in a
+> health centre, there is likely a waiting room (which is a circulation type) directly connected to
+> the lobby, and the reception needs to be directly connected to this waiting room.
+
+Read as requirements, for the redo:
+
+- **a lobby cell**: on the street (a street door, as `Fitness._public_access` finds one) and joined
+  to the circulation. Today's `Fitness._lobby` is the widest `C` cell on the street; this makes
+  having one a requirement and names the cell.
+- **the waiting room is circulation**, not a room: `wa1` becomes a circulation cell with a size
+  target -- rooms open off it, corridors join it, and it counts for every circulation rule, as `E`
+  does for a stair (§39.125) -- directly connected to the lobby.
+- **reception "close to the entrance"**: adjacent to the circulation cell that joins the lobby; in
+  this programme, directly connected to the waiting room.
+
+None of this is expressible today: no adjacency entry can name the street or "the cell that joins
+the lobby", and a programme room cannot be circulation. It is an objective change -- `graph`'s
+circulation tests, the adjacency target, and the constructor's `code_matches_requirement` with it
+(§39.6) -- that lands with the redo, not before. §39.265's measurement is its baseline: on 34
+designs `rc1` is next to the scorer's lobby cell on 4.
+
+**3. The redo's candidates (r2a9): all approved.** Draft B,
+`experiments/proposals/health-centre-r2a9b/patterns.config`, holds those that are plain programme
+edits today, on top of draft A's two rulings: reception as a staff workspace (`usage: bedroom`, a
+terminal room, never a route through) directly beside the waiting room; GP consulting room `gp1`
+opening toward the waiting room; a nurse consulting room `nr1` (12 m2, beside `c` and `wa1`); an
+accessible WC / baby change `tw1` (4.5 m2, ground floor). Priced over the 34 designs with labels
+as stored: +512 lines, of which 408 are the two new rooms missing from every design (they cannot
+be in a design made before them), then `ao1`-`rc1` 32, `mo1`-`ao1` 31, `gp1`-`wa1` 30, `rc1`-`wa1`
+10. The best race design goes 3 -> 18. Like any programme that adds rooms, it can only be judged
+by the rerun it is planned for. Still needing the scorer, with the lobby above: plant `me1` and
+storage `dp1` kept off public rooms (a `utility` room may today be served through any non-bedroom
+room, §39.138, so this is a new "not through" relation), and a staff entrance (a second street door
+for staff, which no rule knows).
+
+**4. The inter-storey detour threshold (5fje.29): the options.** The owner asked what they are.
+`diag_5fje29_stair_travel.py` over every committed multi-storey design (116 designs, 77
+multi-storey; 45 with inter-storey pairs that connect, measured on those pairs only, since
+unconnected pairs already pay `level N not connected`). The per-pair "detour" is the walk via the
+best stair minus the plan distance. Three ways to read a design:
+
+| reading | programme-house (n 14, one central stair) | health-centre (4) | harbor-house (3) | maple-court (24) |
+|---|---|---|---|---|
+| mean detour, m (min / median / max) | 2.3 / 3.5 / 5.5 | 5.9 / 9.3 / 11.1 | 13.7 / 14.1 / 17.8 | 11.1 / 23.7 / 32.6 |
+| worst pair, m | 4.7 / 8.3 / 9.3 | 26.0 / 34.2 / 39.0 | 45.1 / 52.6 / 52.6 | 37.3 / 65.9 / 75.5 |
+| mean detour / plot half-diagonal | 0.37 / 0.57 / 0.89 | 0.35 / 0.54 / 0.65 | 0.70 / 0.72 / 0.91 | 0.55 / 1.18 / 1.62 |
+
+(The mean ratio walk / plan, §39.243's first idea, is not offered: §39.244 found it does not
+separate two stairs side by side from two apart, because short pairs pin it near 2.)
+
+Metres scale with the building, so one threshold in metres would bite only on the large
+programmes; divided by the plot's half-diagonal the reading is scale-free, and programme-house --
+one central stair, the owner's good case -- gives the reference: median 0.57, upper quartile 0.75.
+Designs failing at each scale-free threshold:
+
+| fail above | programme-house | health-centre | harbor-house | maple-court |
+|---|---|---|---|---|
+| 0.5 | 11/14 | 3/4 | 3/3 | 24/24 |
+| 0.6 | 6/14 | 1/4 | 3/3 | 22/24 |
+| 0.75 | 3/14 | 0/4 | 1/3 | 21/24 |
+| 1.0 | 0/14 | 0/4 | 0/3 | 15/24 |
+
+The choices for the owner, then: **which reading** (the scale-free mean is the steadiest; the
+worst pair names one bad journey and is the noisiest); **the threshold** (0.75 passes three
+quarters of programme-house's single-stair houses and fails most of maple-court, whose stairs sit
+at its ends); **its form** -- one line per design, or per room (a room whose own mean detour is over
+the bar), which tells an operator where to act, as `dead end` does. The measured caveat: only 45
+of 77 multi-storey designs have connected storeys to measure, and only 4 health-centre designs,
+so the health-centre column is thin.
