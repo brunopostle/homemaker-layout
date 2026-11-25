@@ -23946,3 +23946,60 @@ maple-court, whose stairs sit at its ends, fails nearly everywhere. But per room
 design at 0.75**, which says "this building's stairs are badly placed" once; or **one line per room
 at about 1.25**, which tells an operator which rooms are far from a stair (as `dead end` does) but
 can weigh as much as everything else on a large building. Not landed: the rule waits for this.
+
+### 39.268 The detour per stair: would this stair be better placed elsewhere in the same plan? (`homemaker-py-5fje.29`)
+
+The owner on §39.267's two forms: "I don't see a good choice here, what are the downsides?" Both
+measure how far ROOMS are from stairs. Per design it is a cliff (0.76 and 1.8 each one line, so a
+failing design gains nothing by improving), a flat tax where nearly everything fails (maple-court
+28/38), and names no place to act. Per room it blames a room for its position (a stacked pair's
+detour is about twice their distance to the nearest stair, so a corner room is far from any stair
+however well placed), counts building size rather than badness (one bad stair fails dozens of
+rooms; ~18 lines on maple-court), and repeats one cause many times. Both measure only connected
+journeys, and normalise by the PLOT, not the building. The owner asked for the alternative this
+suggested: judge each stair against where it could have been in the same plan.
+
+`diag_5fje29_stair_travel.py --per-stair`: for each shaft (a stair path and the storeys it
+serves), try every other column the stair could stand in, recompute the building's mean detour with
+the stair there, and report the best. A candidate counts only if every journey the design reaches
+it still reaches, so a move cannot shorten the mean by cutting a storey off. Two readings of
+"could stand in":
+
+- **`--candidates circulation`**: a column that is a corridor (`C`) on every storey the shaft
+  serves. Rare: 8 of 53 stairs outside maple-court have one, and programme-house none, so its
+  central stairs "pass" by default. Maple-court: 53 of 76 have one, and 14 would gain over 20%.
+- **`--candidates indoor`**: any indoor column, rooms included, the move SWAPPING labels so the
+  displaced room takes the stair's old cell and the room set is kept. This asks the question
+  itself, "is this the best place in the plan for a stair":
+
+| | stairs | with an alternative | gain > 10% | > 20% | > 30% | median gain | designs with a stair over 20% |
+|---|---|---|---|---|---|---|---|
+| programme-house | 14 | 13 | 1 | 0 | 0 | 0 | **0/14** |
+| health-centre | 8 | 8 | 2 | 1 | 1 | 0 | **1/5** |
+| harbor-house | 31 | 31 | 14 | 10 | 4 | 4.7% | **8/20** |
+| maple-court | 76 | 75 | 29 | 18 | 13 | 3.5% | **17/38** |
+
+(gain: the share by which the best other column would cut the building's mean detour.) This is
+the shape the owner wanted. Programme-house's single central stairs pass on merit -- 13 of 14 have
+an alternative, and none is better by a fifth -- and so does the health-centre swap winner (two
+stairs, seven alternatives each, no gain). It is bounded: at most two lines a design here, one per
+stair. It names the stair to move, and where to. And it judges stair placement, not room position,
+building shape or plot size: those are the same for the stair and its alternatives.
+
+**Its downsides, measured or plain:**
+
+- **Cost.** As built it rebuilds the walk graph per candidate: 70-390 ms a design against a 21-45
+  ms full score (health-centre swap winner 70, harbor-house rooms winner 108, maple-court
+  `final-best-3` 394 with 24 candidate moves). Too dear for every evaluation. The graph differs
+  between candidates only in where the stair node sits, so adding every candidate's stair node once
+  and swapping flights should cut it by about the candidate count -- unmeasured.
+- **The swap is a travel question only.** It does not ask whether the displaced room fits the
+  stair's old cell (size, shape, daylight) or whether a flight fits the new one. A stair that
+  fails says "a better place exists for travel", not "this rearrangement is better overall".
+- **Still a threshold** -- one line past 20%, say -- though a bounded one, and the gain is a
+  continuous number if a graded form is wanted.
+- **No move makes it yet.** Moving a stair to another column swaps a column of labels across
+  storeys; `swap_cells` swaps two neighbours on one storey, and `mutate_stair` makes a stair only
+  of a corridor column. A rule that names the best column hands an operator its move, but the
+  operator has to be built, as `trim_oversized` was for §39.258.
+- **Calibration is thin where it matters most:** 5 health-centre designs, 8 stairs.

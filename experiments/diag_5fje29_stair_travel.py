@@ -39,6 +39,7 @@ dead end") and over room centroids ("from the room"), per storey kind.
     HOMEMAKER_ORTHOGONAL_DIVISION=1 python experiments/diag_5fje29_stair_travel.py --self-test
 """
 import argparse
+import copy
 import itertools
 import math
 import statistics
@@ -262,6 +263,72 @@ def measure(progs, path):
     return out
 
 
+def _mean_detour(w):
+    ex, _ra, un = w.detour()
+    return (statistics.fmean(ex) if ex else math.nan), len(ex)
+
+
+CANDIDATES = "circulation"
+
+
+def stair_moves(fit, root, candidates=None):
+    """Per stair (§39.268): how much better would the building's mean detour
+    be with THIS stair moved to the best other column it could stand in?
+
+    A shaft is a stair path and the storeys it serves. A candidate is any
+    other path that is a circulation cell (`C`, not a stair) on every one of
+    those storeys, so the stair could stack there; moving it relabels the
+    shaft's `E` cells `C` and the candidate's `C` cells `E`. A candidate
+    counts only if every journey the design reaches it still reaches, so a
+    move cannot shorten the mean by cutting a storey off. Returns, per
+    shaft: (path, storeys, actual mean, best mean, best path, candidates).
+
+    ``candidates="indoor"``: any other path that is indoor and not a stair on
+    every storey of the shaft, rooms included; the move SWAPS labels, so a
+    displaced room takes the stair's old cell and the room set is kept. That
+    asks "is this the best place in the plan for a stair", where the strict
+    form asks "is there a corridor column it could move to" -- which is rare
+    (§39.268)."""
+    candidates = candidates or CANDIDATES
+    merged = copy.deepcopy(root)
+    w0 = Walk(fit, merged)           # merges `merged` in place
+    actual, n0 = _mean_detour(w0)
+    lvls = dom.levels(merged)
+    shafts = {}
+    for lv, ss in w0.stairs.items():
+        for sid in ss:
+            shafts.setdefault(sid, []).append(lv)
+    out = []
+    for sid, span in sorted(shafts.items()):
+        if len(span) < 2:
+            continue
+        cands = []
+        for leaf in lvls[span[0]].leaves():
+            p = leaf.id
+            if p == sid:
+                continue
+            cells = [lvls[lv].by_id(p) for lv in span]
+            ok = (lambda c: c.type == "C") if candidates == "circulation" else (
+                lambda c: not dom.is_outside(c) and c.type != dom.GENERIC_STAIR)
+            if all(c is not None and not c.divided and ok(c) for c in cells):
+                cands.append(p)
+        best = (actual, sid)
+        for p in cands:
+            t = copy.deepcopy(merged)
+            tl = dom.levels(t)
+            for lv in span:
+                old, new = tl[lv].by_id(sid), tl[lv].by_id(p)
+                old.type, new.type = new.type, dom.GENERIC_STAIR   # a swap
+            dom.link(t)
+            geometry.clear_cache()
+            m, n = _mean_detour(Walk(fit, t))
+            if n >= n0 and m < best[0]:
+                best = (m, p)
+        out.append((sid or "root", span, actual, best[0], best[1], len(cands)))
+    geometry.clear_cache()
+    return out
+
+
 def self_test(progs) -> bool:
     """The cheap detour equals the brute force on two-storey designs; with
     the flights removed no inter-storey pair is reachable (negative control);
@@ -336,6 +403,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("designs", nargs="*")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--per-stair", action="store_true",
+                    help="per stair: the mean detour with it moved to its best column (§39.268)")
+    ap.add_argument("--candidates", choices=("circulation", "indoor"), default="circulation",
+                    help="with --per-stair: columns that are corridor on every storey the "
+                         "stair serves, or any indoor column (a swap with the rooms there)")
     ap.add_argument("--per-room", type=float, default=PER_ROOM,
                     help="count rooms whose own mean detour is over this many plot "
                          "half-diagonals (§39.267)")
@@ -346,6 +418,21 @@ def main() -> int:
     progs = rc.Programmes()
     if a.self_test:
         return 0 if self_test(progs) else 1
+    if a.per_stair:
+        print("design\tprogramme\tstair\tstoreys\tactual_m\tbest_m\tgain\tbest_at\tcandidates")
+        for path in a.designs:
+            p = progs(path)
+            if p is None:
+                continue
+            root = dom.load(str(path))
+            dom.link(root)
+            if len(dom.levels(root)) < 2:
+                continue
+            for sid, span, act, best, at, nc in stair_moves(p[1], root, a.candidates):
+                gain = (act - best) / act if act and not math.isnan(act) else math.nan
+                print(f"{path}\t{p[0]}\t{sid}\t{span[0]}-{span[-1]}\t{act:.2f}\t{best:.2f}\t"
+                      f"{gain:.3f}\t{at}\t{nc}", flush=True)
+        return 0
     for path in a.designs:
         r = measure(progs, path)
         if r is not None:
