@@ -23709,3 +23709,49 @@ deciders and differs in parti. One caveat for the reading: an evolved cold desig
 is a deep expression, so for those "different parti" is nearly automatic; the pairs where it is
 a real choice are the race designs and programme-house. To answer:
 `python experiments/judge_pairs.py ask --round 3`.
+
+### 39.264 A single-row seed field for maple-court: the container's half, and the race's expectations (`homemaker-py-3xvb`)
+
+§39.257's maple-court race lost on its field: the best seed was a two-row north wing whose back
+row is buried, and stages 3-5 took off only 4 fails. The bead's remedy is a field of single-row
+wings, from a larger draw: `seed_from_catalogue.py --spine-at outer` (every wing's corridor
+along an edge no other wing shares) and `--reach 1.25` (the filter's daylight reach, which caps a
+wing near 7.5 m on a 3 m storey, against the default 1.62 h's 9.7 m), 32 plans x 3 stair
+placements, `--clean-seeds`.
+
+**The field is box-sized.** In a container, one process, the seeder took about 1.6 h a plan
+(three placements each), so 32 plans is about two days, and a container restart killed the build
+after 6 plans. What it showed before then, from the builder's own "raw -> tuned" lines (tuned at
+the seeder's budget of 200), against §39.257's 48 (`halving-maple-rooms/build-seed.log`):
+
+| field | outlines passing the filter (3 / 4 storeys) | seeds | tuned fails, median | best quarter | best |
+|---|---|---|---|---|---|
+| §39.257 (defaults, `--clean-seeds`) | 309 / 1,080 | 48 | 105 | 83.6 | 54 |
+| its first 6 plans | | 18 | 117 | | 87 |
+| outer spines, reach 1.25, first 6 plans | 79 / 463 | 18 | 121 | 78.2 | 66 |
+
+Level, on 18 seeds (Mann-Whitney p 0.24); not a reading of the field. The shorter reach does
+what it should to the catalogue -- it passes 40% as many outlines, the deep ones gone -- and
+whether that removes the buried back row is what the written seeds must show: none were written
+before the restart, because the seeder writes at the end.
+
+`experiments/diag_seed_field.py` is the check for that, any fields side by side, scored with the
+search's overrides: fails, `crinkliness` lines (a buried room), `access` and `not adjacent to c`
+lines (a room off the corridor), `level N not connected`, and metres of double-loaded corridor.
+On §39.257's 30 written seeds: median 134 fails, best 103, crinkliness 18, access 40.5,
+unjoined 1, double-loaded 0 m.
+
+**`experiments/run_halving_maple_outer.sh`** builds the field, runs that check against §39.257's
+seeds BEFORE racing, and races it as §39.257 raced (4k to 128k, eta 2, three cold copies, `pivot3`
+on, `trim_oversized` off). It refuses an objective stamp other than `6191a33+orth`, since the
+control would then mean nothing. Expectations, written before it runs:
+
+1. **The field's written seeds are less buried**: median crinkliness and access lines per seed
+   below §39.257's 18 and 40.5, by at least a quarter each.
+2. **At least 40 seeds survive `--clean-seeds`** (§39.257's kept 30 of 48 at the default reach;
+   outer spines should be clean by construction).
+3. **A seed wins**, not a cold copy.
+4. **The winner beats §39.257's 36 fails and the re-scored old best's 34**, with fewer than 15
+   crinkliness lines, and **no double-loaded corridor** (`double-loaded.txt` empty).
+5. **Every storey connected** in the winner -- the outer spine starts many storeys unjoined
+   (§39.189's clean-seed race: 133 of 144), so this is the expectation most likely to fail.
