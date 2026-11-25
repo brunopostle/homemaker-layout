@@ -2634,6 +2634,7 @@ class Fitness:
             # C is a generic circulation leaf; living/kitchen are DECLARED
             # usages of programme rooms (§39.7). Two namespaces, two tests.
             if (nb.type in dom_mod.GENERIC_INDOOR_CIRCULATION
+                    or nb.type in dom_mod.PROGRAMME_CIRCULATION      # §39.271
                     or self.usage_of(nb) in _programme.SOCIABLE_USAGES):
                 return True
         return False
@@ -2730,7 +2731,8 @@ class Fitness:
                     if self._public_access_outside(leaf, G, root):
                         tracking["has_public_access_outside"] = True
                     if (not stair_fit
-                            and leaf.type in dom_mod.GENERIC_INDOOR_CIRCULATION
+                            and (leaf.type in dom_mod.GENERIC_INDOOR_CIRCULATION
+                                 or leaf.type in dom_mod.PROGRAMME_CIRCULATION)
                             and self._public_access(leaf, root) is not None):
                         tracking["has_public_access_inside"] = True
 
@@ -2960,6 +2962,10 @@ class Fitness:
     ) -> tuple[float, tuple[str, ...], float]:
         from . import graph as graph_mod
 
+        # this scorer's programme decides which codes are circulation or
+        # public (§39.271): set at every score, since one process may hold
+        # scorers of several programmes
+        dom_mod.set_programme_kinds(*getattr(self, "_kinds", ((), ())))
         geometry.clear_cache()
         # A native tree's cells are cropped to the plot, and a cut that has
         # moved can push one off it or bring one back (§39.103).
@@ -3029,7 +3035,8 @@ class Fitness:
 
         failures.extend(graph_mod.check_adjacency(
             root, programme, graph_base_pre, missing,
-            self._multi_use, self.colocate_pairs()))
+            self._multi_use, self.colocate_pairs(),
+            street=lambda leaf: self._public_access(leaf, root) is not None))
         failures.extend(graph_mod.check_level_constraints(
             root, programme, missing, self._multi_use, self.colocate_pairs()))
         failures.extend(graph_mod.check_vertical_connectivity(
@@ -3236,6 +3243,7 @@ class Fitness:
                 requires_below=c.get("requires_below"),
                 count=int(c.get("count") or 1),
                 co_locate=list(c.get("co_locate") or []),
+                public=bool(c.get("public", False)),
                 has_size="size" in c,
                 has_width="width" in c,
                 has_proportion="proportion" in c,
@@ -3244,3 +3252,7 @@ class Fitness:
                 crinkliness_sigma=_crink[1],
             )
         self._programme_cache = reqs
+        self._kinds = (
+            [c for c, r in reqs.items() if r.usage in _programme.CIRCULATION_USAGES],
+            [c for c, r in reqs.items() if r.public])
+        dom_mod.set_programme_kinds(*self._kinds)

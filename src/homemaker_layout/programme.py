@@ -68,6 +68,10 @@ class SpaceReq:
     # interchange classes above) — a pair is only ever honoured if it *also*
     # passes interchangeable()'s S1-S4 bounds (see derive_colocate_pairs).
     co_locate: list[str] = field(default_factory=list)
+    # owner, 2026-11-25 (§39.271): plant and storage "not reached through public
+    # rooms" -- a space marked `public: true` cannot serve a utility room or a
+    # workshop, as a way in or as its `adjacency: c`
+    public: bool = False
     # Whether each quality param was explicitly in the config (not a default)
     has_size: bool = False
     has_width: bool = False
@@ -122,7 +126,16 @@ RESERVED_CODES = ("C", "O", "S", "E")
 # The vocabulary is CONTROLLED because a value exists if and only if the engine
 # treats it differently somewhere — config selects among behaviours, it cannot
 # invent them. What a room is CALLED stays free text in ``name:``.
-USAGES = ("living", "kitchen", "bedroom", "toilet", "utility", "workshop", "none")
+USAGES = ("living", "kitchen", "bedroom", "toilet", "utility", "workshop", "circulation",
+          "none")
+# A programme SPACE that is circulation (owner's ruling, 2026-11-25, DESIGN.md
+# §39.271): a health centre's waiting room "is a circulation type", and its
+# lobby is a cell joined to the circulation. Such a space keeps its own size,
+# width and proportion targets and is counted like any required space, but
+# everything that asks "is this circulation" says yes: rooms open off it,
+# corridors join it, `adjacency: c` is met beside it, a storey walks through it.
+# `dom.is_circulation` learns the codes from the scorer (`dom.set_programme_kinds`).
+CIRCULATION_USAGES = ("circulation",)
 
 # Terminal rooms: reachable from circulation or outside, never a route through.
 # ``utility`` differs from ``bedroom`` in one thing: with neither beside it, it
@@ -230,6 +243,7 @@ def _parse_spaces(conf: dict) -> dict[str, SpaceReq]:
             share=int(c.get("share") or 1),
             interchange=bool(c.get("interchange", True)),
             co_locate=list(c.get("co_locate") or []),
+            public=bool(c.get("public", False)),
             has_size="size" in c,
             has_width="width" in c,
             has_proportion="proportion" in c,

@@ -444,8 +444,24 @@ def is_usable(n: Node) -> bool:
     return is_supported(n)
 
 
+# Programme spaces that are circulation, and spaces that are public (owner's
+# rulings, 2026-11-25, DESIGN.md §39.271): set from the programme by the scorer
+# (`Fitness`, at load and at every score), read here and in `graph`. Empty for
+# every programme that declares neither, so they change nothing there.
+PROGRAMME_CIRCULATION: frozenset = frozenset()
+PROGRAMME_PUBLIC: frozenset = frozenset()
+
+
+def set_programme_kinds(circulation=(), public=()) -> None:
+    """Tell the tree which programme codes are circulation and which public."""
+    global PROGRAMME_CIRCULATION, PROGRAMME_PUBLIC
+    PROGRAMME_CIRCULATION = frozenset(circulation)
+    PROGRAMME_PUBLIC = frozenset(public)
+
+
 def is_circulation(n: Node) -> bool:
-    """Usable and carrying a generic circulation type (``C``/``S``/``E``).
+    """Usable and carrying a generic circulation type (``C``/``S``/``E``), or a
+    programme space whose usage is ``circulation`` (§39.271).
 
     Mirrors ``Urb::Dom::Is_Circulation`` for the leaves it was written for; see
     the GENERIC_* note above for why this matches the generic set exactly rather
@@ -453,7 +469,7 @@ def is_circulation(n: Node) -> bool:
     """
     if not is_usable(n):
         return False
-    return n.type in GENERIC_CIRCULATION
+    return n.type in GENERIC_CIRCULATION or n.type in PROGRAMME_CIRCULATION
 
 
 # --------------------------------------------------------------------------- #

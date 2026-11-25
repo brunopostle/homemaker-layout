@@ -24102,3 +24102,44 @@ falls below 1.0 half-diagonal from §39.267's median 1.04; nothing else moves ou
 `run_halving_maple_outer.sh` (§39.264) guarded on §39.257's stamp and would now refuse; it instead
 writes §39.257's finals re-scored with today's code beside its results (`control-rescored.txt`),
 which is the comparison §39.264's expectations 3-4 now mean.
+
+### 39.271 The health-centre redo's scorer features, built inert, and draft C (`homemaker-py-5fje.27`, `r2a9`)
+
+The owner's ruling of 2026-11-25 (§39.266, item 2) and the approved r2a9 candidates needed three
+things the programme format could not say. Built in the objective sources, so the stamp moves, but
+**inert for every live programme**: `diag_8b2u_score_cost.py --snapshot/--diff` reports 0 of 432
+entries moved (bit for bit), and all 116 committed designs keep the same score and fail list. They
+land now so the redo is ready; the redo's programme lands with the next all-programme rerun.
+
+- **`usage: circulation`** (`programme.CIRCULATION_USAGES`): a programme SPACE that is circulation
+  -- the owner's waiting room "is a circulation type", and the lobby is joined to the circulation.
+  It keeps its own size, width and proportion targets and is counted like any required space, but
+  `dom.is_circulation` says yes: rooms open off it, corridors join it, `adjacency: c` is met beside
+  it (`graph._adjacency_target`), a storey's connectivity and every travel measure walk through it,
+  and a street wall on it is the building's public access (the two street checks in `fitness` that
+  tested the generic labels only). It is never `superfluous circulation`, a `corridor too wide` or a
+  double-loaded corridor: those stay about generic `C`. `dom` learns the codes from the scorer
+  (`dom.set_programme_kinds`, at load and at every score, since one process may hold scorers of
+  several programmes).
+- **`adjacency: street`**: met by a cell with a wall on the street (`Fitness._public_access`),
+  asked of the cell itself (`graph.has_adjacency`'s `street`). The constructor's matcher does not
+  know it (`code_matches_requirement` has no street to read), so seeds place a lobby without aiming
+  it at the street; the search must find that.
+- **`public: true`**: the owner's "plant and storage not reached through public rooms". A public
+  space cannot serve a utility room or a workshop (`graph.serves_utility`), neither as its way in
+  nor as its `adjacency: c` (`check_adjacency`'s `exclude`).
+
+`tests/test_programme_circulation.py` holds each with its control (the live programme's waiting
+room is a room; no street test, no street; a non-public circulation space still serves a store;
+every live programme declares none of it).
+
+**Draft C**, `experiments/proposals/health-centre-r2a9c/patterns.config`: draft B plus the entrance
+ruling -- a lobby `lb1` (8 m2, circulation, public, on the street), the waiting room `wa1` now
+circulation and public and directly off the lobby, reception `rc1` directly off the waiting room
+(draft B), the pharmacy public, and a staff entrance `se1` (4 m2, circulation, on the street,
+joined to the corridors). Priced over 34 designs with labels as stored: +1005 / -18 lines, nearly all
+the four new spaces missing from every old design (lobby, staff entrance, nurse room, accessible
+WC, ~8 lines each with their cascades). What the new rules do on their own: `wa1 not adjacent to lb1`
+on all 34 (no lobby exists), plant `me1` and store `dp1` lose their `c` on 2 designs where they
+opened only off the waiting room, and the waiting room's old room lines go (`wa1 not adjacent to
+rc1` on 10, `not adjacent to c` on 1). As with draft B, only the rerun it is planned for can judge it.

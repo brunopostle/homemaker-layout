@@ -974,7 +974,8 @@ def _adjacency_target(target_code: str):
     """
     tc = target_code.lower()
     if tc == "c":
-        return frozenset(dom.GENERIC_CIRCULATION)
+        # a programme space that is circulation counts too (§39.271)
+        return frozenset(dom.GENERIC_CIRCULATION) | dom.PROGRAMME_CIRCULATION
     if tc == "o":
         return frozenset(("O",))
     if tc == "s":
@@ -997,6 +998,8 @@ def serves_utility(nb: Node, usages: dict[str, str]) -> bool:
     (``Fitness.access``) and the storey's connectivity (:func:`has_circulation`).
     Asked for the usages in ``programme.SERVICE_USAGES``: utility and workshop.
     """
+    if nb.type in dom.PROGRAMME_PUBLIC:
+        return False                  # not through a public space (§39.271)
     if dom.is_circulation(nb):
         return True
     if dom.is_outside(nb):
@@ -1042,7 +1045,7 @@ def satisfies_as_outside(nb: Node) -> bool:
 
 def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
                   colocate_pairs=(), multi_use: bool = False,
-                  serves=None) -> bool:
+                  serves=None, street=None, exclude=None) -> bool:
     """True if ``leaf`` (or its nearest graphed ancestor) has a neighbour whose
     type matches ``^target_code`` (case-insensitive prefix); mirrors
     ``ProgrammeDriven.pm::has_adjacency``.
@@ -1055,14 +1058,23 @@ def has_adjacency(leaf: Node, target_code: str, G: nx.Graph,
     ``serves``, if given, is asked of each neighbour as well: one it accepts
     counts whatever its code. That is how a utility room's ``adjacency: c`` is
     met by what :func:`serves_utility` allows.
+
+    ``street`` answers the target ``street`` (§39.271): does this cell have a
+    wall on the street? A cell, not a neighbour, so it is asked of the leaf.
+    ``exclude``, if given, rules neighbours out whatever their code: a utility
+    room's ``c`` is not met by a public space.
     """
     node: Node | None = leaf
     while node is not None and not G.has_node(node):
         node = node.parent
     if node is None:
         return False
+    if target_code.lower() == "street":
+        return bool(street is not None and street(leaf))
     tc = _adjacency_target(target_code)
     for nb in G.neighbors(node):
+        if exclude is not None and exclude(nb):
+            continue
         if serves is not None and any(
                 serves(x) for x in (nb.leaves() if nb.divided else [nb])):
             return True
@@ -1260,11 +1272,13 @@ def check_adjacency(
     missing: list[str],
     multi_use: bool = False,
     colocate_pairs=(),
+    street=None,
 ) -> list[str]:
     """Adjacency check failures; mirrors
     ``check_adjacency_requirements`` in ``ProgrammeDriven.pm:218-278``.
 
-    Run on the UNMERGED tree with the pre-merge ``graph_base``.
+    Run on the UNMERGED tree with the pre-merge ``graph_base``. ``street``
+    answers the ``street`` target (§39.271), see :func:`has_adjacency`.
     """
     lvls = levels(root)
     missing_set = set(missing)
@@ -1301,11 +1315,13 @@ def check_adjacency(
                     if key in seen:
                         continue
                     seen.add(key)
-                    serves = None
+                    serves = exclude = None
                     if req.usage in _pr.SERVICE_USAGES and adj_code.lower() == "c":
                         serves = lambda nb: serves_utility(nb, usages)  # noqa: E731
+                        if dom.PROGRAMME_PUBLIC:
+                            exclude = lambda nb: nb.type in dom.PROGRAMME_PUBLIC  # noqa: E731
                     if not has_adjacency(leaf, adj_code, G, colocate_pairs, multi_use,
-                                         serves=serves):
+                                         serves=serves, street=street, exclude=exclude):
                         failures.append(
                             f"{li}/{leaf.id} ({code}) not adjacent to {adj_code}"
                         )
