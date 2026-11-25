@@ -55,8 +55,9 @@ ADJ_FAIL = re.compile(r"^(\d+)/([lr]*) \((\w+)\) not adjacent to (\w+)$")
 
 def capture(fit, root):
     """Score ``root`` and return (score, fails, cells, building_factor, value, cost)."""
-    cells, bf, plot = [], [1.0], [0.0]
+    cells, bf, df, plot = [], [1.0], [1.0], [0.0]
     ps, eb, pc = fit.process_storey, fit.evaluate_building, fit.plot_cost
+    dfn = fit.detour_factor
 
     def process_storey(*a, **k):
         se = ps(*a, **k)
@@ -71,16 +72,22 @@ def capture(fit, root):
         plot[0] = pc(*a, **k)
         return plot[0]
 
-    fit.process_storey, fit.evaluate_building, fit.plot_cost = (
-        process_storey, evaluate_building, plot_cost)
+    # the travel factor (§39.270) multiplies into the building factor beside
+    # `evaluate_building`'s, so the P arms see it there too
+    def detour_factor(*a, **k):
+        df[0] = dfn(*a, **k)
+        return df[0]
+
+    fit.process_storey, fit.evaluate_building, fit.plot_cost, fit.detour_factor = (
+        process_storey, evaluate_building, plot_cost, detour_factor)
     try:
         score, fails = fit.score_with_fails(root)
     finally:
-        del fit.process_storey, fit.evaluate_building, fit.plot_cost
+        del fit.process_storey, fit.evaluate_building, fit.plot_cost, fit.detour_factor
     value = sum(se.value for se in cells)
     cost = plot[0] + sum(se.cost for se in cells)
     leaves = [le for se in cells for le in se.leaves]
-    return score, fails, leaves, bf[0], value, cost
+    return score, fails, leaves, bf[0] * df[0], value, cost
 
 
 def arms(fit, reqs, root, phi, cost_scale=1.0):
