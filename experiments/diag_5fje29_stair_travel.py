@@ -114,8 +114,10 @@ class Walk:
                     W.add_node(n, xy=geometry.centroid(v), level=0)
                     doors_of.setdefault(v, []).append(n)
                     self.exits.add(n)
+        self.doors_of = {}     # leaf -> its door nodes (for `fast_stair_moves`)
         for leaf, ds in doors_of.items():
             ds = list(dict.fromkeys(ds))
+            self.doors_of[leaf] = ds
             lv = W.nodes[ds[0]]["level"]
             if dom.is_circulation(leaf):
                 for p, q in itertools.combinations(ds, 2):
@@ -329,6 +331,104 @@ def stair_moves(fit, root, candidates=None):
     return out
 
 
+def _vector_mean(W, rooms, stair_nodes):
+    """Mean detour over every reachable pair of rooms on different storeys:
+    one whole-building Dijkstra per stair node, then a vectorised minimum
+    over stairs of d(a, s) + d(s, b) (exact, §39.267)."""
+    import numpy as np
+    R = list(rooms)
+    idx = {r: i for i, r in enumerate(R)}
+    D = np.full((len(stair_nodes), len(R)), np.inf)
+    for k, s in enumerate(stair_nodes):
+        for r, d in nx.single_source_dijkstra_path_length(W, s, weight="weight").items():
+            if r in idx:
+                D[k, idx[r]] = d
+    walk = np.min(D[:, :, None] + D[:, None, :], axis=0) if len(stair_nodes) else \
+        np.full((len(R), len(R)), np.inf)
+    xy = np.array([W.nodes[r]["xy"] for r in R])
+    plan = np.linalg.norm(xy[:, None, :] - xy[None, :, :], axis=2)
+    lv = np.array([rooms[r] for r in R])
+    iu = np.triu_indices(len(R), 1)
+    mask = (lv[:, None] != lv[None, :])[iu] & np.isfinite(walk[iu])
+    ex = (walk - plan)[iu][mask]
+    return (float(ex.mean()) if ex.size else math.nan), int(ex.size)
+
+
+def fast_stair_moves(fit, root):
+    """`stair_moves(..., "indoor")` without rebuilding the walk graph per
+    candidate (§39.268): the graph is built once, and a swap edits only the
+    two columns -- the candidate cell becomes walk-through circulation with
+    a stair node, the stair's old cell a room (or stays circulation, if the
+    candidate was a corridor). DOORS ARE KEPT as the design has them: the one
+    approximation, since the scorer's door rules can depend on the labels;
+    `--per-stair --fast --check` holds it to the exact version."""
+    merged = copy.deepcopy(root)
+    w = Walk(fit, merged)
+    W0, rooms0 = w.W, dict(w.rooms)
+    stair_nodes0 = [n for n in W0 if n[0] == "stair"]
+    actual, n0 = _vector_mean(W0, rooms0, stair_nodes0)
+    lvls = dom.levels(merged)
+    shafts = {}
+    for lv, ss in w.stairs.items():
+        for sid in ss:
+            shafts.setdefault(sid, []).append(lv)
+    out = []
+    for sid, span in sorted(shafts.items()):
+        if len(span) < 2:
+            continue
+        cands = []
+        for leaf in lvls[span[0]].leaves():
+            p = leaf.id
+            if p == sid:
+                continue
+            cells = [lvls[lv].by_id(p) for lv in span]
+            if all(c is not None and not c.divided and not dom.is_outside(c)
+                   and c.type != dom.GENERIC_STAIR and c in w.doors_of for c in cells):
+                cands.append(p)
+        best = (actual, sid)
+        for p in cands:
+            W = W0.copy()
+            rooms = dict(rooms0)
+            new_stairs = []
+            for lv in span:
+                old, new = lvls[lv].by_id(sid), lvls[lv].by_id(p)
+                s_old = w.stairs[lv][sid]
+                # the candidate cell: walk-through, with a stair node
+                if not dom.is_circulation(new):
+                    rn = ("room", id(new))
+                    W.remove_node(rn)
+                    rooms.pop(rn, None)
+                    ds = w.doors_of[new]
+                    for a, b in itertools.combinations(ds, 2):
+                        W.add_edge(a, b, weight=math.dist(W.nodes[a]["xy"], W.nodes[b]["xy"]))
+                    # the displaced room takes the stair's old cell
+                    W.remove_node(s_old)
+                    for a, b in itertools.combinations(w.doors_of[old], 2):
+                        if W.has_edge(a, b):
+                            W.remove_edge(a, b)
+                    rc = ("room", "moved", lv)
+                    W.add_node(rc, xy=geometry.centroid(old), level=lv)
+                    for d in w.doors_of[old]:
+                        W.add_edge(rc, d, weight=math.dist(W.nodes[rc]["xy"], W.nodes[d]["xy"]))
+                    rooms[rc] = lv
+                else:
+                    W.remove_node(s_old)            # old cell stays a corridor
+                sn = ("stair", lv, "cand")
+                W.add_node(sn, xy=geometry.centroid(new), level=lv)
+                for d in w.doors_of[new]:
+                    W.add_edge(sn, d, weight=math.dist(W.nodes[sn]["xy"], W.nodes[d]["xy"]))
+                new_stairs.append(sn)
+            for a, b in zip(new_stairs, new_stairs[1:]):
+                W.add_edge(a, b, weight=0.0, flight=True)
+            stair_nodes = [n for n in W if n[0] == "stair"]
+            m, n = _vector_mean(W, rooms, stair_nodes)
+            if n >= n0 and m < best[0]:
+                best = (m, p)
+        out.append((sid or "root", span, actual, best[0], best[1], len(cands)))
+    geometry.clear_cache()
+    return out
+
+
 def self_test(progs) -> bool:
     """The cheap detour equals the brute force on two-storey designs; with
     the flights removed no inter-storey pair is reachable (negative control);
@@ -405,6 +505,10 @@ def main() -> int:
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--per-stair", action="store_true",
                     help="per stair: the mean detour with it moved to its best column (§39.268)")
+    ap.add_argument("--fast", action="store_true",
+                    help="with --per-stair: the graph-reusing version (indoor candidates)")
+    ap.add_argument("--check", action="store_true",
+                    help="with --fast: run the exact version beside it and print both")
     ap.add_argument("--candidates", choices=("circulation", "indoor"), default="circulation",
                     help="with --per-stair: columns that are corridor on every storey the "
                          "stair serves, or any indoor column (a swap with the rooms there)")
@@ -428,7 +532,24 @@ def main() -> int:
             dom.link(root)
             if len(dom.levels(root)) < 2:
                 continue
-            for sid, span, act, best, at, nc in stair_moves(p[1], root, a.candidates):
+            if a.fast:
+                t0 = time.process_time()
+                res = fast_stair_moves(p[1], root)
+                ms = 1000 * (time.process_time() - t0)
+                if a.check:
+                    root = dom.load(str(path))
+                    dom.link(root)
+                    t0 = time.process_time()
+                    exact = stair_moves(p[1], root, "indoor")
+                    ems = 1000 * (time.process_time() - t0)
+                    for f, e in zip(res, exact):
+                        print(f"{path}\t{p[0]}\t{f[0]}\tfast gain {(f[2]-f[3])/f[2] if f[2] else 0:.3f} "
+                              f"at {f[4]}\texact gain {(e[2]-e[3])/e[2] if e[2] else 0:.3f} at {e[4]}"
+                              f"\tfast {ms:.0f} ms exact {ems:.0f} ms", flush=True)
+                    continue
+            else:
+                res = stair_moves(p[1], root, a.candidates)
+            for sid, span, act, best, at, nc in res:
                 gain = (act - best) / act if act and not math.isnan(act) else math.nan
                 print(f"{path}\t{p[0]}\t{sid}\t{span[0]}-{span[-1]}\t{act:.2f}\t{best:.2f}\t"
                       f"{gain:.3f}\t{at}\t{nc}", flush=True)

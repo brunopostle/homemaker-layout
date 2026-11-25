@@ -24003,3 +24003,34 @@ building shape or plot size: those are the same for the stair and its alternativ
   of a corridor column. A rule that names the best column hands an operator its move, but the
   operator has to be built, as `trim_oversized` was for §39.258.
 - **Calibration is thin where it matters most:** 5 health-centre designs, 8 stairs.
+
+### 39.269 The per-stair detour's cost: about a score as an exact rule, and the cheap form is wrong where it matters (`homemaker-py-5fje.29`)
+
+The owner accepted §39.268's per-stair form ("Ok"); the next steps were to make it cheap enough to
+run in every score, measure it, then build the move that acts on it.
+
+**Exact, as built:** 70-390 ms a design (§39.268), against a 21-65 ms score -- 3-9 scores, because
+the walk graph is rebuilt from the scorer's storey graphs for every candidate column.
+
+**A graph-reusing form** (`fast_stair_moves`, `--per-stair --fast --check`): the walk graph built
+once, a swap editing only the two columns, detours vectorised (one whole-building Dijkstra per stair
+node, a minimum over a stairs x rooms x rooms array). 26-103 ms, 2.5-4x faster -- but beyond the
+storey graphs a score already builds (4-15 ms here) it still costs 33-106 ms, one to two scores. And
+its one approximation, keeping the doors the design has, is wrong in the direction that matters: a
+room cell that becomes a stair would gain the doors the scorer gives every neighbour of circulation,
+and the kept doors miss them. On the harbor-house rooms winner both forms pick the same column for
+stair `lllrl`, but the fast form reads a 2.0% gain and the exact one 21.8% -- across the 20% bar. Its
+door model would have to reproduce `graph.storey_graphs`' rules (usage stripping, centrality) to be
+trusted, which is the rebuild it was meant to avoid.
+
+**What that leaves.** As an objective rule run in every score, the per-stair test costs about a
+score more per evaluation if exact (a search's budget is counted in evaluations, so runs take that
+much longer in wall clock), and is unreliable if cheap. Two ways round it, for the owner:
+
+1. **Pay it.** The rule is exact; runs take up to twice as long, or three times on maple-court.
+2. **Split it.** Keep the expensive analysis OUT of the score: a search MOVE that, when drawn, finds
+   the stair whose best column gains most and moves it there (the move §39.268 says is missing), so
+   the cost is paid only on the draws that use it. The score then needs only a cheap travel term --
+   the building's scale-free mean detour, which is one vectorised pass (§39.267), graded rather than
+   a cliff -- to tell the comparator that the moved stair is better. This keeps "where to act" in
+   the move, which is where the search acts, rather than in a fail line.

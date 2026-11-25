@@ -241,7 +241,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (373 of them, 24005 lines)
+## Every section of DESIGN.md (374 of them, 24036 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -665,4 +665,5 @@ below are the most recent work.
 - §39.265 · 23759-23812 · The health-centre programme redo, drafted and priced, not landed (`homemaker-py-r2a9`, `5fje.27`)
 - §39.266 · 23813-23897 · Owner's answers (2026-11-25): no oversized-room rule; the lobby, waiting room and reception; the redo's candidates approved; the detour threshold's options (`s36o`, `5fje.27`, `r2a9`, `5fje.29`)
 - §39.267 · 23898-23949 · The detour per room, and a correction to §39.266's table: journeys may change stairs (`homemaker-py-5fje.29`)
-- §39.268 · 23950-24005 · The detour per stair: would this stair be better placed elsewhere in the same plan? (`homemaker-py-5fje.29`)
+- §39.268 · 23950-24006 · The detour per stair: would this stair be better placed elsewhere in the same plan? (`homemaker-py-5fje.29`)
+- §39.269 · 24007-24036 · The per-stair detour's cost: about a score as an exact rule, and the cheap form is wrong where it matters (`homemaker-py-5fje.29`)
