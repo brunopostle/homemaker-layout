@@ -23388,3 +23388,25 @@ a wing beyond its size fail. maple-court does not recover: its best seed is a de
 wing, the race cannot unbury it at 128k, and the field was a third smaller than planned. The
 next maple-court race needs a better field (seeds that are single-row, or a larger catalogue
 draw), not more budget.
+
+### 39.258 maple-court from single-row seeds at today's objective: expectations (`homemaker-py-3xvb`)
+
+§39.257's maple-court winner (36 fails, 15 of them crinkliness) came from the seeder's
+defaults: a two-deep north wing whose back row is buried, and stages 3-5 took off only 4
+fails. `run_halving_maple_single_rooms.sh` races a different field at the same stamp,
+`6191a33+orth 6191a33 82241975c2`: §39.192's clean-seed recipe (`--reach 1.25 --spine-at
+outer --storeys 3 --clean-seeds`, the field `clean-9` came from), with a larger draw, 30 plans
+x 3 stair placements, at most 64 written, plus 3 cold; `pivot3` on, 4k doubling to 128k, 8
+slots. About 15-17 h. Control: §39.257's maple race, unpaired, stage by stage (stage-0 median
+100, best 66; 128k best 36). Written before it ran:
+
+1. **The field holds at least 55 candidates.** §39.192's build dropped 15 of 66 at this
+   recipe; 90 built should leave about 70, capped at 64.
+2. **Stage 0 is better than the control's**: median under 90 fails (control 100), because
+   a single-row wing has no buried back row to start with.
+3. **The winner beats the control's 36 by a wide margin: under 25 fails**, with crinkliness
+   at most 6 (control 15).
+4. **The winner has a storey `not connected`**: `outer` spines start most storeys unjoined,
+   and §39.192's winner kept three such fails. If this holds, the next step is §39.194's
+   `bridge_indoors` join on the winner, not another race.
+5. **No room scored missing, and a seed wins** (carry above the field median), as in §39.257.
