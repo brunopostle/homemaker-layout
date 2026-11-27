@@ -1,0 +1,314 @@
+maple-court: plot 29.0 x 26.3 m, storey 3 m -> 9.6757h x 8.76861h ppoo; cover needed 3 storeys 56%
+  3 storeys: 79 outlines pass the filter
+  [1/36] 3 storeys, H(O B V(B H(O B))), cores rll rrll (v0, sep 0.85), bridged rooms 3 cut / 0 retyped / 2 routed around, 67 swapped: cover 56%, 128 fails raw -> 123 tuned, not connected 2 raw -> 2 tuned
+  [1/36] 3 storeys, H(O B V(B H(O B))), cores rll rrrrl (v1, sep 0.84), bridged rooms 4 cut / 0 retyped / 3 routed around, 61 swapped: cover 56%, 88 fails raw -> 85 tuned, not connected 4 raw -> 4 tuned
+  [1/36] 3 storeys, H(O B V(B H(O B))), cores rrll rrrrl (v2, sep 0.77), bridged rooms 6 cut / 0 retyped / 2 routed around, 61 swapped: cover 56%, 119 fails raw -> 118 tuned, not connected 3 raw -> 3 tuned
+  [2/36] 3 storeys, H(O B V(B O) B), cores rll rrrl (v0, sep 0.84), bridged rooms 2 cut / 0 retyped / 4 routed around, 55 swapped: cover 56%, 99 fails raw -> 85 tuned, not connected 4 raw -> 4 tuned
+  [2/36] 3 storeys, H(O B V(B O) B), cores rrlll rrrl (v1, sep 0.76), bridged rooms 1 cut / 0 retyped / 4 routed around, 47 swapped: cover 56%, 124 fails raw -> 108 tuned, not connected 4 raw -> 7 tuned
+  [2/36] 3 storeys, H(O B V(B O) B), cores rll rrlll (v2, sep 0.76), bridged rooms 1 cut / 0 retyped / 2 routed around, 56 swapped: cover 56%, 141 fails raw -> 135 tuned, not connected 2 raw -> 2 tuned
+  [3/36] 3 storeys, H(O V(B H(B O B))), cores rll rrll (v0, sep 0.84), bridged rooms 1 cut / 0 retyped / 0 routed around, 40 swapped: cover 57%, 108 fails raw -> 106 tuned, not connected 0 raw -> 0 tuned
+  [3/36] 3 storeys, H(O V(B H(B O B))), cores rll rrrrl (v1, sep 0.85), bridged rooms 2 cut / 0 retyped / 0 routed around, 60 swapped: cover 57%, 115 fails raw -> 109 tuned, not connected 1 raw -> 1 tuned
+  [3/36] 3 storeys, H(O V(B H(B O B))), cores rrll rrrrl (v2, sep 0.74), bridged rooms 1 cut / 0 retyped / 4 routed around, 59 swapped: cover 57%, 150 fails raw -> 135 tuned, not connected 3 raw -> 3 tuned
+  [4/36] 3 storeys, H(O V(B H(B O)) B), cores rlll rrl (v0, sep 0.87), bridged rooms 1 cut / 0 retyped / 0 routed around, 62 swapped: cover 55%, 96 fails raw -> 75 tuned, not connected 0 raw -> 0 tuned
+  [4/36] 3 storeys, H(O V(B H(B O)) B), cores rlrll rrl (v1, sep 0.82), bridged rooms 2 cut / 0 retyped / 2 routed around, 45 swapped: cover 55%, 146 fails raw -> 143 tuned, not connected 2 raw -> 2 tuned
+  [4/36] 3 storeys, H(O V(B H(B O)) B), cores rlll rlrll (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 2 routed around, 63 swapped: cover 55%, 142 fails raw -> 136 tuned, not connected 3 raw -> 3 tuned
+  [5/36] 3 storeys, H(V(B H(O B O)) B), cores lll rl (v0, sep 0.87), bridged rooms 9 cut / 0 retyped / 1 routed around, 74 swapped: cover 55%, 281 fails raw -> 273 tuned, not connected 2 raw -> 2 tuned
+  [5/36] 3 storeys, H(V(B H(O B O)) B), cores lll lrrll (v1, sep 0.73), bridged rooms 1 cut / 0 retyped / 3 routed around, 50 swapped: cover 55%, 219 fails raw -> 206 tuned, not connected 4 raw -> 4 tuned
+  [5/36] 3 storeys, H(V(B H(O B O)) B), cores lrrll rl (v2, sep 0.70), bridged rooms 2 cut / 0 retyped / 2 routed around, 44 swapped: cover 55%, 100 fails raw -> 97 tuned, not connected 2 raw -> 2 tuned
+  [6/36] 3 storeys, H(V(B O B O) B), cores lll rl (v0, sep 0.86), bridged rooms 0 cut / 0 retyped / 0 routed around, 43 swapped: cover 57%, 125 fails raw -> 118 tuned, not connected 1 raw -> 1 tuned
+  [6/36] 3 storeys, H(V(B O B O) B), cores lrrll rl (v1, sep 0.68), bridged rooms 1 cut / 0 retyped / 0 routed around, 46 swapped: cover 57%, 110 fails raw -> 105 tuned, not connected 0 raw -> 0 tuned
+  [6/36] 3 storeys, H(V(B O B O) B), cores lll lrrll (v2, sep 0.56), bridged rooms 0 cut / 0 retyped / 0 routed around, 42 swapped: cover 57%, 124 fails raw -> 89 tuned, not connected 0 raw -> 0 tuned
+  [7/36] 3 storeys, V(B H(O B O B)), cores ll rrrrl (v0, sep 0.87), bridged rooms 9 cut / 0 retyped / 1 routed around, 43 swapped: cover 55%, 352 fails raw -> 280 tuned, not connected 2 raw -> 2 tuned
+  [7/36] 3 storeys, V(B H(O B O B)), cores ll rrll (v1, sep 0.78), bridged rooms 1 cut / 0 retyped / 0 routed around, 41 swapped: cover 55%, 122 fails raw -> 122 tuned, not connected 0 raw -> 0 tuned
+  [7/36] 3 storeys, V(B H(O B O B)), cores rrll rrrrl (v2, sep 0.71), bridged rooms 5 cut / 0 retyped / 1 routed around, 59 swapped: cover 55%, 307 fails raw -> 296 tuned, not connected 1 raw -> 1 tuned
+  [8/36] 3 storeys, V(B H(O B) B O), cores ll rrll (v0, sep 0.52), bridged rooms 4 cut / 0 retyped / 2 routed around, 61 swapped: cover 56%, 141 fails raw -> 131 tuned, not connected 2 raw -> 2 tuned
+  [8/36] 3 storeys, V(B H(O B) B O), cores rlrl rrll (v1, sep 0.72), bridged rooms 3 cut / 0 retyped / 2 routed around, 47 swapped: cover 56%, 163 fails raw -> 144 tuned, not connected 3 raw -> 3 tuned
+  [8/36] 3 storeys, V(B H(O B) B O), cores ll rlrl (v2, sep 0.70), bridged rooms 2 cut / 0 retyped / 2 routed around, 56 swapped: cover 56%, 106 fails raw -> 104 tuned, not connected 2 raw -> 2 tuned
+  [9/36] 3 storeys, V(B H(V(O B O) B)), cores ll rlrll (v0, sep 0.77), bridged rooms 0 cut / 0 retyped / 3 routed around, 48 swapped: cover 57%, 131 fails raw -> 118 tuned, not connected 3 raw -> 3 tuned
+  [9/36] 3 storeys, V(B H(V(O B O) B)), cores ll rrl (v1, sep 0.86), bridged rooms 5 cut / 0 retyped / 3 routed around, 59 swapped: cover 57%, 116 fails raw -> 111 tuned, not connected 4 raw -> 4 tuned
+  [9/36] 3 storeys, V(B H(V(O B O) B)), cores rlrll rrl (v2, sep 0.69), bridged rooms 0 cut / 0 retyped / 3 routed around, 60 swapped: cover 57%, 130 fails raw -> 127 tuned, not connected 4 raw -> 4 tuned
+  [10/36] 3 storeys, V(B H(V(O B) B) O), cores ll rllrl (v0, sep 0.81), bridged rooms 0 cut / 0 retyped / 3 routed around, 53 swapped: cover 54%, 133 fails raw -> 127 tuned, not connected 3 raw -> 3 tuned
+  [10/36] 3 storeys, V(B H(V(O B) B) O), cores ll rlrl (v1, sep 0.84), bridged rooms 3 cut / 0 retyped / 2 routed around, 74 swapped: cover 54%, 103 fails raw -> 101 tuned, not connected 3 raw -> 3 tuned
+  [10/36] 3 storeys, V(B H(V(O B) B) O), cores rllrl rlrl (v2, sep 0.73), bridged rooms 5 cut / 0 retyped / 2 routed around, 56 swapped: cover 54%, 142 fails raw -> 138 tuned, not connected 2 raw -> 2 tuned
+  [11/36] 3 storeys, V(H(V(B O) B) B O), cores llll rll (v0, sep 0.82), bridged rooms 1 cut / 0 retyped / 2 routed around, 57 swapped: cover 55%, 133 fails raw -> 120 tuned, not connected 2 raw -> 0 tuned
+  [11/36] 3 storeys, V(H(V(B O) B) B O), cores lrl rll (v1, sep 0.83), bridged rooms 5 cut / 0 retyped / 2 routed around, 37 swapped: cover 55%, 127 fails raw -> 105 tuned, not connected 2 raw -> 2 tuned
+  [11/36] 3 storeys, V(H(V(B O) B) B O), cores llll lrl (v2, sep 0.73), bridged rooms 0 cut / 0 retyped / 1 routed around, 53 swapped: cover 55%, 117 fails raw -> 102 tuned, not connected 1 raw -> 1 tuned
+  [12/36] 3 storeys, H(O B V(B H(O B)) B), cores rll rrrl (v0, sep 0.86), bridged rooms 1 cut / 0 retyped / 0 routed around, 46 swapped: cover 56%, 69 fails raw -> 64 tuned, not connected 0 raw -> 0 tuned
+  [12/36] 3 storeys, H(O B V(B H(O B)) B), cores rll rrlrrl (v1, sep 0.81), bridged rooms 2 cut / 0 retyped / 0 routed around, 67 swapped: cover 56%, 66 fails raw -> 63 tuned, not connected 0 raw -> 0 tuned
+  [12/36] 3 storeys, H(O B V(B H(O B)) B), cores rll rrlll (v2, sep 0.79), bridged rooms 2 cut / 0 retyped / 2 routed around, 53 swapped: cover 56%, 58 fails raw -> 55 tuned, not connected 3 raw -> 3 tuned
+  [13/36] 3 storeys, H(O B V(B O) B O), cores rrlll rrrll (v0, sep 0.80), bridged rooms 0 cut / 0 retyped / 0 routed around, 49 swapped: cover 57%, 108 fails raw -> 104 tuned, not connected 1 raw -> 1 tuned
+  [13/36] 3 storeys, H(O B V(B O) B O), cores rll rrrll (v1, sep 0.84), bridged rooms 1 cut / 0 retyped / 3 routed around, 57 swapped: cover 57%, 116 fails raw -> 112 tuned, not connected 3 raw -> 3 tuned
+  [13/36] 3 storeys, H(O B V(B O) B O), cores rll rrlll (v2, sep 0.80), bridged rooms 0 cut / 0 retyped / 0 routed around, 48 swapped: cover 57%, 124 fails raw -> 124 tuned, not connected 0 raw -> 0 tuned
+  [14/36] 3 storeys, H(O B V(B O) V(B O)), cores rll rrlll (v0, sep 0.81), bridged rooms 0 cut / 0 retyped / 0 routed around, 71 swapped: cover 54%, 156 fails raw -> 145 tuned, not connected 0 raw -> 0 tuned
+  [14/36] 3 storeys, H(O B V(B O) V(B O)), cores rll rrrll (v1, sep 0.84), bridged rooms 3 cut / 0 retyped / 0 routed around, 58 swapped: cover 54%, 123 fails raw -> 114 tuned, not connected 0 raw -> 0 tuned
+  [14/36] 3 storeys, H(O B V(B O) V(B O)), cores rrlll rrrll (v2, sep 0.71), bridged rooms 0 cut / 0 retyped / 1 routed around, 46 swapped: cover 54%, 132 fails raw -> 128 tuned, not connected 2 raw -> 2 tuned
+  [15/36] 3 storeys, H(O B V(B O) V(O B)), cores rrlll rrrrl (v0, sep 0.77), bridged rooms 1 cut / 0 retyped / 1 routed around, 61 swapped: cover 55%, 104 fails raw -> 103 tuned, not connected 4 raw -> 4 tuned
+  [15/36] 3 storeys, H(O B V(B O) V(O B)), cores rll rrrrl (v1, sep 0.83), bridged rooms 1 cut / 0 retyped / 1 routed around, 69 swapped: cover 55%, 121 fails raw -> 120 tuned, not connected 4 raw -> 4 tuned
+  [15/36] 3 storeys, H(O B V(B O) V(O B)), cores rll rrlll (v2, sep 0.76), bridged rooms 3 cut / 0 retyped / 0 routed around, 82 swapped: cover 55%, 117 fails raw -> 112 tuned, not connected 3 raw -> 3 tuned
+  [16/36] 3 storeys, H(O V(B H(B O B O))), cores rll rrll (v0, sep 0.86), bridged rooms 1 cut / 0 retyped / 2 routed around, 46 swapped: cover 56%, 120 fails raw -> 118 tuned, not connected 2 raw -> 2 tuned
+  [16/36] 3 storeys, H(O V(B H(B O B O))), cores rll rrrrll (v1, sep 0.82), bridged rooms 1 cut / 0 retyped / 1 routed around, 51 swapped: cover 56%, 100 fails raw -> 99 tuned, not connected 2 raw -> 2 tuned
+  [16/36] 3 storeys, H(O V(B H(B O B O))), cores rrll rrrrll (v2, sep 0.72), bridged rooms 1 cut / 0 retyped / 5 routed around, 42 swapped: cover 56%, 123 fails raw -> 120 tuned, not connected 3 raw -> 3 tuned
+  [17/36] 3 storeys, H(O V(B H(B O B) O)), cores rll rrlll (v0, sep 0.83), bridged rooms 2 cut / 0 retyped / 0 routed around, 46 swapped: cover 53%, 101 fails raw -> 93 tuned, not connected 1 raw -> 1 tuned
+  [17/36] 3 storeys, H(O V(B H(B O B) O)), cores rll rrlrrl (v1, sep 0.84), bridged rooms 2 cut / 0 retyped / 0 routed around, 49 swapped: cover 53%, 133 fails raw -> 132 tuned, not connected 1 raw -> 1 tuned
+  [17/36] 3 storeys, H(O V(B H(B O B) O)), cores rrlll rrlrrl (v2, sep 0.73), bridged rooms 2 cut / 0 retyped / 0 routed around, 47 swapped: cover 53%, 127 fails raw -> 126 tuned, not connected 0 raw -> 0 tuned
+  [18/36] 3 storeys, H(O V(B H(B O B)) B), cores rlll rrl (v0, sep 0.87), bridged rooms 1 cut / 0 retyped / 0 routed around, 58 swapped: cover 56%, 78 fails raw -> 76 tuned, not connected 0 raw -> 0 tuned
+  [18/36] 3 storeys, H(O V(B H(B O B)) B), cores rlrll rrl (v1, sep 0.84), bridged rooms 0 cut / 0 retyped / 1 routed around, 45 swapped: cover 56%, 127 fails raw -> 100 tuned, not connected 1 raw -> 1 tuned
+  [18/36] 3 storeys, H(O V(B H(B O B)) B), cores rlll rlrrrl (v2, sep 0.83), bridged rooms 1 cut / 0 retyped / 0 routed around, 57 swapped: cover 56%, 85 fails raw -> 82 tuned, not connected 0 raw -> 0 tuned
+  [19/36] 3 storeys, H(O V(B H(B O V(B O)))), cores rll rrll (v0, sep 0.86), bridged rooms 5 cut / 0 retyped / 0 routed around, 56 swapped: cover 56%, 132 fails raw -> 114 tuned, not connected 0 raw -> 0 tuned
+  [19/36] 3 storeys, H(O V(B H(B O V(B O)))), cores rll rrrrll (v1, sep 0.78), bridged rooms 0 cut / 0 retyped / 1 routed around, 46 swapped: cover 56%, 146 fails raw -> 144 tuned, not connected 2 raw -> 2 tuned
+  [19/36] 3 storeys, H(O V(B H(B O V(B O)))), cores rrll rrrrll (v2, sep 0.76), bridged rooms 3 cut / 0 retyped / 0 routed around, 56 swapped: cover 56%, 145 fails raw -> 143 tuned, not connected 1 raw -> 1 tuned
+  [20/36] 3 storeys, H(O V(B H(B O) O) B), cores rlll rrl (v0, sep 0.86), bridged rooms 2 cut / 0 retyped / 2 routed around, 64 swapped: cover 56%, 86 fails raw -> 84 tuned, not connected 2 raw -> 2 tuned
+  [20/36] 3 storeys, H(O V(B H(B O) O) B), cores rlrlll rrl (v1, sep 0.75), bridged rooms 1 cut / 0 retyped / 3 routed around, 66 swapped: cover 56%, 135 fails raw -> 109 tuned, not connected 3 raw -> 3 tuned
+  [20/36] 3 storeys, H(O V(B H(B O) O) B), cores rlll rlrlll (v2, sep 0.67), bridged rooms 0 cut / 0 retyped / 2 routed around, 60 swapped: cover 56%, 122 fails raw -> 115 tuned, not connected 2 raw -> 2 tuned
+  [21/36] 3 storeys, H(O V(B H(O B O B))), cores rll rrrrrl (v0, sep 0.86), bridged rooms 5 cut / 0 retyped / 5 routed around, 87 swapped: cover 56%, 273 fails raw -> 236 tuned, not connected 3 raw -> 3 tuned
+  [21/36] 3 storeys, H(O V(B H(O B O B))), cores rll rrrll (v1, sep 0.79), bridged rooms 2 cut / 0 retyped / 0 routed around, 60 swapped: cover 56%, 110 fails raw -> 83 tuned, not connected 0 raw -> 0 tuned
+  [21/36] 3 storeys, H(O V(B H(O B O B))), cores rrrll rrrrrl (v2, sep 0.70), bridged rooms 5 cut / 0 retyped / 4 routed around, 57 swapped: cover 56%, 245 fails raw -> 207 tuned, not connected 1 raw -> 1 tuned
+  [22/36] 3 storeys, H(O V(B O B O) B), cores rlll rrl (v0, sep 0.86), bridged rooms 0 cut / 0 retyped / 2 routed around, 61 swapped: cover 52%, 82 fails raw -> 62 tuned, not connected 2 raw -> 2 tuned
+  [22/36] 3 storeys, H(O V(B O B O) B), cores rlrrll rrl (v1, sep 0.70), bridged rooms 1 cut / 0 retyped / 2 routed around, 47 swapped: cover 52%, 141 fails raw -> 139 tuned, not connected 1 raw -> 1 tuned
+  [22/36] 3 storeys, H(O V(B O B O) B), cores rlll rlrrll (v2, sep 0.60), bridged rooms 0 cut / 0 retyped / 0 routed around, 64 swapped: cover 52%, 80 fails raw -> 73 tuned, not connected 0 raw -> 0 tuned
+  [23/36] 3 storeys, H(O V(B O) V(B H(O B))), cores rlll rrll (v0, sep 0.77), bridged rooms 2 cut / 0 retyped / 2 routed around, 67 swapped: cover 55%, 111 fails raw -> 106 tuned, not connected 2 raw -> 2 tuned
+  [23/36] 3 storeys, H(O V(B O) V(B H(O B))), cores rlll rrrrl (v1, sep 0.83), bridged rooms 1 cut / 0 retyped / 4 routed around, 61 swapped: cover 55%, 157 fails raw -> 155 tuned, not connected 4 raw -> 4 tuned
+  [23/36] 3 storeys, H(O V(B O) V(B H(O B))), cores rrll rrrrl (v2, sep 0.76), bridged rooms 5 cut / 0 retyped / 4 routed around, 47 swapped: cover 55%, 121 fails raw -> 120 tuned, not connected 3 raw -> 3 tuned
+  [24/36] 3 storeys, H(O V(O B) V(B H(O B))), cores rlrl rrll (v0, sep 0.86), bridged rooms 2 cut / 0 retyped / 2 routed around, 93 swapped: cover 55%, 142 fails raw -> 138 tuned, not connected 2 raw -> 2 tuned
+  [24/36] 3 storeys, H(O V(O B) V(B H(O B))), cores rrll rrrrl (v1, sep 0.79), bridged rooms 3 cut / 0 retyped / 0 routed around, 44 swapped: cover 55%, 157 fails raw -> 147 tuned, not connected 0 raw -> 0 tuned
+  [24/36] 3 storeys, H(O V(O B) V(B H(O B))), cores rlrl rrrrl (v2, sep 0.78), bridged rooms 1 cut / 0 retyped / 2 routed around, 41 swapped: cover 55%, 123 fails raw -> 117 tuned, not connected 2 raw -> 2 tuned
+  [25/36] 3 storeys, H(V(B H(O B O B)) O), cores lll lrrrrl (v0, sep 0.85), bridged rooms 5 cut / 0 retyped / 4 routed around, 54 swapped: cover 56%, 359 fails raw -> 267 tuned, not connected 3 raw -> 3 tuned
+  [25/36] 3 storeys, H(V(B H(O B O B)) O), cores lll lrrll (v1, sep 0.78), bridged rooms 2 cut / 0 retyped / 0 routed around, 56 swapped: cover 56%, 106 fails raw -> 94 tuned, not connected 0 raw -> 0 tuned
+  [25/36] 3 storeys, H(V(B H(O B O B)) O), cores lrrll lrrrrl (v2, sep 0.70), bridged rooms 7 cut / 0 retyped / 3 routed around, 50 swapped: cover 56%, 337 fails raw -> 250 tuned, not connected 3 raw -> 3 tuned
+  [26/36] 3 storeys, H(V(B H(O B O) O) B), cores lll rl (v0, sep 0.86), bridged rooms 6 cut / 0 retyped / 4 routed around, 46 swapped: cover 55%, 174 fails raw -> 156 tuned, not connected 5 raw -> 5 tuned
+  [26/36] 3 storeys, H(V(B H(O B O) O) B), cores lrlrll rl (v1, sep 0.67), bridged rooms 1 cut / 0 retyped / 2 routed around, 76 swapped: cover 55%, 113 fails raw -> 108 tuned, not connected 3 raw -> 3 tuned
+  [26/36] 3 storeys, H(V(B H(O B O) O) B), cores lll lrlrll (v2, sep 0.65), bridged rooms 3 cut / 0 retyped / 2 routed around, 66 swapped: cover 55%, 109 fails raw -> 98 tuned, not connected 2 raw -> 2 tuned
+  [27/36] 3 storeys, H(V(B H(O B O)) B O), cores lll rll (v0, sep 0.86), bridged rooms 9 cut / 0 retyped / 2 routed around, 74 swapped: cover 56%, 265 fails raw -> 251 tuned, not connected 1 raw -> 1 tuned
+  [27/36] 3 storeys, H(V(B H(O B O)) B O), cores lrrll rll (v1, sep 0.75), bridged rooms 1 cut / 0 retyped / 2 routed around, 54 swapped: cover 56%, 137 fails raw -> 136 tuned, not connected 3 raw -> 3 tuned
+  [27/36] 3 storeys, H(V(B H(O B O)) B O), cores lll lrrll (v2, sep 0.74), bridged rooms 3 cut / 0 retyped / 5 routed around, 45 swapped: cover 56%, 104 fails raw -> 100 tuned, not connected 3 raw -> 3 tuned
+  [28/36] 3 storeys, H(V(B H(O B O)) V(O B)), cores lll rrl (v0, sep 0.86), bridged rooms 1 cut / 0 retyped / 2 routed around, 59 swapped: cover 55%, 176 fails raw -> 172 tuned, not connected 6 raw -> 6 tuned
+  [28/36] 3 storeys, H(V(B H(O B O)) V(O B)), cores lll lrrll (v1, sep 0.70), bridged rooms 2 cut / 0 retyped / 2 routed around, 44 swapped: cover 55%, 190 fails raw -> 183 tuned, not connected 5 raw -> 5 tuned
+  [28/36] 3 storeys, H(V(B H(O B O)) V(O B)), cores lrrll rrl (v2, sep 0.68), bridged rooms 1 cut / 0 retyped / 0 routed around, 60 swapped: cover 55%, 115 fails raw -> 111 tuned, not connected 3 raw -> 3 tuned
+  [29/36] 3 storeys, H(V(B H(O B)) V(B O) B), cores lll rrl (v0, sep 0.86), bridged rooms 9 cut / 0 retyped / 0 routed around, 67 swapped: cover 52%, 111 fails raw -> 105 tuned, not connected 0 raw -> 0 tuned
+  [29/36] 3 storeys, H(V(B H(O B)) V(B O) B), cores lrrl rrl (v1, sep 0.79), bridged rooms 2 cut / 0 retyped / 2 routed around, 44 swapped: cover 52%, 122 fails raw -> 115 tuned, not connected 2 raw -> 2 tuned
+  [29/36] 3 storeys, H(V(B H(O B)) V(B O) B), cores rlll rrl (v2, sep 0.75), bridged rooms 2 cut / 0 retyped / 3 routed around, 60 swapped: cover 52%, 138 fails raw -> 121 tuned, not connected 3 raw -> 3 tuned
+  [30/36] 3 storeys, H(V(B H(O V(B O) O)) B), cores lll rl (v0, sep 0.87), bridged rooms 2 cut / 0 retyped / 2 routed around, 66 swapped: cover 56%, 139 fails raw -> 136 tuned, not connected 3 raw -> 3 tuned
+  [30/36] 3 storeys, H(V(B H(O V(B O) O)) B), cores lrrlll rl (v1, sep 0.65), bridged rooms 2 cut / 0 retyped / 4 routed around, 67 swapped: cover 56%, 92 fails raw -> 81 tuned, not connected 4 raw -> 4 tuned
+  [30/36] 3 storeys, H(V(B H(O V(B O) O)) B), cores lll lrrlll (v2, sep 0.59), bridged rooms 2 cut / 0 retyped / 2 routed around, 66 swapped: cover 56%, 134 fails raw -> 132 tuned, not connected 2 raw -> 2 tuned
+  [31/36] 3 storeys, H(V(B H(O V(H(B O) O))) B), cores lll rl (v0, sep 0.86), bridged rooms 4 cut / 0 retyped / 4 routed around, 63 swapped: cover 55%, 181 fails raw -> 169 tuned, not connected 4 raw -> 4 tuned
+  [31/36] 3 storeys, H(V(B H(O V(H(B O) O))) B), cores lrrlll rl (v1, sep 0.66), bridged rooms 2 cut / 0 retyped / 2 routed around, 76 swapped: cover 55%, 127 fails raw -> 125 tuned, not connected 2 raw -> 2 tuned
+  [31/36] 3 storeys, H(V(B H(O V(H(B O) O))) B), cores lll lrrlll (v2, sep 0.65), bridged rooms 4 cut / 0 retyped / 2 routed around, 57 swapped: cover 55%, 92 fails raw -> 83 tuned, not connected 3 raw -> 3 tuned
+  [32/36] 3 storeys, H(V(B H(O V(O B O))) B), cores lll rl (v0, sep 0.85), bridged rooms 1 cut / 0 retyped / 0 routed around, 61 swapped: cover 54%, 88 fails raw -> 84 tuned, not connected 0 raw -> 0 tuned
+  [32/36] 3 storeys, H(V(B H(O V(O B O))) B), cores lrrrll rl (v1, sep 0.68), bridged rooms 0 cut / 0 retyped / 1 routed around, 57 swapped: cover 54%, 153 fails raw -> 151 tuned, not connected 1 raw -> 1 tuned
+  [32/36] 3 storeys, H(V(B H(O V(O B O))) B), cores lll lrrrll (v2, sep 0.65), bridged rooms 0 cut / 0 retyped / 0 routed around, 64 swapped: cover 54%, 89 fails raw -> 78 tuned, not connected 1 raw -> 1 tuned
+  [33/36] 3 storeys, H(V(B H(O V(O B)) O) B), cores lll lrlrrl (v0, sep 0.68), bridged rooms 0 cut / 0 retyped / 0 routed around, 56 swapped: cover 54%, 119 fails raw -> 90 tuned, not connected 1 raw -> 1 tuned
+  [33/36] 3 storeys, H(V(B H(O V(O B)) O) B), cores lll rl (v1, sep 0.85), bridged rooms 0 cut / 0 retyped / 0 routed around, 67 swapped: cover 54%, 85 fails raw -> 81 tuned, not connected 0 raw -> 0 tuned
+  [33/36] 3 storeys, H(V(B H(O V(O B)) O) B), cores lrlrrl rl (v2, sep 0.71), bridged rooms 3 cut / 0 retyped / 1 routed around, 48 swapped: cover 54%, 159 fails raw -> 156 tuned, not connected 1 raw -> 1 tuned
+  [34/36] 3 storeys, H(V(B H(V(B O) B O)) B), cores lrlll rl (v0, sep 0.79), bridged rooms 4 cut / 0 retyped / 2 routed around, 52 swapped: cover 54%, 142 fails raw -> 129 tuned, not connected 2 raw -> 2 tuned
+  [34/36] 3 storeys, H(V(B H(V(B O) B O)) B), cores lll rl (v1, sep 0.86), bridged rooms 2 cut / 0 retyped / 4 routed around, 55 swapped: cover 54%, 112 fails raw -> 105 tuned, not connected 3 raw -> 3 tuned
+  [34/36] 3 storeys, H(V(B H(V(B O) B O)) B), cores lll lrrll (v2, sep 0.74), bridged rooms 7 cut / 0 retyped / 6 routed around, 63 swapped: cover 54%, 119 fails raw -> 118 tuned, not connected 4 raw -> 4 tuned
+  [35/36] 3 storeys, H(V(B H(V(O B) B O)) B), cores lll lrlrl (v0, sep 0.76), bridged rooms 7 cut / 0 retyped / 4 routed around, 64 swapped: cover 52%, 138 fails raw -> 138 tuned, not connected 4 raw -> 4 tuned
+  [35/36] 3 storeys, H(V(B H(V(O B) B O)) B), cores lll rl (v1, sep 0.86), bridged rooms 2 cut / 0 retyped / 3 routed around, 73 swapped: cover 52%, 178 fails raw -> 172 tuned, not connected 4 raw -> 4 tuned
+  [35/36] 3 storeys, H(V(B H(V(O B) B O)) B), cores lrlrl rl (v2, sep 0.84), bridged rooms 3 cut / 0 retyped / 5 routed around, 64 swapped: cover 52%, 175 fails raw -> 162 tuned, not connected 5 raw -> 5 tuned
+  [36/36] 3 storeys, H(V(B O B O B) B), cores lll lrrrrl (v0, sep 0.79), bridged rooms 2 cut / 0 retyped / 0 routed around, 46 swapped: cover 57%, 82 fails raw -> 79 tuned, not connected 0 raw -> 0 tuned
+  [36/36] 3 storeys, H(V(B O B O B) B), cores lrrrrl rl (v1, sep 0.87), bridged rooms 0 cut / 0 retyped / 3 routed around, 44 swapped: cover 57%, 133 fails raw -> 122 tuned, not connected 7 raw -> 7 tuned
+  [36/36] 3 storeys, H(V(B O B O B) B), cores lll rl (v2, sep 0.86), bridged rooms 1 cut / 0 retyped / 0 routed around, 60 swapped: cover 57%, 99 fails raw -> 87 tuned, not connected 0 raw -> 0 tuned
+
+--clean-seeds dropped 31 with a double-loaded corridor: {'H(O B V(B H(O B)))': 1, 'H(O V(B H(B O B)))': 1, 'H(V(B O B O) B)': 1, 'V(B H(V(O B O) B))': 1, 'V(B H(V(O B) B) O)': 2, 'V(H(V(B O) B) B O)': 2, 'H(O B V(B H(O B)) B)': 3, 'H(O B V(B O) B O)': 1, 'H(O V(B H(B O B) O))': 1, 'H(O V(B H(B O B)) B)': 3, 'H(O V(B H(B O V(B O))))': 2, 'H(O V(B O) V(B H(O B)))': 1, 'H(O V(O B) V(B H(O B)))': 1, 'H(V(B H(O B O B)) O)': 1, 'H(V(B H(O B O) O) B)': 1, 'H(V(B H(O B O)) B O)': 2, 'H(V(B H(O B O)) V(O B))': 1, 'H(V(B H(O V(O B O))) B)': 1, 'H(V(B H(O V(O B)) O) B)': 1, 'H(V(B H(V(B O) B O)) B)': 2, 'H(V(B H(V(O B) B O)) B)': 2}
+
+77 seeds, 200 inner-loop evaluations each; tuned fails median 120
+  #1: 62 fails, score 7.3e-20, 3 storeys, H(O V(B O B O) B), cover 52%, cores rlll rrl (v0, sep 0.86), bridged rooms 0 cut / 0 retyped / 2 routed around, 61 swapped
+      size 16, not adjacent to 11, proportion 10, crinkliness 9, access 7, level 3
+        ################
+        ################
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ................
+        ................
+  #2: 73 fails, score 3.75e-23, 3 storeys, H(O V(B O B O) B), cover 52%, cores rlll rlrrll (v2, sep 0.60), bridged rooms 0 cut / 0 retyped / 0 routed around, 64 swapped
+      not adjacent to 20, size 15, access 14, crinkliness 10, proportion 8, inaccessible usable space 3
+        ################
+        ################
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ................
+        ................
+  #3: 75 fails, score 9.57e-24, 3 storeys, H(O V(B H(B O)) B), cover 55%, cores rlll rrl (v0, sep 0.87), bridged rooms 1 cut / 0 retyped / 0 routed around, 62 swapped
+      not adjacent to 23, access 18, size 12, proportion 10, crinkliness 7, inaccessible usable space 3
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ################
+        ################
+        ################
+        ################
+        ................
+        ................
+        ................
+  #4: 78 fails, score 1.12e-24, 3 storeys, H(V(B H(O V(O B O))) B), cover 54%, cores lll lrrrll (v2, sep 0.65), bridged rooms 0 cut / 0 retyped / 0 routed around, 64 swapped
+      not adjacent to 15, size 15, crinkliness 14, proportion 11, access 9, inaccessible usable space 3
+        ################
+        ################
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####.....####...
+        ####............
+        ####............
+  #5: 79 fails, score 4.98e-25, 3 storeys, H(V(B O B O B) B), cover 57%, cores lll lrrrrl (v0, sep 0.79), bridged rooms 2 cut / 0 retyped / 0 routed around, 46 swapped
+      not adjacent to 18, size 15, access 14, crinkliness 9, proportion 9, superfluous circulation 7
+        ################
+        ################
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+        ####...##.....##
+  #6: 81 fails, score 1.41e-25, 3 storeys, H(V(B H(O V(O B)) O) B), cover 54%, cores lll rl (v1, sep 0.85), bridged rooms 0 cut / 0 retyped / 0 routed around, 67 swapped
+      crinkliness 20, size 16, proportion 14, not adjacent to 13, access 10, inaccessible usable space 3
+        ################
+        ################
+        ####......####..
+        ####......####..
+        ####......####..
+        ####......####..
+        ####......####..
+        ####......####..
+        ####......####..
+        ####......####..
+        ####......####..
+        ####......####..
+        ####......####..
+        ####............
+        ####............
+  #7: 81 fails, score 1.33e-25, 3 storeys, H(V(B H(O V(B O) O)) B), cover 56%, cores lrrlll rl (v1, sep 0.65), bridged rooms 2 cut / 0 retyped / 4 routed around, 67 swapped
+      not adjacent to 17, size 16, crinkliness 16, access 10, proportion 9, level 5
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        #############...
+        #############...
+        #############...
+        #############...
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+  #8: 83 fails, score 2.97e-26, 3 storeys, H(V(B H(O V(H(B O) O))) B), cover 55%, cores lll lrrlll (v2, sep 0.65), bridged rooms 4 cut / 0 retyped / 2 routed around, 57 swapped
+      crinkliness 23, not adjacent to 16, proportion 12, size 11, access 7, dead end 5
+        ################
+        ################
+        ################
+        ################
+        ##..............
+        ##..............
+        ##..............
+        ###############.
+        ###############.
+        ###############.
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+        ##..............
+wrote experiments/results/halving-maple-edge-rooms/edge-1.dom  (H(O V(B O B O) B), cores rlll rrl (v0, sep 0.86), bridged rooms 0 cut / 0 retyped / 2 routed around, 61 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-2.dom  (H(O V(B O B O) B), cores rlll rlrrll (v2, sep 0.60), bridged rooms 0 cut / 0 retyped / 0 routed around, 64 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-3.dom  (H(O V(B H(B O)) B), cores rlll rrl (v0, sep 0.87), bridged rooms 1 cut / 0 retyped / 0 routed around, 62 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-4.dom  (H(V(B H(O V(O B O))) B), cores lll lrrrll (v2, sep 0.65), bridged rooms 0 cut / 0 retyped / 0 routed around, 64 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-5.dom  (H(V(B O B O B) B), cores lll lrrrrl (v0, sep 0.79), bridged rooms 2 cut / 0 retyped / 0 routed around, 46 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-6.dom  (H(V(B H(O V(O B)) O) B), cores lll rl (v1, sep 0.85), bridged rooms 0 cut / 0 retyped / 0 routed around, 67 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-7.dom  (H(V(B H(O V(B O) O)) B), cores lrrlll rl (v1, sep 0.65), bridged rooms 2 cut / 0 retyped / 4 routed around, 67 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-8.dom  (H(V(B H(O V(H(B O) O))) B), cores lll lrrlll (v2, sep 0.65), bridged rooms 4 cut / 0 retyped / 2 routed around, 57 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-9.dom  (H(O V(B H(O B O B))), cores rll rrrll (v1, sep 0.79), bridged rooms 2 cut / 0 retyped / 0 routed around, 60 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-10.dom  (H(O V(B H(B O) O) B), cores rlll rrl (v0, sep 0.86), bridged rooms 2 cut / 0 retyped / 2 routed around, 64 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-11.dom  (H(O B V(B O) B), cores rll rrrl (v0, sep 0.84), bridged rooms 2 cut / 0 retyped / 4 routed around, 55 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-12.dom  (H(V(B O B O B) B), cores lll rl (v2, sep 0.86), bridged rooms 1 cut / 0 retyped / 0 routed around, 60 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-13.dom  (H(V(B O B O) B), cores lll lrrll (v2, sep 0.56), bridged rooms 0 cut / 0 retyped / 0 routed around, 42 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-14.dom  (H(V(B H(O V(O B)) O) B), cores lll lrlrrl (v0, sep 0.68), bridged rooms 0 cut / 0 retyped / 0 routed around, 56 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-15.dom  (H(O V(B H(B O B) O)), cores rll rrlll (v0, sep 0.83), bridged rooms 2 cut / 0 retyped / 0 routed around, 46 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-16.dom  (H(V(B H(O B O)) B), cores lrrll rl (v2, sep 0.70), bridged rooms 2 cut / 0 retyped / 2 routed around, 44 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-17.dom  (H(V(B H(O B O) O) B), cores lll lrlrll (v2, sep 0.65), bridged rooms 3 cut / 0 retyped / 2 routed around, 66 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-18.dom  (H(O V(B H(B O B O))), cores rll rrrrll (v1, sep 0.82), bridged rooms 1 cut / 0 retyped / 1 routed around, 51 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-19.dom  (H(O B V(B O) V(O B)), cores rrlll rrrrl (v0, sep 0.77), bridged rooms 1 cut / 0 retyped / 1 routed around, 61 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-20.dom  (V(B H(O B) B O), cores ll rlrl (v2, sep 0.70), bridged rooms 2 cut / 0 retyped / 2 routed around, 56 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-21.dom  (H(V(B H(O B)) V(B O) B), cores lll rrl (v0, sep 0.86), bridged rooms 9 cut / 0 retyped / 0 routed around, 67 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-22.dom  (H(V(B H(V(B O) B O)) B), cores lll rl (v1, sep 0.86), bridged rooms 2 cut / 0 retyped / 4 routed around, 55 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-23.dom  (H(O V(B O) V(B H(O B))), cores rlll rrll (v0, sep 0.77), bridged rooms 2 cut / 0 retyped / 2 routed around, 67 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-24.dom  (H(O V(B H(B O B))), cores rll rrll (v0, sep 0.84), bridged rooms 1 cut / 0 retyped / 0 routed around, 40 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-25.dom  (H(O B V(B O) B), cores rrlll rrrl (v1, sep 0.76), bridged rooms 1 cut / 0 retyped / 4 routed around, 47 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-26.dom  (H(V(B H(O B O) O) B), cores lrlrll rl (v1, sep 0.67), bridged rooms 1 cut / 0 retyped / 2 routed around, 76 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-27.dom  (H(O V(B H(B O) O) B), cores rlrlll rrl (v1, sep 0.75), bridged rooms 1 cut / 0 retyped / 3 routed around, 66 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-28.dom  (H(V(B H(O B O)) V(O B)), cores lrrll rrl (v2, sep 0.68), bridged rooms 1 cut / 0 retyped / 0 routed around, 60 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-29.dom  (H(O B V(B O) B O), cores rll rrrll (v1, sep 0.84), bridged rooms 1 cut / 0 retyped / 3 routed around, 57 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-30.dom  (H(O B V(B O) V(O B)), cores rll rrlll (v2, sep 0.76), bridged rooms 3 cut / 0 retyped / 0 routed around, 82 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-31.dom  (H(O B V(B O) V(B O)), cores rll rrrll (v1, sep 0.84), bridged rooms 3 cut / 0 retyped / 0 routed around, 58 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-32.dom  (H(V(B H(O B)) V(B O) B), cores lrrl rrl (v1, sep 0.79), bridged rooms 2 cut / 0 retyped / 2 routed around, 44 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-33.dom  (H(O V(B H(B O) O) B), cores rlll rlrlll (v2, sep 0.67), bridged rooms 0 cut / 0 retyped / 2 routed around, 60 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-34.dom  (H(O V(B H(B O B O))), cores rll rrll (v0, sep 0.86), bridged rooms 1 cut / 0 retyped / 2 routed around, 46 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-35.dom  (H(V(B O B O) B), cores lll rl (v0, sep 0.86), bridged rooms 0 cut / 0 retyped / 0 routed around, 43 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-36.dom  (V(B H(V(O B O) B)), cores ll rlrll (v0, sep 0.77), bridged rooms 0 cut / 0 retyped / 3 routed around, 48 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-37.dom  (H(O B V(B H(O B))), cores rrll rrrrl (v2, sep 0.77), bridged rooms 6 cut / 0 retyped / 2 routed around, 61 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-38.dom  (H(O B V(B O) V(O B)), cores rll rrrrl (v1, sep 0.83), bridged rooms 1 cut / 0 retyped / 1 routed around, 69 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-39.dom  (H(O V(B H(B O B O))), cores rrll rrrrll (v2, sep 0.72), bridged rooms 1 cut / 0 retyped / 5 routed around, 42 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-40.dom  (V(H(V(B O) B) B O), cores llll rll (v0, sep 0.82), bridged rooms 1 cut / 0 retyped / 2 routed around, 57 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-41.dom  (H(V(B H(O B)) V(B O) B), cores rlll rrl (v2, sep 0.75), bridged rooms 2 cut / 0 retyped / 3 routed around, 60 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-42.dom  (H(V(B O B O B) B), cores lrrrrl rl (v1, sep 0.87), bridged rooms 0 cut / 0 retyped / 3 routed around, 44 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-43.dom  (V(B H(O B O B)), cores ll rrll (v1, sep 0.78), bridged rooms 1 cut / 0 retyped / 0 routed around, 41 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-44.dom  (H(O B V(B H(O B))), cores rll rrll (v0, sep 0.85), bridged rooms 3 cut / 0 retyped / 2 routed around, 67 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-45.dom  (H(O B V(B O) B O), cores rll rrlll (v2, sep 0.80), bridged rooms 0 cut / 0 retyped / 0 routed around, 48 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-46.dom  (H(V(B H(O V(H(B O) O))) B), cores lrrlll rl (v1, sep 0.66), bridged rooms 2 cut / 0 retyped / 2 routed around, 76 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-47.dom  (H(O V(B H(B O B) O)), cores rrlll rrlrrl (v2, sep 0.73), bridged rooms 2 cut / 0 retyped / 0 routed around, 47 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-48.dom  (V(B H(V(O B) B) O), cores ll rllrl (v0, sep 0.81), bridged rooms 0 cut / 0 retyped / 3 routed around, 53 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-49.dom  (V(B H(V(O B O) B)), cores rlrll rrl (v2, sep 0.69), bridged rooms 0 cut / 0 retyped / 3 routed around, 60 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-50.dom  (H(O B V(B O) V(B O)), cores rrlll rrrll (v2, sep 0.71), bridged rooms 0 cut / 0 retyped / 1 routed around, 46 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-51.dom  (V(B H(O B) B O), cores ll rrll (v0, sep 0.52), bridged rooms 4 cut / 0 retyped / 2 routed around, 61 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-52.dom  (H(V(B H(O V(B O) O)) B), cores lll lrrlll (v2, sep 0.59), bridged rooms 2 cut / 0 retyped / 2 routed around, 66 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-53.dom  (H(O V(B H(B O B))), cores rrll rrrrl (v2, sep 0.74), bridged rooms 1 cut / 0 retyped / 4 routed around, 59 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-54.dom  (H(O B V(B O) B), cores rll rrlll (v2, sep 0.76), bridged rooms 1 cut / 0 retyped / 2 routed around, 56 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-55.dom  (H(V(B H(O V(B O) O)) B), cores lll rl (v0, sep 0.87), bridged rooms 2 cut / 0 retyped / 2 routed around, 66 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-56.dom  (H(O V(B H(B O)) B), cores rlll rlrll (v2, sep 0.77), bridged rooms 1 cut / 0 retyped / 2 routed around, 63 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-57.dom  (H(O V(O B) V(B H(O B))), cores rlrl rrll (v0, sep 0.86), bridged rooms 2 cut / 0 retyped / 2 routed around, 93 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-58.dom  (H(V(B H(V(O B) B O)) B), cores lll lrlrl (v0, sep 0.76), bridged rooms 7 cut / 0 retyped / 4 routed around, 64 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-59.dom  (H(O V(B O B O) B), cores rlrrll rrl (v1, sep 0.70), bridged rooms 1 cut / 0 retyped / 2 routed around, 47 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-60.dom  (H(O V(B H(B O)) B), cores rlrll rrl (v1, sep 0.82), bridged rooms 2 cut / 0 retyped / 2 routed around, 45 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-61.dom  (H(O V(B H(B O V(B O)))), cores rrll rrrrll (v2, sep 0.76), bridged rooms 3 cut / 0 retyped / 0 routed around, 56 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-62.dom  (V(B H(O B) B O), cores rlrl rrll (v1, sep 0.72), bridged rooms 3 cut / 0 retyped / 2 routed around, 47 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-63.dom  (H(O B V(B O) V(B O)), cores rll rrlll (v0, sep 0.81), bridged rooms 0 cut / 0 retyped / 0 routed around, 71 swapped)
+wrote experiments/results/halving-maple-edge-rooms/edge-64.dom  (H(O V(O B) V(B H(O B))), cores rrll rrrrl (v1, sep 0.79), bridged rooms 3 cut / 0 retyped / 0 routed around, 44 swapped)
