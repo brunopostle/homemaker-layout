@@ -1,0 +1,77 @@
+  cold-a       1 -> 2
+  cold-b       1 -> 3
+  cold-c       1 -> 3
+  single-1     3 -> 3 -> 3 -> 6 -> 10 -> 9 -> 9
+  single-10    5 -> 5 -> 5
+  single-11    5 -> 4 -> 3 -> 4
+  single-12    3 -> 3 -> 3 -> 5 -> 5
+  single-13    3 -> 4 -> 7 -> 7 -> 7
+  single-14    3 -> 3 -> 3
+  single-15    3 -> 3
+  single-16    3 -> 4 -> 4 -> 5 -> 7 -> 7
+  single-17    2 -> 4
+  single-18    1 -> 1 -> 1 -> 1
+  single-19    7 -> 6
+  single-2     4 -> 3 -> 3 -> 3
+  single-20    3 -> 3
+  single-21    3 -> 3 -> 3
+  single-22    4 -> 4
+  single-23    3 -> 3
+  single-24    4 -> 4 -> 8 -> 6 -> 7 -> 7 -> 7
+  single-25    5 -> 4 -> 4 -> 4 -> 5 -> 6 -> 6
+  single-26    3 -> 3
+  single-27    5 -> 5 -> 6 -> 6 -> 7
+  single-28    7 -> 7 -> 7 -> 7
+  single-29    6 -> 6 -> 6
+  single-3     4 -> 4 -> 4 -> 5 -> 6 -> 6
+  single-30    3 -> 4
+  single-31    6 -> 8
+  single-32    6 -> 6
+  single-33    5 -> 5
+  single-34    6 -> 7
+  single-35    4 -> 4
+  single-36    3 -> 3
+  single-37    4 -> 5 -> 4
+  single-38    6 -> 6 -> 6
+  single-39    5 -> 6 -> 6 -> 6
+  single-4     4 -> 4 -> 4 -> 4
+  single-40    4 -> 4 -> 5
+  single-41    6 -> 6 -> 6
+  single-42    3 -> 3 -> 4
+  single-43    7 -> 7
+  single-44    5 -> 2 -> 4
+  single-45    3 -> 3
+  single-46    7 -> 7
+  single-47    3 -> 3
+  single-48    6 -> 7
+  single-49    3 -> 5
+  single-5     3 -> 3 -> 3
+  single-50    8 -> 8
+  single-51    4 -> 5 -> 5
+  single-52    3 -> 3
+  single-53    4 -> 7
+  single-54    3 -> 3
+  single-55    3 -> 3
+  single-56    3 -> 3
+  single-57    3 -> 3
+  single-58    4 -> 6 -> 7
+  single-59    7 -> 7
+  single-6     3 -> 3 -> 3
+  single-60    4 -> 5
+  single-61    4 -> 7 -> 7
+  single-62    2 -> 7 -> 7 -> 7
+  single-63    3 -> 6 -> 6 -> 6
+  single-64    3 -> 4
+  single-7     4 -> 4 -> 4
+  single-8     5 -> 5 -> 7 -> 7 -> 7
+  single-9     5 -> 5 -> 5
+
+seed: candidates with every storey connected, by arm
+
+stage: ran / joined a storey / lost a storey / all connected after
+  s0: 67 / 5 / 21 / 0
+  s1: 34 / 2 / 8 / 0
+  s2: 17 / 1 / 5 / 0
+  s3: 9 / 0 / 6 / 0
+  s4: 5 / 1 / 1 / 0
+  s5: 3 / 0 / 0 / 0
