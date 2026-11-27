@@ -23449,3 +23449,10 @@ the same stamp, and better at every stage past the first. One race, unpaired, so
 a direction and not a measured margin. What is left is mostly connection, which a race does not
 make (§39.159). Next, per expectation 4: join the winner's wings with `bridge_indoors`
 (`diag_join_clean9.py`, §39.194) and continue from the join (`run_join_clean9.sh`, §39.195).
+
+**Addendum, the join (2026-11-27).** §39.194's `bridge_indoors` does not join `single-24`:
+storeys 0 and 1 unchanged, storey 2 from 3 pieces to 2, 7 routes abandoned; 35 fails raw and
+after the inner loop, 6 still `not connected` (`experiments/results/join-single24/join.txt`).
+`diag_join_scan.py` over all 17 stage-3 to stage-5 designs (`scan.tsv`): none is joined (best 3
+`not connected` left), and every join costs fails. So no continuation search was run: it would
+start 9 fails worse and still unjoined. Connection has to come from the seed field.

@@ -1,0 +1,107 @@
+finished design: 26 fails, score 8.125e-09
+   level not connected 7; not adjacent to c 4; access 4; size 3; crinkliness 2; inaccessible usable space 2; not adjacent to n 2; too few stairs (1, min 2) 1; too many spaces 1
+0/lrrlrlll crinkliness
+   0/lrrrl crinkliness
+   1 inaccessible usable space
+   1/llrl size
+   1/lrrlrlrrl (tn) not adjacent to n
+   1/lrrlrlrrr (tn) not adjacent to n
+   1/rrrrlrl (n) not adjacent to c
+   1/rrrrlrl access
+   1/rrrrlrr (n) not adjacent to c
+   1/rrrrlrr access
+   1/rrrrlrr size
+   1/rrrrrl (n) not adjacent to c
+   1/rrrrrl access
+   1/rrrrrl size
+   1/rrrrrrr (li1) not adjacent to c
+   1/rrrrrrr access
+   2 inaccessible usable space
+   level 0 not connected
+   level 0 not connected
+   level 0 not connected
+   level 1 not connected
+   level 1 not connected
+   level 2 not connected
+   level 2 not connected
+   too few stairs (1, min 2)
+   too many spaces: ut1 (found 3, expected 1)
+  storey 0: pieces 4 -> 4, 0 cells changed
+  storey 1: pieces 3 -> 3, 0 cells changed
+  storey 2: pieces 3 -> 2, 2 cells changed
+  strips cut 2, routes abandoned 7
+joined, raw: 35 fails, score 1.45e-11
+   level not connected 6; not adjacent to c 5; access 5; proportion 4; crinkliness 3; size 3; inaccessible usable space 2; not adjacent to n 2; not adjacent to r 1; dead end 1; superfluous circulation 1; too few stairs (1, min 2) 1; too many spaces 1
+0/lrrlrlll crinkliness
+   0/lrrrl crinkliness
+   1 inaccessible usable space
+   1/llrl size
+   1/lrrlrlrrl (tn) not adjacent to n
+   1/lrrlrlrrr (tn) not adjacent to n
+   1/rrrrlrl (n) not adjacent to c
+   1/rrrrlrl access
+   1/rrrrlrr (n) not adjacent to c
+   1/rrrrlrr access
+   1/rrrrlrr proportion
+   1/rrrrlrr size
+   1/rrrrrl (n) not adjacent to c
+   1/rrrrrl access
+   1/rrrrrl size
+   1/rrrrrrr (li1) not adjacent to c
+   1/rrrrrrr access
+   2 inaccessible usable space
+   2/llrrll proportion
+   2/llrrlr proportion
+   2/rrrrlllr crinkliness
+   2/rrrrllr (tt) not adjacent to r
+   2/rrrrlrlrl proportion
+   2/rrrrlrr dead end
+   2/rrrrlrr superfluous circulation
+   2/rrrrrlr (r) not adjacent to c
+   2/rrrrrlr access
+   level 0 not connected
+   level 0 not connected
+   level 0 not connected
+   level 1 not connected
+   level 1 not connected
+   level 2 not connected
+   too few stairs (1, min 2)
+   too many spaces: ut1 (found 3, expected 1)
+joined, inner loop 2000: 35 fails, score 1.497e-11
+   level not connected 6; not adjacent to c 5; access 5; proportion 4; crinkliness 3; size 3; inaccessible usable space 2; not adjacent to n 2; not adjacent to r 1; dead end 1; superfluous circulation 1; too few stairs (1, min 2) 1; too many spaces 1
+0/lrrlrlll crinkliness
+   0/lrrrl crinkliness
+   1 inaccessible usable space
+   1/llrl size
+   1/lrrlrlrrl (tn) not adjacent to n
+   1/lrrlrlrrr (tn) not adjacent to n
+   1/rrrrlrl (n) not adjacent to c
+   1/rrrrlrl access
+   1/rrrrlrr (n) not adjacent to c
+   1/rrrrlrr access
+   1/rrrrlrr proportion
+   1/rrrrlrr size
+   1/rrrrrl (n) not adjacent to c
+   1/rrrrrl access
+   1/rrrrrl size
+   1/rrrrrrr (li1) not adjacent to c
+   1/rrrrrrr access
+   2 inaccessible usable space
+   2/llrrll proportion
+   2/llrrlr proportion
+   2/rrrrlllr crinkliness
+   2/rrrrllr (tt) not adjacent to r
+   2/rrrrlrlrl proportion
+   2/rrrrlrr dead end
+   2/rrrrlrr superfluous circulation
+   2/rrrrrlr (r) not adjacent to c
+   2/rrrrrlr access
+   level 0 not connected
+   level 0 not connected
+   level 0 not connected
+   level 1 not connected
+   level 1 not connected
+   level 2 not connected
+   too few stairs (1, min 2)
+   too many spaces: ut1 (found 3, expected 1)
+wrote experiments/results/join-single24/single-24-bridged.dom
