@@ -23456,3 +23456,25 @@ after the inner loop, 6 still `not connected` (`experiments/results/join-single2
 `diag_join_scan.py` over all 17 stage-3 to stage-5 designs (`scan.tsv`): none is joined (best 3
 `not connected` left), and every join costs fails. So no continuation search was run: it would
 start 9 fails worse and still unjoined. Connection has to come from the seed field.
+
+### 39.260 maple-court from single-row seeds with shared-edge spines: expectations (`homemaker-py-3xvb`)
+
+§39.259's field (`--spine-at outer`) won at 26 fails with every storey unjoined, and
+`bridge_indoors` joins none of its finalists. `run_halving_maple_edge_rooms.sh` races the same
+recipe with `--spine-at edge`, where a spine may run along an edge two wings share, as sp11's
+single arm did (§39.187, connected winner at 13 fails at an older objective). 36 plans x 3 stair
+placements, at most 64 written (sp11's edge seeds were 13 of 48 double-loaded, so about 79 of
+108 should survive `--clean-seeds`), plus 3 cold; otherwise as §39.258, same stamp `6191a33+orth
+6191a33 82241975c2`. About 16 h. Controls, unpaired: §39.257 (defaults: 36 fails, all storeys
+connected, crinkliness 15) and §39.259 (outer: 26 fails, 7 `level`, crinkliness 2). Written before
+it ran:
+
+1. **64 seeds written** (the cap).
+2. **Fewer unjoined storeys at stage 0 than §39.259's field**: fewer `level N not connected`
+   fails, by median, at 4k.
+3. **The winner has at most 2 `level N not connected`** (§39.259: 7).
+4. **The winner is at 20-28 fails**: connection bought back without giving up much daylight,
+   crinkliness at most 6. Below 26 would make it the best maple-court design at this objective.
+5. **No double-loaded corridor over 8 m in the winner**: the seeds are clean, but nothing in the
+   search keeps them so (§39.192's expectation 4 failed in the clean direction).
+6. **No room missing, and a seed wins.**
