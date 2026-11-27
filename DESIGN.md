@@ -23410,3 +23410,42 @@ slots. About 15-17 h. Control: §39.257's maple race, unpaired, stage by stage (
    and §39.192's winner kept three such fails. If this holds, the next step is §39.194's
    `bridge_indoors` join on the winner, not another race.
 5. **No room scored missing, and a seed wins** (carry above the field median), as in §39.257.
+
+### 39.259 maple-court from single-row seeds: read (`homemaker-py-3xvb`)
+
+`run_halving_maple_single_rooms.sh`, 2026-11-26 21:21 to 11-27 12:02 (seeds 1.5 h, race 13.2
+h), at `6191a33+orth 6191a33 82241975c2`. Results in
+`experiments/results/halving-maple-single-rooms/`.
+
+| budget | single-row: n, median, best | §39.257 control: n, median, best |
+|---|---|---|
+| 4k | 67, 94, 67 | 33, 100, 66 |
+| 8k | 34, 75, 58 | 17, 80, 48 |
+| 16k | 17, 60, 43 | 9, 63, 41 |
+| 32k | 9, 46, 37 | 5, 46, 40 |
+| 64k | 5, 36, 31 | 3, 41, 39 |
+| 128k | `single-24` **26**, 32, 33 | 36, 37 |
+
+**`single-24` wins at 26 fails, score 8.1e-09** (control 36 at 5.3e-12; re-scored with
+`homemaker-fitness`, it reproduces). 7 `level N not connected` (3 on the ground, 2 on each
+upper storey), 6 adjacency, 4 access, 3 size, 2 crinkliness, 2 `inaccessible usable space`,
+`too few stairs (1, min 2)`, `too many spaces: ut1`. No double-loaded corridor. Against the
+control the fails moved family: crinkliness 15 -> 2, `level` 0 -> 7. The single-row plan lights
+its rooms and leaves its wings unjoined, as `clean-9` did at an older objective (§39.192).
+`connect.txt`: no run at any stage ended with every storey connected; 9 runs joined a storey and
+41 lost one.
+
+Against §39.258:
+
+1. **At least 55 candidates -- held**: 64 seeds (the cap) + 3 cold.
+2. **Stage-0 median under 90 -- failed**: 94 against 100. Better, not by the margin expected.
+3. **Winner under 25 fails, crinkliness at most 6 -- failed on fails by one** (26),
+   **held on crinkliness** (2).
+4. **A storey not connected -- held**, on all three.
+5. **No room missing, a seed wins -- held**: carry 0.847 against a field median of 0.678.
+
+**What it says.** The field was the lever, as §39.257 said: ten fails better than the control at
+the same stamp, and better at every stage past the first. One race, unpaired, so 26 against 36 is
+a direction and not a measured margin. What is left is mostly connection, which a race does not
+make (§39.159). Next, per expectation 4: join the winner's wings with `bridge_indoors`
+(`diag_join_clean9.py`, §39.194) and continue from the join (`run_join_clean9.sh`, §39.195).
