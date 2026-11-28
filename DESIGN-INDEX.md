@@ -235,7 +235,7 @@ below are the most recent work.
 
 <!-- GENERATED BELOW THIS LINE by experiments/build_design_index.py -- do not edit -->
 
-## Every section of DESIGN.md (365 of them, 23480 lines)
+## Every section of DESIGN.md (366 of them, 23525 lines)
 
 `lines` is where to read: `sed -n '<first>,<last>p' DESIGN.md`, or the Read tool with that offset and limit. A top-level section's range is its own introduction only; its subsections follow with theirs.
 
@@ -651,4 +651,5 @@ below are the most recent work.
 - §39.257 · 23352-23391 · harbor-house and maple-court at today's objective: read (`homemaker-py-hlm1`)
 - §39.258 · 23392-23413 · maple-court from single-row seeds at today's objective: expectations (`homemaker-py-3xvb`)
 - §39.259 · 23414-23459 · maple-court from single-row seeds: read (`homemaker-py-3xvb`)
-- §39.260 · 23460-23480 · maple-court from single-row seeds with shared-edge spines: expectations (`homemaker-py-3xvb`)
+- §39.260 · 23460-23481 · maple-court from single-row seeds with shared-edge spines: expectations (`homemaker-py-3xvb`)
+- §39.261 · 23482-23525 · maple-court with shared-edge spines: read (`homemaker-py-3xvb`)

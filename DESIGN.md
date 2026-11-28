@@ -23478,3 +23478,48 @@ it ran:
 5. **No double-loaded corridor over 8 m in the winner**: the seeds are clean, but nothing in the
    search keeps them so (§39.192's expectation 4 failed in the clean direction).
 6. **No room missing, and a seed wins.**
+
+### 39.261 maple-court with shared-edge spines: read (`homemaker-py-3xvb`)
+
+`run_halving_maple_edge_rooms.sh`, 2026-11-27 18:24 to 11-28 09:32 (seeds 1.7 h, race 13.5 h),
+at `6191a33+orth 6191a33 82241975c2`. Results in `experiments/results/halving-maple-edge-rooms/`.
+
+| budget | edge: n, median, best | outer (§39.259): median, best | defaults (§39.257): median, best |
+|---|---|---|---|
+| 4k | 67, 101, 66 | 94, 67 | 100, 66 |
+| 8k | 34, 73, 54 | 75, 58 | 80, 48 |
+| 16k | 17, 59, 45 | 60, 43 | 63, 41 |
+| 32k | 9, 50, 33 | 46, 37 | 46, 40 |
+| 64k | 5, 37, 28 | 36, 31 | 41, 39 |
+| 128k | `edge-1` **21**, 25, 33 | 26, 32, 33 | 36, 37 |
+
+**`edge-1` wins at 21 fails, score 2.3e-07**, the best maple-court design at this objective
+(outer 26 at 8.1e-09, defaults 36 at 5.3e-12; re-scored with `homemaker-fitness`, it
+reproduces). 4 size, 3 `level N not connected` (one a storey), 2 proportion, 2 `not adjacent to
+o`, 2 `not adjacent to c`, 2 `inaccessible usable space`, and one each of `too few stairs (1,
+min 2)`, `not adjacent to n`, `level 1 no outside space`, `dead end`, crinkliness, access.
+Daylight held (crinkliness 1) and connection came back only partly. `connect.txt`: 17 runs were
+fully connected after stage 0 (outer: none), 1 after stage 4, none after stage 5; the field lost
+a storey in 43 runs and joined one in 9, as §39.159 says.
+
+Against §39.260:
+
+1. **64 seeds written -- held** (`--clean-seeds` dropped 31 of about 108).
+2. **Fewer unjoined storeys at stage 0 -- held**: re-scoring every stage-0 design, the median
+   `not connected` count is 2 here and 4 for outer, and 17 of 67 are fully connected against 0.
+3. **At most 2 `level N not connected` in the winner -- failed by one** (3; outer 7).
+4. **Winner at 20-28 fails, crinkliness at most 6 -- held** (21, 1).
+5. **No double-loaded corridor over 8 m -- held** (none).
+6. **No room missing, a seed wins -- held**: carry 0.85 or more to its nearest seeds against a
+   field median of 0.70.
+
+**The join, again.** `diag_join_scan.py` on the 8 designs of stages 4-5 (`join-scan.tsv`):
+`bridge_indoors` leaves the winner at 3 `not connected`, and no design is joined that was not
+already. So the repair does not finish this field either.
+
+**What it says.** Of the three fields at this stamp, single-row wings whose spines may share an
+edge win: 21 against 26 and 36, one race each, unpaired, so a direction rather than a margin.
+The field starts connected and the search sells connection as it goes, so the next lever is the
+search keeping it, not the seeds making it: the connection guard only protects a fully connected
+parent (`--guard-connection=connected`, §39.179-§39.180), and 17 of 67 started that way and none
+finished so.
